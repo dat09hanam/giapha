@@ -1,0 +1,33 @@
+{
+  "name": "giapha",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-tenant family tree web application",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently --names WEB,API --prefix-colors cyan,magenta \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:web": "npm run dev --workspace @giapha/web",
+    "dev:api": "npm run dev --workspace @giapha/api",
+    "build": "npm run build --workspace @giapha/api && npm run build --workspace @giapha/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "npm run prisma:generate --workspace @giapha/api",
+    "db:migrate": "npm run prisma:migrate --workspace @giapha/api",
+    "db:deploy": "npm run prisma:deploy --workspace @giapha/api",
+    "db:seed": "npm run prisma:seed --workspace @giapha/api",
+    "db:studio": "npm run prisma:studio --workspace @giapha/api"
+  },
+  "engines": {
+    "node": ">=22.22.3",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5",
+    "prettier": "^3.9.6"
+  }
+}

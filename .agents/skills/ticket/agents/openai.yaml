@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Ticket Workspace'
+  short_description: 'Create or resume repository ticket context'
+  default_prompt: 'Use $ticket to create or resume a ticket and keep its plan and memory current.'

@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum TenantRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNKNOWN
+}
+
+enum ParentChildType {
+  BIOLOGICAL
+  ADOPTIVE
+  STEP
+  FOSTER
+  GUARDIAN
+}
+
+enum PartnershipStatus {
+  MARRIED
+  PARTNERED
+  SEPARATED
+  DIVORCED
+  WIDOWED
+}
+
+model Tenant {
+  id                       String                    @id @default(uuid()) @db.Char(36)
+  slug                     String                    @unique @db.VarChar(100)
+  name                     String                    @db.VarChar(191)
+  description              String?                   @db.Text
+  status                   TenantStatus              @default(ACTIVE)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  memberships              TenantMembership[]
+  families                 Family[]
+  people                   Person[]
+  parentChildRelationships ParentChildRelationship[]
+  partnerships             Partnership[]
+
+  @@index([status])
+}
+
+model User {
+  id           String             @id @default(uuid()) @db.Char(36)
+  email        String             @unique @db.VarChar(191)
+  passwordHash String             @db.VarChar(255)
+  displayName  String             @db.VarChar(191)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  memberships  TenantMembership[]
+}
+
+model TenantMembership {
+  tenantId  String     @db.Char(36)
+  userId    String     @db.Char(36)
+  role      TenantRole @default(VIEWER)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, userId])
+  @@index([userId, role])
+}
+
+model Family {
+  id                       String                    @id @default(uuid()) @db.Char(36)
+  tenantId                 String                    @db.Char(36)
+  slug                     String                    @db.VarChar(100)
+  name                     String                    @db.VarChar(191)
+  description              String?                   @db.Text
+  isPrimary                Boolean                   @default(false)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  tenant                   Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  people                   Person[]
+  parentChildRelationships ParentChildRelationship[]
+  partnerships             Partnership[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, isPrimary])
+}
+
+model Person {
+  id              String                    @id @default(uuid()) @db.Char(36)
+  tenantId        String                    @db.Char(36)
+  familyId        String                    @db.Char(36)
+  displayName     String                    @db.VarChar(191)
+  givenName       String?                   @db.VarChar(100)
+  familyName      String?                   @db.VarChar(100)
+  gender          Gender                    @default(UNKNOWN)
+  birthDate       DateTime?                 @db.Date
+  deathDate       DateTime?                 @db.Date
+  avatarUrl       String?                   @db.VarChar(500)
+  biography       String?                   @db.Text
+  generation      Int?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  tenant          Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  family          Family                    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  parentLinks     ParentChildRelationship[] @relation("ParentLinks")
+  childLinks      ParentChildRelationship[] @relation("ChildLinks")
+  partnershipsAsA Partnership[]             @relation("PartnerA")
+  partnershipsAsB Partnership[]             @relation("PartnerB")
+
+  @@index([tenantId, familyId, generation])
+  @@index([tenantId, displayName])
+}
+
+model ParentChildRelationship {
+  id        String          @id @default(uuid()) @db.Char(36)
+  tenantId  String          @db.Char(36)
+  familyId  String          @db.Char(36)
+  parentId  String          @db.Char(36)
+  childId   String          @db.Char(36)
+  type      ParentChildType @default(BIOLOGICAL)
+  createdAt DateTime        @default(now())
+  tenant    Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  family    Family          @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  parent    Person          @relation("ParentLinks", fields: [parentId], references: [id], onDelete: Cascade)
+  child     Person          @relation("ChildLinks", fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, childId])
+  @@index([tenantId, familyId, parentId])
+  @@index([tenantId, familyId, childId])
+}
+
+model Partnership {
+  id         String            @id @default(uuid()) @db.Char(36)
+  tenantId   String            @db.Char(36)
+  familyId   String            @db.Char(36)
+  partnerAId String            @db.Char(36)
+  partnerBId String            @db.Char(36)
+  status     PartnershipStatus @default(MARRIED)
+  startedAt  DateTime?         @db.Date
+  endedAt    DateTime?         @db.Date
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  family     Family            @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  partnerA   Person            @relation("PartnerA", fields: [partnerAId], references: [id], onDelete: Cascade)
+  partnerB   Person            @relation("PartnerB", fields: [partnerBId], references: [id], onDelete: Cascade)
+
+  @@unique([partnerAId, partnerBId])
+  @@index([tenantId, familyId])
+}
