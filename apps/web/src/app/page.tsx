@@ -18,7 +18,7 @@ const features = [
   {
     icon: ShieldCheck,
     title: 'Tách biệt dữ liệu',
-    description: 'Nền tảng được thiết kế với ranh giới tenant rõ ràng ngay từ đầu.',
+    description: 'Thông tin mỗi dòng họ được phân quyền riêng theo tài khoản.',
   },
 ];
 
@@ -39,13 +39,13 @@ export default function HomePage() {
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link href="/demo">
-                Xem cây gia phả mẫu
+              <Link href="/register">
+                Tạo gia phả
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <a href="http://localhost:4000/api/docs">Mở API docs</a>
+              <Link href="/login">Đăng nhập</Link>
             </Button>
           </div>
         </div>

@@ -1,4 +1,2 @@
-[agents]
-enabled = true
-max_concurrent_threads_per_session = 3
-interrupt_message = true
+[features]
+multi_agent = true
