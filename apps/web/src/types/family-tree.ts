@@ -1,8 +1,6 @@
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER' | 'UNKNOWN';
-export type ParentChildType = 'BIOLOGICAL' | 'ADOPTIVE' | 'STEP' | 'FOSTER' | 'GUARDIAN';
-export type PartnershipStatus = 'MARRIED' | 'PARTNERED' | 'SEPARATED' | 'DIVORCED' | 'WIDOWED';
 
-export type TenantSummary = {
+export type FamilySummary = {
   id: string;
   slug: string;
   name: string;
@@ -17,33 +15,11 @@ export type Person = {
   deathDate: string | null;
   avatarUrl: string | null;
   generation: number | null;
-};
-
-export type ParentChildRelationship = {
-  id: string;
-  parentId: string;
-  childId: string;
-  type: ParentChildType;
-};
-
-export type Partnership = {
-  id: string;
-  partnerAId: string;
-  partnerBId: string;
-  status: PartnershipStatus;
-  startedAt: string | null;
-  endedAt: string | null;
+  fatherId: string | null;
+  motherId: string | null;
 };
 
 export type FamilyTreeResponse = {
-  tenant: TenantSummary;
-  family: {
-    id: string;
-    slug: string;
-    name: string;
-    description: string | null;
-  };
+  family: FamilySummary;
   people: Person[];
-  parentChildRelationships: ParentChildRelationship[];
-  partnerships: Partnership[];
 };

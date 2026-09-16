@@ -32,14 +32,17 @@ function calculateGenerations(tree: FamilyTreeResponse): Map<string, number> {
   for (let pass = 0; pass < tree.people.length; pass += 1) {
     let changed = false;
 
-    for (const relationship of tree.parentChildRelationships) {
-      const parentGeneration = generations.get(relationship.parentId) ?? 0;
-      const currentChildGeneration = generations.get(relationship.childId) ?? 0;
-      const nextChildGeneration = Math.max(currentChildGeneration, parentGeneration + 1);
+    for (const person of tree.people) {
+      for (const parentId of [person.fatherId, person.motherId]) {
+        if (!parentId || !generations.has(parentId)) continue;
+        const parentGeneration = generations.get(parentId) ?? 0;
+        const currentChildGeneration = generations.get(person.id) ?? 0;
+        const nextChildGeneration = Math.max(currentChildGeneration, parentGeneration + 1);
 
-      if (nextChildGeneration !== currentChildGeneration) {
-        generations.set(relationship.childId, nextChildGeneration);
-        changed = true;
+        if (nextChildGeneration !== currentChildGeneration) {
+          generations.set(person.id, nextChildGeneration);
+          changed = true;
+        }
       }
     }
 
@@ -80,24 +83,19 @@ export function toFlowElements(tree: FamilyTreeResponse): {
     }));
   });
 
-  const parentEdges: Edge[] = tree.parentChildRelationships.map((relationship) => ({
-    id: relationship.id,
-    source: relationship.parentId,
-    target: relationship.childId,
-    type: 'smoothstep',
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#4d7460' },
-    style: { stroke: '#4d7460', strokeWidth: 1.6 },
-  }));
+  const personIds = new Set(tree.people.map((person) => person.id));
+  const edges: Edge[] = tree.people.flatMap((person) =>
+    ([['father', person.fatherId], ['mother', person.motherId]] as const)
+      .filter(([, parentId]) => parentId && personIds.has(parentId))
+      .map(([kind, parentId]) => ({
+        id: `${kind}-${parentId}-${person.id}`,
+        source: parentId!,
+        target: person.id,
+        type: 'smoothstep',
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#4d7460' },
+        style: { stroke: '#4d7460', strokeWidth: 1.6 },
+      })),
+  );
 
-  const partnershipEdges: Edge[] = tree.partnerships.map((partnership) => ({
-    id: partnership.id,
-    source: partnership.partnerAId,
-    target: partnership.partnerBId,
-    type: 'straight',
-    label: 'phối ngẫu',
-    style: { stroke: '#b38143', strokeDasharray: '6 4', strokeWidth: 1.5 },
-    labelStyle: { fill: '#7c5a30', fontSize: 10 },
-  }));
-
-  return { nodes, edges: [...parentEdges, ...partnershipEdges] };
+  return { nodes, edges };
 }

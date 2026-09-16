@@ -5,7 +5,6 @@ process.env.DATABASE_URL ??= 'mysql://giapha:giapha_dev_password@localhost:3306/
 const prisma = new PrismaClient();
 
 const ids = {
-  tenant: '00000000-0000-4000-8000-000000000001',
   family: '00000000-0000-4000-8000-000000000101',
   an: '00000000-0000-4000-8000-000000000201',
   lan: '00000000-0000-4000-8000-000000000202',
@@ -17,31 +16,18 @@ const ids = {
 } as const;
 
 async function main(): Promise<void> {
-  await prisma.tenant.upsert({
+  const family = await prisma.family.upsert({
     where: { slug: 'demo' },
     update: {
       name: 'Dòng họ Nguyễn Văn',
-      description: 'Gia phả mẫu dùng để kiểm tra luồng đa tenant và sơ đồ phả hệ.',
+      description: 'Gia phả mẫu dùng để kiểm tra sơ đồ phả hệ.',
       status: 'ACTIVE',
     },
     create: {
-      id: ids.tenant,
+      id: ids.family,
       slug: 'demo',
       name: 'Dòng họ Nguyễn Văn',
-      description: 'Gia phả mẫu dùng để kiểm tra luồng đa tenant và sơ đồ phả hệ.',
-    },
-  });
-
-  await prisma.family.upsert({
-    where: { tenantId_slug: { tenantId: ids.tenant, slug: 'dong-chinh' } },
-    update: { name: 'Chi chính họ Nguyễn Văn', isPrimary: true },
-    create: {
-      id: ids.family,
-      tenantId: ids.tenant,
-      slug: 'dong-chinh',
-      name: 'Chi chính họ Nguyễn Văn',
-      description: 'Ba thế hệ trong bộ dữ liệu khởi tạo.',
-      isPrimary: true,
+      description: 'Gia phả mẫu dùng để kiểm tra sơ đồ phả hệ.',
     },
   });
 
@@ -66,6 +52,8 @@ async function main(): Promise<void> {
       gender: 'MALE',
       birthDate: '1964-04-05',
       generation: 1,
+      fatherId: ids.an,
+      motherId: ids.lan,
     },
     {
       id: ids.minh,
@@ -73,6 +61,8 @@ async function main(): Promise<void> {
       gender: 'FEMALE',
       birthDate: '1968-11-17',
       generation: 1,
+      fatherId: ids.an,
+      motherId: ids.lan,
     },
     {
       id: ids.huong,
@@ -87,6 +77,8 @@ async function main(): Promise<void> {
       gender: 'FEMALE',
       birthDate: '1992-01-14',
       generation: 2,
+      fatherId: ids.binh,
+      motherId: ids.huong,
     },
     {
       id: ids.dung,
@@ -94,6 +86,8 @@ async function main(): Promise<void> {
       gender: 'MALE',
       birthDate: '1996-09-08',
       generation: 2,
+      fatherId: ids.binh,
+      motherId: ids.huong,
     },
   ] as const;
 
@@ -109,53 +103,7 @@ async function main(): Promise<void> {
       create: {
         ...person,
         birthDate: new Date(`${person.birthDate}T00:00:00.000Z`),
-        tenantId: ids.tenant,
-        familyId: ids.family,
-      },
-    });
-  }
-
-  const parentChildPairs = [
-    [ids.an, ids.binh],
-    [ids.lan, ids.binh],
-    [ids.an, ids.minh],
-    [ids.lan, ids.minh],
-    [ids.binh, ids.chi],
-    [ids.huong, ids.chi],
-    [ids.binh, ids.dung],
-    [ids.huong, ids.dung],
-  ] as const;
-
-  for (const [parentId, childId] of parentChildPairs) {
-    await prisma.parentChildRelationship.upsert({
-      where: { parentId_childId: { parentId, childId } },
-      update: { type: 'BIOLOGICAL' },
-      create: {
-        tenantId: ids.tenant,
-        familyId: ids.family,
-        parentId,
-        childId,
-        type: 'BIOLOGICAL',
-      },
-    });
-  }
-
-  const couples = [
-    [ids.an, ids.lan, '1961-01-01'],
-    [ids.binh, ids.huong, '1989-01-01'],
-  ] as const;
-
-  for (const [partnerAId, partnerBId, startedAt] of couples) {
-    await prisma.partnership.upsert({
-      where: { partnerAId_partnerBId: { partnerAId, partnerBId } },
-      update: { status: 'MARRIED' },
-      create: {
-        tenantId: ids.tenant,
-        familyId: ids.family,
-        partnerAId,
-        partnerBId,
-        status: 'MARRIED',
-        startedAt: new Date(`${startedAt}T00:00:00.000Z`),
+        familyId: family.id,
       },
     });
   }

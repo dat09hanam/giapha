@@ -1,12 +1,6 @@
-import type { Gender, ParentChildType, PartnershipStatus } from '@prisma/client';
+import type { Gender } from '@prisma/client';
 
 export type FamilyTreeResponse = {
-  tenant: {
-    id: string;
-    slug: string;
-    name: string;
-    description: string | null;
-  };
   family: {
     id: string;
     slug: string;
@@ -21,19 +15,23 @@ export type FamilyTreeResponse = {
     deathDate: string | null;
     avatarUrl: string | null;
     generation: number | null;
+    fatherId: string | null;
+    motherId: string | null;
   }>;
-  parentChildRelationships: Array<{
-    id: string;
-    parentId: string;
-    childId: string;
-    type: ParentChildType;
-  }>;
-  partnerships: Array<{
-    id: string;
-    partnerAId: string;
-    partnerBId: string;
-    status: PartnershipStatus;
-    startedAt: string | null;
-    endedAt: string | null;
-  }>;
+};
+
+export type PersonResponse = {
+  id: string;
+  familyId: string;
+  fatherId: string | null;
+  motherId: string | null;
+  displayName: string;
+  givenName: string | null;
+  familyName: string | null;
+  gender: Gender;
+  birthDate: string | null;
+  deathDate: string | null;
+  avatarUrl: string | null;
+  biography: string | null;
+  generation: number | null;
 };

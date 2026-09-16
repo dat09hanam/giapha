@@ -1,26 +1,27 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { ArrowLeft, GitFork, UsersRound } from 'lucide-react';
 
 import { FamilyTree } from '@/components/tree/family-tree';
 import { Badge } from '@/components/ui/badge';
-import { ApiNotFoundError, getFamilyTree, getTenant } from '@/lib/api';
+import { ApiNotFoundError, ApiUnauthorizedError, getFamilyTree, getFamily } from '@/lib/api';
 
-type TenantPageProps = {
+type FamilyPageProps = {
   params: Promise<{ slug: string }>;
 };
 
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata({ params }: TenantPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: FamilyPageProps): Promise<Metadata> {
   const { slug } = await params;
 
   try {
-    const tenant = await getTenant(slug);
+    const family = await getFamily(slug);
     return {
-      title: tenant.name,
-      description: tenant.description ?? `Gia phả của ${tenant.name}`,
+      title: family.name,
+      description: family.description ?? `Gia phả của ${family.name}`,
     };
   } catch {
     return { title: 'Không tìm thấy gia phả' };
@@ -28,20 +29,33 @@ export async function generateMetadata({ params }: TenantPageProps): Promise<Met
 }
 
 async function loadFamilyTree(slug: string) {
+  const sessionToken = (await cookies()).get('giapha_session')?.value;
+  if (!sessionToken) {
+    redirect(`/login?next=${encodeURIComponent(`/${slug}`)}`);
+  }
+
   try {
-    return await getFamilyTree(slug);
+    return await getFamilyTree(slug, sessionToken);
   } catch (error) {
     if (error instanceof ApiNotFoundError) {
       notFound();
+    }
+
+    if (error instanceof ApiUnauthorizedError) {
+      redirect(`/login?next=${encodeURIComponent(`/${slug}`)}`);
     }
 
     throw error;
   }
 }
 
-export default async function TenantPage({ params }: TenantPageProps) {
+export default async function FamilyPage({ params }: FamilyPageProps) {
   const { slug } = await params;
   const tree = await loadFamilyTree(slug);
+  const parentLinks = tree.people.reduce(
+    (count, person) => count + Number(Boolean(person.fatherId)) + Number(Boolean(person.motherId)),
+    0,
+  );
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
@@ -55,12 +69,12 @@ export default async function TenantPage({ params }: TenantPageProps) {
 
       <div className="mt-5 flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
-          <Badge variant="secondary">giapha.vn/{tree.tenant.slug}</Badge>
+          <Badge variant="secondary">giapha.vn/{tree.family.slug}</Badge>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-emerald-950 sm:text-4xl">
             {tree.family.name}
           </h1>
           <p className="mt-2 max-w-2xl text-stone-600">
-            {tree.family.description ?? tree.tenant.description ?? 'Cây gia phả của dòng họ.'}
+            {tree.family.description ?? 'Cây gia phả của dòng họ.'}
           </p>
         </div>
         <div className="flex gap-2 text-sm text-stone-600">
@@ -70,7 +84,7 @@ export default async function TenantPage({ params }: TenantPageProps) {
           </Badge>
           <Badge variant="outline" className="gap-1.5 bg-white/65">
             <GitFork className="size-3.5" aria-hidden="true" />
-            {tree.parentChildRelationships.length} liên kết
+            {parentLinks} liên kết
           </Badge>
         </div>
       </div>

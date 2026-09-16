@@ -15,6 +15,7 @@
 - Prefer small modules, strict TypeScript, DTO validation, and explicit return types at public boundaries.
 - Do not use `any` unless an external library makes it unavoidable and the reason is documented.
 - Do not add a dependency when a small, readable local implementation is sufficient.
+- Do not create `*.spec.ts` files. Verify changes without adding files that use this test naming convention.
 - Preserve unrelated user changes. Never rewrite an existing migration after it may have been applied.
 - Update `docs/architecture.md` when changing a system boundary, tenancy strategy, or core data model.
 
