@@ -25,11 +25,7 @@ import {
 import { AuthService, type AuthProfile, type AuthResult } from './auth.service.js';
 // Runtime imports are required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { AcceptInvitationDto } from './dto/accept-invitation.dto.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { LoginDto } from './dto/login.dto.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { RegisterClanHeadDto } from './dto/register-clan-head.dto.js';
 
 @Controller('auth')
 export class AuthController {
@@ -37,24 +33,6 @@ export class AuthController {
     @Inject(AuthService) private readonly authService: AuthService,
     @Inject(ConfigService) private readonly config: ConfigService,
   ) {}
-
-  @Post('register/clan-head')
-  @UseGuards(AuthThrottleGuard)
-  async registerClanHead(
-    @Body() input: RegisterClanHeadDto,
-    @Res({ passthrough: true }) reply: FastifyReply,
-  ): Promise<AuthProfile> {
-    return this.finishAuthentication(await this.authService.registerClanHead(input), reply);
-  }
-
-  @Post('invitations/accept')
-  @UseGuards(AuthThrottleGuard)
-  async acceptInvitation(
-    @Body() input: AcceptInvitationDto,
-    @Res({ passthrough: true }) reply: FastifyReply,
-  ): Promise<AuthProfile> {
-    return this.finishAuthentication(await this.authService.acceptInvitation(input), reply);
-  }
 
   @Post('login')
   @UseGuards(AuthThrottleGuard)

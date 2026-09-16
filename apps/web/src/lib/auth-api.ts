@@ -2,22 +2,13 @@ export type UserRole = 'ADMIN' | 'MEMBER_PLUS' | 'MEMBER';
 
 export type AuthProfile = {
   id: string;
-  email: string;
+  username: string;
   displayName: string;
   role: UserRole;
   family: { id: string; slug: string; name: string } | null;
 };
 
-type LoginInput = { email: string; password: string };
-type RegisterClanHeadInput = LoginInput & {
-  displayName: string;
-  clanName: string;
-  slug: string;
-};
-type AcceptInvitationInput = LoginInput & {
-  displayName: string;
-  invitationToken: string;
-};
+type LoginInput = { username: string; password: string };
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
@@ -55,17 +46,9 @@ export function login(input: LoginInput): Promise<AuthProfile> {
   return post<AuthProfile>('/auth/login', input);
 }
 
-export function registerClanHead(input: RegisterClanHeadInput): Promise<AuthProfile> {
-  return post<AuthProfile>('/auth/register/clan-head', input);
-}
-
-export function acceptInvitation(input: AcceptInvitationInput): Promise<AuthProfile> {
-  return post<AuthProfile>('/auth/invitations/accept', input);
-}
-
 export function profileDestination(profile: AuthProfile): string {
   if (profile.role === 'ADMIN') {
-    return '/';
+    return '/admin';
   }
 
   return profile.family ? `/${profile.family.slug}` : '/';

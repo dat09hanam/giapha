@@ -4,7 +4,7 @@ import type { UserRole } from '@prisma/client';
 export type AuthenticatedUser = {
   sessionId: string;
   userId: string;
-  email: string;
+  username: string;
   displayName: string;
   role: UserRole;
   familyId: string | null;

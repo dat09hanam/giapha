@@ -4,20 +4,29 @@ import { PrismaClient, UserRole, UserStatus } from '@prisma/client';
 import { hashPassword } from '../src/auth/password.js';
 
 const prisma = new PrismaClient();
+const USERNAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.@-]*$/;
 
 async function main(): Promise<void> {
-  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const username = process.env.ADMIN_NICKNAME?.trim();
   const password = process.env.ADMIN_PASSWORD;
   const displayName = process.env.ADMIN_DISPLAY_NAME?.trim() || 'Quản trị hệ thống';
 
-  if (!email || !password || password.length < 10 || !process.env.DATABASE_URL) {
-    throw new Error('ADMIN_EMAIL, ADMIN_PASSWORD (>= 10 chars), and DATABASE_URL are required');
+  if (
+    !username ||
+    username.length < 3 ||
+    username.length > 191 ||
+    !USERNAME_PATTERN.test(username) ||
+    !password ||
+    password.length < 10 ||
+    !process.env.DATABASE_URL
+  ) {
+    throw new Error('ADMIN_NICKNAME, ADMIN_PASSWORD (>= 10 chars), and DATABASE_URL are required');
   }
 
   const passwordHash = await hashPassword(password);
   await prisma.$transaction(async (transaction) => {
     const user = await transaction.user.findUnique({
-      where: { email },
+      where: { username },
       select: { id: true, role: true, familyId: true },
     });
 
@@ -25,7 +34,6 @@ async function main(): Promise<void> {
       if (user.role !== UserRole.ADMIN || user.familyId !== null) {
         throw new Error('Existing account cannot be promoted to a platform admin');
       }
-
       await transaction.user.update({
         where: { id: user.id },
         data: { passwordHash, displayName, status: UserStatus.ACTIVE },
@@ -33,9 +41,25 @@ async function main(): Promise<void> {
       return;
     }
 
+    const existingAdmins = await transaction.user.findMany({
+      where: { role: UserRole.ADMIN, familyId: null },
+      select: { id: true },
+      take: 2,
+    });
+    if (existingAdmins.length > 1) {
+      throw new Error('Multiple administrators exist; use an existing ADMIN_NICKNAME');
+    }
+    if (existingAdmins[0]) {
+      await transaction.user.update({
+        where: { id: existingAdmins[0].id },
+        data: { username, passwordHash, displayName, status: UserStatus.ACTIVE },
+      });
+      return;
+    }
+
     await transaction.user.create({
       data: {
-        email,
+        username,
         passwordHash,
         displayName,
         role: UserRole.ADMIN,
@@ -48,8 +72,10 @@ async function main(): Promise<void> {
 }
 
 main()
-  .catch(() => {
-    console.error('Platform administrator bootstrap failed');
+  .catch((error: unknown) => {
+    console.error(
+      error instanceof Error ? error.message : 'Platform administrator bootstrap failed',
+    );
     process.exitCode = 1;
   })
   .finally(async () => {

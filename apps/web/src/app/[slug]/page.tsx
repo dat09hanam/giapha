@@ -5,9 +5,8 @@ import { notFound, redirect } from 'next/navigation';
 import { ArrowLeft, GitFork, UsersRound } from 'lucide-react';
 
 import { FamilyTree } from '@/components/tree/family-tree';
-import { InviteMember } from '@/components/auth/invite-member';
 import { Badge } from '@/components/ui/badge';
-import { ApiNotFoundError, ApiUnauthorizedError, getAuthProfile, getFamilyTree, getFamily } from '@/lib/api';
+import { ApiNotFoundError, ApiUnauthorizedError, getFamilyTree, getFamily } from '@/lib/api';
 
 type FamilyPageProps = {
   params: Promise<{ slug: string }>;
@@ -36,11 +35,7 @@ async function loadFamilyTree(slug: string) {
   }
 
   try {
-    const [tree, profile] = await Promise.all([
-      getFamilyTree(slug, sessionToken),
-      getAuthProfile(sessionToken),
-    ]);
-    return { tree, profile };
+    return await getFamilyTree(slug, sessionToken);
   } catch (error) {
     if (error instanceof ApiNotFoundError) {
       notFound();
@@ -56,8 +51,7 @@ async function loadFamilyTree(slug: string) {
 
 export default async function FamilyPage({ params }: FamilyPageProps) {
   const { slug } = await params;
-  const { tree, profile } = await loadFamilyTree(slug);
-  const isMemberPlus = profile.role === 'MEMBER_PLUS' && profile.family?.id === tree.family.id;
+  const tree = await loadFamilyTree(slug);
   const parentLinks = tree.people.reduce(
     (count, person) => count + Number(Boolean(person.fatherId)) + Number(Boolean(person.motherId)),
     0,
@@ -98,7 +92,6 @@ export default async function FamilyPage({ params }: FamilyPageProps) {
       <div className="mt-7 overflow-hidden rounded-3xl border border-emerald-950/10 bg-[#fffdf8]/75 shadow-xl shadow-emerald-950/5">
         <FamilyTree tree={tree} />
       </div>
-      {isMemberPlus ? <InviteMember slug={tree.family.slug} /> : null}
     </main>
   );
 }

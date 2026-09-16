@@ -20,11 +20,16 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
     const form = new FormData(event.currentTarget);
     try {
       const profile = await login({
-        email: String(form.get('email') ?? ''),
+        username: String(form.get('username') ?? ''),
         password: String(form.get('password') ?? ''),
       });
-      const safeNextPath = nextPath && /^\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(nextPath) ? nextPath : null;
-      router.push(safeNextPath ?? profileDestination(profile));
+      const safeNextPath =
+        nextPath && /^\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(nextPath) ? nextPath : null;
+      const destination =
+        profile.role === 'ADMIN'
+          ? profileDestination(profile)
+          : (safeNextPath ?? profileDestination(profile));
+      router.replace(destination);
       router.refresh();
     } catch (submissionError: unknown) {
       setError(submissionError instanceof Error ? submissionError.message : 'Không thể đăng nhập');
@@ -34,7 +39,15 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
 
   return (
     <form className="grid gap-4" onSubmit={handleSubmit}>
-      <Field id="email" name="email" label="Email" type="email" autoComplete="email" required />
+      <Field
+        id="username"
+        name="username"
+        label="Tên đăng nhập"
+        autoComplete="username"
+        minLength={3}
+        maxLength={191}
+        required
+      />
       <Field
         id="password"
         name="password"

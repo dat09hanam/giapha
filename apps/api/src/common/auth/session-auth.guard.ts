@@ -31,7 +31,7 @@ export class SessionAuthGuard implements CanActivate {
         user: {
           select: {
             id: true,
-            email: true,
+            username: true,
             displayName: true,
             role: true,
             familyId: true,
@@ -48,7 +48,7 @@ export class SessionAuthGuard implements CanActivate {
     request.auth = {
       sessionId: session.id,
       userId: session.user.id,
-      email: session.user.email,
+      username: session.user.username,
       displayName: session.user.displayName,
       role: session.user.role,
       familyId: session.user.familyId,

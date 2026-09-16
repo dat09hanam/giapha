@@ -6,10 +6,9 @@ import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilyAccessGuard } from '../common/auth/family-access.guard.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
-import { FamilyInvitationsController } from './family-invitations.controller.js';
 
 @Module({
-  controllers: [AuthController, FamilyInvitationsController],
+  controllers: [AuthController],
   providers: [
     AuthService,
     AuthThrottleGuard,

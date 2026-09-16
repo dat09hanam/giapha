@@ -39,13 +39,10 @@ export default function HomePage() {
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link href="/register">
-                Tạo gia phả
+              <Link href="/login">
+                Đăng nhập
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/login">Đăng nhập</Link>
             </Button>
           </div>
         </div>
