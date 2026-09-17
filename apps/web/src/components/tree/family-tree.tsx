@@ -22,17 +22,14 @@ export function FamilyTree({ tree }: { tree: FamilyTreeResponse }) {
 
   if (nodes.length === 0) {
     return (
-      <div className="grid min-h-[560px] place-items-center p-8 text-center text-stone-600">
-        <div>
-          <p className="font-medium text-stone-800">Gia phả chưa có thành viên</p>
-          <p className="mt-1 text-sm">Dữ liệu sẽ xuất hiện tại đây sau khi được bổ sung.</p>
-        </div>
+      <div className="grid min-h-[calc(100vh-4rem)] place-items-center p-8 text-center">
+        <p className="text-lg font-medium text-stone-700">Cây gia phả đang được thiết kế</p>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-14rem)] min-h-[560px]" aria-label="Sơ đồ cây gia phả">
+    <div className="h-[calc(100vh-4rem)] min-h-[560px]" aria-label="Sơ đồ cây gia phả">
       <ReactFlow
         nodes={nodes}
         edges={edges}

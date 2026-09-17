@@ -7,13 +7,7 @@ export const metadata: Metadata = {
   description: 'Đăng nhập để truy cập không gian dòng họ của bạn.',
 };
 
-type LoginPageProps = {
-  searchParams: Promise<{ next?: string }>;
-};
-
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { next } = await searchParams;
-
+export default function LoginPage() {
   return (
     <AuthShell
       eyebrow="Tài khoản Gia Phả"
@@ -21,7 +15,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       description="Đăng nhập bằng tài khoản Admin, Trưởng họ hoặc Thành viên. Quyền truy cập được kiểm tra lại theo từng dòng họ."
       footer="Tài khoản dòng họ được cấp khi Admin tạo gia phả."
     >
-      <LoginForm nextPath={next} />
+      <LoginForm />
     </AuthShell>
   );
 }
