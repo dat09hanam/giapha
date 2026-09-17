@@ -10,6 +10,13 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <AuthShell
+      brandTitle="Gia Phả Việt"
+      brandTagline="Không gian lưu giữ và kết nối câu chuyện của mỗi dòng họ."
+      highlights={[
+        'Lưu giữ thông tin từng thành viên trong dòng họ',
+        'Sơ đồ phả hệ trực quan, dễ tra cứu',
+        'Phân quyền riêng cho Admin, Trưởng họ và Thành viên',
+      ]}
       eyebrow="Tài khoản Gia Phả"
       title="Chào mừng trở lại"
       description="Đăng nhập bằng tài khoản Admin, Trưởng họ hoặc Thành viên. Quyền truy cập được kiểm tra lại theo từng dòng họ."

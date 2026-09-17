@@ -28,9 +28,9 @@ Ticket documents are compact navigation aids, not unquestionable truth. Verify r
 - For an existing ticket, give a short state recap, combine the new request with unfinished plan items, and continue from the recorded next action.
 - For a new ticket, define the outcome, in-scope and out-of-scope behavior, acceptance criteria, risks, and verification before implementation.
 - While a ticket is active in the current conversation, apply subsequent ticket requirements to it until the user selects another ticket or explicitly ends that context.
-- Follow the repository's ownership protocol. Claim the ticket directory and exact source paths before writing; never let separate contributors update the same ticket memory concurrently.
+- When another contributor or write-capable agent is active at the same time, follow [docs/concurrency-protocol.md](../../../docs/concurrency-protocol.md) and claim the ticket directory and exact source paths before writing. Single-writer work does not need a claim.
 - Inspect only code referenced by the ticket or needed for the active plan item. Expand the search when evidence shows the ticket context is stale or incomplete.
-- Update `ticket.md` when requirements or acceptance criteria change. Update `plan.md` as work items move. Update `memory.md` after every meaningful implementation checkpoint and before every handoff.
+- Update `ticket.md` when requirements or acceptance criteria change, and `plan.md` as work items move. Update `memory.md` once, before a handoff or final response — not after every step.
 
 ## Memory rules
 

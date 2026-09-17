@@ -19,31 +19,26 @@
 - Preserve unrelated user changes. Never rewrite an existing migration after it may have been applied.
 - Update `docs/architecture.md` when changing a system boundary, tenancy strategy, or core data model.
 
-## Concurrent development protocol (mandatory)
+## When to ask, and when to decide
 
-**Core rule: one writer per file at a time.** Parallel work must be divided into explicit, non-overlapping path ownership. Never let two people or write-capable agents edit the same file concurrently.
+- Default to deciding. Make routine judgment calls the way a careful engineer would, state the assumption in one line, and keep going. Do not ask for confirmation of something the request already implies.
+- Never ask "should I proceed?", "is this okay?", or "do you want me to continue?" after the work has been requested. Do the work and report what was done.
+- Ask only in two cases: a permission or credential that cannot be obtained otherwise, or a genuine fork where two readings of the request lead to materially different work.
+- When it is a genuine fork, do not ask an open question. Present 2-4 concrete named options with their trade-offs and say which one you recommend and why.
+- Ask everything in one round, not one question at a time. Before asking, finish every part of the task that does not depend on the answer.
+- If a concern is raised and the user restates the request, treat that as the decision and proceed with the full request.
 
-### Before editing
+## Version control (developer-owned)
 
-- Work on a dedicated branch and preferably a dedicated Git worktree or clone. Never run parallel write tasks in the same working tree.
-- Inspect `git status --short`, the current branch, and the relevant diff before making changes. Existing changes belong to another contributor unless the task explicitly says otherwise.
-- Establish a change claim containing: task, owner, branch/worktree, and exact owned paths or globs. Publish the claim in the team's shared issue, ticket, or pull request before editing; the AI must repeat its claimed paths in its first progress update.
-- Claim the narrowest practical scope. A directory-level claim is allowed only when the task genuinely spans that directory.
-- If an active claim or existing uncommitted change overlaps the required paths, stay read-only for those paths, report the collision, and wait for an explicit handoff or reassignment. Do not overwrite, revert, stash, or move another contributor's work.
+- Branches belong to the developer. Never create, switch, rename, or delete a branch, and never create a Git worktree. Work on whatever branch is already checked out, including `main`.
+- A new request is not a reason to start a new branch. Ask the developer if the current branch looks wrong for the task; do not switch on your own.
+- Do not stage, commit, push, or open a pull request unless the user asks for it in that message. Leave changes in the working tree and say what you changed.
+- Never `stash`, `reset`, `revert`, `checkout --`, or otherwise discard uncommitted work.
 
-### While editing
+## Searching the repository
 
-- Edit only claimed paths. Request a handoff before crossing into another owner's scope, even for a small cleanup or formatting change.
-- Do not perform repository-wide formatting, mechanical refactors, dependency upgrades, or generated-file refreshes unless their complete impact is part of the claim.
-- Serialize coordination hotspots under one named owner: `package-lock.json`, root configuration, CI files, shared API contracts/types, `schema.prisma`, migrations, and generated artifacts.
-- When frontend and backend work depend on a contract change, agree on the contract first, assign one contract owner, then let each side implement against that version in separate paths.
-- Never resolve an unfamiliar merge conflict by choosing one side wholesale. Preserve both intents or stop and ask the affected owners.
-
-### Handoff and integration
-
-- Keep commits small and cohesive. Before handoff, synchronize with the target branch, resolve conflicts on the contributor's own branch, and run checks relevant to the claimed paths.
-- Report the files changed, contract or migration impact, checks run, and any follow-up ownership needed.
-- The integration owner merges one contribution at a time and runs the relevant checks after each merge. Shared hotspots are released only after their change is merged or explicitly handed off.
+- Exclude `node_modules`, `.next`, `dist`, and `apps/api/src/generated` from every search, listing, and file walk. Use `rg` (which honors `.gitignore`) rather than bare `find` or `grep -r`.
+- Read the specific region you need rather than whole large files.
 
 ## Ticket workflow
 
@@ -51,20 +46,24 @@
 - The ticket name is the remainder of the first line; subsequent lines contain the request or update.
 - If `/ticket <name>` has no request body, resolve or initialize it as the active ticket for the current conversation and treat the next user message as its request or update. Do not modify application source until that requirement arrives.
 - Resolve ticket names through the skill helper. For an existing ticket, read only its `memory.md`, `plan.md`, and `ticket.md` before inspecting referenced code. Do not scan unrelated ticket contents.
-- Keep ticket state under `tickets/<slug>/`. Synchronize its requirements, plan, and memory before every handoff or final response.
-- A ticket workspace and its claimed source paths follow the one-writer rule. Different tickets must not concurrently claim the same source file or coordination hotspot.
+- Keep ticket state under `tickets/<slug>/`. Bring its requirements, plan, and memory up to date once, before the final response or handoff.
 
 ## Verification
 
-- Run `npm run lint`, `npm run typecheck`, and relevant tests for changed workspaces.
-- Run `npm run build` before handing off cross-workspace or release-facing changes.
+- Run checks scoped to what you changed: `npm run lint --workspace @giapha/api` or `--workspace @giapha/web`, and the matching `npm run typecheck`. Run the root-level `npm run lint`/`npm run typecheck` only when both workspaces changed.
+- Run `npm run build` only before a release-facing handoff or when a change plausibly breaks the build. Pipe its output through `tail -20`; do not paste a full build log into context.
 - Database changes require `npm run db:generate` and a reviewed migration.
+- Report failures with the relevant output, not the whole log.
 
 ## Agent orchestration
 
-- For complex tasks, delegate independent, bounded work to the relevant project agents in `.codex/agents/` and wait for their findings before integrating.
-- Use read-only agents for exploration, architecture, QA review, and security review.
-- Before starting write-capable agents, assign each one explicit, non-overlapping owned paths. Run tasks touching coordination hotspots sequentially.
-- The primary agent owns integration and final verification; delegated agents must not edit outside their claim.
-- Ask the `product_analyst` to turn new business requirements into acceptance criteria before implementation when scope is ambiguous.
-- Ask `solution_architect` to review cross-cutting decisions, `frontend_engineer` for `apps/web`, `backend_engineer` for `apps/api`, and `database_engineer` for schema or migration work.
+- Delegation is opt-in. Do the work in the current session by default, even when the task is large; every subagent starts with an empty context and re-reads the same code, which multiplies token cost.
+- Delegate to the agents in `.codex/agents/` only when the user explicitly asks for it, or when a task genuinely needs isolated parallel work across non-overlapping paths — then say so before starting.
+- When you do delegate, give each agent a bounded scope and the exact files it needs, so it does not re-explore the repository.
+
+## Concurrent work
+
+When more than one person or write-capable agent works in this repository at the same time,
+follow [docs/concurrency-protocol.md](docs/concurrency-protocol.md): one writer per file,
+explicit non-overlapping path claims, and serialized coordination hotspots. Single-writer work
+does not need that protocol.
