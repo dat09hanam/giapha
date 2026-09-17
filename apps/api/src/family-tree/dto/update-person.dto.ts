@@ -1,5 +1,6 @@
 import { Gender } from '@prisma/client';
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
@@ -18,7 +19,7 @@ export class UpdatePersonDto {
   @IsString()
   @MinLength(1)
   @MaxLength(191)
-  displayName?: string;
+  name?: string;
 
   @IsOptional()
   @IsUUID()
@@ -30,13 +31,13 @@ export class UpdatePersonDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(100)
-  givenName?: string | null;
+  @MaxLength(191)
+  nickname?: string | null;
 
   @IsOptional()
   @IsString()
-  @MaxLength(100)
-  familyName?: string | null;
+  @MaxLength(191)
+  courtesyName?: string | null;
 
   @IsOptional()
   @IsEnum(Gender)
@@ -49,6 +50,32 @@ export class UpdatePersonDto {
   @IsOptional()
   @IsDateString()
   deathDate?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(30)
+  lunarDeathDay?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  lunarDeathMonth?: number | null;
+
+  @IsOptional()
+  @IsBoolean()
+  isAlive?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  burialPlace?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  phone?: string | null;
 
   @IsOptional()
   @IsUrl({ protocols: ['http', 'https'], require_protocol: true })
@@ -65,4 +92,10 @@ export class UpdatePersonDto {
   @Min(0)
   @Max(1000)
   generation?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  orderInFamily?: number | null;
 }

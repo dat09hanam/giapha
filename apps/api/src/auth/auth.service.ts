@@ -56,13 +56,13 @@ export class AuthService {
   async login(input: LoginDto): Promise<AuthResult> {
     const user = await this.prisma.user.findUnique({
       where: { username: input.username.trim() },
-      select: { id: true, passwordHash: true, status: true },
+      select: { id: true, passwordHash: true, status: true, deletedAt: true },
     });
     const passwordMatches = await verifyPassword(
       input.password,
       user?.passwordHash ?? DUMMY_PASSWORD_HASH,
     );
-    if (!user || user.status !== UserStatus.ACTIVE || !passwordMatches) {
+    if (!user || user.deletedAt || user.status !== UserStatus.ACTIVE || !passwordMatches) {
       throw new UnauthorizedException('Username or password is incorrect');
     }
 
@@ -83,7 +83,7 @@ export class AuthService {
 
   async getProfile(userId: string): Promise<AuthProfile> {
     const user = await this.prisma.user.findFirst({
-      where: { id: userId, status: UserStatus.ACTIVE },
+      where: { id: userId, status: UserStatus.ACTIVE, deletedAt: null },
       select: profileSelect,
     });
     if (!user) throw new UnauthorizedException('Account is not active');

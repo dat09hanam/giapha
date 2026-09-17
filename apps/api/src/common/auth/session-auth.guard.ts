@@ -36,12 +36,18 @@ export class SessionAuthGuard implements CanActivate {
             role: true,
             familyId: true,
             status: true,
+            deletedAt: true,
           },
         },
       },
     });
 
-    if (!session || session.expiresAt <= new Date() || session.user.status !== UserStatus.ACTIVE) {
+    if (
+      !session ||
+      session.expiresAt <= new Date() ||
+      session.user.deletedAt ||
+      session.user.status !== UserStatus.ACTIVE
+    ) {
       throw new UnauthorizedException('Session is invalid or expired');
     }
 

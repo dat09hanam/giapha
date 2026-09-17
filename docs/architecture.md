@@ -67,9 +67,30 @@ Platform Admin accounts are provisioned or rotated with `npm run admin:bootstrap
 
 ## Genealogy model
 
+`Family` stores the public locator and clan-level record: `slug`, `name`, `description`, `status`,
+the recurring death anniversary (`deathAnniversaryDay` and `deathAnniversaryMonth`), the ancestral
+hall `address` and the clan origin (`ancestryOrigin`).
+
 `Person` belongs to one Family and stores optional `fatherId` and `motherId` self-references. Both
-foreign keys include `familyId`, preventing cross-Family parent links at the database boundary.
+foreign keys include `familyId`, preventing cross-Family parent links at the database boundary. A
+Person carries the birth `name`, `nickname`, `courtesyName` (tên tự / hiệu / thụy), `gender`,
+`birthDate`, `deathDate`, `isAlive`, `burialPlace`, `phone`, `avatarUrl`, `biography`, `generation`
+and `orderInFamily`. The lunar death anniversary is stored as `lunarDeathDay` and `lunarDeathMonth`
+rather than a single text field, so the Family's death-anniversary calendar can be queried by month.
+
+`Relationship` records one spousal link: `husbandId`, `wifeId`, `marriageDate`, `status` and
+`wifeOrder`. It carries its own `familyId` and both Person foreign keys are composite
+`(familyId, personId)`, so a marriage can never span two Families. `(familyId, husbandId, wifeId)`
+is unique.
+
+`Media` is the Family library: `fileUrl`, `title`, `status` and the optional `personId` of the
+Person credited with the item. It is Family-scoped with the same composite Person foreign key.
+
 React Flow positions and edges remain a web concern derived from domain responses.
 
-Media storage, account recovery, audit logs, forced password rotation and field-level privacy remain
-follow-up work.
+`Family`, `User`, `Person`, `Relationship` and `Media` are soft-deleted through a nullable
+`deletedAt`; every read path filters `deletedAt: null`. `AuthSession` is exempt because sessions are
+short-lived and logout must remove the row outright.
+
+File upload handling, account recovery, audit logs, forced password rotation and field-level privacy
+remain follow-up work.

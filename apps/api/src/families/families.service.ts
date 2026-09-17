@@ -19,6 +19,8 @@ export type FamilySummary = {
   description: string | null;
   deathAnniversaryDay: number | null;
   deathAnniversaryMonth: number | null;
+  address: string | null;
+  ancestryOrigin: string | null;
 };
 
 export type CreatedFamilyResult = {
@@ -35,7 +37,7 @@ export class FamiliesService {
 
   async getPublicFamily(slug: string): Promise<FamilySummary> {
     const family = await this.prisma.family.findFirst({
-      where: { slug, status: FamilyStatus.ACTIVE },
+      where: { slug, status: FamilyStatus.ACTIVE, deletedAt: null },
       select: {
         id: true,
         slug: true,
@@ -43,6 +45,8 @@ export class FamiliesService {
         description: true,
         deathAnniversaryDay: true,
         deathAnniversaryMonth: true,
+        address: true,
+        ancestryOrigin: true,
       },
     });
     if (!family) throw new NotFoundException('Family was not found');
@@ -75,6 +79,8 @@ export class FamiliesService {
             description: true,
             deathAnniversaryDay: true,
             deathAnniversaryMonth: true,
+            address: true,
+            ancestryOrigin: true,
           },
         });
         await transaction.user.createMany({
@@ -123,12 +129,16 @@ export class FamiliesService {
 
   async updateFamily(familyId: string, input: UpdateFamilyDto): Promise<FamilySummary> {
     const updated = await this.prisma.family.updateMany({
-      where: { id: familyId, status: FamilyStatus.ACTIVE },
+      where: { id: familyId, status: FamilyStatus.ACTIVE, deletedAt: null },
       data: {
         ...(input.name === undefined ? {} : { name: input.name.trim() }),
         ...(input.description === undefined
           ? {}
           : { description: input.description.trim() || null }),
+        ...(input.address === undefined ? {} : { address: input.address.trim() || null }),
+        ...(input.ancestryOrigin === undefined
+          ? {}
+          : { ancestryOrigin: input.ancestryOrigin.trim() || null }),
       },
     });
     if (updated.count !== 1) throw new NotFoundException('Family was not found');
@@ -141,6 +151,8 @@ export class FamiliesService {
         description: true,
         deathAnniversaryDay: true,
         deathAnniversaryMonth: true,
+        address: true,
+        ancestryOrigin: true,
       },
     });
   }

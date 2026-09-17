@@ -11,15 +11,21 @@ const managedPersonSelect = {
   familyId: true,
   fatherId: true,
   motherId: true,
-  displayName: true,
-  givenName: true,
-  familyName: true,
+  name: true,
+  nickname: true,
+  courtesyName: true,
   gender: true,
   birthDate: true,
   deathDate: true,
+  lunarDeathDay: true,
+  lunarDeathMonth: true,
+  isAlive: true,
+  burialPlace: true,
+  phone: true,
   avatarUrl: true,
   biography: true,
   generation: true,
+  orderInFamily: true,
 } satisfies Prisma.PersonSelect;
 
 type ManagedPersonRecord = Prisma.PersonGetPayload<{ select: typeof managedPersonSelect }>;
@@ -37,28 +43,43 @@ function nullableDate(value: string | null | undefined): Date | null | undefined
   return value === null ? null : new Date(value);
 }
 
+function nullableText(value: string | null | undefined): string | null | undefined {
+  if (value === undefined) return undefined;
+  return value?.trim() || null;
+}
+
 @Injectable()
 export class FamilyTreeService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async getTree(familyId: string): Promise<FamilyTreeResponse> {
     const family = await this.prisma.family.findFirst({
-      where: { id: familyId, status: FamilyStatus.ACTIVE },
-      select: { id: true, slug: true, name: true, description: true },
+      where: { id: familyId, status: FamilyStatus.ACTIVE, deletedAt: null },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        description: true,
+        address: true,
+        ancestryOrigin: true,
+      },
     });
     if (!family) throw new NotFoundException('Family was not found');
 
     const people = await this.prisma.person.findMany({
-      where: { familyId },
-      orderBy: [{ generation: 'asc' }, { displayName: 'asc' }],
+      where: { familyId, deletedAt: null },
+      orderBy: [{ generation: 'asc' }, { orderInFamily: 'asc' }, { name: 'asc' }],
       select: {
         id: true,
-        displayName: true,
+        name: true,
+        nickname: true,
         gender: true,
         birthDate: true,
         deathDate: true,
+        isAlive: true,
         avatarUrl: true,
         generation: true,
+        orderInFamily: true,
         fatherId: true,
         motherId: true,
       },
@@ -77,7 +98,7 @@ export class FamilyTreeService {
     return this.prisma.$transaction(
       async (transaction) => {
         const family = await transaction.family.findFirst({
-          where: { id: familyId, status: FamilyStatus.ACTIVE },
+          where: { id: familyId, status: FamilyStatus.ACTIVE, deletedAt: null },
           select: { id: true },
         });
         if (!family) throw new NotFoundException('Family was not found');
@@ -90,15 +111,21 @@ export class FamilyTreeService {
             familyId,
             fatherId,
             motherId,
-            displayName: input.displayName.trim(),
-            givenName: input.givenName?.trim() || null,
-            familyName: input.familyName?.trim() || null,
+            name: input.name.trim(),
+            nickname: nullableText(input.nickname) ?? null,
+            courtesyName: nullableText(input.courtesyName) ?? null,
             gender: input.gender,
             birthDate: nullableDate(input.birthDate),
             deathDate: nullableDate(input.deathDate),
-            avatarUrl: input.avatarUrl?.trim() || null,
-            biography: input.biography?.trim() || null,
+            lunarDeathDay: input.lunarDeathDay,
+            lunarDeathMonth: input.lunarDeathMonth,
+            isAlive: input.isAlive,
+            burialPlace: nullableText(input.burialPlace) ?? null,
+            phone: nullableText(input.phone) ?? null,
+            avatarUrl: nullableText(input.avatarUrl) ?? null,
+            biography: nullableText(input.biography) ?? null,
             generation: input.generation,
+            orderInFamily: input.orderInFamily,
           },
           select: managedPersonSelect,
         });
@@ -116,7 +143,7 @@ export class FamilyTreeService {
     return this.prisma.$transaction(
       async (transaction) => {
         const existing = await transaction.person.findFirst({
-          where: { id: personId, familyId },
+          where: { id: personId, familyId, deletedAt: null },
           select: { id: true, fatherId: true, motherId: true },
         });
         if (!existing) throw new NotFoundException('Person was not found');
@@ -127,18 +154,30 @@ export class FamilyTreeService {
         const data: Prisma.PersonUpdateManyMutationInput = {
           ...(input.fatherId === undefined ? {} : { fatherId }),
           ...(input.motherId === undefined ? {} : { motherId }),
-          ...(input.displayName === undefined ? {} : { displayName: input.displayName.trim() }),
-          ...(input.givenName === undefined ? {} : { givenName: input.givenName?.trim() || null }),
-          ...(input.familyName === undefined ? {} : { familyName: input.familyName?.trim() || null }),
+          ...(input.name === undefined ? {} : { name: input.name.trim() }),
+          ...(input.nickname === undefined ? {} : { nickname: nullableText(input.nickname) }),
+          ...(input.courtesyName === undefined
+            ? {}
+            : { courtesyName: nullableText(input.courtesyName) }),
           ...(input.gender === undefined ? {} : { gender: input.gender }),
           ...(input.birthDate === undefined ? {} : { birthDate: nullableDate(input.birthDate) }),
           ...(input.deathDate === undefined ? {} : { deathDate: nullableDate(input.deathDate) }),
-          ...(input.avatarUrl === undefined ? {} : { avatarUrl: input.avatarUrl?.trim() || null }),
-          ...(input.biography === undefined ? {} : { biography: input.biography?.trim() || null }),
+          ...(input.lunarDeathDay === undefined ? {} : { lunarDeathDay: input.lunarDeathDay }),
+          ...(input.lunarDeathMonth === undefined
+            ? {}
+            : { lunarDeathMonth: input.lunarDeathMonth }),
+          ...(input.isAlive === undefined ? {} : { isAlive: input.isAlive }),
+          ...(input.burialPlace === undefined
+            ? {}
+            : { burialPlace: nullableText(input.burialPlace) }),
+          ...(input.phone === undefined ? {} : { phone: nullableText(input.phone) }),
+          ...(input.avatarUrl === undefined ? {} : { avatarUrl: nullableText(input.avatarUrl) }),
+          ...(input.biography === undefined ? {} : { biography: nullableText(input.biography) }),
           ...(input.generation === undefined ? {} : { generation: input.generation }),
+          ...(input.orderInFamily === undefined ? {} : { orderInFamily: input.orderInFamily }),
         };
         const updated = await transaction.person.updateMany({
-          where: { id: personId, familyId },
+          where: { id: personId, familyId, deletedAt: null },
           data,
         });
         if (updated.count !== 1) throw new NotFoundException('Person was not found');
@@ -156,7 +195,7 @@ export class FamilyTreeService {
     await this.prisma.$transaction(
       async (transaction) => {
         const existing = await transaction.person.findFirst({
-          where: { id: personId, familyId },
+          where: { id: personId, familyId, deletedAt: null },
           select: { id: true },
         });
         if (!existing) throw new NotFoundException('Person was not found');
@@ -168,8 +207,17 @@ export class FamilyTreeService {
           where: { familyId, motherId: personId },
           data: { motherId: null },
         });
-        const deleted = await transaction.person.deleteMany({
-          where: { id: personId, familyId },
+        await transaction.relationship.updateMany({
+          where: {
+            familyId,
+            deletedAt: null,
+            OR: [{ husbandId: personId }, { wifeId: personId }],
+          },
+          data: { deletedAt: new Date() },
+        });
+        const deleted = await transaction.person.updateMany({
+          where: { id: personId, familyId, deletedAt: null },
+          data: { deletedAt: new Date() },
         });
         if (deleted.count !== 1) throw new NotFoundException('Person was not found');
       },
@@ -194,7 +242,7 @@ export class FamilyTreeService {
     const requested = [...new Set([fatherId, motherId].filter((id): id is string => id !== null))];
     if (!requested.length) return;
     const parents = await transaction.person.findMany({
-      where: { familyId, id: { in: requested } },
+      where: { familyId, deletedAt: null, id: { in: requested } },
       select: { id: true },
     });
     if (parents.length !== requested.length) {
@@ -203,7 +251,7 @@ export class FamilyTreeService {
     if (!personId) return;
 
     const people = await transaction.person.findMany({
-      where: { familyId },
+      where: { familyId, deletedAt: null },
       select: { id: true, fatherId: true, motherId: true },
     });
     const byId = new Map(people.map((person) => [person.id, person]));

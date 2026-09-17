@@ -5,16 +5,21 @@ export type FamilySummary = {
   slug: string;
   name: string;
   description: string | null;
+  address: string | null;
+  ancestryOrigin: string | null;
 };
 
 export type Person = {
   id: string;
-  displayName: string;
+  name: string;
+  nickname: string | null;
   gender: Gender;
   birthDate: string | null;
   deathDate: string | null;
+  isAlive: boolean;
   avatarUrl: string | null;
   generation: number | null;
+  orderInFamily: number | null;
   fatherId: string | null;
   motherId: string | null;
 };

@@ -3,7 +3,7 @@ import { MarkerType, type Edge, type Node } from '@xyflow/react';
 import type { FamilyTreeResponse, Gender } from '@/types/family-tree';
 
 export type PersonNodeData = {
-  displayName: string;
+  name: string;
   gender: Gender;
   lifespan: string;
   generation: number;
@@ -75,7 +75,7 @@ export function toFlowElements(tree: FamilyTreeResponse): {
         y: generation * VERTICAL_GAP,
       },
       data: {
-        displayName: person.displayName,
+        name: person.name,
         gender: person.gender,
         lifespan: lifespan(person.birthDate, person.deathDate),
         generation: generation + 1,

@@ -31,20 +31,38 @@ enum Gender {
   UNKNOWN
 }
 
+enum RelationshipStatus {
+  MARRIED
+  SEPARATED
+  DIVORCED
+  WIDOWED
+}
+
+enum MediaStatus {
+  ACTIVE
+  HIDDEN
+}
+
 model Family {
-  id                       String       @id @default(uuid()) @db.Char(36)
-  slug                     String       @unique @db.VarChar(100)
-  name                     String       @db.VarChar(191)
-  description              String?      @db.Text
-  deathAnniversaryDay      Int?         @db.UnsignedTinyInt
-  deathAnniversaryMonth    Int?         @db.UnsignedTinyInt
-  status                   FamilyStatus @default(ACTIVE)
-  createdAt                DateTime     @default(now())
-  updatedAt                DateTime     @updatedAt
-  users                    User[]
-  people                   Person[]
+  id                    String         @id @default(uuid()) @db.Char(36)
+  slug                  String         @unique @db.VarChar(100)
+  name                  String         @db.VarChar(191)
+  description           String?        @db.Text
+  status                FamilyStatus   @default(ACTIVE)
+  deathAnniversaryDay   Int?           @db.UnsignedTinyInt
+  deathAnniversaryMonth Int?           @db.UnsignedTinyInt
+  address               String?        @db.VarChar(255)
+  ancestryOrigin        String?        @db.VarChar(255)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  deletedAt             DateTime?
+  users                 User[]
+  people                Person[]
+  relationships         Relationship[]
+  media                 Media[]
 
   @@index([status])
+  @@index([deletedAt])
 }
 
 model User {
@@ -57,10 +75,12 @@ model User {
   status       UserStatus    @default(ACTIVE)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
   family       Family?       @relation(fields: [familyId], references: [id], onDelete: Restrict)
   sessions     AuthSession[]
 
   @@index([familyId, role, status])
+  @@index([deletedAt])
 }
 
 model AuthSession {
@@ -76,30 +96,81 @@ model AuthSession {
 }
 
 model Person {
-  id               String    @id @default(uuid()) @db.Char(36)
-  familyId         String    @db.Char(36)
-  fatherId         String?   @db.Char(36)
-  motherId         String?   @db.Char(36)
-  displayName      String    @db.VarChar(191)
-  givenName        String?   @db.VarChar(100)
-  familyName       String?   @db.VarChar(100)
-  gender           Gender    @default(UNKNOWN)
-  birthDate        DateTime? @db.Date
-  deathDate        DateTime? @db.Date
-  avatarUrl        String?   @db.VarChar(500)
-  biography        String?   @db.Text
-  generation       Int?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  family           Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  father           Person?   @relation("FatherChildren", fields: [familyId, fatherId], references: [familyId, id], onDelete: Restrict, map: "Person_father_fkey")
-  mother           Person?   @relation("MotherChildren", fields: [familyId, motherId], references: [familyId, id], onDelete: Restrict, map: "Person_mother_fkey")
-  childrenAsFather Person[]  @relation("FatherChildren")
-  childrenAsMother Person[]  @relation("MotherChildren")
+  id                 String         @id @default(uuid()) @db.Char(36)
+  familyId           String         @db.Char(36)
+  fatherId           String?        @db.Char(36)
+  motherId           String?        @db.Char(36)
+  name               String         @db.VarChar(191)
+  nickname           String?        @db.VarChar(191)
+  courtesyName       String?        @db.VarChar(191)
+  gender             Gender         @default(UNKNOWN)
+  birthDate          DateTime?      @db.Date
+  deathDate          DateTime?      @db.Date
+  lunarDeathDay      Int?           @db.UnsignedTinyInt
+  lunarDeathMonth    Int?           @db.UnsignedTinyInt
+  isAlive            Boolean        @default(true)
+  burialPlace        String?        @db.VarChar(255)
+  phone              String?        @db.VarChar(30)
+  avatarUrl          String?        @db.VarChar(500)
+  biography          String?        @db.Text
+  generation         Int?
+  orderInFamily      Int?           @db.UnsignedSmallInt
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  deletedAt          DateTime?
+  family             Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  father             Person?        @relation("FatherChildren", fields: [familyId, fatherId], references: [familyId, id], onDelete: Restrict, map: "Person_father_fkey")
+  mother             Person?        @relation("MotherChildren", fields: [familyId, motherId], references: [familyId, id], onDelete: Restrict, map: "Person_mother_fkey")
+  childrenAsFather   Person[]       @relation("FatherChildren")
+  childrenAsMother   Person[]       @relation("MotherChildren")
+  husbandInMarriages Relationship[] @relation("HusbandRelationships")
+  wifeInMarriages    Relationship[] @relation("WifeRelationships")
+  uploadedMedia      Media[]        @relation("MediaAuthor")
 
   @@unique([familyId, id])
   @@index([familyId, fatherId])
   @@index([familyId, motherId])
   @@index([familyId, generation])
-  @@index([familyId, displayName])
+  @@index([familyId, name])
+  @@index([familyId, lunarDeathMonth, lunarDeathDay])
+  @@index([deletedAt])
+}
+
+model Relationship {
+  id           String             @id @default(uuid()) @db.Char(36)
+  familyId     String             @db.Char(36)
+  husbandId    String             @db.Char(36)
+  wifeId       String             @db.Char(36)
+  marriageDate DateTime?          @db.Date
+  status       RelationshipStatus @default(MARRIED)
+  wifeOrder    Int?               @db.UnsignedTinyInt
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  deletedAt    DateTime?
+  family       Family             @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  husband      Person             @relation("HusbandRelationships", fields: [familyId, husbandId], references: [familyId, id], onDelete: Restrict, map: "Relationship_husband_fkey")
+  wife         Person             @relation("WifeRelationships", fields: [familyId, wifeId], references: [familyId, id], onDelete: Restrict, map: "Relationship_wife_fkey")
+
+  @@unique([familyId, husbandId, wifeId])
+  @@index([familyId, husbandId, wifeOrder])
+  @@index([familyId, wifeId])
+  @@index([deletedAt])
+}
+
+model Media {
+  id        String      @id @default(uuid()) @db.Char(36)
+  familyId  String      @db.Char(36)
+  personId  String?     @db.Char(36)
+  fileUrl   String      @db.VarChar(500)
+  title     String?     @db.VarChar(191)
+  status    MediaStatus @default(ACTIVE)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  deletedAt DateTime?
+  family    Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  person    Person?     @relation("MediaAuthor", fields: [familyId, personId], references: [familyId, id], onDelete: Restrict, map: "Media_person_fkey")
+
+  @@index([familyId, status])
+  @@index([familyId, personId])
+  @@index([deletedAt])
 }

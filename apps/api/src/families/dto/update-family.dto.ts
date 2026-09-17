@@ -11,4 +11,14 @@ export class UpdateFamilyDto {
   @IsString()
   @MaxLength(5000)
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  ancestryOrigin?: string;
 }

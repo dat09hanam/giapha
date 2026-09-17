@@ -31,7 +31,7 @@ export class FamilyAccessGuard implements CanActivate {
     const rawSlug = (request.params as { slug?: string }).slug;
     const slug = normalizeFamilySlug(rawSlug ?? '');
     const family = await this.prisma.family.findFirst({
-      where: { slug, status: FamilyStatus.ACTIVE },
+      where: { slug, status: FamilyStatus.ACTIVE, deletedAt: null },
       select: { id: true, slug: true },
     });
     if (!family || family.id !== request.auth.familyId) {

@@ -25,8 +25,8 @@ export function PersonNode({ data }: NodeProps<PersonFlowNode>) {
           <UserRound className="size-5" aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <h2 className="truncate font-semibold text-emerald-950" title={data.displayName}>
-            {data.displayName}
+          <h2 className="truncate font-semibold text-emerald-950" title={data.name}>
+            {data.name}
           </h2>
           <p className="mt-1 text-xs text-stone-500">{data.lifespan}</p>
           <p className="mt-2 text-[11px] font-medium uppercase tracking-wider text-emerald-700">
