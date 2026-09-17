@@ -5,4 +5,4 @@
 - Domain API types belong in `src/types`; React Flow conversion belongs in `src/lib/tree-layout.ts`.
 - Use shadcn-style primitives from `src/components/ui` before adding one-off component styling.
 - Include loading, empty, not-found, and error behavior for tenant-facing routes.
-- Run `npm run lint --workspace @giapha/web`, `npm run typecheck --workspace @giapha/web`, and `npm run build --workspace @giapha/web` after substantive changes.
+- After substantive changes run `npm run lint --workspace @giapha/web` and `npm run typecheck --workspace @giapha/web`. Run `npm run build --workspace @giapha/web` only before a release-facing handoff, and read its output through `tail -20`.

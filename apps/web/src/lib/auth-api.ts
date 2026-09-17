@@ -51,5 +51,10 @@ export function profileDestination(profile: AuthProfile): string {
     return '/admin';
   }
 
-  return profile.family ? `/${profile.family.slug}` : '/';
+  if (!profile.family) {
+    return '/';
+  }
+
+  const familySlug = encodeURIComponent(profile.family.slug);
+  return profile.role === 'MEMBER_PLUS' ? `/admin/${familySlug}` : `/${familySlug}`;
 }

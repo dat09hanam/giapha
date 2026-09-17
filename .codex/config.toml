@@ -1,2 +1,6 @@
+# Multi-agent stays enabled so the agents in .codex/agents/ are available on demand,
+# but delegation is opt-in: see the "Agent orchestration" section of AGENTS.md.
+# Each subagent starts with an empty context and re-reads the repository, so spawning
+# one multiplies token cost. Delegate only when you ask for it explicitly.
 [features]
 multi_agent = true
