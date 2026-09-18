@@ -16,8 +16,10 @@ import { LogoutButton } from '@/components/auth/logout-button';
 import { CreateFamilyForm } from '@/components/admin/create-family-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ApiErrorState } from '@/components/ui/api-error-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ApiUnauthorizedError, getAuthProfile } from '@/lib/api';
+import { ApiRequestError } from '@/lib/api-error';
 import { profileDestination, type AuthProfile } from '@/lib/auth-api';
 
 export const metadata: Metadata = {
@@ -36,7 +38,9 @@ async function requireAdmin(): Promise<AuthProfile> {
     if (profile.role !== 'ADMIN') redirect(profileDestination(profile));
     return profile;
   } catch (error) {
-    if (error instanceof ApiUnauthorizedError) redirect('/login?next=/admin');
+    if (error instanceof ApiUnauthorizedError) {
+      redirect('/login?next=/admin&reason=session-expired');
+    }
     throw error;
   }
 }
@@ -60,7 +64,21 @@ const managementAreas = [
 ] as const;
 
 export default async function AdminPage() {
-  const profile = await requireAdmin();
+  let profile: AuthProfile;
+  try {
+    profile = await requireAdmin();
+  } catch (error: unknown) {
+    if (error instanceof ApiRequestError) {
+      return (
+        <ApiErrorState
+          title="Chưa thể tải khu vực quản trị"
+          message={error.message}
+          retryHref="/admin"
+        />
+      );
+    }
+    throw error;
+  }
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">

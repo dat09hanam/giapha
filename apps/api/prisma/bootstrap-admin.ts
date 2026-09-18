@@ -20,7 +20,9 @@ async function main(): Promise<void> {
     password.length < 10 ||
     !process.env.DATABASE_URL
   ) {
-    throw new Error('ADMIN_NICKNAME, ADMIN_PASSWORD (>= 10 chars), and DATABASE_URL are required');
+    throw new Error(
+      'Cần khai báo ADMIN_NICKNAME, ADMIN_PASSWORD (ít nhất 10 ký tự) và DATABASE_URL.',
+    );
   }
 
   const passwordHash = await hashPassword(password);
@@ -32,7 +34,7 @@ async function main(): Promise<void> {
 
     if (user) {
       if (user.role !== UserRole.ADMIN || user.familyId !== null) {
-        throw new Error('Existing account cannot be promoted to a platform admin');
+        throw new Error('Không thể nâng tài khoản hiện có thành quản trị viên hệ thống.');
       }
       await transaction.user.update({
         where: { id: user.id },
@@ -47,7 +49,9 @@ async function main(): Promise<void> {
       take: 2,
     });
     if (existingAdmins.length > 1) {
-      throw new Error('Multiple administrators exist; use an existing ADMIN_NICKNAME');
+      throw new Error(
+        'Đã có nhiều quản trị viên; hãy dùng ADMIN_NICKNAME của một tài khoản hiện có.',
+      );
     }
     if (existingAdmins[0]) {
       await transaction.user.update({

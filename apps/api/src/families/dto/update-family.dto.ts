@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class UpdateFamilyDto {
   @IsOptional()
@@ -21,4 +21,9 @@ export class UpdateFamilyDto {
   @IsString()
   @MaxLength(255)
   ancestryOrigin?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{2}\/\d{2}$/)
+  deathAnniversary?: string | null;
 }

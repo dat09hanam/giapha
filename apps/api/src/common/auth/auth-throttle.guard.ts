@@ -31,7 +31,10 @@ export class AuthThrottleGuard implements CanActivate {
     }
 
     if (current.count >= MAX_ATTEMPTS) {
-      throw new HttpException('Too many authentication attempts', HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException(
+        'Bạn đã thử đăng nhập quá nhiều lần. Vui lòng thử lại sau 15 phút.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     current.count += 1;

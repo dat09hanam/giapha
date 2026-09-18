@@ -59,7 +59,7 @@ export class AuthController {
   @UseGuards(SessionAuthGuard)
   getMe(@Req() request: AuthRequest): Promise<AuthProfile> {
     if (!request.auth) {
-      throw new UnauthorizedException('Authentication is required');
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
     }
 
     return this.authService.getProfile(request.auth.userId);

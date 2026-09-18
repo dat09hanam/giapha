@@ -11,7 +11,9 @@ export function normalizeFamilySlug(value: string): string {
     !FAMILY_SLUG_PATTERN.test(slug) ||
     RESERVED_FAMILY_SLUGS.has(slug)
   ) {
-    throw new BadRequestException('Family slug is invalid');
+    throw new BadRequestException(
+      'Đường dẫn dòng họ không hợp lệ; chỉ dùng chữ thường, số và dấu gạch ngang.',
+    );
   }
   return slug;
 }

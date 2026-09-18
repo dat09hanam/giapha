@@ -23,9 +23,12 @@ export class FamilyAccessGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthRequest>();
-    if (!request.auth) throw new UnauthorizedException('Authentication is required');
+    if (!request.auth)
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
     if (request.auth.role === UserRole.ADMIN || !request.auth.familyId) {
-      throw new ForbiddenException('Administrators cannot access family data');
+      throw new ForbiddenException(
+        'Tài khoản quản trị hệ thống không thể truy cập dữ liệu riêng của dòng họ.',
+      );
     }
 
     const rawSlug = (request.params as { slug?: string }).slug;
@@ -35,7 +38,7 @@ export class FamilyAccessGuard implements CanActivate {
       select: { id: true, slug: true },
     });
     if (!family || family.id !== request.auth.familyId) {
-      throw new ForbiddenException('Family access is not available');
+      throw new ForbiddenException('Bạn không được phép truy cập dòng họ theo đường dẫn này.');
     }
 
     const roles = this.reflector.getAllAndOverride<UserRole[]>(FAMILY_ROLES_KEY, [
@@ -43,7 +46,9 @@ export class FamilyAccessGuard implements CanActivate {
       context.getClass(),
     ]);
     if (roles?.length && !roles.includes(request.auth.role)) {
-      throw new ForbiddenException('You do not have permission for this family');
+      throw new ForbiddenException(
+        'Vai trò hiện tại không có quyền thực hiện thao tác này trong dòng họ.',
+      );
     }
 
     request.familyAccess = { familyId: family.id, slug: family.slug, role: request.auth.role };

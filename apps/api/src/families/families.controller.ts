@@ -55,7 +55,8 @@ export class FamiliesController {
     @Body() input: UpdateFamilyDto,
     @Req() request: AuthRequest,
   ): Promise<FamilySummary> {
-    if (!request.familyAccess) throw new UnauthorizedException('Authentication is required');
+    if (!request.familyAccess)
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
     return this.families.updateFamily(request.familyAccess.familyId, input);
   }
 }

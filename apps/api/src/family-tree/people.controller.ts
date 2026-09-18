@@ -65,7 +65,7 @@ export class PeopleController {
 
   private getFamilyId(request: AuthRequest): string {
     if (!request.familyAccess) {
-      throw new UnauthorizedException('Authentication is required');
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
     }
 
     return request.familyAccess.familyId;

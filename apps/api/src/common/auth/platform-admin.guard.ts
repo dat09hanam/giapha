@@ -14,7 +14,9 @@ export class PlatformAdminGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthRequest>();
 
     if (request.auth?.role !== UserRole.ADMIN || request.auth.familyId !== null) {
-      throw new ForbiddenException('Platform administrator access is required');
+      throw new ForbiddenException(
+        'Chỉ quản trị viên hệ thống mới có quyền thực hiện thao tác này.',
+      );
     }
 
     return true;

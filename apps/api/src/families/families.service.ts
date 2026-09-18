@@ -1,4 +1,10 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { FamilyStatus, Prisma, UserRole } from '@prisma/client';
 
 import { normalizeFamilySlug } from '../common/pipes/family-slug.pipe.js';
@@ -49,7 +55,8 @@ export class FamiliesService {
         ancestryOrigin: true,
       },
     });
-    if (!family) throw new NotFoundException('Family was not found');
+    if (!family)
+      throw new NotFoundException('Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.');
     return family;
   }
 
@@ -121,17 +128,31 @@ export class FamiliesService {
       };
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException('Family URL or generated username already exists');
+        throw new ConflictException(
+          'Đường dẫn dòng họ hoặc tên đăng nhập được tạo tự động đã tồn tại.',
+        );
       }
       throw error;
     }
   }
 
   async updateFamily(familyId: string, input: UpdateFamilyDto): Promise<FamilySummary> {
+    const name = input.name === undefined ? undefined : normalizeFamilyName(input.name);
+    if (name !== undefined && name.length < 2) {
+      throw new BadRequestException(
+        'Tên dòng họ sau khi loại bỏ khoảng trắng phải có ít nhất 2 ký tự.',
+      );
+    }
+
+    const anniversary =
+      input.deathAnniversary === undefined || input.deathAnniversary === null
+        ? input.deathAnniversary
+        : parseDeathAnniversary(input.deathAnniversary);
+
     const updated = await this.prisma.family.updateMany({
       where: { id: familyId, status: FamilyStatus.ACTIVE, deletedAt: null },
       data: {
-        ...(input.name === undefined ? {} : { name: input.name.trim() }),
+        ...(name === undefined ? {} : { name }),
         ...(input.description === undefined
           ? {}
           : { description: input.description.trim() || null }),
@@ -139,9 +160,18 @@ export class FamiliesService {
         ...(input.ancestryOrigin === undefined
           ? {}
           : { ancestryOrigin: input.ancestryOrigin.trim() || null }),
+        ...(anniversary === undefined
+          ? {}
+          : anniversary === null
+            ? { deathAnniversaryDay: null, deathAnniversaryMonth: null }
+            : {
+                deathAnniversaryDay: anniversary.day,
+                deathAnniversaryMonth: anniversary.month,
+              }),
       },
     });
-    if (updated.count !== 1) throw new NotFoundException('Family was not found');
+    if (updated.count !== 1)
+      throw new NotFoundException('Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.');
     return this.prisma.family.findUniqueOrThrow({
       where: { id: familyId },
       select: {

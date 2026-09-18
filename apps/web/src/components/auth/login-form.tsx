@@ -3,13 +3,14 @@
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
+import { getApiErrorMessage } from '@/lib/api-error';
 import { login, profileDestination } from '@/lib/auth-api';
 import { Button } from '@/components/ui/button';
 import { Field, FormError } from './form-fields';
 
-export function LoginForm() {
+export function LoginForm({ initialError = null }: { initialError?: string | null }) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -26,7 +27,7 @@ export function LoginForm() {
       router.replace(profileDestination(profile));
       router.refresh();
     } catch (submissionError: unknown) {
-      setError(submissionError instanceof Error ? submissionError.message : 'Không thể đăng nhập');
+      setError(getApiErrorMessage(submissionError, 'đăng nhập'));
       setSubmitting(false);
     }
   }

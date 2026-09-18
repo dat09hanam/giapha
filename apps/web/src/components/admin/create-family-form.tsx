@@ -1,66 +1,21 @@
 'use client';
 
 import { CheckCircle2, Copy, Plus } from 'lucide-react';
-import { useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker';
+import { getApiErrorMessage } from '@/lib/api-error';
+import { createFamily, type CreatedFamilyResult } from '@/lib/family-api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FormError } from '@/components/auth/form-fields';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
-
-type CreatedFamilyResult = {
-  family: {
-    id: string;
-    name: string;
-    slug: string;
-    deathAnniversary: string;
-  };
-  accounts: {
-    memberPlus: { role: 'MEMBER_PLUS'; username: string; password: string };
-    member: { role: 'MEMBER'; username: string; password: string };
-  };
-};
-
-function maskedAnniversary(digits: string): string {
-  const padded = `${digits}____`.slice(0, 4);
-  return `${padded.slice(0, 2)}/${padded.slice(2, 4)}`;
-}
-
-function responseError(body: unknown, status: number): string {
-  if (typeof body === 'object' && body !== null && 'message' in body) {
-    const message = body.message;
-    if (typeof message === 'string') return message;
-    if (Array.isArray(message) && message.every((item) => typeof item === 'string')) {
-      return message.join('. ');
-    }
-  }
-  return `Không thể tạo gia phả (${status})`;
-}
-
 export function CreateFamilyForm() {
-  const [anniversaryDigits, setAnniversaryDigits] = useState('');
+  const [deathAnniversary, setDeathAnniversary] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedFamilyResult | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-
-  function handleAnniversaryKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
-    if (/^\d$/.test(event.key)) {
-      event.preventDefault();
-      setAnniversaryDigits((current) => `${current}${event.key}`.slice(0, 4));
-      return;
-    }
-    if (event.key === 'Backspace') {
-      event.preventDefault();
-      setAnniversaryDigits((current) => current.slice(0, -1));
-      return;
-    }
-    if (event.key === 'Delete') {
-      event.preventDefault();
-      setAnniversaryDigits('');
-    }
-  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -71,25 +26,16 @@ export function CreateFamilyForm() {
     const form = new FormData(formElement);
 
     try {
-      const response = await fetch(`${API_URL}/families`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: String(form.get('name') ?? ''),
-          slug: String(form.get('slug') ?? ''),
-          deathAnniversary: maskedAnniversary(anniversaryDigits),
-        }),
+      const body = await createFamily({
+        name: String(form.get('name') ?? ''),
+        slug: String(form.get('slug') ?? ''),
+        deathAnniversary,
       });
-      const body: unknown = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(responseError(body, response.status));
-      setCreated(body as CreatedFamilyResult);
+      setCreated(body);
       formElement.reset();
-      setAnniversaryDigits('');
+      setDeathAnniversary('');
     } catch (submissionError: unknown) {
-      setError(
-        submissionError instanceof Error ? submissionError.message : 'Không thể tạo gia phả',
-      );
+      setError(getApiErrorMessage(submissionError, 'tạo dòng họ'));
     } finally {
       setSubmitting(false);
     }
@@ -133,25 +79,11 @@ export function CreateFamilyForm() {
             hint="Ví dụ: giapha.vn/ho-nguyen"
             required
           />
-          <Field
+          <DeathAnniversaryPicker
             id="death-anniversary"
-            name="deathAnniversary"
-            label="Ngày giỗ họ"
-            value={maskedAnniversary(anniversaryDigits)}
-            onKeyDown={handleAnniversaryKeyDown}
-            onChange={(event) => {
-              setAnniversaryDigits(event.currentTarget.value.replace(/\D/g, '').slice(0, 4));
-            }}
-            onPaste={(event) => {
-              event.preventDefault();
-              setAnniversaryDigits(
-                event.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4),
-              );
-            }}
-            inputMode="numeric"
-            autoComplete="off"
-            pattern="\d{2}/\d{2}"
-            hint="Nhập đủ ngày và tháng theo định dạng DD/MM."
+            value={deathAnniversary}
+            onChange={setDeathAnniversary}
+            hint="Chọn ngày và tháng giỗ họ."
             required
           />
           <FormError message={error} />

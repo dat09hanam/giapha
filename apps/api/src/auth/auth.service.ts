@@ -63,7 +63,7 @@ export class AuthService {
       user?.passwordHash ?? DUMMY_PASSWORD_HASH,
     );
     if (!user || user.deletedAt || user.status !== UserStatus.ACTIVE || !passwordMatches) {
-      throw new UnauthorizedException('Username or password is incorrect');
+      throw new UnauthorizedException('Tên đăng nhập hoặc mật khẩu không đúng.');
     }
 
     const token = createRawToken();
@@ -86,7 +86,7 @@ export class AuthService {
       where: { id: userId, status: UserStatus.ACTIVE, deletedAt: null },
       select: profileSelect,
     });
-    if (!user) throw new UnauthorizedException('Account is not active');
+    if (!user) throw new UnauthorizedException('Tài khoản đã bị khóa hoặc không còn hoạt động.');
     return mapProfile(user);
   }
 }

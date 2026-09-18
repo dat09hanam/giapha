@@ -1,23 +1,20 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { Network, ShieldCheck, UsersRound } from 'lucide-react';
+import { Network, Palette, ShieldCheck, UsersRound } from 'lucide-react';
 
+import { FamilyProfileForm } from '@/components/admin/family-profile-form';
 import { LogoutButton } from '@/components/auth/logout-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ApiErrorState } from '@/components/ui/api-error-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ApiUnauthorizedError, getAuthProfile } from '@/lib/api';
-import { profileDestination, type AuthProfile } from '@/lib/auth-api';
+import { getFamily } from '@/lib/api';
+import { ApiRequestError } from '@/lib/api-error';
+import { requireFamilyManager, type FamilyManagerProfile } from '@/lib/family-manager';
+import type { FamilyDetails } from '@/types/family-tree';
 
 type FamilyAdminPageProps = {
   params: Promise<{ slug: string }>;
-};
-
-type FamilyManagerProfile = AuthProfile & {
-  role: 'MEMBER_PLUS';
-  family: NonNullable<AuthProfile['family']>;
 };
 
 export const metadata: Metadata = {
@@ -27,36 +24,25 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-async function requireFamilyManager(slug: string): Promise<FamilyManagerProfile> {
-  const sessionToken = (await cookies()).get('giapha_session')?.value;
-  if (!sessionToken) redirect('/login');
-
-  let profile: AuthProfile;
-  try {
-    profile = await getAuthProfile(sessionToken);
-  } catch (error) {
-    if (error instanceof ApiUnauthorizedError) redirect('/login');
-    throw error;
-  }
-
-  if (profile.role !== 'MEMBER_PLUS') {
-    redirect(profileDestination(profile));
-  }
-
-  if (!profile.family) {
-    redirect('/');
-  }
-
-  if (slug !== profile.family.slug) {
-    redirect(`/admin/${encodeURIComponent(profile.family.slug)}`);
-  }
-
-  return { ...profile, role: profile.role, family: profile.family };
-}
-
 export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) {
   const { slug } = await params;
-  const profile = await requireFamilyManager(slug);
+  let profile: FamilyManagerProfile;
+  let family: FamilyDetails;
+  try {
+    profile = await requireFamilyManager(slug, 'admin');
+    family = await getFamily(profile.family.slug);
+  } catch (error: unknown) {
+    if (error instanceof ApiRequestError) {
+      return (
+        <ApiErrorState
+          title="Chưa thể tải thông tin dòng họ"
+          message={error.message}
+          retryHref={'/admin/' + encodeURIComponent(slug)}
+        />
+      );
+    }
+    throw error;
+  }
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
@@ -68,7 +54,7 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
               Quản trị dòng họ
             </Badge>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-emerald-950 sm:text-4xl">
-              {profile.family.name}
+              {family.name}
             </h1>
             <p className="mt-3 leading-7 text-stone-600">
               Xin chào, {profile.displayName}. Đây là không gian quản trị dành riêng cho trưởng họ.
@@ -81,39 +67,52 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
                 Xem cây gia phả
               </Link>
             </Button>
+            <Button asChild variant="outline">
+              <Link href={`/${encodeURIComponent(profile.family.slug)}/thiet_ke`}>
+                <Palette className="size-4" aria-hidden="true" />
+                Thiết kế gia phả
+              </Link>
+            </Button>
             <LogoutButton />
           </div>
         </div>
       </section>
 
-      <section className="mt-7 grid gap-5 md:grid-cols-2" aria-label="Khu vực quản trị dòng họ">
-        <Card className="bg-white/75 shadow-sm">
-          <CardHeader>
-            <span className="grid size-11 place-items-center rounded-2xl bg-emerald-100 text-emerald-900">
-              <UsersRound className="size-5" aria-hidden="true" />
-            </span>
-            <CardTitle className="mt-4">Thành viên và quan hệ</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm leading-6 text-stone-600">
-              Quản lý thông tin thành viên và các mối quan hệ trong cây gia phả.
-            </p>
-          </CardContent>
-        </Card>
+      <section
+        className="mt-7 grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)]"
+        aria-label="Khu vực quản trị dòng họ"
+      >
+        <FamilyProfileForm family={family} />
 
-        <Card className="bg-white/75 shadow-sm">
-          <CardHeader>
-            <span className="grid size-11 place-items-center rounded-2xl bg-amber-100 text-amber-900">
-              <Network className="size-5" aria-hidden="true" />
-            </span>
-            <CardTitle className="mt-4">Cây gia phả</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm leading-6 text-stone-600">
-              Xem lại cách các thế hệ đang được sắp xếp trên sơ đồ của dòng họ.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="grid gap-5">
+          <Card className="bg-white/75 shadow-sm">
+            <CardHeader>
+              <span className="grid size-11 place-items-center rounded-2xl bg-emerald-100 text-emerald-900">
+                <UsersRound className="size-5" aria-hidden="true" />
+              </span>
+              <CardTitle className="mt-4">Thành viên và quan hệ</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-6 text-stone-600">
+                Quản lý thông tin thành viên và các mối quan hệ trong cây gia phả.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/75 shadow-sm">
+            <CardHeader>
+              <span className="grid size-11 place-items-center rounded-2xl bg-amber-100 text-amber-900">
+                <Network className="size-5" aria-hidden="true" />
+              </span>
+              <CardTitle className="mt-4">Cây gia phả</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-6 text-stone-600">
+                Xem lại cách các thế hệ đang được sắp xếp trên sơ đồ của dòng họ.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </section>
     </main>
   );

@@ -20,7 +20,7 @@ export class SessionAuthGuard implements CanActivate {
     const token = extractSessionToken(request);
 
     if (!token) {
-      throw new UnauthorizedException('Authentication is required');
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
     }
 
     const session = await this.prisma.authSession.findUnique({
@@ -48,7 +48,9 @@ export class SessionAuthGuard implements CanActivate {
       session.user.deletedAt ||
       session.user.status !== UserStatus.ACTIVE
     ) {
-      throw new UnauthorizedException('Session is invalid or expired');
+      throw new UnauthorizedException(
+        'Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.',
+      );
     }
 
     request.auth = {

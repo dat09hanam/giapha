@@ -42,8 +42,9 @@ Endpoints:
 - `GET /api/auth/me`
 - `POST /api/families`: `ADMIN` only. It atomically creates one Family, one `MEMBER_PLUS` account and
   one `MEMBER` account.
-- `GET /api/families/:slug` and authenticated `GET /api/families/:slug/tree`
+- `GET /api/families/:slug` and authenticated `GET /api/families/:slug/tree`; the tree response includes tenant-scoped people and spousal relationships.
 - `PATCH /api/families/:slug` and Person mutations: `MEMBER_PLUS` only.
+- `POST /api/families/:slug/tree/design`: `MEMBER_PLUS` only. It saves the visible Person graph, parent links, spouse links and requested soft deletions atomically.
 
 The old public clan-head registration and invitation endpoints are removed. Pending invitation
 accounts are migrated to `SUSPENDED` and their tokens are discarded.
@@ -86,7 +87,7 @@ is unique.
 `Media` is the Family library: `fileUrl`, `title`, `status` and the optional `personId` of the
 Person credited with the item. It is Family-scoped with the same composite Person foreign key.
 
-React Flow positions and edges remain a web concern derived from domain responses.
+React Flow positions and edges remain a web concern derived from domain responses. The designer keeps temporary client IDs for unsaved cards; the API maps them to tenant-owned Person IDs inside one serializable transaction and never accepts a client-supplied family ID as authorization.
 
 `Family`, `User`, `Person`, `Relationship` and `Media` are soft-deleted through a nullable
 `deletedAt`; every read path filters `deletedAt: null`. `AuthSession` is exempt because sessions are

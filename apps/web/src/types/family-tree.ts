@@ -1,4 +1,4 @@
-export type Gender = 'MALE' | 'FEMALE' | 'OTHER' | 'UNKNOWN';
+export type Gender = "MALE" | "FEMALE" | "OTHER" | "UNKNOWN";
 
 export type FamilySummary = {
   id: string;
@@ -7,6 +7,11 @@ export type FamilySummary = {
   description: string | null;
   address: string | null;
   ancestryOrigin: string | null;
+};
+
+export type FamilyDetails = FamilySummary & {
+  deathAnniversaryDay: number | null;
+  deathAnniversaryMonth: number | null;
 };
 
 export type Person = {
@@ -24,7 +29,16 @@ export type Person = {
   motherId: string | null;
 };
 
+export type FamilyTreeRelationship = {
+  id: string;
+  husbandId: string;
+  wifeId: string;
+  status: "MARRIED" | "SEPARATED" | "DIVORCED" | "WIDOWED";
+  wifeOrder: number | null;
+};
+
 export type FamilyTreeResponse = {
   family: FamilySummary;
   people: Person[];
+  relationships: FamilyTreeRelationship[];
 };

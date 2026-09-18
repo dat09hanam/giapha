@@ -1,4 +1,4 @@
-import type { Gender } from '@prisma/client';
+import type { Gender, RelationshipStatus } from "@prisma/client";
 
 export type FamilyTreeResponse = {
   family: {
@@ -23,6 +23,13 @@ export type FamilyTreeResponse = {
     fatherId: string | null;
     motherId: string | null;
   }>;
+  relationships: Array<{
+    id: string;
+    husbandId: string;
+    wifeId: string;
+    status: RelationshipStatus;
+    wifeOrder: number | null;
+  }>;
 };
 
 export type PersonResponse = {
@@ -45,4 +52,13 @@ export type PersonResponse = {
   biography: string | null;
   generation: number | null;
   orderInFamily: number | null;
+};
+
+export type SaveFamilyTreeDesignResponse = {
+  savedPeople: Array<{
+    clientId: string;
+    databaseId: string;
+  }>;
+  savedRelationshipCount: number;
+  deletedPersonCount: number;
 };

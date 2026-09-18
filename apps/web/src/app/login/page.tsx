@@ -7,7 +7,16 @@ export const metadata: Metadata = {
   description: 'Đăng nhập để truy cập không gian dòng họ của bạn.',
 };
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ reason?: string | string[] }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { reason } = await searchParams;
+  const initialError =
+    reason === 'session-expired'
+      ? 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.'
+      : null;
   return (
     <AuthShell
       brandTitle="Gia Phả Việt"
@@ -22,7 +31,7 @@ export default function LoginPage() {
       description="Đăng nhập bằng tài khoản Admin, Trưởng họ hoặc Thành viên. Quyền truy cập được kiểm tra lại theo từng dòng họ."
       footer="Tài khoản dòng họ được cấp khi Admin tạo gia phả."
     >
-      <LoginForm />
+      <LoginForm initialError={initialError} />
     </AuthShell>
   );
 }

@@ -3,7 +3,10 @@ import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 
 import { FamilyTree } from '@/components/tree/family-tree';
+import { ApiErrorState } from '@/components/ui/api-error-state';
 import { ApiNotFoundError, ApiUnauthorizedError, getFamilyTree, getFamily } from '@/lib/api';
+import { ApiRequestError } from '@/lib/api-error';
+import type { FamilyTreeResponse } from '@/types/family-tree';
 
 type FamilyPageProps = {
   params: Promise<{ slug: string }>;
@@ -39,7 +42,7 @@ async function loadFamilyTree(slug: string) {
     }
 
     if (error instanceof ApiUnauthorizedError) {
-      redirect(`/login?next=${encodeURIComponent(`/${slug}`)}`);
+      redirect('/login?next=' + encodeURIComponent('/' + slug) + '&reason=session-expired');
     }
 
     throw error;
@@ -48,7 +51,21 @@ async function loadFamilyTree(slug: string) {
 
 export default async function FamilyPage({ params }: FamilyPageProps) {
   const { slug } = await params;
-  const tree = await loadFamilyTree(slug);
+  let tree: FamilyTreeResponse;
+  try {
+    tree = await loadFamilyTree(slug);
+  } catch (error: unknown) {
+    if (error instanceof ApiRequestError) {
+      return (
+        <ApiErrorState
+          title="Chưa thể tải cây gia phả"
+          message={error.message}
+          retryHref={'/' + encodeURIComponent(slug)}
+        />
+      );
+    }
+    throw error;
+  }
 
   if (tree.people.length === 0) {
     return (
