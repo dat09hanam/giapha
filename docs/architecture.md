@@ -74,7 +74,8 @@ hall `address` and the clan origin (`ancestryOrigin`).
 
 `Person` belongs to one Family and stores optional `fatherId` and `motherId` self-references. Both
 foreign keys include `familyId`, preventing cross-Family parent links at the database boundary. A
-Person carries the birth `name`, `nickname`, `courtesyName` (tên tự / hiệu / thụy), `gender`,
+Person carries the birth `name`, optional `honorific` (danh xưng như Cụ tổ, Cụ, Ông, Bà),
+`nickname`, `courtesyName` (tên tự / hiệu / thụy), `gender`,
 `birthDate`, `deathDate`, `isAlive`, `burialPlace`, `phone`, `avatarUrl`, `biography`, `generation`
 and `orderInFamily`. The lunar death anniversary is stored as `lunarDeathDay` and `lunarDeathMonth`
 rather than a single text field, so the Family's death-anniversary calendar can be queried by month.

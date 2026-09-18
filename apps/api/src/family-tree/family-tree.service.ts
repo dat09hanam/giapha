@@ -22,6 +22,7 @@ const managedPersonSelect = {
   fatherId: true,
   motherId: true,
   name: true,
+  honorific: true,
   nickname: true,
   courtesyName: true,
   gender: true,
@@ -215,6 +216,7 @@ export class FamilyTreeService {
         select: {
           id: true,
           name: true,
+          honorific: true,
           nickname: true,
           courtesyName: true,
           gender: true,
@@ -303,6 +305,7 @@ export class FamilyTreeService {
         for (const person of input.people) {
           const data = {
             name: person.name.trim(),
+            honorific: nullableText(person.honorific) ?? null,
             nickname: nullableText(person.nickname) ?? null,
             courtesyName: nullableText(person.courtesyName) ?? null,
             gender: person.gender,
@@ -470,6 +473,7 @@ export class FamilyTreeService {
             fatherId,
             motherId,
             name: input.name.trim(),
+            honorific: nullableText(input.honorific) ?? null,
             nickname: nullableText(input.nickname) ?? null,
             courtesyName: nullableText(input.courtesyName) ?? null,
             gender: input.gender,
@@ -524,6 +528,9 @@ export class FamilyTreeService {
           ...(input.fatherId === undefined ? {} : { fatherId }),
           ...(input.motherId === undefined ? {} : { motherId }),
           ...(input.name === undefined ? {} : { name: input.name.trim() }),
+          ...(input.honorific === undefined
+            ? {}
+            : { honorific: nullableText(input.honorific) }),
           ...(input.nickname === undefined
             ? {}
             : { nickname: nullableText(input.nickname) }),

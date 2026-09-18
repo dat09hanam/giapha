@@ -4,8 +4,8 @@
 
 - Status: in-progress
 - Last updated: 2026-09-18
-- Current result: route thiết kế có quy tắc giới tính, panel chỉnh sửa đầy đủ trường Person, khung thông tin người đã mất, danh sách con sắp xếp được, ảnh đại diện có cắt ảnh, nút lưu duy nhất chỉ bật khi có thay đổi; toàn bộ thông báo web dùng toast; Person/Relationship chuyển sang xóa cứng. Lint, TypeScript, prisma validate và build web đều qua
-- Next action: áp migration `20260918120000_drop_person_relationship_soft_delete` rồi QA bằng phiên trưởng họ
+- Current result: Person có `honorific` nullable; panel chỉnh sửa và các node hiển thị Danh xưng; API create/update/bulk save giữ trường này. Hai migration đang chờ đã áp dụng; Prisma validate/generate, lint và TypeScript đều qua
+- Next action: QA lưu/tải lại Danh xưng và các luồng thiết kế bằng phiên trưởng họ
 
 ## Decisions
 
@@ -46,6 +46,7 @@
 - Migration dọn các dòng đã soft delete trước khi drop cột, nếu không chúng sẽ hiện lại thành dữ liệu rác.
 - Sau khi bỏ soft delete, `saveDesign` xóa hẳn quan hệ của những người được lưu rồi upsert lại, nên nhánh `update` của upsert không còn hồi sinh dòng cũ.
 - Panel thiết kế chỉnh sửa đủ trường Person; `generation`/`orderInFamily`/cha mẹ vẫn do vị trí canvas quyết định và chỉ hiển thị read-only.
+- Danh xưng dùng `Person.honorific` nullable `VARCHAR(100)`, tách khỏi họ tên/tên thường gọi/tên tự; panel cho nhập tự do và node chỉ hiển thị khi có giá trị.
 - Ngày sinh/ngày mất chuyển từ ô nhập năm sang `input[type=date]`, nên contract design DTO dùng `birthDate`/`deathDate` thay cho `birthYear`/`deathYear`.
 - Panel xếp theo thứ tự: họ tên, tên thường gọi, giới tính, ngày sinh, ô “Còn sống”, khung “Thông tin người đã mất”, rồi điện thoại/ảnh/tiểu sử. Ô “Còn sống” đặt ngay trên khung nó điều khiển để không có trường nào biến mất ở phía trên chỗ vừa bấm.
 - `isAlive` điều khiển cả nhóm trường của người đã mất: tick “Còn sống” ẩn và xóa tên tự/hiệu, ngày mất, ngày giỗ, nơi an táng; nhập ngày mất thì tự bỏ tick. Phải xóa giá trị chứ không chỉ ẩn, nếu không dữ liệu bị ẩn vẫn được lưu xuống.
@@ -68,14 +69,14 @@
 - `apps/web/src/app/admin/[slug]/page.tsx`: thêm nút outline “Thiết kế gia phả” giữa nút xem cây và đăng xuất.
 - `apps/web/src/lib/family-manager.ts`: guard server dùng chung cho hai khu vực của trưởng họ.
 - `apps/web/src/app/[slug]/thiet_ke/`: page, loading và error state của route thiết kế.
-- `apps/web/src/components/tree/family-tree-designer.tsx`: canvas, node, layout quan hệ, modal chọn quan hệ, panel chỉnh sửa, hai luồng lưu và các helper giới tính `oppositeGender`/`relationshipGender`/`relationshipChoiceBlockedReason` cùng hằng `GENDER_CHOICES`/`SPOUSE_KINDS`.
-- `apps/web/src/lib/family-tree-design-api.ts`: client lưu riêng Person và lưu toàn bộ thiết kế qua parser lỗi chung.
+- `apps/web/src/components/tree/family-tree-designer.tsx`: canvas, node, layout quan hệ, modal chọn quan hệ, panel chỉnh sửa, luồng “Lưu tất cả” và các helper giới tính `oppositeGender`/`relationshipGender`/`relationshipChoiceBlockedReason` cùng hằng `GENDER_CHOICES`/`SPOUSE_KINDS`.
+- `apps/web/src/lib/family-tree-design-api.ts`: client lưu toàn bộ thiết kế qua parser lỗi chung, gồm `honorific`.
 - `apps/api/src/family-tree/dto/save-family-tree-design.dto.ts`: contract tối đa 500 Person/Relationship cùng danh sách ID xóa; mỗi Person mang đủ trường hồ sơ.
 - `apps/api/prisma/schema.prisma` và `apps/api/prisma/migrations/20260918120000_drop_person_relationship_soft_delete/`: bỏ cột và index `deletedAt` của Person/Relationship.
 - `apps/api/src/family-tree/family-tree.types.ts`: `FamilyTreeResponse.people` trả đủ trường để panel thiết kế nạp lại được.
 - `apps/web/src/components/ui/death-anniversary-picker.tsx`: thêm `label` và `maxDayInMonth`, mặc định giữ nguyên hành vi cũ.
-- `apps/api/src/family-tree/family-tree.service.ts`: tải spouse relationships và transaction ánh xạ client ID sang Person ID, cập nhật parent/spouse, soft-delete an toàn theo familyId.
-- Không có migration hoặc dependency mới.
+- `apps/api/src/family-tree/family-tree.service.ts`: tải spouse relationships và transaction ánh xạ client ID sang Person ID, cập nhật đủ trường Person/parent/spouse và xóa cứng theo familyId.
+- Migration mới `20260918150000_add_person_honorific` thêm cột nullable; không có dependency mới.
 
 ## Verification
 
@@ -104,7 +105,8 @@
 - Kiểm tra nguồn: `buildDesignPayload` vẫn suy husband/wife đúng vì vợ/chồng luôn ngược giới tính gốc.
 - Bỏ soft delete + mở rộng trường: prisma validate, db:generate, lint và TypeScript của cả hai workspace pass; prettier pass theo style của từng tệp.
 - `grep deletedAt` trong `family-tree.service.ts` chỉ còn ba chỗ lọc Family.
-- Migration chưa chạy trên database: thao tác drop cột là phá hủy nên chờ developer.
+- Database phát triển đã áp cả migration bỏ soft delete và migration thêm `honorific`; Prisma Client generate bình thường sau migrate.
+- Trường Danh xưng: prisma validate, lint toàn hệ thống, API/web TypeScript compiler và `git diff --check` pass.
 
 ## Media
 
@@ -136,7 +138,6 @@
 
 ## Blockers and risks
 
-- Migration bỏ `deletedAt` chưa được áp. Cột thừa trong database không làm truy vấn lỗi, nhưng tới khi chạy migration thì các Person/Relationship đã soft delete trước đây sẽ hiện trở lại trên cây vì read path không còn lọc `deletedAt`. Migration chính là bước dọn chúng.
 - Nếu người dùng gỡ ảnh đã lưu rồi bỏ đi mà không bấm lưu, tệp vẫn nằm lại vì API từ chối xóa khi Person còn trỏ tới. Đây là đánh đổi có chủ ý: thà còn tệp thừa hơn là hỏng ảnh mà database vẫn tham chiếu.
 - Cần một lần QA bằng tài khoản trưởng họ để xác nhận PATCH hồ sơ, refresh và nút thiết kế trên dữ liệu thật.
 - Chưa có kiểm thử trực quan có session vì browser backend không khả dụng.
@@ -144,4 +145,4 @@
 
 ## Handoff
 
-Áp migration `20260918120000_drop_person_relationship_soft_delete`, rồi đăng nhập `/ho-nguyen/thiet_ke` và xác nhận: khung khởi điểm của gia phả trống là Nam; hai checkbox Nam/Nữ đổi giới tính được và loại trừ nhau; hộp “Thêm quan hệ” làm mờ “Chồng” với gốc Nam và “Vợ” với gốc Nữ; vợ/chồng mới nhận giới tính ngược lại. panel hiển thị và lưu được đủ trường Person. Sau đó lưu riêng một node mới, lưu toàn bộ cây, xóa một thành viên, tải lại và xác nhận dòng bị xóa không còn trong database; cuối cùng kiểm tra lưu/tải lại hồ sơ admin.
+Đăng nhập `/ho-nguyen/thiet_ke`, nhập Danh xưng (ví dụ “Cụ tổ”), bấm “Lưu tất cả” rồi tải lại để xác nhận giá trị và node hiển thị đúng. Đồng thời QA giới tính/quan hệ/ảnh, xóa một thành viên và xác nhận tải lại; cuối cùng kiểm tra lưu/tải lại hồ sơ admin.

@@ -12,6 +12,7 @@ export type FamilyTreeResponse = {
   people: Array<{
     id: string;
     name: string;
+    honorific: string | null;
     nickname: string | null;
     courtesyName: string | null;
     gender: Gender;
@@ -44,6 +45,7 @@ export type PersonResponse = {
   fatherId: string | null;
   motherId: string | null;
   name: string;
+  honorific: string | null;
   nickname: string | null;
   courtesyName: string | null;
   gender: Gender;

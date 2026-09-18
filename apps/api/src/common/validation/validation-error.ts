@@ -13,6 +13,7 @@ const FIELD_LABELS: Record<string, string> = {
   fatherId: "mã người cha",
   motherId: "mã người mẹ",
   nickname: "tên thường gọi",
+  honorific: "danh xưng",
   courtesyName: "tên tự",
   gender: "giới tính",
   birthDate: "ngày sinh",

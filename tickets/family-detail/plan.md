@@ -2,7 +2,7 @@
 
 ## Current objective
 
-Áp migration bỏ soft delete rồi QA trang thiết kế bằng phiên trưởng họ.
+QA trang thiết kế bằng phiên trưởng họ, gồm lưu và tải lại trường Danh xưng.
 
 ## Work items
 
@@ -71,6 +71,11 @@
 - [x] Sửa lỗi hộp cắt báo “Không mở được ảnh này” do StrictMode chạy effect hai lần.
 - [ ] Chạy `npm run db:migrate` (hoặc `db:deploy`) để áp migration lên database.
 
+- [x] Thêm `Person.honorific` nullable và migration an toàn.
+- [x] Nối Danh xưng vào DTO, response, create/update và transaction lưu thiết kế.
+- [x] Thêm ô Danh xưng và hiển thị trên node thiết kế/cây công khai.
+- [x] Áp các migration đang chờ, validate/generate Prisma, lint và typecheck hai workspace.
+
 ## Owned paths and coordination hotspots
 
 - Media: `apps/api/src/media/**`, `apps/api/src/common/validation/avatar-url.ts`, `apps/api/media/`, `apps/web/src/lib/media-api.ts`
@@ -124,7 +129,9 @@
 - PASS: `npm run prisma:validate --workspace @giapha/api` và `npm run db:generate` sau khi bỏ `deletedAt`.
 - PASS: lint và TypeScript compiler của cả API và web sau khi bỏ soft delete và mở rộng trường Person.
 - PASS: `grep` xác nhận `family-tree.service.ts` chỉ còn lọc `deletedAt` cho Family; Person/Relationship không còn chỗ nào.
-- PENDING: migration `20260918120000_drop_person_relationship_soft_delete` chưa được áp lên database; thao tác drop cột là phá hủy nên chờ developer chạy.
+- PASS: database phát triển đã áp `20260918120000_drop_person_relationship_soft_delete` và `20260918150000_add_person_honorific`; Prisma Client generate lại thành công.
+- PASS: Prisma validate, lint toàn hệ thống, API/web TypeScript compiler và `git diff --check` sau thay đổi Danh xưng.
+- NOT AVAILABLE: API test runner không có tệp test và thoát mã 1.
 - PASS: lint và TypeScript của cả hai workspace sau khi thêm luồng tải ảnh.
 - PASS: probe API đang chạy: `POST` và `GET /api/families/ho-nguyen/media/...` không có session đều trả 401 tiếng Việt, xác nhận module được nạp và guard hoạt động.
 - FIXED: ảnh tải lên thành công nhưng không hiện preview vì `Cross-Origin-Resource-Policy: same-origin` của helmet; route đọc ảnh nay trả `cross-origin`.
@@ -145,4 +152,4 @@
 
 ## Next action
 
-Chạy `npm run db:migrate` để áp migration bỏ `deletedAt`, sau đó đăng nhập `/ho-nguyen/thiet_ke`, kiểm tra khung khởi điểm là Nam, đổi giới tính bằng checkbox, thêm quan hệ để xác nhận lựa chọn bị làm mờ đúng chiều, rồi thử “Lưu thành viên”, “Lưu tất cả” và tải lại; đồng thời hoàn tất QA lưu hồ sơ còn tồn.
+Đăng nhập `/ho-nguyen/thiet_ke`, nhập Danh xưng cho một thành viên, bấm “Lưu tất cả” và tải lại để xác nhận; đồng thời QA giới tính, quan hệ, ảnh và lưu hồ sơ còn tồn.

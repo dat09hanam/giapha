@@ -101,6 +101,7 @@ model Person {
   fatherId           String?        @db.Char(36)
   motherId           String?        @db.Char(36)
   name               String         @db.VarChar(191)
+  honorific          String?        @db.VarChar(100)
   nickname           String?        @db.VarChar(191)
   courtesyName       String?        @db.VarChar(191)
   gender             Gender         @default(UNKNOWN)

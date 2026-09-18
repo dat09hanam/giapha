@@ -8,6 +8,7 @@ export type FamilyTreeDesignSaveInput = {
     clientId: string;
     databaseId: string | null;
     name: string;
+    honorific: string | null;
     nickname: string | null;
     courtesyName: string | null;
     gender: Gender;

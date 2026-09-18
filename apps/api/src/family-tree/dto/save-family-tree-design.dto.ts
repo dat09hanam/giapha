@@ -41,6 +41,11 @@ export class FamilyTreeDesignPersonDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
+  honorific?: string | null;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(191)
   nickname?: string | null;
 

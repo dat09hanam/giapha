@@ -24,6 +24,11 @@ export class UpdatePersonDto {
   name?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  honorific?: string | null;
+
+  @IsOptional()
   @IsUUID()
   fatherId?: string | null;
 

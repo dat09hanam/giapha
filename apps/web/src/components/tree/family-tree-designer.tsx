@@ -60,6 +60,7 @@ type DesignerMember = {
   id: string;
   databaseId: string | null;
   name: string;
+  honorific: string;
   nickname: string;
   courtesyName: string;
   gender: DesignerGender;
@@ -265,8 +266,19 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
             <GenderAvatarFallback gender={data.member.gender} />
           )}
         </span>
+        {data.member.honorific ? (
+          <span
+            className="mt-3 block truncate text-center text-xs font-semibold uppercase tracking-wide text-amber-800"
+            title={data.member.honorific}
+          >
+            {data.member.honorific}
+          </span>
+        ) : null}
         <span
-          className="mt-3 block truncate text-center font-semibold text-emerald-950"
+          className={cn(
+            "block truncate text-center font-semibold text-emerald-950",
+            data.member.honorific ? "mt-1" : "mt-3",
+          )}
           title={data.member.name}
         >
           {data.member.name}
@@ -339,6 +351,7 @@ function toDesignerMember(person: Person): DesignerMember {
     id: person.id,
     databaseId: person.id,
     name: person.name,
+    honorific: person.honorific ?? "",
     nickname: person.nickname ?? "",
     courtesyName: person.courtesyName ?? "",
     gender: person.gender,
@@ -376,6 +389,7 @@ function createInitialBranch(initialTree: FamilyTreeResponse): FamilyBranch {
         id: "member-root",
         databaseId: null,
         name: "Thành viên khởi điểm",
+        honorific: "",
         nickname: "",
         courtesyName: "",
         gender: "MALE",
@@ -673,6 +687,7 @@ function createMember(gender: DesignerGender): DesignerMember {
     id: globalThis.crypto.randomUUID(),
     databaseId: null,
     name: "Thành viên mới",
+    honorific: "",
     nickname: "",
     courtesyName: "",
     gender,
@@ -753,6 +768,7 @@ function buildDesignPayload(
         clientId: member.id,
         databaseId: member.databaseId,
         name: member.name.trim(),
+        honorific: trimmedOrNull(member.honorific),
         nickname: trimmedOrNull(member.nickname),
         courtesyName: trimmedOrNull(member.courtesyName),
         gender: member.gender,
@@ -1451,6 +1467,15 @@ export function FamilyTreeDesigner({
                 value={selectedMember.name}
                 maxLength={191}
                 onChange={(value) => patchSelectedMember({ name: value })}
+              />
+
+              <DesignerTextField
+                id="designer-member-honorific"
+                label="Danh xưng"
+                value={selectedMember.honorific}
+                maxLength={100}
+                placeholder="Ví dụ: Cụ tổ, Cụ, Ông, Bà..."
+                onChange={(value) => patchSelectedMember({ honorific: value })}
               />
 
               <DesignerTextField

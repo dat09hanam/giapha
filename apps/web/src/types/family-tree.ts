@@ -17,6 +17,7 @@ export type FamilyDetails = FamilySummary & {
 export type Person = {
   id: string;
   name: string;
+  honorific: string | null;
   nickname: string | null;
   courtesyName: string | null;
   gender: Gender;

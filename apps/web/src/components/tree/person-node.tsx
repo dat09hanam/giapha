@@ -25,6 +25,14 @@ export function PersonNode({ data }: NodeProps<PersonFlowNode>) {
           <UserRound className="size-5" aria-hidden="true" />
         </span>
         <div className="min-w-0">
+          {data.honorific ? (
+            <p
+              className="truncate text-[11px] font-semibold uppercase tracking-wide text-amber-700"
+              title={data.honorific}
+            >
+              {data.honorific}
+            </p>
+          ) : null}
           <h2 className="truncate font-semibold text-emerald-950" title={data.name}>
             {data.name}
           </h2>

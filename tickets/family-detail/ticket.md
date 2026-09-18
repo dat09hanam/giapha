@@ -34,6 +34,7 @@ updated: '2026-09-18'
 - 2026-09-18: Thư mục media giữ nguyên vị trí nhưng không đưa vào git.
 - 2026-09-18: Ảnh đại diện phải là nút thêm ảnh thay vì ô nhập đường dẫn; tạo thư mục `media` để lưu ảnh.
 - 2026-09-18: Áp quy tắc giới tính cho trang thiết kế: khung khởi điểm mặc định là Nam; chọn giới tính bằng hai checkbox Nam/Nữ thay cho select; giới tính thành viên mới suy ra từ giới tính thành viên gốc; làm mờ lựa chọn Chồng khi gốc là Nam và lựa chọn Vợ khi gốc là Nữ.
+- 2026-09-18: Thêm trường Person “Danh xưng” tùy chọn (ví dụ Cụ tổ, Cụ, Ông, Bà), cho phép chỉnh sửa, lưu và hiển thị trên các khung thành viên.
 
 ## Outcome
 
@@ -55,7 +56,7 @@ updated: '2026-09-18'
 - Canvas tương tác, khung thành viên, chọn loại quan hệ và bố cục vợ/chồng/con theo hàng.
 - Quy tắc giới tính của canvas: mặc định khung khởi điểm, bộ chọn Nam/Nữ và ràng buộc quan hệ vợ/chồng theo giới tính.
 - Xóa cứng Person/Relationship cùng migration dọn dữ liệu đã soft delete.
-- Panel chỉnh sửa đầy đủ trường Person và mở rộng contract lưu để giữ được các trường đó.
+- Panel chỉnh sửa đầy đủ trường Person, gồm “Danh xưng”, và mở rộng contract lưu để giữ được các trường đó.
 - API tenant-scoped để lưu một thành viên hoặc toàn bộ bản thiết kế cùng quan hệ.
 
 ### Out
@@ -129,4 +130,7 @@ updated: '2026-09-18'
 - [x] Ảnh tải lên được lưu vào thư mục `media` theo từng dòng họ, tên tệp do server sinh.
 - [x] Endpoint tải lên và đọc ảnh đều tenant-scoped, yêu cầu đăng nhập; tải lên yêu cầu quyền `MEMBER_PLUS`.
 - [x] Server kiểm tra định dạng, dung lượng tối đa 2 MB và magic bytes trước khi ghi tệp.
-- [ ] Áp migration lên database và QA lại trang thiết kế bằng phiên trưởng họ.
+- [x] Person có cột `honorific` nullable, DTO/API và luồng “Lưu tất cả” giữ được giá trị tối đa 100 ký tự.
+- [x] Panel có ô “Danh xưng”; cây thiết kế và cây gia phả hiển thị danh xưng khi có.
+- [x] Migration `drop_person_relationship_soft_delete` và `add_person_honorific` đã áp dụng thành công vào database phát triển.
+- [ ] QA lại trang thiết kế bằng phiên trưởng họ, gồm lưu/tải lại Danh xưng.

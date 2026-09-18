@@ -4,6 +4,7 @@ import type { FamilyTreeResponse, Gender } from '@/types/family-tree';
 
 export type PersonNodeData = {
   name: string;
+  honorific: string | null;
   gender: Gender;
   lifespan: string;
   generation: number;
@@ -76,6 +77,7 @@ export function toFlowElements(tree: FamilyTreeResponse): {
       },
       data: {
         name: person.name,
+        honorific: person.honorific,
         gender: person.gender,
         lifespan: lifespan(person.birthDate, person.deathDate),
         generation: generation + 1,
