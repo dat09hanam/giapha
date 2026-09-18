@@ -64,10 +64,6 @@ function nullableText(
   return value?.trim() || null;
 }
 
-function yearDate(year: number | null | undefined): Date | null {
-  return year ? new Date(Date.UTC(year, 0, 1)) : null;
-}
-
 function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
   const peopleByClientId = new Map<string, (typeof input.people)[number]>();
   const databaseIds = new Set<string>();
@@ -89,12 +85,12 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
       );
     }
     if (
-      person.birthYear &&
-      person.deathYear &&
-      person.deathYear < person.birthYear
+      person.birthDate &&
+      person.deathDate &&
+      new Date(person.deathDate) < new Date(person.birthDate)
     ) {
       throw new BadRequestException(
-        "Năm mất của thành viên không được nhỏ hơn năm sinh.",
+        "Ngày mất của thành viên không được trước ngày sinh.",
       );
     }
     peopleByClientId.set(person.clientId, person);
@@ -210,7 +206,7 @@ export class FamilyTreeService {
 
     const [people, relationships] = await Promise.all([
       this.prisma.person.findMany({
-        where: { familyId, deletedAt: null },
+        where: { familyId },
         orderBy: [
           { generation: "asc" },
           { orderInFamily: "asc" },
@@ -220,11 +216,17 @@ export class FamilyTreeService {
           id: true,
           name: true,
           nickname: true,
+          courtesyName: true,
           gender: true,
           birthDate: true,
           deathDate: true,
+          lunarDeathDay: true,
+          lunarDeathMonth: true,
           isAlive: true,
+          burialPlace: true,
+          phone: true,
           avatarUrl: true,
+          biography: true,
           generation: true,
           orderInFamily: true,
           fatherId: true,
@@ -232,7 +234,7 @@ export class FamilyTreeService {
         },
       }),
       this.prisma.relationship.findMany({
-        where: { familyId, deletedAt: null },
+        where: { familyId },
         orderBy: [
           { husbandId: "asc" },
           { wifeOrder: "asc" },
@@ -287,11 +289,7 @@ export class FamilyTreeService {
 
         if (referencedDatabaseIds.length > 0) {
           const existingPeople = await transaction.person.findMany({
-            where: {
-              familyId,
-              deletedAt: null,
-              id: { in: referencedDatabaseIds },
-            },
+            where: { familyId, id: { in: referencedDatabaseIds } },
             select: { id: true },
           });
           if (existingPeople.length !== referencedDatabaseIds.length) {
@@ -305,17 +303,25 @@ export class FamilyTreeService {
         for (const person of input.people) {
           const data = {
             name: person.name.trim(),
+            nickname: nullableText(person.nickname) ?? null,
+            courtesyName: nullableText(person.courtesyName) ?? null,
             gender: person.gender,
-            birthDate: yearDate(person.birthYear),
-            deathDate: yearDate(person.deathYear),
-            isAlive: !person.deathYear,
+            birthDate: nullableDate(person.birthDate) ?? null,
+            deathDate: nullableDate(person.deathDate) ?? null,
+            lunarDeathDay: person.lunarDeathDay ?? null,
+            lunarDeathMonth: person.lunarDeathMonth ?? null,
+            isAlive: person.isAlive ?? !person.deathDate,
+            burialPlace: nullableText(person.burialPlace) ?? null,
+            phone: nullableText(person.phone) ?? null,
+            avatarUrl: nullableText(person.avatarUrl) ?? null,
+            biography: nullableText(person.biography) ?? null,
             generation: person.generation,
             orderInFamily: person.orderInFamily,
           };
 
           if (person.databaseId) {
             const updated = await transaction.person.updateMany({
-              where: { id: person.databaseId, familyId, deletedAt: null },
+              where: { id: person.databaseId, familyId },
               data,
             });
             if (updated.count !== 1) {
@@ -363,58 +369,33 @@ export class FamilyTreeService {
           }
 
           await transaction.person.updateMany({
-            where: { id: databaseId, familyId, deletedAt: null },
+            where: { id: databaseId, familyId },
             data: { fatherId, motherId },
           });
         }
 
         let deletedPersonCount = 0;
         if (deletedPersonIds.length > 0) {
-          await transaction.person.updateMany({
-            where: {
-              familyId,
-              deletedAt: null,
-              fatherId: { in: deletedPersonIds },
-            },
-            data: { fatherId: null },
-          });
-          await transaction.person.updateMany({
-            where: {
-              familyId,
-              deletedAt: null,
-              motherId: { in: deletedPersonIds },
-            },
-            data: { motherId: null },
-          });
-          await transaction.relationship.updateMany({
-            where: {
-              familyId,
-              deletedAt: null,
-              OR: [
-                { husbandId: { in: deletedPersonIds } },
-                { wifeId: { in: deletedPersonIds } },
-              ],
-            },
-            data: { deletedAt: new Date() },
-          });
-          const deleted = await transaction.person.updateMany({
-            where: { familyId, deletedAt: null, id: { in: deletedPersonIds } },
-            data: { deletedAt: new Date() },
+          await this.detachPersonReferences(
+            transaction,
+            familyId,
+            deletedPersonIds,
+          );
+          const deleted = await transaction.person.deleteMany({
+            where: { familyId, id: { in: deletedPersonIds } },
           });
           deletedPersonCount = deleted.count;
         }
 
         const savedDatabaseIds = [...databaseIdByClientId.values()];
-        await transaction.relationship.updateMany({
+        await transaction.relationship.deleteMany({
           where: {
             familyId,
-            deletedAt: null,
             OR: [
               { husbandId: { in: savedDatabaseIds } },
               { wifeId: { in: savedDatabaseIds } },
             ],
           },
-          data: { deletedAt: new Date() },
         });
 
         for (const relationship of input.relationships) {
@@ -440,7 +421,6 @@ export class FamilyTreeService {
               wifeOrder: relationship.wifeOrder,
             },
             update: {
-              deletedAt: null,
               status: RelationshipStatus.MARRIED,
               wifeOrder: relationship.wifeOrder,
             },
@@ -521,7 +501,7 @@ export class FamilyTreeService {
     return this.prisma.$transaction(
       async (transaction) => {
         const existing = await transaction.person.findFirst({
-          where: { id: personId, familyId, deletedAt: null },
+          where: { id: personId, familyId },
           select: { id: true, fatherId: true, motherId: true },
         });
         if (!existing)
@@ -584,7 +564,7 @@ export class FamilyTreeService {
             : { orderInFamily: input.orderInFamily }),
         };
         const updated = await transaction.person.updateMany({
-          where: { id: personId, familyId, deletedAt: null },
+          where: { id: personId, familyId },
           data,
         });
         if (updated.count !== 1)
@@ -605,32 +585,16 @@ export class FamilyTreeService {
     await this.prisma.$transaction(
       async (transaction) => {
         const existing = await transaction.person.findFirst({
-          where: { id: personId, familyId, deletedAt: null },
+          where: { id: personId, familyId },
           select: { id: true },
         });
         if (!existing)
           throw new NotFoundException(
             "Không tìm thấy thành viên trong dòng họ này.",
           );
-        await transaction.person.updateMany({
-          where: { familyId, fatherId: personId },
-          data: { fatherId: null },
-        });
-        await transaction.person.updateMany({
-          where: { familyId, motherId: personId },
-          data: { motherId: null },
-        });
-        await transaction.relationship.updateMany({
-          where: {
-            familyId,
-            deletedAt: null,
-            OR: [{ husbandId: personId }, { wifeId: personId }],
-          },
-          data: { deletedAt: new Date() },
-        });
-        const deleted = await transaction.person.updateMany({
-          where: { id: personId, familyId, deletedAt: null },
-          data: { deletedAt: new Date() },
+        await this.detachPersonReferences(transaction, familyId, [personId]);
+        const deleted = await transaction.person.deleteMany({
+          where: { id: personId, familyId },
         });
         if (deleted.count !== 1)
           throw new NotFoundException(
@@ -639,6 +603,37 @@ export class FamilyTreeService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+  }
+
+  /**
+   * Person rows are referenced through Restrict foreign keys, so every inbound
+   * link has to be cleared before they can be removed for good.
+   */
+  private async detachPersonReferences(
+    transaction: Prisma.TransactionClient,
+    familyId: string,
+    personIds: string[],
+  ): Promise<void> {
+    if (personIds.length === 0) return;
+
+    await transaction.person.updateMany({
+      where: { familyId, fatherId: { in: personIds } },
+      data: { fatherId: null },
+    });
+    await transaction.person.updateMany({
+      where: { familyId, motherId: { in: personIds } },
+      data: { motherId: null },
+    });
+    await transaction.media.updateMany({
+      where: { familyId, personId: { in: personIds } },
+      data: { personId: null },
+    });
+    await transaction.relationship.deleteMany({
+      where: {
+        familyId,
+        OR: [{ husbandId: { in: personIds } }, { wifeId: { in: personIds } }],
+      },
+    });
   }
 
   private async validateParents(
@@ -666,7 +661,7 @@ export class FamilyTreeService {
     ];
     if (!requested.length) return;
     const parents = await transaction.person.findMany({
-      where: { familyId, deletedAt: null, id: { in: requested } },
+      where: { familyId, id: { in: requested } },
       select: { id: true },
     });
     if (parents.length !== requested.length) {
@@ -677,7 +672,7 @@ export class FamilyTreeService {
     if (!personId) return;
 
     const people = await transaction.person.findMany({
-      where: { familyId, deletedAt: null },
+      where: { familyId },
       select: { id: true, fatherId: true, motherId: true },
     });
     const byId = new Map(people.map((person) => [person.id, person]));

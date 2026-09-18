@@ -1,21 +1,26 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 
 import { getApiErrorMessage } from '@/lib/api-error';
 import { login, profileDestination } from '@/lib/auth-api';
 import { Button } from '@/components/ui/button';
-import { Field, FormError } from './form-fields';
+import { useToast } from '@/components/ui/toast';
+import { Field } from './form-fields';
 
 export function LoginForm({ initialError = null }: { initialError?: string | null }) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(initialError);
+  const showToast = useToast();
   const [submitting, setSubmitting] = useState(false);
+
+  // Surfaces the reason a guard bounced the visitor back to the login page.
+  useEffect(() => {
+    if (initialError) showToast({ kind: 'error', message: initialError });
+  }, [initialError, showToast]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
     setSubmitting(true);
 
     const form = new FormData(event.currentTarget);
@@ -27,7 +32,10 @@ export function LoginForm({ initialError = null }: { initialError?: string | nul
       router.replace(profileDestination(profile));
       router.refresh();
     } catch (submissionError: unknown) {
-      setError(getApiErrorMessage(submissionError, 'đăng nhập'));
+      showToast({
+        kind: 'error',
+        message: getApiErrorMessage(submissionError, 'đăng nhập'),
+      });
       setSubmitting(false);
     }
   }
@@ -52,7 +60,6 @@ export function LoginForm({ initialError = null }: { initialError?: string | nul
         minLength={1}
         required
       />
-      <FormError message={error} />
       <Button type="submit" size="lg" disabled={submitting}>
         {submitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
       </Button>

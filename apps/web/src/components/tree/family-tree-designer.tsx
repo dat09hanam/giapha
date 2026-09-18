@@ -17,6 +17,10 @@ import "@xyflow/react/dist/style.css";
 import {
   ArrowLeft,
   Baby,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ImagePlus,
   CircleAlert,
   HeartHandshake,
   LoaderCircle,
@@ -24,17 +28,26 @@ import {
   Plus,
   Save,
   Trash2,
-  UserRound,
   X,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ImageCropper } from "@/components/ui/image-cropper";
+import { PersonAvatar } from "@/components/ui/person-avatar";
+import { useToast } from "@/components/ui/toast";
+import { DeathAnniversaryPicker } from "@/components/ui/death-anniversary-picker";
 import { getApiErrorMessage } from "@/lib/api-error";
 import {
-  saveDesignerPerson,
+  ACCEPTED_IMAGE_TYPES,
+  MAX_SOURCE_IMAGE_BYTES,
+  deleteFamilyMedia,
+  familyMediaSrc,
+  uploadFamilyMedia,
+} from "@/lib/media-api";
+import {
   saveFamilyTreeDesign,
   type FamilyTreeDesignSaveInput,
 } from "@/lib/family-tree-design-api";
@@ -47,9 +60,19 @@ type DesignerMember = {
   id: string;
   databaseId: string | null;
   name: string;
+  nickname: string;
+  courtesyName: string;
   gender: DesignerGender;
-  birthYear: string;
-  deathYear: string;
+  /** yyyy-mm-dd, as a native date input holds it. */
+  birthDate: string;
+  deathDate: string;
+  /** DD/MM lunar anniversary, matching DeathAnniversaryPicker. */
+  lunarDeathAnniversary: string;
+  isAlive: boolean;
+  burialPlace: string;
+  phone: string;
+  avatarUrl: string;
+  biography: string;
 };
 
 type FamilyBranch = {
@@ -70,6 +93,8 @@ type RelationshipChoice = {
 
 type DesignerNodeData = {
   member: DesignerMember;
+  /** Resolved here because the node itself has no access to the family slug. */
+  avatarSrc: string | null;
   selected: boolean;
   onSelect: (memberId: string) => void;
   onAddRelationship: (memberId: string) => void;
@@ -109,6 +134,54 @@ const RELATIONSHIP_CHOICES: RelationshipChoice[] = [
   },
 ];
 
+const GENDER_CHOICES: ReadonlyArray<{
+  value: Extract<DesignerGender, "MALE" | "FEMALE">;
+  label: string;
+}> = [
+  { value: "MALE", label: "Nam" },
+  { value: "FEMALE", label: "Nữ" },
+];
+
+const SPOUSE_KINDS: ReadonlySet<RelationshipKind> = new Set<RelationshipKind>([
+  "WIFE",
+  "HUSBAND",
+]);
+
+function oppositeGender(gender: DesignerGender): DesignerGender | null {
+  if (gender === "MALE") return "FEMALE";
+  if (gender === "FEMALE") return "MALE";
+  return null;
+}
+
+function relationshipGender(
+  kind: RelationshipKind,
+  sourceGender: DesignerGender,
+): DesignerGender {
+  if (SPOUSE_KINDS.has(kind)) {
+    const spouseGender = oppositeGender(sourceGender);
+    if (spouseGender) return spouseGender;
+
+    return kind === "WIFE" ? "FEMALE" : "MALE";
+  }
+
+  return kind === "DAUGHTER" ? "FEMALE" : "MALE";
+}
+
+function relationshipChoiceBlockedReason(
+  kind: RelationshipKind,
+  sourceGender: DesignerGender,
+): string | null {
+  if (kind === "HUSBAND" && sourceGender === "MALE") {
+    return "Thành viên đang chọn là nam nên không thể thêm chồng.";
+  }
+
+  if (kind === "WIFE" && sourceGender === "FEMALE") {
+    return "Thành viên đang chọn là nữ nên không thể thêm vợ.";
+  }
+
+  return null;
+}
+
 const genderStyles: Record<DesignerGender, string> = {
   MALE: "bg-sky-100 text-sky-800 ring-sky-200",
   FEMALE: "bg-rose-100 text-rose-800 ring-rose-200",
@@ -116,9 +189,30 @@ const genderStyles: Record<DesignerGender, string> = {
   UNKNOWN: "bg-amber-50 text-amber-800 ring-amber-200",
 };
 
+const genderLabels: Record<DesignerGender, string> = {
+  MALE: "Nam",
+  FEMALE: "Nữ",
+  OTHER: "Giới tính khác",
+  UNKNOWN: "Chưa xác định giới tính",
+};
+
+/** Stands in for a missing photo on every avatar circle in the designer. */
+function GenderAvatarFallback({ gender }: { gender: DesignerGender }) {
+  return (
+    <>
+      <PersonAvatar gender={gender} className="size-full" />
+      <span className="sr-only">{genderLabels[gender]}</span>
+    </>
+  );
+}
+
 function memberYears(member: DesignerMember): string {
-  if (!member.birthYear && !member.deathYear) return "Chưa cập nhật năm sinh";
-  return (member.birthYear || "?") + " – " + (member.deathYear || "nay");
+  const birthYear = member.birthDate.slice(0, 4);
+  const deathYear = member.deathDate.slice(0, 4);
+  if (!birthYear && !deathYear) return "Chưa cập nhật năm sinh";
+
+  const end = deathYear || (member.isAlive ? "nay" : "?");
+  return (birthYear || "?") + " – " + end;
 }
 
 function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
@@ -153,12 +247,23 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
       >
         <span
           className={cn(
-            "mx-auto grid size-16 place-items-center rounded-full ring-1",
+            "mx-auto grid size-16 place-items-center overflow-hidden rounded-full ring-1",
             genderStyles[data.member.gender],
             data.selected && "ring-4 ring-emerald-600/25",
           )}
         >
-          <UserRound className="size-8" aria-hidden="true" />
+          {data.avatarSrc ? (
+            // Avatars are served by the API, outside next/image's loader.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={data.avatarSrc}
+              alt=""
+              className="size-full object-cover"
+              draggable={false}
+            />
+          ) : (
+            <GenderAvatarFallback gender={data.member.gender} />
+          )}
         </span>
         <span
           className="mt-3 block truncate text-center font-semibold text-emerald-950"
@@ -203,11 +308,30 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
 
 const nodeTypes = { designerPerson: DesignerPersonNode } satisfies NodeTypes;
 
-function personYear(value: string | null): string {
-  if (!value) return "";
+function dateInputValue(value: string | null): string {
+  return value ? value.slice(0, 10) : "";
+}
 
-  const year = new Date(value).getUTCFullYear();
-  return Number.isNaN(year) ? value.slice(0, 4) : String(year);
+function lunarAnniversaryInput(
+  day: number | null,
+  month: number | null,
+): string {
+  if (!day || !month) return "";
+  return String(day).padStart(2, "0") + "/" + String(month).padStart(2, "0");
+}
+
+function parseLunarAnniversary(value: string): {
+  day: number | null;
+  month: number | null;
+} {
+  const match = /^(\d{2})\/(\d{2})$/.exec(value);
+  if (!match) return { day: null, month: null };
+
+  return { day: Number(match[1]), month: Number(match[2]) };
+}
+
+function trimmedOrNull(value: string): string | null {
+  return value.trim() || null;
 }
 
 function toDesignerMember(person: Person): DesignerMember {
@@ -215,9 +339,20 @@ function toDesignerMember(person: Person): DesignerMember {
     id: person.id,
     databaseId: person.id,
     name: person.name,
+    nickname: person.nickname ?? "",
+    courtesyName: person.courtesyName ?? "",
     gender: person.gender,
-    birthYear: personYear(person.birthDate),
-    deathYear: personYear(person.deathDate),
+    birthDate: dateInputValue(person.birthDate),
+    deathDate: dateInputValue(person.deathDate),
+    lunarDeathAnniversary: lunarAnniversaryInput(
+      person.lunarDeathDay,
+      person.lunarDeathMonth,
+    ),
+    isAlive: person.isAlive,
+    burialPlace: person.burialPlace ?? "",
+    phone: person.phone ?? "",
+    avatarUrl: person.avatarUrl ?? "",
+    biography: person.biography ?? "",
   };
 }
 
@@ -241,9 +376,17 @@ function createInitialBranch(initialTree: FamilyTreeResponse): FamilyBranch {
         id: "member-root",
         databaseId: null,
         name: "Thành viên khởi điểm",
-        gender: "UNKNOWN",
-        birthYear: "",
-        deathYear: "",
+        nickname: "",
+        courtesyName: "",
+        gender: "MALE",
+        birthDate: "",
+        deathDate: "",
+        lunarDeathAnniversary: "",
+        isAlive: true,
+        burialPlace: "",
+        phone: "",
+        avatarUrl: "",
+        biography: "",
       },
       spouses: [],
       children: [],
@@ -325,6 +468,8 @@ function branchWidth(branch: FamilyBranch): number {
 
 function createFlowElements(
   root: FamilyBranch,
+  familySlug: string,
+  avatarPreviews: ReadonlyMap<string, string>,
   selectedMemberId: string,
   onSelect: (memberId: string) => void,
   onAddRelationship: (memberId: string) => void,
@@ -357,6 +502,11 @@ function createFlowElements(
         },
         data: {
           member,
+          avatarSrc:
+            avatarPreviews.get(member.id) ??
+            (member.avatarUrl
+              ? familyMediaSrc(familySlug, member.avatarUrl)
+              : null),
           selected: isSelected,
           onSelect,
           onAddRelationship,
@@ -403,6 +553,25 @@ function createFlowElements(
   const width = branchWidth(root);
   placeBranch(root, -width / 2, 0);
   return { nodes, edges };
+}
+
+function findBranchContainingMember(
+  branch: FamilyBranch,
+  memberId: string,
+): FamilyBranch | null {
+  if (
+    branch.primary.id === memberId ||
+    branch.spouses.some((member) => member.id === memberId)
+  ) {
+    return branch;
+  }
+
+  for (const child of branch.children) {
+    const found = findBranchContainingMember(child, memberId);
+    if (found) return found;
+  }
+
+  return null;
 }
 
 function findMember(
@@ -504,21 +673,62 @@ function createMember(gender: DesignerGender): DesignerMember {
     id: globalThis.crypto.randomUUID(),
     databaseId: null,
     name: "Thành viên mới",
+    nickname: "",
+    courtesyName: "",
     gender,
-    birthYear: "",
-    deathYear: "",
+    birthDate: "",
+    deathDate: "",
+    lunarDeathAnniversary: "",
+    isAlive: true,
+    burialPlace: "",
+    phone: "",
+    avatarUrl: "",
+    biography: "",
   };
 }
 
-function editableYear(value: string): number | null {
-  if (!value) return null;
+const fieldClassName =
+  "h-11 min-w-0 rounded-xl border bg-white px-3 text-sm outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15";
 
-  const year = Number(value);
-  return Number.isInteger(year) ? year : null;
+function DesignerTextField({
+  id,
+  label,
+  value,
+  onChange,
+  type = "text",
+  maxLength,
+  placeholder,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: "text" | "date" | "tel" | "url";
+  maxLength?: number;
+  placeholder?: string;
+}) {
+  return (
+    <label className="grid gap-1.5" htmlFor={id}>
+      <span className="text-sm font-medium text-emerald-950">{label}</span>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+        maxLength={maxLength}
+        placeholder={placeholder}
+        className={fieldClassName}
+      />
+    </label>
+  );
 }
 
-function yearDate(value: number | null): string | null {
-  return value === null ? null : String(value).padStart(4, "0") + "-01-01";
+function collectMembers(branch: FamilyBranch): DesignerMember[] {
+  return [
+    branch.primary,
+    ...branch.spouses,
+    ...branch.children.flatMap(collectMembers),
+  ];
 }
 
 function buildDesignPayload(
@@ -538,13 +748,23 @@ function buildDesignPayload(
     const members = [branch.primary, ...branch.spouses];
 
     members.forEach((member, memberIndex) => {
+      const lunar = parseLunarAnniversary(member.lunarDeathAnniversary);
       people.push({
         clientId: member.id,
         databaseId: member.databaseId,
         name: member.name.trim(),
+        nickname: trimmedOrNull(member.nickname),
+        courtesyName: trimmedOrNull(member.courtesyName),
         gender: member.gender,
-        birthYear: editableYear(member.birthYear),
-        deathYear: editableYear(member.deathYear),
+        birthDate: member.birthDate || null,
+        deathDate: member.deathDate || null,
+        lunarDeathDay: lunar.day,
+        lunarDeathMonth: lunar.month,
+        isAlive: member.isAlive,
+        burialPlace: trimmedOrNull(member.burialPlace),
+        phone: trimmedOrNull(member.phone),
+        avatarUrl: trimmedOrNull(member.avatarUrl),
+        biography: trimmedOrNull(member.biography),
         generation,
         orderInFamily: memberIndex === 0 ? orderInFamily : memberIndex,
         fatherClientId: memberIndex === 0 ? fatherClientId : null,
@@ -603,6 +823,25 @@ function applyDatabaseIds(
   };
 }
 
+function applyAvatarUrls(
+  branch: FamilyBranch,
+  avatarUrls: ReadonlyMap<string, string>,
+): FamilyBranch {
+  const updateAvatar = (member: DesignerMember): DesignerMember => {
+    const avatarUrl = avatarUrls.get(member.id);
+    return avatarUrl ? { ...member, avatarUrl } : member;
+  };
+
+  return {
+    ...branch,
+    primary: updateAvatar(branch.primary),
+    spouses: branch.spouses.map(updateAvatar),
+    children: branch.children.map((child) =>
+      applyAvatarUrls(child, avatarUrls),
+    ),
+  };
+}
+
 function collectDatabaseIds(branch: FamilyBranch): string[] {
   return [
     branch.primary.databaseId,
@@ -631,25 +870,12 @@ function databaseIdsRemovedByDeletion(
 function validateMemberForSave(member: DesignerMember): string | null {
   if (!member.name.trim()) return "Vui lòng nhập họ và tên thành viên.";
 
-  const birthYear = editableYear(member.birthYear);
-  const deathYear = editableYear(member.deathYear);
-
   if (
-    member.birthYear &&
-    (birthYear === null || birthYear < 1 || birthYear > 9999)
+    member.birthDate &&
+    member.deathDate &&
+    member.deathDate < member.birthDate
   ) {
-    return "Năm sinh phải là một năm hợp lệ.";
-  }
-
-  if (
-    member.deathYear &&
-    (deathYear === null || deathYear < 1 || deathYear > 9999)
-  ) {
-    return "Năm mất phải là một năm hợp lệ.";
-  }
-
-  if (birthYear !== null && deathYear !== null && deathYear < birthYear) {
-    return "Năm mất không được nhỏ hơn năm sinh.";
+    return "Ngày mất không được trước ngày sinh.";
   }
 
   return null;
@@ -664,27 +890,44 @@ export function FamilyTreeDesigner({
   familySlug: string;
   initialTree: FamilyTreeResponse;
 }) {
-  const [rootBranch, setRootBranch] = useState<FamilyBranch>(() =>
-    createInitialBranch(initialTree),
+  const initialBranch = useMemo(
+    () => createInitialBranch(initialTree),
+    [initialTree],
   );
+  const [rootBranch, setRootBranch] = useState<FamilyBranch>(initialBranch);
   const [selectedMemberId, setSelectedMemberId] = useState(
-    () => createInitialBranch(initialTree).primary.id,
+    initialBranch.primary.id,
   );
   const [relationshipTargetId, setRelationshipTargetId] = useState<
     string | null
   >(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deletedPersonIds, setDeletedPersonIds] = useState<string[]>([]);
+  const [avatarCropSource, setAvatarCropSource] = useState<File | null>(null);
+  /**
+   * Photos cropped but not committed yet, keyed by member. Nothing reaches the
+   * media folder until "Lưu tất cả" succeeds, so an abandoned edit leaves no file.
+   */
+  const [pendingAvatars, setPendingAvatars] = useState<
+    ReadonlyMap<string, { file: File; previewUrl: string }>
+  >(() => new Map());
+  /** Uploads discarded while a saved person still points at them. */
+  const [pendingMediaCleanup, setPendingMediaCleanup] = useState<string[]>([]);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [savingAll, setSavingAll] = useState(false);
-  const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
-  const [saveFeedback, setSaveFeedback] = useState<{
-    kind: "success" | "error";
-    message: string;
-  } | null>(null);
+  /**
+   * Serialised payload as of the last successful save. `null` means nothing has
+   * ever been persisted, so the untouched starter card still counts as a change.
+   */
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(() =>
+    initialTree.people.length > 0
+      ? JSON.stringify(buildDesignPayload(initialBranch, []))
+      : null,
+  );
+  const showToast = useToast();
 
   const selectMember = useCallback((memberId: string): void => {
     setSelectedMemberId(memberId);
-    setSaveFeedback(null);
   }, []);
 
   const openRelationshipPicker = useCallback((memberId: string): void => {
@@ -713,25 +956,88 @@ export function FamilyTreeDesigner({
     [deleteTargetId, rootBranch],
   );
   const memberCount = useMemo(() => countMembers(rootBranch), [rootBranch]);
+  const selectedChildren = useMemo(
+    () =>
+      findBranchContainingMember(rootBranch, selectedMemberId)?.children ?? [],
+    [rootBranch, selectedMemberId],
+  );
+  const designPayload = useMemo(
+    () => buildDesignPayload(rootBranch, deletedPersonIds),
+    [deletedPersonIds, rootBranch],
+  );
+  const hasUnsavedChanges = useMemo(
+    () =>
+      savedSnapshot === null ||
+      pendingAvatars.size > 0 ||
+      JSON.stringify(designPayload) !== savedSnapshot,
+    [designPayload, pendingAvatars, savedSnapshot],
+  );
+  // Object URLs for crops the visitor never saved would otherwise outlive the
+  // page on a client-side navigation.
+  const pendingAvatarsRef = useRef(pendingAvatars);
+  pendingAvatarsRef.current = pendingAvatars;
+  useEffect(
+    () => () =>
+      pendingAvatarsRef.current.forEach((pending) =>
+        URL.revokeObjectURL(pending.previewUrl),
+      ),
+    [],
+  );
+
+  const avatarPreviews = useMemo(
+    () =>
+      new Map(
+        [...pendingAvatars].map(([memberId, pending]) => [
+          memberId,
+          pending.previewUrl,
+        ]),
+      ),
+    [pendingAvatars],
+  );
+  const selectedAvatarSrc = useMemo(() => {
+    const pending = pendingAvatars.get(selectedMemberId);
+    if (pending) return pending.previewUrl;
+
+    return selectedMember?.avatarUrl
+      ? familyMediaSrc(familySlug, selectedMember.avatarUrl)
+      : null;
+  }, [familySlug, pendingAvatars, selectedMember, selectedMemberId]);
+  const selectedPlacement = useMemo(
+    () =>
+      designPayload.people.find(
+        (person) => person.clientId === selectedMemberId,
+      ) ?? null,
+    [designPayload, selectedMemberId],
+  );
 
   const { nodes, edges } = useMemo(
     () =>
       createFlowElements(
         rootBranch,
+        familySlug,
+        avatarPreviews,
         selectedMemberId,
         selectMember,
         openRelationshipPicker,
       ),
-    [openRelationshipPicker, rootBranch, selectMember, selectedMemberId],
+    [
+      avatarPreviews,
+      familySlug,
+      openRelationshipPicker,
+      rootBranch,
+      selectMember,
+      selectedMemberId,
+    ],
   );
 
   function addRelationship(kind: RelationshipKind): void {
-    if (!relationshipTargetId) return;
+    if (!relationshipTargetId || !relationshipTarget) return;
 
-    const gender: DesignerGender =
-      kind === "WIFE" || kind === "DAUGHTER" ? "FEMALE" : "MALE";
-    const member = createMember(gender);
-    const isSpouse = kind === "WIFE" || kind === "HUSBAND";
+    const sourceGender = relationshipTarget.gender;
+    if (relationshipChoiceBlockedReason(kind, sourceGender)) return;
+
+    const member = createMember(relationshipGender(kind, sourceGender));
+    const isSpouse = SPOUSE_KINDS.has(kind);
 
     setRootBranch((current) =>
       updateBranchContainingMember(current, relationshipTargetId, (branch) =>
@@ -752,7 +1058,6 @@ export function FamilyTreeDesigner({
       ),
     );
     setSelectedMemberId(member.id);
-    setSaveFeedback(null);
     setRelationshipTargetId(null);
   }
 
@@ -775,126 +1080,177 @@ export function FamilyTreeDesigner({
     ]);
     setRootBranch((current) => removeMember(current, deleteTargetId));
     setSelectedMemberId(fallbackMemberId);
-    setSaveFeedback(null);
     setDeleteTargetId(null);
   }
 
-  function updateSelectedMember(
-    field: Exclude<keyof DesignerMember, "id" | "databaseId">,
-    value: string,
-  ): void {
+  function moveChild(index: number, offset: number): void {
+    setRootBranch((current) =>
+      updateBranchContainingMember(current, selectedMemberId, (branch) => {
+        const target = index + offset;
+        if (target < 0 || target >= branch.children.length) return branch;
+
+        const children = [...branch.children];
+        const [moved] = children.splice(index, 1);
+        if (!moved) return branch;
+
+        children.splice(target, 0, moved);
+        return { ...branch, children };
+      }),
+    );
+  }
+
+  function patchSelectedMember(patch: Partial<DesignerMember>): void {
     setRootBranch((current) =>
       updateMember(current, selectedMemberId, (member) => ({
         ...member,
-        [field]: value,
+        ...patch,
       })),
     );
-    setSaveFeedback(null);
   }
 
-  async function saveSelectedMember(): Promise<void> {
-    if (!selectedMember || savingAll || savingMemberId) return;
-
-    const validationMessage = validateMemberForSave(selectedMember);
-    if (validationMessage) {
-      setSaveFeedback({ kind: "error", message: validationMessage });
-      return;
-    }
-
-    const payload = buildDesignPayload(rootBranch, deletedPersonIds);
-    const person = payload.people.find(
-      (item) => item.clientId === selectedMember.id,
+  /** A death date and "còn sống" cannot both hold, so each one clears the other. */
+  function patchDeathDate(value: string): void {
+    patchSelectedMember(
+      value ? { deathDate: value, isAlive: false } : { deathDate: value },
     );
-    if (!person) {
-      setSaveFeedback({
+  }
+
+  function patchIsAlive(isAlive: boolean): void {
+    patchSelectedMember(
+      isAlive
+        ? {
+            isAlive,
+            courtesyName: "",
+            deathDate: "",
+            lunarDeathAnniversary: "",
+            burialPlace: "",
+          }
+        : { isAlive },
+    );
+  }
+
+  function pickAvatarSource(file: File): void {
+    if (
+      !ACCEPTED_IMAGE_TYPES.includes(
+        file.type as (typeof ACCEPTED_IMAGE_TYPES)[number],
+      )
+    ) {
+      showToast({
         kind: "error",
-        message: "Không tìm thấy thành viên đang chọn trong bản thiết kế.",
+        message: "Chỉ hỗ trợ ảnh định dạng JPG, PNG hoặc WEBP.",
+      });
+      return;
+    }
+    if (file.size > MAX_SOURCE_IMAGE_BYTES) {
+      showToast({
+        kind: "error",
+        message: "Ảnh gốc vượt quá dung lượng tối đa 12 MB.",
       });
       return;
     }
 
-    const fatherId = person.fatherClientId
-      ? (findMember(rootBranch, person.fatherClientId)?.databaseId ?? null)
-      : null;
-    const motherId = person.motherClientId
-      ? (findMember(rootBranch, person.motherClientId)?.databaseId ?? null)
-      : null;
+    setAvatarCropSource(file);
+  }
 
-    setSavingMemberId(selectedMember.id);
-    setSaveFeedback(null);
+  /**
+   * Drops the file behind an avatar the visitor replaced or removed. The API
+   * refuses while a saved person still references it, so those are queued and
+   * retried after the next successful save.
+   */
+  function discardAvatarFile(avatarUrl: string): void {
+    if (!avatarUrl.startsWith("/media/")) return;
 
-    try {
-      const savedPerson = await saveDesignerPerson(
-        familySlug,
-        selectedMember.databaseId,
-        {
-          name: person.name,
-          gender: person.gender,
-          birthDate: yearDate(person.birthYear),
-          deathDate: yearDate(person.deathYear),
-          isAlive: person.deathYear === null,
-          generation: person.generation,
-          orderInFamily: person.orderInFamily,
-          fatherId,
-          motherId,
-        },
+    void deleteFamilyMedia(familySlug, avatarUrl).catch(() => {
+      setPendingMediaCleanup((current) =>
+        current.includes(avatarUrl) ? current : [...current, avatarUrl],
       );
+    });
+  }
 
-      setRootBranch((current) =>
-        updateMember(current, selectedMember.id, (member) => ({
-          ...member,
-          databaseId: savedPerson.id,
-        })),
-      );
-      setSaveFeedback({
-        kind: "success",
-        message:
-          "Đã lưu thành viên “" +
-          person.name +
-          "”. Bấm “Lưu tất cả” để đồng bộ các quan hệ.",
-      });
-    } catch (error: unknown) {
-      setSaveFeedback({
-        kind: "error",
-        message: getApiErrorMessage(error, "lưu thành viên"),
-      });
-    } finally {
-      setSavingMemberId(null);
-    }
+  function stagePendingAvatar(memberId: string, file: File | null): void {
+    const previous = pendingAvatars.get(memberId);
+    if (previous) URL.revokeObjectURL(previous.previewUrl);
+
+    setPendingAvatars((current) => {
+      const next = new Map(current);
+      if (file)
+        next.set(memberId, { file, previewUrl: URL.createObjectURL(file) });
+      else next.delete(memberId);
+      return next;
+    });
+  }
+
+  function acceptCroppedAvatar(cropped: File): void {
+    stagePendingAvatar(selectedMemberId, cropped);
+    showToast({
+      kind: "success",
+      message: "Đã chọn ảnh. Bấm “Lưu tất cả” để ghi vào gia phả.",
+    });
+  }
+
+  function removeAvatar(): void {
+    const previous = selectedMember?.avatarUrl ?? "";
+    stagePendingAvatar(selectedMemberId, null);
+    patchSelectedMember({ avatarUrl: "" });
+    if (previous) discardAvatarFile(previous);
   }
 
   async function saveAll(): Promise<void> {
-    if (savingAll || savingMemberId) return;
+    if (savingAll || !hasUnsavedChanges) return;
 
-    const payload = buildDesignPayload(rootBranch, deletedPersonIds);
-    const invalidPerson = payload.people.find(
-      (person) =>
-        !person.name ||
-        (person.birthYear !== null &&
-          (person.birthYear < 1 || person.birthYear > 9999)) ||
-        (person.deathYear !== null &&
-          (person.deathYear < 1 || person.deathYear > 9999)) ||
-        (person.birthYear !== null &&
-          person.deathYear !== null &&
-          person.deathYear < person.birthYear),
-    );
+    const invalid = collectMembers(rootBranch)
+      .map((member) => ({ member, message: validateMemberForSave(member) }))
+      .find(
+        (entry): entry is { member: DesignerMember; message: string } =>
+          entry.message !== null,
+      );
 
-    if (invalidPerson) {
-      setSelectedMemberId(invalidPerson.clientId);
-      setSaveFeedback({
+    if (invalid) {
+      setSelectedMemberId(invalid.member.id);
+      showToast({
         kind: "error",
         message:
           "Thông tin của “" +
-          (invalidPerson.name || "Thành viên chưa đặt tên") +
-          "” chưa hợp lệ. Vui lòng kiểm tra họ tên, năm sinh và năm mất.",
+          (invalid.member.name.trim() || "Thành viên chưa đặt tên") +
+          "” chưa hợp lệ. " +
+          invalid.message,
       });
       return;
     }
 
     setSavingAll(true);
-    setSaveFeedback(null);
 
     try {
+      // Staged photos become real files only now, so an abandoned crop never
+      // leaves anything behind in the media folder.
+      const uploadedAvatars = new Map<string, string>();
+      const replacedAvatarUrls: string[] = [];
+      try {
+        for (const [memberId, pending] of pendingAvatars) {
+          const uploaded = await uploadFamilyMedia(familySlug, pending.file);
+          uploadedAvatars.set(memberId, uploaded.url);
+
+          const previous = findMember(rootBranch, memberId)?.avatarUrl;
+          if (previous && previous !== uploaded.url) {
+            replacedAvatarUrls.push(previous);
+          }
+        }
+      } catch (uploadError: unknown) {
+        showToast({
+          kind: "error",
+          message: getApiErrorMessage(uploadError, "tải ảnh lên"),
+        });
+        return;
+      }
+
+      const payload =
+        uploadedAvatars.size > 0
+          ? buildDesignPayload(
+              applyAvatarUrls(rootBranch, uploadedAvatars),
+              deletedPersonIds,
+            )
+          : designPayload;
+
       const result = await saveFamilyTreeDesign(familySlug, payload);
       const databaseIds = new Map(
         result.savedPeople.map((person) => [
@@ -903,9 +1259,36 @@ export function FamilyTreeDesigner({
         ]),
       );
 
-      setRootBranch((current) => applyDatabaseIds(current, databaseIds));
+      // Snapshot what the server now holds, not the live branch: the user may
+      // have kept editing while the request was in flight.
+      setSavedSnapshot(
+        JSON.stringify({
+          people: payload.people.map((person) => ({
+            ...person,
+            databaseId: databaseIds.get(person.clientId) ?? person.databaseId,
+          })),
+          relationships: payload.relationships,
+          deletedPersonIds: [],
+        } satisfies FamilyTreeDesignSaveInput),
+      );
+      setRootBranch((current) =>
+        applyDatabaseIds(
+          applyAvatarUrls(current, uploadedAvatars),
+          databaseIds,
+        ),
+      );
       setDeletedPersonIds([]);
-      setSaveFeedback({
+      pendingAvatars.forEach((pending) =>
+        URL.revokeObjectURL(pending.previewUrl),
+      );
+      setPendingAvatars(new Map());
+
+      // Nothing saved points at these any more, so the files can go now.
+      for (const avatarUrl of [...pendingMediaCleanup, ...replacedAvatarUrls]) {
+        void deleteFamilyMedia(familySlug, avatarUrl).catch(() => undefined);
+      }
+      setPendingMediaCleanup([]);
+      showToast({
         kind: "success",
         message:
           "Đã lưu toàn bộ " +
@@ -915,7 +1298,7 @@ export function FamilyTreeDesigner({
           " quan hệ.",
       });
     } catch (error: unknown) {
-      setSaveFeedback({
+      showToast({
         kind: "error",
         message: getApiErrorMessage(error, "lưu toàn bộ gia phả"),
       });
@@ -949,7 +1332,12 @@ export function FamilyTreeDesigner({
             <Button
               type="button"
               className="bg-amber-200 text-emerald-950 hover:bg-amber-100"
-              disabled={savingAll || Boolean(savingMemberId)}
+              disabled={savingAll || !hasUnsavedChanges}
+              title={
+                hasUnsavedChanges
+                  ? "Lưu toàn bộ bản thiết kế"
+                  : "Không có thay đổi nào cần lưu"
+              }
               onClick={() => void saveAll()}
             >
               {savingAll ? (
@@ -957,10 +1345,16 @@ export function FamilyTreeDesigner({
                   className="size-4 animate-spin"
                   aria-hidden="true"
                 />
-              ) : (
+              ) : hasUnsavedChanges ? (
                 <Save className="size-4" aria-hidden="true" />
+              ) : (
+                <Check className="size-4" aria-hidden="true" />
               )}
-              {savingAll ? "Đang lưu tất cả…" : "Lưu tất cả"}
+              {savingAll
+                ? "Đang lưu tất cả…"
+                : hasUnsavedChanges
+                  ? "Lưu tất cả"
+                  : "Đã lưu"}
             </Button>
             <Button
               asChild
@@ -1025,132 +1419,318 @@ export function FamilyTreeDesigner({
             </div>
             <span
               className={cn(
-                "grid size-10 place-items-center rounded-full ring-1",
+                "grid size-10 place-items-center overflow-hidden rounded-full ring-1",
                 selectedMember
                   ? genderStyles[selectedMember.gender]
                   : genderStyles.UNKNOWN,
               )}
             >
-              <UserRound className="size-5" aria-hidden="true" />
+              {selectedAvatarSrc ? (
+                // Avatars come from the API or a local crop, so next/image's
+                // loader does not apply.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={selectedAvatarSrc}
+                  alt=""
+                  className="size-full object-cover"
+                  draggable={false}
+                />
+              ) : (
+                <GenderAvatarFallback
+                  gender={selectedMember?.gender ?? "UNKNOWN"}
+                />
+              )}
             </span>
           </div>
 
           {selectedMember ? (
             <div className="mt-5 grid gap-4">
-              <label className="grid gap-1.5" htmlFor="designer-member-name">
-                <span className="text-sm font-medium text-emerald-950">
-                  Họ và tên
-                </span>
+              <DesignerTextField
+                id="designer-member-name"
+                label="Họ và tên"
+                value={selectedMember.name}
+                maxLength={191}
+                onChange={(value) => patchSelectedMember({ name: value })}
+              />
+
+              <DesignerTextField
+                id="designer-member-nickname"
+                label="Tên thường gọi"
+                value={selectedMember.nickname}
+                maxLength={191}
+                placeholder="Không bắt buộc"
+                onChange={(value) => patchSelectedMember({ nickname: value })}
+              />
+
+              <fieldset className="grid gap-1.5">
+                <legend className="text-sm font-medium text-emerald-950">
+                  Giới tính
+                </legend>
+                <div className="mt-1.5 grid grid-cols-2 gap-3">
+                  {GENDER_CHOICES.map((choice) => {
+                    const isChecked = selectedMember.gender === choice.value;
+                    return (
+                      <label
+                        key={choice.value}
+                        className={cn(
+                          "flex h-11 cursor-pointer items-center gap-2.5 rounded-xl border bg-white px-3 text-sm transition",
+                          isChecked
+                            ? "border-emerald-700 font-medium text-emerald-950 ring-2 ring-emerald-700/15"
+                            : "text-stone-600 hover:border-emerald-800/35",
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          name="designer-gender"
+                          value={choice.value}
+                          checked={isChecked}
+                          onChange={() =>
+                            patchSelectedMember({ gender: choice.value })
+                          }
+                          className="size-4 accent-emerald-700"
+                        />
+                        {choice.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
+              <DesignerTextField
+                id="designer-member-birth-date"
+                label="Ngày sinh"
+                type="date"
+                value={selectedMember.birthDate}
+                onChange={(value) => patchSelectedMember({ birthDate: value })}
+              />
+
+              <label
+                className="flex h-11 cursor-pointer items-center gap-2.5 rounded-xl border bg-white px-3 text-sm text-emerald-950 transition hover:border-emerald-800/35"
+                htmlFor="designer-member-is-alive"
+              >
                 <input
-                  id="designer-member-name"
-                  value={selectedMember.name}
+                  id="designer-member-is-alive"
+                  type="checkbox"
+                  checked={selectedMember.isAlive}
                   onChange={(event) =>
-                    updateSelectedMember("name", event.currentTarget.value)
+                    patchIsAlive(event.currentTarget.checked)
                   }
-                  maxLength={191}
-                  className="h-11 rounded-xl border bg-white px-3 text-sm outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+                  className="size-4 accent-emerald-700"
+                />
+                <span className="font-medium">Còn sống</span>
+              </label>
+
+              {selectedMember.isAlive ? null : (
+                <fieldset className="grid gap-4 rounded-2xl border border-amber-900/20 bg-amber-50/50 p-4">
+                  <legend className="px-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+                    Thông tin người đã mất
+                  </legend>
+
+                  <DesignerTextField
+                    id="designer-member-courtesy-name"
+                    label="Tên tự / hiệu"
+                    value={selectedMember.courtesyName}
+                    maxLength={191}
+                    placeholder="Không bắt buộc"
+                    onChange={(value) =>
+                      patchSelectedMember({ courtesyName: value })
+                    }
+                  />
+
+                  <DesignerTextField
+                    id="designer-member-death-date"
+                    label="Ngày mất"
+                    type="date"
+                    value={selectedMember.deathDate}
+                    onChange={patchDeathDate}
+                  />
+
+                  <DeathAnniversaryPicker
+                    id="designer-member-anniversary"
+                    label="Ngày giỗ (âm lịch)"
+                    maxDayInMonth={30}
+                    value={selectedMember.lunarDeathAnniversary}
+                    onChange={(value) =>
+                      patchSelectedMember({ lunarDeathAnniversary: value })
+                    }
+                    hint="Để trống nếu chưa rõ ngày giỗ."
+                  />
+
+                  <DesignerTextField
+                    id="designer-member-burial-place"
+                    label="Nơi an táng"
+                    value={selectedMember.burialPlace}
+                    maxLength={255}
+                    placeholder="Không bắt buộc"
+                    onChange={(value) =>
+                      patchSelectedMember({ burialPlace: value })
+                    }
+                  />
+                </fieldset>
+              )}
+
+              <DesignerTextField
+                id="designer-member-phone"
+                label="Số điện thoại"
+                type="tel"
+                value={selectedMember.phone}
+                maxLength={30}
+                placeholder="Không bắt buộc"
+                onChange={(value) => patchSelectedMember({ phone: value })}
+              />
+
+              <div className="grid gap-1.5">
+                <span className="text-sm font-medium text-emerald-950">
+                  Ảnh đại diện
+                </span>
+                <div className="flex items-center gap-3">
+                  <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl border bg-white">
+                    {selectedAvatarSrc ? (
+                      // Avatars come from the API or a local crop, so next/image's
+                      // loader does not apply.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={selectedAvatarSrc}
+                        alt={"Ảnh đại diện của " + selectedMember.name}
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <GenderAvatarFallback gender={selectedMember.gender} />
+                    )}
+                  </span>
+
+                  <div className="grid min-w-0 flex-1 gap-2">
+                    <input
+                      ref={avatarInputRef}
+                      id="designer-member-avatar"
+                      type="file"
+                      accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                      className="sr-only"
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        event.currentTarget.value = "";
+                        if (file) pickAvatarSource(file);
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={savingAll}
+                      onClick={() => avatarInputRef.current?.click()}
+                    >
+                      <ImagePlus className="size-4" aria-hidden="true" />
+                      {selectedAvatarSrc ? "Đổi ảnh" : "Thêm ảnh"}
+                    </Button>
+                    {selectedAvatarSrc ? (
+                      <button
+                        type="button"
+                        className="text-left text-xs font-medium text-red-700 underline-offset-2 hover:underline"
+                        onClick={removeAvatar}
+                      >
+                        Xóa ảnh đại diện
+                      </button>
+                    ) : (
+                      <span className="text-xs text-stone-500">
+                        JPG, PNG hoặc WEBP, tối đa 2 MB.
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <label
+                className="grid gap-1.5"
+                htmlFor="designer-member-biography"
+              >
+                <span className="text-sm font-medium text-emerald-950">
+                  Tiểu sử
+                </span>
+                <textarea
+                  id="designer-member-biography"
+                  value={selectedMember.biography}
+                  onChange={(event) =>
+                    patchSelectedMember({
+                      biography: event.currentTarget.value,
+                    })
+                  }
+                  rows={4}
+                  maxLength={10000}
+                  placeholder="Tóm tắt cuộc đời, công trạng, ghi chú của dòng họ..."
+                  className="min-w-0 resize-y rounded-xl border bg-white px-3 py-2.5 text-sm leading-6 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
                 />
               </label>
 
-              <div className="grid grid-cols-2 gap-3">
-                <label className="grid gap-1.5" htmlFor="designer-birth-year">
-                  <span className="text-sm font-medium text-emerald-950">
-                    Năm sinh
-                  </span>
-                  <input
-                    id="designer-birth-year"
-                    value={selectedMember.birthYear}
-                    onChange={(event) =>
-                      updateSelectedMember(
-                        "birthYear",
-                        event.currentTarget.value
-                          .replace(/\D/g, "")
-                          .slice(0, 4),
-                      )
-                    }
-                    inputMode="numeric"
-                    placeholder="Ví dụ: 1950"
-                    className="h-11 min-w-0 rounded-xl border bg-white px-3 text-sm outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
-                  />
-                </label>
-                <label className="grid gap-1.5" htmlFor="designer-death-year">
-                  <span className="text-sm font-medium text-emerald-950">
-                    Năm mất
-                  </span>
-                  <input
-                    id="designer-death-year"
-                    value={selectedMember.deathYear}
-                    onChange={(event) =>
-                      updateSelectedMember(
-                        "deathYear",
-                        event.currentTarget.value
-                          .replace(/\D/g, "")
-                          .slice(0, 4),
-                      )
-                    }
-                    inputMode="numeric"
-                    placeholder="Để trống nếu còn sống"
-                    className="h-11 min-w-0 rounded-xl border bg-white px-3 text-sm outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
-                  />
-                </label>
-              </div>
+              {selectedChildren.length > 0 ? (
+                <fieldset className="grid gap-3 rounded-2xl border border-emerald-900/20 bg-emerald-50/50 p-4">
+                  <legend className="px-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                    Danh sách con ({selectedChildren.length})
+                  </legend>
 
-              <label className="grid gap-1.5" htmlFor="designer-gender">
-                <span className="text-sm font-medium text-emerald-950">
-                  Giới tính
-                </span>
-                <select
-                  id="designer-gender"
-                  value={selectedMember.gender}
-                  onChange={(event) =>
-                    updateSelectedMember("gender", event.currentTarget.value)
-                  }
-                  className="h-11 rounded-xl border bg-white px-3 text-sm outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
-                >
-                  <option value="UNKNOWN">Chưa xác định</option>
-                  <option value="MALE">Nam</option>
-                  <option value="FEMALE">Nữ</option>
-                  <option value="OTHER">Khác</option>
-                </select>
-              </label>
+                  <ol className="grid gap-2">
+                    {selectedChildren.map((child, index) => (
+                      <li
+                        key={child.primary.id}
+                        className="flex items-center gap-2 rounded-xl border border-emerald-900/10 bg-white p-2"
+                      >
+                        <span className="shrink-0 rounded-lg bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-900">
+                          Thứ {index + 1}
+                        </span>
+                        <button
+                          type="button"
+                          className="min-w-0 flex-1 truncate text-left text-sm font-medium text-emerald-950 underline-offset-2 hover:underline"
+                          title={child.primary.name}
+                          onClick={() => selectMember(child.primary.id)}
+                        >
+                          {child.primary.name}
+                        </button>
+                        <span className="flex shrink-0 items-center">
+                          <button
+                            type="button"
+                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-emerald-900 disabled:pointer-events-none disabled:opacity-30"
+                            disabled={index === 0}
+                            aria-label={
+                              "Chuyển " + child.primary.name + " lên trên"
+                            }
+                            onClick={() => moveChild(index, -1)}
+                          >
+                            <ChevronUp className="size-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-emerald-900 disabled:pointer-events-none disabled:opacity-30"
+                            disabled={index === selectedChildren.length - 1}
+                            aria-label={
+                              "Chuyển " + child.primary.name + " xuống dưới"
+                            }
+                            onClick={() => moveChild(index, 1)}
+                          >
+                            <ChevronDown
+                              className="size-4"
+                              aria-hidden="true"
+                            />
+                          </button>
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
 
-              <Button
-                type="button"
-                className="mt-1"
-                disabled={savingAll || Boolean(savingMemberId)}
-                onClick={() => void saveSelectedMember()}
-              >
-                {savingMemberId === selectedMember.id ? (
-                  <LoaderCircle
-                    className="size-4 animate-spin"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <Save className="size-4" aria-hidden="true" />
-                )}
-                {savingMemberId === selectedMember.id
-                  ? "Đang lưu thành viên…"
-                  : "Lưu thành viên"}
-              </Button>
-
-              {saveFeedback ? (
-                <div
-                  role={saveFeedback.kind === "error" ? "alert" : "status"}
-                  className={cn(
-                    "rounded-xl border px-3 py-2.5 text-sm leading-5",
-                    saveFeedback.kind === "error"
-                      ? "border-red-200 bg-red-50 text-red-700"
-                      : "border-emerald-200 bg-emerald-50 text-emerald-800",
-                  )}
-                >
-                  {saveFeedback.message}
-                </div>
+                  <p className="text-xs leading-5 text-emerald-950/70">
+                    Thứ tự này quyết định vị trí các khung con trên canvas và
+                    trường thứ tự trong gia đình khi lưu.
+                  </p>
+                </fieldset>
               ) : null}
+
+              <p className="rounded-xl border border-amber-900/15 bg-amber-50/70 px-3 py-2 text-xs leading-5 text-amber-950/75">
+                Thế hệ {selectedPlacement?.generation ?? "-"} · Thứ tự{" "}
+                {selectedPlacement?.orderInFamily ?? "-"}. Hai giá trị này do vị
+                trí trên canvas quyết định.
+              </p>
 
               <Button
                 type="button"
                 variant="outline"
-                disabled={savingAll || Boolean(savingMemberId)}
+                disabled={savingAll}
                 onClick={() => openRelationshipPicker(selectedMember.id)}
               >
                 <Plus className="size-4" aria-hidden="true" />
@@ -1162,9 +1742,7 @@ export function FamilyTreeDesigner({
                 variant="outline"
                 className="border-red-200 bg-white text-red-700 hover:bg-red-50 hover:text-red-800"
                 disabled={
-                  selectedMember.id === rootBranch.primary.id ||
-                  savingAll ||
-                  Boolean(savingMemberId)
+                  selectedMember.id === rootBranch.primary.id || savingAll
                 }
                 title={
                   selectedMember.id === rootBranch.primary.id
@@ -1190,7 +1768,7 @@ export function FamilyTreeDesigner({
                 />
                 <p>
                   Các thay đổi chỉ được ghi vào dữ liệu gia phả sau khi bạn bấm
-                  một trong hai nút lưu.
+                  “Lưu tất cả”.
                 </p>
               </div>
             </div>
@@ -1238,11 +1816,24 @@ export function FamilyTreeDesigner({
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {RELATIONSHIP_CHOICES.map((choice) => {
                 const Icon = choice.icon;
+                const blockedReason = relationshipTarget
+                  ? relationshipChoiceBlockedReason(
+                      choice.kind,
+                      relationshipTarget.gender,
+                    )
+                  : null;
                 return (
                   <button
                     key={choice.kind}
                     type="button"
-                    className="flex items-center gap-3 rounded-2xl border border-amber-900/15 bg-white p-4 text-left transition hover:border-emerald-800/35 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
+                    disabled={Boolean(blockedReason)}
+                    title={blockedReason ?? undefined}
+                    className={cn(
+                      "flex items-center gap-3 rounded-2xl border border-amber-900/15 bg-white p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700",
+                      blockedReason
+                        ? "opacity-40"
+                        : "hover:border-emerald-800/35 hover:bg-emerald-50",
+                    )}
                     onClick={() => addRelationship(choice.kind)}
                   >
                     <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-900">
@@ -1253,7 +1844,7 @@ export function FamilyTreeDesigner({
                         {choice.label}
                       </span>
                       <span className="mt-0.5 block text-xs text-stone-500">
-                        {choice.description}
+                        {blockedReason ?? choice.description}
                       </span>
                     </span>
                   </button>
@@ -1262,6 +1853,17 @@ export function FamilyTreeDesigner({
             </div>
           </section>
         </div>
+      ) : null}
+
+      {avatarCropSource ? (
+        <ImageCropper
+          file={avatarCropSource}
+          onCancel={() => setAvatarCropSource(null)}
+          onCropped={(cropped) => {
+            setAvatarCropSource(null);
+            acceptCroppedAvatar(cropped);
+          }}
+        />
       ) : null}
 
       {deleteTargetId ? (

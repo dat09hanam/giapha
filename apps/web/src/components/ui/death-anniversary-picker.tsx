@@ -8,6 +8,10 @@ type DeathAnniversaryPickerProps = {
   id: string;
   value: string;
   onChange: (value: string) => void;
+  /** Overrides the legend so the picker can also label a person's giỗ. */
+  label?: string;
+  /** Lunar months never exceed 30 days; solar anniversaries keep the default. */
+  maxDayInMonth?: number;
   hint?: string;
   required?: boolean;
   disabled?: boolean;
@@ -34,12 +38,14 @@ export function DeathAnniversaryPicker({
   id,
   value,
   onChange,
+  label = 'Ngày giỗ họ',
+  maxDayInMonth = 31,
   hint,
   required = false,
   disabled = false,
 }: DeathAnniversaryPickerProps) {
   const { day, month } = parseValue(value);
-  const maximumDay = month === null ? 31 : DAYS_IN_MONTH[month - 1]!;
+  const maximumDay = Math.min(month === null ? 31 : DAYS_IN_MONTH[month - 1]!, maxDayInMonth);
 
   function selectDay(rawDay: string): void {
     if (!rawDay) {
@@ -57,7 +63,7 @@ export function DeathAnniversaryPicker({
     }
 
     const nextMonth = Number(rawMonth);
-    const nextDay = Math.min(day ?? 1, DAYS_IN_MONTH[nextMonth - 1]!);
+    const nextDay = Math.min(day ?? 1, DAYS_IN_MONTH[nextMonth - 1]!, maxDayInMonth);
     onChange(formatValue(nextDay, nextMonth));
   }
 
@@ -67,7 +73,7 @@ export function DeathAnniversaryPicker({
 
   return (
     <fieldset className="grid gap-1.5" aria-describedby={hintId}>
-      <legend className="text-sm font-medium text-emerald-950">Ngày giỗ họ</legend>
+      <legend className="text-sm font-medium text-emerald-950">{label}</legend>
       <div className="grid grid-cols-2 gap-3">
         <label className="grid gap-1" htmlFor={`${id}-day`}>
           <span className="text-xs text-stone-500">Ngày</span>
@@ -79,7 +85,7 @@ export function DeathAnniversaryPicker({
               className={selectClassName}
               required={required}
               disabled={disabled}
-              aria-label="Chọn ngày giỗ họ"
+              aria-label={`Chọn ngày - ${label}`}
             >
               <option value="">Chọn ngày</option>
               {Array.from({ length: maximumDay }, (_, index) => index + 1).map((optionDay) => (
@@ -105,7 +111,7 @@ export function DeathAnniversaryPicker({
               className={selectClassName}
               required={required}
               disabled={disabled}
-              aria-label="Chọn tháng giỗ họ"
+              aria-label={`Chọn tháng - ${label}`}
             >
               <option value="">Chọn tháng</option>
               {Array.from({ length: 12 }, (_, index) => index + 1).map((optionMonth) => (

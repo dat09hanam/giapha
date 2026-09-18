@@ -6,13 +6,15 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  IsUrl,
   IsUUID,
   Max,
+  Matches,
   MaxLength,
   Min,
   MinLength,
 } from 'class-validator';
+
+import { AVATAR_URL_MESSAGE, AVATAR_URL_PATTERN } from '../../common/validation/avatar-url.js';
 
 export class CreatePersonDto {
   @IsString()
@@ -77,7 +79,7 @@ export class CreatePersonDto {
   phone?: string | null;
 
   @IsOptional()
-  @IsUrl({ protocols: ['http', 'https'], require_protocol: true })
+  @Matches(AVATAR_URL_PATTERN, { message: AVATAR_URL_MESSAGE })
   @MaxLength(500)
   avatarUrl?: string | null;
 

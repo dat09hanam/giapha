@@ -89,9 +89,13 @@ Person credited with the item. It is Family-scoped with the same composite Perso
 
 React Flow positions and edges remain a web concern derived from domain responses. The designer keeps temporary client IDs for unsaved cards; the API maps them to tenant-owned Person IDs inside one serializable transaction and never accepts a client-supplied family ID as authorization.
 
-`Family`, `User`, `Person`, `Relationship` and `Media` are soft-deleted through a nullable
-`deletedAt`; every read path filters `deletedAt: null`. `AuthSession` is exempt because sessions are
-short-lived and logout must remove the row outright.
+`Family`, `User` and `Media` are soft-deleted through a nullable `deletedAt`; every read path for
+those models filters `deletedAt: null`. `Person` and `Relationship` are deleted outright, so the
+genealogy tables never accumulate hidden rows. Because both are referenced by `Restrict` foreign
+keys, removing a Person first clears the `fatherId`/`motherId` of its children, detaches `Media`,
+and deletes the marriages it belongs to, all inside the same serializable transaction. `AuthSession`
+is also exempt from soft delete because sessions are short-lived and logout must remove the row
+outright.
 
 File upload handling, account recovery, audit logs, forced password rotation and field-level privacy
 remain follow-up work.

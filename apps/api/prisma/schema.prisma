@@ -117,7 +117,6 @@ model Person {
   orderInFamily      Int?           @db.UnsignedSmallInt
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
-  deletedAt          DateTime?
   family             Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
   father             Person?        @relation("FatherChildren", fields: [familyId, fatherId], references: [familyId, id], onDelete: Restrict, map: "Person_father_fkey")
   mother             Person?        @relation("MotherChildren", fields: [familyId, motherId], references: [familyId, id], onDelete: Restrict, map: "Person_mother_fkey")
@@ -133,7 +132,6 @@ model Person {
   @@index([familyId, generation])
   @@index([familyId, name])
   @@index([familyId, lunarDeathMonth, lunarDeathDay])
-  @@index([deletedAt])
 }
 
 model Relationship {
@@ -146,7 +144,6 @@ model Relationship {
   wifeOrder    Int?               @db.UnsignedTinyInt
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
-  deletedAt    DateTime?
   family       Family             @relation(fields: [familyId], references: [id], onDelete: Cascade)
   husband      Person             @relation("HusbandRelationships", fields: [familyId, husbandId], references: [familyId, id], onDelete: Restrict, map: "Relationship_husband_fkey")
   wife         Person             @relation("WifeRelationships", fields: [familyId, wifeId], references: [familyId, id], onDelete: Restrict, map: "Relationship_wife_fkey")
@@ -154,7 +151,6 @@ model Relationship {
   @@unique([familyId, husbandId, wifeId])
   @@index([familyId, husbandId, wifeOrder])
   @@index([familyId, wifeId])
-  @@index([deletedAt])
 }
 
 model Media {

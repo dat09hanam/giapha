@@ -7,6 +7,7 @@ import { DatabaseModule } from './database/database.module.js';
 import { FamiliesModule } from './families/families.module.js';
 import { FamilyTreeModule } from './family-tree/family-tree.module.js';
 import { HealthModule } from './health/health.module.js';
+import { MediaModule } from './media/media.module.js';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { HealthModule } from './health/health.module.js';
     HealthModule,
     FamiliesModule,
     FamilyTreeModule,
+    MediaModule,
   ],
 })
 export class AppModule {}

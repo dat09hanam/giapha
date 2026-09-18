@@ -2,7 +2,7 @@
 
 ## Current objective
 
-Thiết kế contract và triển khai lưu một thành viên hoặc toàn bộ bản thiết kế xuống database.
+Áp migration bỏ soft delete rồi QA trang thiết kế bằng phiên trưởng họ.
 
 ## Work items
 
@@ -41,8 +41,39 @@ Thiết kế contract và triển khai lưu một thành viên hoặc toàn bộ
 - [x] Mở rộng web API client và gắn hai nút lưu với trạng thái phản hồi tiếng Việt.
 - [x] Đồng bộ database id trở lại state để lần lưu sau là update, không tạo trùng.
 - [x] Chạy formatter, lint và typecheck cho cả API và web; kiểm tra các nhánh validation/quyền.
+- [x] Đặt mặc định Nam cho khung khởi điểm khi gia phả chưa có người nào.
+- [x] Thay `select` giới tính bằng hai checkbox Nam/Nữ loại trừ nhau trong panel thông tin.
+- [x] Suy giới tính thành viên mới từ giới tính thành viên gốc thay vì chỉ từ nhãn quan hệ.
+- [x] Làm mờ, vô hiệu hóa và giải thích lựa chọn Vợ/Chồng không hợp lệ theo giới tính gốc.
+- [x] Chạy formatter (theo style hiện có của tệp), lint và typecheck web.
+- [x] Gỡ `deletedAt` khỏi model Person/Relationship và mọi filter/ghi trong `family-tree.service.ts`.
+- [x] Viết migration dọn dữ liệu đã soft delete rồi drop index và cột.
+- [x] Gom việc gỡ tham chiếu trước khi xóa cứng vào helper `detachPersonReferences`.
+- [x] Cập nhật `docs/architecture.md` cho chiến lược xóa mới.
+- [x] Mở rộng `FamilyTreeResponse`, `FamilyTreeDesignPersonDto` và service để mang đủ trường Person.
+- [x] Thêm prop `label`/`maxDayInMonth` cho `DeathAnniversaryPicker` để tái dùng cho ngày giỗ âm lịch của cá nhân.
+- [x] Dựng panel chỉnh sửa đầy đủ trường và nối cả hai luồng lưu.
+- [x] Chạy prisma validate, db:generate, lint và typecheck cả hai workspace.
+- [x] Ẩn và xóa ngày mất/ngày giỗ/nơi an táng khi tick “Còn sống”.
+- [x] Thêm `MEDIA_ROOT`, module media (upload + đọc ảnh) và nâng body limit của Fastify.
+- [x] Đổi validation `avatarUrl` sang pattern dùng chung chấp nhận cả `/media/...` và http(s).
+- [x] Thay ô nhập đường dẫn bằng nút thêm ảnh có xem trước, trạng thái tải và nút xóa.
+- [x] Chạy lint, typecheck cả hai workspace và probe endpoint media.
+- [x] Gom trường của người đã mất vào khung riêng và chuyển ô “Còn sống” lên trên khung đó.
+- [x] Thêm khung “Danh sách con” với nhãn Thứ N và nút đổi thứ tự.
+- [x] Bỏ nút và luồng lưu riêng thành viên, dọn client/type không còn dùng.
+- [x] Theo dõi thay đổi bằng snapshot payload và gắn trạng thái enable/disable cho nút lưu.
+- [x] Viết primitive toast dùng chung và gắn provider ở root layout.
+- [x] Chuyển designer, form hồ sơ, form tạo dòng họ, đăng nhập và đăng xuất sang toast; gỡ `FormError`.
+- [x] Viết cropper vuông tự cắt bằng canvas và nối vào luồng thêm ảnh của designer.
+- [x] Thêm endpoint xóa media có kiểm tra tham chiếu và nối vào nút xóa/đổi ảnh.
+- [x] Hoãn tải ảnh tới lúc “Lưu tất cả”, giữ ảnh đã cắt trong bộ nhớ kèm xem trước cục bộ.
+- [x] Sửa lỗi hộp cắt báo “Không mở được ảnh này” do StrictMode chạy effect hai lần.
+- [ ] Chạy `npm run db:migrate` (hoặc `db:deploy`) để áp migration lên database.
 
 ## Owned paths and coordination hotspots
+
+- Media: `apps/api/src/media/**`, `apps/api/src/common/validation/avatar-url.ts`, `apps/api/media/`, `apps/web/src/lib/media-api.ts`
 
 - Ticket workspace: `tickets/family-detail/**`
 - API: `apps/api/src/families/dto/update-family.dto.ts`, `apps/api/src/families/families.service.ts`
@@ -87,7 +118,31 @@ Thiết kế contract và triển khai lưu một thành viên hoặc toàn bộ
 - NOT AVAILABLE: API hiện không có tệp test; không tạo `*.spec.ts` theo quy ước repository.
 - NOT AVAILABLE: kiểm thử click/chụp ảnh vì phiên này không có browser backend.
 - PENDING: kiểm tra trực quan và lưu/tải lại trong phiên trưởng họ; browser backend không khả dụng trong phiên này.
+- PASS: web lint và typecheck sau thay đổi quy tắc giới tính; `git diff --check` sạch.
+- PASS: kiểm tra nguồn xác nhận khung khởi điểm mặc định `MALE`, panel chỉ còn hai checkbox Nam/Nữ, `relationshipGender` lấy giới tính ngược lại của gốc cho vợ/chồng và `addRelationship` chặn cả lựa chọn bị làm mờ.
+- NOTE: `.prettierrc.json` gốc (single quote, width 100) khác style đã commit của `family-tree-designer.tsx` (double quote, width 80); giữ nguyên style tệp để diff chỉ chứa thay đổi giới tính.
+- PASS: `npm run prisma:validate --workspace @giapha/api` và `npm run db:generate` sau khi bỏ `deletedAt`.
+- PASS: lint và TypeScript compiler của cả API và web sau khi bỏ soft delete và mở rộng trường Person.
+- PASS: `grep` xác nhận `family-tree.service.ts` chỉ còn lọc `deletedAt` cho Family; Person/Relationship không còn chỗ nào.
+- PENDING: migration `20260918120000_drop_person_relationship_soft_delete` chưa được áp lên database; thao tác drop cột là phá hủy nên chờ developer chạy.
+- PASS: lint và TypeScript của cả hai workspace sau khi thêm luồng tải ảnh.
+- PASS: probe API đang chạy: `POST` và `GET /api/families/ho-nguyen/media/...` không có session đều trả 401 tiếng Việt, xác nhận module được nạp và guard hoạt động.
+- FIXED: ảnh tải lên thành công nhưng không hiện preview vì `Cross-Origin-Resource-Policy: same-origin` của helmet; route đọc ảnh nay trả `cross-origin`.
+- PASS: script fastify độc lập xác nhận `reply.header()` trong handler ghi đè được CORP của helmet và chỉ ảnh hưởng route đó.
+- PENDING: xác nhận lại preview ảnh trên trình duyệt sau khi sửa CORP.
+- PASS: lint, typecheck và prettier web sau khi cho khung canvas hiển thị ảnh đại diện.
+- PASS: lint, typecheck API và web sau khi thêm luồng xóa tệp ảnh.
+- PASS: probe `DELETE /api/families/ho-nguyen/media/<file>` không có session trả 401 và không đụng vào tệp nào trên đĩa.
+- PENDING: chưa kiểm thử trên trình duyệt nhánh 409 (xóa ảnh đã lưu rồi lưu lại để dọn).
+- PASS: lint, typecheck và build web sau khi hoãn tải ảnh tới lúc lưu.
+- PASS: lint, typecheck và prettier web sau khi thêm khung danh sách con.
+- PASS: lint, typecheck, prettier và `npm run build --workspace @giapha/web` sau khi thêm cropper.
+- PASS: lint, typecheck, prettier và `npm run build --workspace @giapha/web` sau khi chuyển sang toast; build cần chạy vì provider client được gắn vào root layout.
+- PASS: rà soát `role="alert"|role="status"` chỉ còn hai chỗ cố ý giữ: panel kết quả tạo dòng họ và `api-error-state`.
+- PASS: lint, typecheck và prettier web sau khi thêm trạng thái dirty cho nút lưu.
+- PASS: lint, typecheck và prettier web sau khi bỏ nút lưu thành viên; không còn tham chiếu `savingMemberId`/`saveSelectedMember`/`saveDesignerPerson`.
+- PASS: kiểm tra nguồn xác nhận thứ tự mảng `children` vừa quyết định vị trí trong `createFlowElements` vừa quyết định `orderInFamily` trong `buildDesignPayload`, nên đổi thứ tự là nhất quán giữa canvas và dữ liệu lưu.
 
 ## Next action
 
-Đăng nhập `/ho-nguyen/thiet_ke`, thử “Lưu thành viên”, “Lưu tất cả” rồi tải lại để QA dữ liệu thật; đồng thời hoàn tất QA lưu hồ sơ còn tồn.
+Chạy `npm run db:migrate` để áp migration bỏ `deletedAt`, sau đó đăng nhập `/ho-nguyen/thiet_ke`, kiểm tra khung khởi điểm là Nam, đổi giới tính bằng checkbox, thêm quan hệ để xác nhận lựa chọn bị làm mờ đúng chiều, rồi thử “Lưu thành viên”, “Lưu tất cả” và tải lại; đồng thời hoàn tất QA lưu hồ sơ còn tồn.

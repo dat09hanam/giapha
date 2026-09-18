@@ -8,19 +8,19 @@ import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker
 import { getApiErrorMessage } from '@/lib/api-error';
 import { createFamily, type CreatedFamilyResult } from '@/lib/family-api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Field, FormError } from '@/components/auth/form-fields';
+import { Field } from '@/components/auth/form-fields';
+import { useToast } from '@/components/ui/toast';
 
 export function CreateFamilyForm() {
   const [deathAnniversary, setDeathAnniversary] = useState('');
+  const showToast = useToast();
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedFamilyResult | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setSubmitting(true);
-    setError(null);
     setCreated(null);
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
@@ -34,8 +34,15 @@ export function CreateFamilyForm() {
       setCreated(body);
       formElement.reset();
       setDeathAnniversary('');
+      showToast({
+        kind: 'success',
+        message: `Đã tạo dòng họ ${body.family.name}.`,
+      });
     } catch (submissionError: unknown) {
-      setError(getApiErrorMessage(submissionError, 'tạo dòng họ'));
+      showToast({
+        kind: 'error',
+        message: getApiErrorMessage(submissionError, 'tạo dòng họ'),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -86,7 +93,6 @@ export function CreateFamilyForm() {
             hint="Chọn ngày và tháng giỗ họ."
             required
           />
-          <FormError message={error} />
           <Button type="submit" disabled={submitting}>
             <Plus className="size-4" aria-hidden="true" />
             {submitting ? 'Đang tạo…' : 'Tạo gia phả và tài khoản'}

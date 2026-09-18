@@ -18,11 +18,3 @@ export function Field({ label, hint, id, ...props }: FieldProps) {
     </label>
   );
 }
-
-export function FormError({ message }: { message: string | null }) {
-  return message ? (
-    <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
-      {message}
-    </p>
-  ) : null;
-}

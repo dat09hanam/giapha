@@ -10,9 +10,12 @@ import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
 import { validationExceptionFactory } from './common/validation/validation-error.js';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
-    bufferLogs: true,
-  });
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    // Base64 image uploads and large tree designs exceed Fastify's 1 MB default.
+    new FastifyAdapter({ bodyLimit: 6 * 1024 * 1024 }),
+    { bufferLogs: true },
+  );
   const config = app.get(ConfigService);
   const port = config.getOrThrow<number>('PORT');
   const origins = config

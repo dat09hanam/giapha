@@ -1,10 +1,11 @@
 'use client';
 
-import { CheckCircle2, Landmark, Link2, LoaderCircle, RotateCcw, Save } from 'lucide-react';
+import { Landmark, Link2, LoaderCircle, RotateCcw, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
-import { Field, FormError } from '@/components/auth/form-fields';
+import { Field } from '@/components/auth/form-fields';
+import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker';
@@ -45,8 +46,7 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
   const [values, setValues] = useState<FamilyProfileValues>(() => familyToValues(family));
   const [savedValues, setSavedValues] = useState<FamilyProfileValues>(() => familyToValues(family));
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const showToast = useToast();
 
   const isDirty =
     values.name !== savedValues.name ||
@@ -57,15 +57,11 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
 
   function updateValue(field: keyof FamilyProfileValues, value: string): void {
     setValues((current) => ({ ...current, [field]: value }));
-    setError(null);
-    setSaved(false);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setSubmitting(true);
-    setError(null);
-    setSaved(false);
 
     try {
       const updated = await updateFamily(family.slug, {
@@ -78,10 +74,13 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
       const nextValues = familyToValues(updated);
       setValues(nextValues);
       setSavedValues(nextValues);
-      setSaved(true);
+      showToast({ kind: 'success', message: 'Đã lưu thông tin dòng họ.' });
       router.refresh();
     } catch (submissionError: unknown) {
-      setError(getApiErrorMessage(submissionError, 'cập nhật thông tin dòng họ'));
+      showToast({
+        kind: 'error',
+        message: getApiErrorMessage(submissionError, 'cập nhật thông tin dòng họ'),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -89,8 +88,6 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
 
   function resetForm(): void {
     setValues(savedValues);
-    setError(null);
-    setSaved(false);
   }
 
   return (
@@ -170,17 +167,6 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
               Tối đa 5.000 ký tự. Không nhập thông tin riêng tư của từng thành viên tại đây.
             </span>
           </label>
-
-          <FormError message={error} />
-          {saved ? (
-            <p
-              className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
-              role="status"
-            >
-              <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
-              Đã lưu thông tin dòng họ.
-            </p>
-          ) : null}
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button

@@ -4,17 +4,25 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsBoolean,
+  IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
   IsUUID,
   Max,
+  Matches,
   MaxLength,
   Min,
   MinLength,
   ValidateNested,
 } from "class-validator";
+
+import {
+  AVATAR_URL_MESSAGE,
+  AVATAR_URL_PATTERN,
+} from "../../common/validation/avatar-url.js";
 
 export class FamilyTreeDesignPersonDto {
   @IsString()
@@ -31,20 +39,62 @@ export class FamilyTreeDesignPersonDto {
   @MaxLength(191)
   name!: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  nickname?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  courtesyName?: string | null;
+
   @IsEnum(Gender)
   gender!: Gender;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(9999)
-  birthYear?: number | null;
+  @IsDateString()
+  birthDate?: string | null;
+
+  @IsOptional()
+  @IsDateString()
+  deathDate?: string | null;
 
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(9999)
-  deathYear?: number | null;
+  @Max(30)
+  lunarDeathDay?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  lunarDeathMonth?: number | null;
+
+  @IsOptional()
+  @IsBoolean()
+  isAlive?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  burialPlace?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  phone?: string | null;
+
+  @IsOptional()
+  @Matches(AVATAR_URL_PATTERN, { message: AVATAR_URL_MESSAGE })
+  @MaxLength(500)
+  avatarUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(10000)
+  biography?: string | null;
 
   @IsInt()
   @Min(0)

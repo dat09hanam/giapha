@@ -13,6 +13,9 @@ coverage/
 # Generated code
 apps/api/src/generated/prisma/
 
+# Uploaded family media, created on demand by the API at runtime
+apps/api/media/
+
 # Prisma and local tooling
 *.db
 *.db-journal

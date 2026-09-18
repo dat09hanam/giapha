@@ -18,11 +18,17 @@ export type Person = {
   id: string;
   name: string;
   nickname: string | null;
+  courtesyName: string | null;
   gender: Gender;
   birthDate: string | null;
   deathDate: string | null;
+  lunarDeathDay: number | null;
+  lunarDeathMonth: number | null;
   isAlive: boolean;
+  burialPlace: string | null;
+  phone: string | null;
   avatarUrl: string | null;
+  biography: string | null;
   generation: number | null;
   orderInFamily: number | null;
   fatherId: string | null;
