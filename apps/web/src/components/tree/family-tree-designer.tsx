@@ -28,6 +28,7 @@ import {
   Plus,
   Save,
   Trash2,
+  UserRound,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -74,16 +75,32 @@ type DesignerMember = {
   phone: string;
   avatarUrl: string;
   biography: string;
+  fatherId: string | null;
+  motherId: string | null;
+  generation: number;
+  orderInFamily: number;
+  /** Keeps the existing delete-one-spouse/delete-descendant-branch behavior. */
+  deletesBranch: boolean;
 };
 
-type FamilyBranch = {
-  id: string;
-  primary: DesignerMember;
-  spouses: DesignerMember[];
-  children: FamilyBranch[];
+type DesignerRelationship = {
+  husbandId: string;
+  wifeId: string;
+  wifeOrder: number;
 };
 
-type RelationshipKind = "WIFE" | "HUSBAND" | "SON" | "DAUGHTER";
+type DesignerDraft = {
+  people: DesignerMember[];
+  relationships: DesignerRelationship[];
+  protectedMemberId: string;
+};
+
+type RelationshipKind =
+  | "FATHER"
+  | "WIFE"
+  | "HUSBAND"
+  | "SON"
+  | "DAUGHTER";
 
 type RelationshipChoice = {
   kind: RelationshipKind;
@@ -94,6 +111,7 @@ type RelationshipChoice = {
 
 type DesignerNodeData = {
   member: DesignerMember;
+  generation: number;
   /** Resolved here because the node itself has no access to the family slug. */
   avatarSrc: string | null;
   selected: boolean;
@@ -105,10 +123,15 @@ type DesignerFlowNode = Node<DesignerNodeData, "designerPerson">;
 
 const NODE_WIDTH = 214;
 const SPOUSE_GAP = 70;
-const CHILD_GAP = 84;
 const GENERATION_GAP = 260;
 
 const RELATIONSHIP_CHOICES: RelationshipChoice[] = [
+  {
+    kind: "FATHER",
+    label: "Bố",
+    description: "Thêm bố ở thế hệ phía trên",
+    icon: UserRound,
+  },
   {
     kind: "WIFE",
     label: "Vợ",
@@ -139,9 +162,9 @@ const GENDER_CHOICES: ReadonlyArray<{
   value: Extract<DesignerGender, "MALE" | "FEMALE">;
   label: string;
 }> = [
-  { value: "MALE", label: "Nam" },
-  { value: "FEMALE", label: "Nữ" },
-];
+    { value: "MALE", label: "Nam" },
+    { value: "FEMALE", label: "Nữ" },
+  ];
 
 const SPOUSE_KINDS: ReadonlySet<RelationshipKind> = new Set<RelationshipKind>([
   "WIFE",
@@ -158,6 +181,8 @@ function relationshipGender(
   kind: RelationshipKind,
   sourceGender: DesignerGender,
 ): DesignerGender {
+  if (kind === "FATHER") return "MALE";
+
   if (SPOUSE_KINDS.has(kind)) {
     const spouseGender = oppositeGender(sourceGender);
     if (spouseGender) return spouseGender;
@@ -168,16 +193,60 @@ function relationshipGender(
   return kind === "DAUGHTER" ? "FEMALE" : "MALE";
 }
 
+function isDaughter(member: DesignerMember): boolean {
+  return (
+    member.gender === "FEMALE" &&
+    Boolean(member.fatherId || member.motherId)
+  );
+}
+
+function relationshipChoiceIsVisible(
+  kind: RelationshipKind,
+  source: DesignerMember,
+): boolean {
+  return kind !== "HUSBAND" || !isDaughter(source);
+}
+
 function relationshipChoiceBlockedReason(
   kind: RelationshipKind,
-  sourceGender: DesignerGender,
+  source: DesignerMember,
+  relationships: readonly DesignerRelationship[],
 ): string | null {
+  if (kind === "FATHER" && source.fatherId) {
+    return "Thành viên này đã có bố trong cây gia phả.";
+  }
+
+  const marriedDaughter =
+    kind === "FATHER" &&
+    source.gender === "FEMALE" &&
+    relationships.some(
+      (relationship) =>
+        relationship.husbandId === source.id ||
+        relationship.wifeId === source.id,
+    );
+  if (marriedDaughter) {
+    return "Con gái đã có chồng không được thêm bố/mẹ vào nhánh gia phả này.";
+  }
+
+  const sourceGender = source.gender;
+  if (kind === "HUSBAND" && isDaughter(source)) {
+    return "Con gái trong dòng họ không được thêm chồng vào gia phả.";
+  }
+
   if (kind === "HUSBAND" && sourceGender === "MALE") {
     return "Thành viên đang chọn là nam nên không thể thêm chồng.";
   }
 
   if (kind === "WIFE" && sourceGender === "FEMALE") {
     return "Thành viên đang chọn là nữ nên không thể thêm vợ.";
+  }
+
+  if (
+    (kind === "SON" || kind === "DAUGHTER") &&
+    sourceGender !== "MALE" &&
+    sourceGender !== "FEMALE"
+  ) {
+    return "Hãy chọn giới tính Nam hoặc Nữ cho thành viên trước khi thêm con.";
   }
 
   return null;
@@ -198,10 +267,23 @@ const genderLabels: Record<DesignerGender, string> = {
 };
 
 /** Stands in for a missing photo on every avatar circle in the designer. */
-function GenderAvatarFallback({ gender }: { gender: DesignerGender }) {
+function GenderAvatarFallback({
+  gender,
+  generation,
+  birthDate,
+}: {
+  gender: DesignerGender;
+  generation?: number | null;
+  birthDate?: string | null;
+}) {
   return (
     <>
-      <PersonAvatar gender={gender} className="size-full" />
+      <PersonAvatar
+        gender={gender}
+        generation={generation}
+        birthDate={birthDate}
+        className="size-full"
+      />
       <span className="sr-only">{genderLabels[gender]}</span>
     </>
   );
@@ -263,22 +345,25 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
               draggable={false}
             />
           ) : (
-            <GenderAvatarFallback gender={data.member.gender} />
+            <GenderAvatarFallback
+              gender={data.member.gender}
+              generation={data.generation}
+              birthDate={data.member.birthDate}
+            />
           )}
         </span>
-        {data.member.honorific ? (
-          <span
-            className="mt-3 block truncate text-center text-xs font-semibold uppercase tracking-wide text-amber-800"
-            title={data.member.honorific}
-          >
-            {data.member.honorific}
-          </span>
-        ) : null}
         <span
           className={cn(
-            "block truncate text-center font-semibold text-emerald-950",
-            data.member.honorific ? "mt-1" : "mt-3",
+            "mt-3 block h-4 truncate text-center text-xs font-semibold uppercase tracking-wide",
+            data.member.honorific ? "text-amber-800" : "invisible",
           )}
+          title={data.member.honorific || undefined}
+          aria-hidden={data.member.honorific ? undefined : true}
+        >
+          {data.member.honorific || "\u00a0"}
+        </span>
+        <span
+          className="mt-1 block truncate text-center font-semibold text-emerald-950"
           title={data.member.name}
         >
           {data.member.name}
@@ -366,323 +451,27 @@ function toDesignerMember(person: Person): DesignerMember {
     phone: person.phone ?? "",
     avatarUrl: person.avatarUrl ?? "",
     biography: person.biography ?? "",
+    fatherId: person.fatherId,
+    motherId: person.motherId,
+    generation: person.generation ?? 1,
+    orderInFamily: person.orderInFamily ?? 1,
+    deletesBranch: true,
   };
 }
 
-function sortPeople(left: Person, right: Person): number {
+function sortMembers(left: DesignerMember, right: DesignerMember): number {
   return (
-    (left.generation ?? Number.MAX_SAFE_INTEGER) -
-      (right.generation ?? Number.MAX_SAFE_INTEGER) ||
-    (left.orderInFamily ?? Number.MAX_SAFE_INTEGER) -
-      (right.orderInFamily ?? Number.MAX_SAFE_INTEGER) ||
+    left.generation - right.generation ||
+    left.orderInFamily - right.orderInFamily ||
     left.name.localeCompare(right.name, "vi")
   );
 }
 
-function createInitialBranch(initialTree: FamilyTreeResponse): FamilyBranch {
-  const people = [...initialTree.people].sort(sortPeople);
-
-  if (people.length === 0) {
-    return {
-      id: "branch-root",
-      primary: {
-        id: "member-root",
-        databaseId: null,
-        name: "Thành viên khởi điểm",
-        honorific: "",
-        nickname: "",
-        courtesyName: "",
-        gender: "MALE",
-        birthDate: "",
-        deathDate: "",
-        lunarDeathAnniversary: "",
-        isAlive: true,
-        burialPlace: "",
-        phone: "",
-        avatarUrl: "",
-        biography: "",
-      },
-      spouses: [],
-      children: [],
-    };
-  }
-
-  const peopleById = new Map(people.map((person) => [person.id, person]));
-  const wifeIds = new Set(
-    initialTree.relationships.map((relationship) => relationship.wifeId),
-  );
-  const rootPerson =
-    people.find(
-      (person) =>
-        !person.fatherId && !person.motherId && !wifeIds.has(person.id),
-    ) ??
-    people.find((person) => !person.fatherId && !person.motherId) ??
-    people[0]!;
-  const visited = new Set<string>();
-
-  function buildBranch(primary: Person): FamilyBranch {
-    visited.add(primary.id);
-
-    const spousePeople = initialTree.relationships
-      .filter(
-        (relationship) =>
-          relationship.husbandId === primary.id ||
-          relationship.wifeId === primary.id,
-      )
-      .sort((left, right) => (left.wifeOrder ?? 1) - (right.wifeOrder ?? 1))
-      .map((relationship) =>
-        peopleById.get(
-          relationship.husbandId === primary.id
-            ? relationship.wifeId
-            : relationship.husbandId,
-        ),
-      )
-      .filter(
-        (person): person is Person =>
-          person !== undefined && !visited.has(person.id),
-      );
-
-    spousePeople.forEach((person) => visited.add(person.id));
-    const parentIds = new Set([
-      primary.id,
-      ...spousePeople.map((person) => person.id),
-    ]);
-    const children = people
-      .filter(
-        (person) =>
-          !visited.has(person.id) &&
-          ((person.fatherId && parentIds.has(person.fatherId)) ||
-            (person.motherId && parentIds.has(person.motherId))),
-      )
-      .sort(sortPeople)
-      .map(buildBranch);
-
-    return {
-      id: "branch-" + primary.id,
-      primary: toDesignerMember(primary),
-      spouses: spousePeople.map(toDesignerMember),
-      children,
-    };
-  }
-
-  return buildBranch(rootPerson);
-}
-
-function branchWidth(branch: FamilyBranch): number {
-  const coupleCount = 1 + branch.spouses.length;
-  const coupleWidth =
-    coupleCount * NODE_WIDTH + Math.max(0, coupleCount - 1) * SPOUSE_GAP;
-  const childWidths = branch.children.map(branchWidth);
-  const childrenWidth =
-    childWidths.reduce((total, width) => total + width, 0) +
-    Math.max(0, childWidths.length - 1) * CHILD_GAP;
-
-  return Math.max(NODE_WIDTH, coupleWidth, childrenWidth);
-}
-
-function createFlowElements(
-  root: FamilyBranch,
-  familySlug: string,
-  avatarPreviews: ReadonlyMap<string, string>,
-  selectedMemberId: string,
-  onSelect: (memberId: string) => void,
-  onAddRelationship: (memberId: string) => void,
-): { nodes: DesignerFlowNode[]; edges: Edge[] } {
-  const nodes: DesignerFlowNode[] = [];
-  const edges: Edge[] = [];
-
-  function placeBranch(
-    branch: FamilyBranch,
-    left: number,
-    depth: number,
-  ): void {
-    const width = branchWidth(branch);
-    const members = [branch.primary, ...branch.spouses];
-    const coupleWidth =
-      members.length * NODE_WIDTH +
-      Math.max(0, members.length - 1) * SPOUSE_GAP;
-    const coupleLeft = left + (width - coupleWidth) / 2;
-    const y = depth * GENERATION_GAP;
-
-    members.forEach((member, index) => {
-      const isSelected = member.id === selectedMemberId;
-      nodes.push({
-        id: member.id,
-        type: "designerPerson",
-        selected: isSelected,
-        position: {
-          x: coupleLeft + index * (NODE_WIDTH + SPOUSE_GAP),
-          y,
-        },
-        data: {
-          member,
-          avatarSrc:
-            avatarPreviews.get(member.id) ??
-            (member.avatarUrl
-              ? familyMediaSrc(familySlug, member.avatarUrl)
-              : null),
-          selected: isSelected,
-          onSelect,
-          onAddRelationship,
-        },
-      });
-
-      if (index > 0) {
-        edges.push({
-          id: "spouse-" + branch.primary.id + "-" + member.id,
-          source: branch.primary.id,
-          sourceHandle: "spouse-source",
-          target: member.id,
-          targetHandle: "spouse-target",
-          type: "straight",
-          style: { stroke: "#9a6b2f", strokeWidth: 1.8 },
-        });
-      }
-    });
-
-    if (branch.children.length === 0) return;
-
-    const childWidths = branch.children.map(branchWidth);
-    const childrenWidth =
-      childWidths.reduce((total, childWidth) => total + childWidth, 0) +
-      Math.max(0, childWidths.length - 1) * CHILD_GAP;
-    let childLeft = left + (width - childrenWidth) / 2;
-
-    branch.children.forEach((child, index) => {
-      edges.push({
-        id: "child-" + branch.primary.id + "-" + child.primary.id,
-        source: branch.primary.id,
-        sourceHandle: "child-source",
-        target: child.primary.id,
-        targetHandle: "parent-target",
-        type: "smoothstep",
-        style: { stroke: "#9a6b2f", strokeWidth: 1.8 },
-      });
-
-      placeBranch(child, childLeft, depth + 1);
-      childLeft += childWidths[index]! + CHILD_GAP;
-    });
-  }
-
-  const width = branchWidth(root);
-  placeBranch(root, -width / 2, 0);
-  return { nodes, edges };
-}
-
-function findBranchContainingMember(
-  branch: FamilyBranch,
-  memberId: string,
-): FamilyBranch | null {
-  if (
-    branch.primary.id === memberId ||
-    branch.spouses.some((member) => member.id === memberId)
-  ) {
-    return branch;
-  }
-
-  for (const child of branch.children) {
-    const found = findBranchContainingMember(child, memberId);
-    if (found) return found;
-  }
-
-  return null;
-}
-
-function findMember(
-  branch: FamilyBranch,
-  memberId: string,
-): DesignerMember | null {
-  if (branch.primary.id === memberId) return branch.primary;
-
-  const spouse = branch.spouses.find((member) => member.id === memberId);
-  if (spouse) return spouse;
-
-  for (const child of branch.children) {
-    const member = findMember(child, memberId);
-    if (member) return member;
-  }
-
-  return null;
-}
-
-function updateMember(
-  branch: FamilyBranch,
-  memberId: string,
-  update: (member: DesignerMember) => DesignerMember,
-): FamilyBranch {
-  return {
-    ...branch,
-    primary:
-      branch.primary.id === memberId ? update(branch.primary) : branch.primary,
-    spouses: branch.spouses.map((member) =>
-      member.id === memberId ? update(member) : member,
-    ),
-    children: branch.children.map((child) =>
-      updateMember(child, memberId, update),
-    ),
-  };
-}
-
-function updateBranchContainingMember(
-  branch: FamilyBranch,
-  memberId: string,
-  update: (current: FamilyBranch) => FamilyBranch,
-): FamilyBranch {
-  const belongsToBranch =
-    branch.primary.id === memberId ||
-    branch.spouses.some((member) => member.id === memberId);
-
-  if (belongsToBranch) return update(branch);
-
-  return {
-    ...branch,
-    children: branch.children.map((child) =>
-      updateBranchContainingMember(child, memberId, update),
-    ),
-  };
-}
-
-function deletionFallbackMemberId(
-  branch: FamilyBranch,
-  memberId: string,
-): string | null {
-  if (branch.spouses.some((member) => member.id === memberId))
-    return branch.primary.id;
-
-  for (const child of branch.children) {
-    if (child.primary.id === memberId) return branch.primary.id;
-
-    const fallbackMemberId = deletionFallbackMemberId(child, memberId);
-    if (fallbackMemberId) return fallbackMemberId;
-  }
-
-  return null;
-}
-
-function removeMember(branch: FamilyBranch, memberId: string): FamilyBranch {
-  return {
-    ...branch,
-    spouses: branch.spouses.filter((member) => member.id !== memberId),
-    children: branch.children
-      .filter((child) => child.primary.id !== memberId)
-      .map((child) => removeMember(child, memberId)),
-  };
-}
-
-function isPrimaryMember(branch: FamilyBranch, memberId: string): boolean {
-  if (branch.primary.id === memberId) return true;
-  return branch.children.some((child) => isPrimaryMember(child, memberId));
-}
-
-function countMembers(branch: FamilyBranch): number {
-  return (
-    1 +
-    branch.spouses.length +
-    branch.children.reduce((total, child) => total + countMembers(child), 0)
-  );
-}
-
-function createMember(gender: DesignerGender): DesignerMember {
+function createMember(
+  gender: DesignerGender,
+  generation = 1,
+  orderInFamily = 1,
+): DesignerMember {
   return {
     id: globalThis.crypto.randomUUID(),
     databaseId: null,
@@ -699,7 +488,508 @@ function createMember(gender: DesignerGender): DesignerMember {
     phone: "",
     avatarUrl: "",
     biography: "",
+    fatherId: null,
+    motherId: null,
+    generation,
+    orderInFamily,
+    deletesBranch: true,
   };
+}
+
+function recalculateGenerations(draft: DesignerDraft): DesignerDraft {
+  const peopleById = new Map(draft.people.map((person) => [person.id, person]));
+  const groupParents = new Map(draft.people.map((person) => [person.id, person.id]));
+
+  function findGroup(memberId: string): string {
+    const parentId = groupParents.get(memberId) ?? memberId;
+    if (parentId === memberId) return memberId;
+
+    const rootId = findGroup(parentId);
+    groupParents.set(memberId, rootId);
+    return rootId;
+  }
+
+  function joinGroups(leftId: string, rightId: string): void {
+    const leftRoot = findGroup(leftId);
+    const rightRoot = findGroup(rightId);
+    if (leftRoot !== rightRoot) groupParents.set(rightRoot, leftRoot);
+  }
+
+  draft.relationships.forEach((relationship) => {
+    if (
+      peopleById.has(relationship.husbandId) &&
+      peopleById.has(relationship.wifeId)
+    ) {
+      joinGroups(relationship.husbandId, relationship.wifeId);
+    }
+  });
+
+  const groupIds = new Set(draft.people.map((person) => findGroup(person.id)));
+  const childGroups = new Map<string, Set<string>>();
+  const indegrees = new Map([...groupIds].map((groupId) => [groupId, 0]));
+
+  draft.people.forEach((person) => {
+    const childGroup = findGroup(person.id);
+    [person.fatherId, person.motherId].forEach((parentId) => {
+      if (!parentId || !peopleById.has(parentId)) return;
+
+      const parentGroup = findGroup(parentId);
+      if (parentGroup === childGroup) return;
+
+      const children = childGroups.get(parentGroup) ?? new Set<string>();
+      if (children.has(childGroup)) return;
+
+      children.add(childGroup);
+      childGroups.set(parentGroup, children);
+      indegrees.set(childGroup, (indegrees.get(childGroup) ?? 0) + 1);
+    });
+  });
+
+  const generations = new Map<string, number>();
+  const queue = [...groupIds].filter(
+    (groupId) => (indegrees.get(groupId) ?? 0) === 0,
+  );
+  queue.forEach((groupId) => generations.set(groupId, 1));
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const groupId = queue[index]!;
+    const generation = generations.get(groupId) ?? 1;
+
+    (childGroups.get(groupId) ?? new Set<string>()).forEach((childGroup) => {
+      generations.set(
+        childGroup,
+        Math.max(generations.get(childGroup) ?? 1, generation + 1),
+      );
+      const remainingParents = (indegrees.get(childGroup) ?? 1) - 1;
+      indegrees.set(childGroup, remainingParents);
+      if (remainingParents === 0) queue.push(childGroup);
+    });
+  }
+
+  groupIds.forEach((groupId) => {
+    if (!generations.has(groupId)) {
+      const existingGeneration = draft.people
+        .filter((person) => findGroup(person.id) === groupId)
+        .reduce(
+          (lowest, person) => Math.min(lowest, person.generation),
+          Number.MAX_SAFE_INTEGER,
+        );
+      generations.set(
+        groupId,
+        Number.isFinite(existingGeneration) ? Math.max(1, existingGeneration) : 1,
+      );
+    }
+  });
+
+  return {
+    ...draft,
+    people: draft.people.map((person) => ({
+      ...person,
+      generation: generations.get(findGroup(person.id)) ?? 1,
+    })),
+  };
+}
+
+function createInitialDraft(initialTree: FamilyTreeResponse): DesignerDraft {
+  if (initialTree.people.length === 0) {
+    const starter = {
+      ...createMember("MALE"),
+      id: "member-root",
+      name: "Thành viên khởi điểm",
+    };
+    return { people: [starter], relationships: [], protectedMemberId: starter.id };
+  }
+
+  const sourcePeople = [...initialTree.people].sort(
+    (left, right) =>
+      (left.generation ?? Number.MAX_SAFE_INTEGER) -
+        (right.generation ?? Number.MAX_SAFE_INTEGER) ||
+      (left.orderInFamily ?? Number.MAX_SAFE_INTEGER) -
+        (right.orderInFamily ?? Number.MAX_SAFE_INTEGER) ||
+      left.name.localeCompare(right.name, "vi"),
+  );
+  const peopleById = new Map(sourcePeople.map((person) => [person.id, person]));
+  const wifeIds = new Set(
+    initialTree.relationships.map((relationship) => relationship.wifeId),
+  );
+  const visited = new Set<string>();
+  const branchPrimaryIds = new Set<string>();
+
+  function classifyBranch(primary: Person): void {
+    if (visited.has(primary.id)) return;
+    visited.add(primary.id);
+    branchPrimaryIds.add(primary.id);
+
+    const spousePeople = initialTree.relationships
+      .filter(
+        (relationship) =>
+          relationship.husbandId === primary.id ||
+          relationship.wifeId === primary.id,
+      )
+      .map((relationship) =>
+        peopleById.get(
+          relationship.husbandId === primary.id
+            ? relationship.wifeId
+            : relationship.husbandId,
+        ),
+      )
+      .filter(
+        (person): person is Person =>
+          person !== undefined && !visited.has(person.id),
+      );
+    spousePeople.forEach((person) => visited.add(person.id));
+
+    const parentIds = new Set([
+      primary.id,
+      ...spousePeople.map((person) => person.id),
+    ]);
+    sourcePeople
+      .filter(
+        (person) =>
+          !visited.has(person.id) &&
+          ((person.fatherId && parentIds.has(person.fatherId)) ||
+            (person.motherId && parentIds.has(person.motherId))),
+      )
+      .forEach(classifyBranch);
+  }
+
+  sourcePeople
+    .filter((person) => !person.fatherId && !person.motherId)
+    .sort(
+      (left, right) =>
+        Number(wifeIds.has(left.id)) - Number(wifeIds.has(right.id)),
+    )
+    .forEach(classifyBranch);
+  sourcePeople.forEach(classifyBranch);
+
+  const people = sourcePeople.map((person) => ({
+    ...toDesignerMember(person),
+    deletesBranch: branchPrimaryIds.has(person.id),
+  }));
+  const protectedMember =
+    people.find(
+      (person) =>
+        !person.fatherId && !person.motherId && !wifeIds.has(person.id),
+    ) ??
+    people.find((person) => !person.fatherId && !person.motherId) ??
+    people[0]!;
+
+  return recalculateGenerations({
+    people,
+    relationships: initialTree.relationships.map((relationship) => ({
+      husbandId: relationship.husbandId,
+      wifeId: relationship.wifeId,
+      wifeOrder: relationship.wifeOrder ?? 1,
+    })),
+    protectedMemberId: protectedMember.id,
+  });
+}
+
+function orderGenerationMembers(
+  members: DesignerMember[],
+  draft: DesignerDraft,
+): DesignerMember[] {
+  const membersById = new Map(members.map((member) => [member.id, member]));
+  const visited = new Set<string>();
+  const ordered: DesignerMember[] = [];
+
+  [...members].sort(sortMembers).forEach((member) => {
+    if (visited.has(member.id)) return;
+
+    ordered.push(member);
+    visited.add(member.id);
+
+    const relatedIds = new Set<string>();
+    draft.relationships.forEach((relationship) => {
+      if (relationship.husbandId === member.id) relatedIds.add(relationship.wifeId);
+      if (relationship.wifeId === member.id) relatedIds.add(relationship.husbandId);
+    });
+    draft.people.forEach((child) => {
+      if (child.fatherId === member.id && child.motherId) {
+        relatedIds.add(child.motherId);
+      }
+      if (child.motherId === member.id && child.fatherId) {
+        relatedIds.add(child.fatherId);
+      }
+    });
+
+    [...relatedIds]
+      .map((memberId) => membersById.get(memberId))
+      .filter(
+        (related): related is DesignerMember =>
+          related !== undefined && !visited.has(related.id),
+      )
+      .sort(sortMembers)
+      .forEach((related) => {
+        ordered.push(related);
+        visited.add(related.id);
+      });
+  });
+
+  return ordered;
+}
+
+function createFlowElements(
+  draft: DesignerDraft,
+  familySlug: string,
+  avatarPreviews: ReadonlyMap<string, string>,
+  selectedMemberId: string,
+  onSelect: (memberId: string) => void,
+  onAddRelationship: (memberId: string) => void,
+): { nodes: DesignerFlowNode[]; edges: Edge[] } {
+  const nodes: DesignerFlowNode[] = [];
+  const edges: Edge[] = [];
+  const peopleById = new Map(draft.people.map((member) => [member.id, member]));
+  const generations = new Map<number, DesignerMember[]>();
+
+  draft.people.forEach((member) => {
+    const row = generations.get(member.generation) ?? [];
+    row.push(member);
+    generations.set(member.generation, row);
+  });
+
+  [...generations.entries()]
+    .sort(([left], [right]) => left - right)
+    .forEach(([generation, row]) => {
+      const members = orderGenerationMembers(row, draft);
+      const rowWidth =
+        members.length * NODE_WIDTH +
+        Math.max(0, members.length - 1) * SPOUSE_GAP;
+      const left = -rowWidth / 2;
+
+      members.forEach((member, index) => {
+        const isSelected = member.id === selectedMemberId;
+        nodes.push({
+          id: member.id,
+          type: "designerPerson",
+          selected: isSelected,
+          position: {
+            x: left + index * (NODE_WIDTH + SPOUSE_GAP),
+            y: (generation - 1) * GENERATION_GAP,
+          },
+          data: {
+            member,
+            generation,
+            avatarSrc:
+              avatarPreviews.get(member.id) ??
+              (member.avatarUrl
+                ? familyMediaSrc(familySlug, member.avatarUrl)
+                : null),
+            selected: isSelected,
+            onSelect,
+            onAddRelationship,
+          },
+        });
+      });
+    });
+
+  draft.relationships.forEach((relationship) => {
+    if (
+      !peopleById.has(relationship.husbandId) ||
+      !peopleById.has(relationship.wifeId)
+    ) {
+      return;
+    }
+    edges.push({
+      id: "spouse-" + relationship.husbandId + "-" + relationship.wifeId,
+      source: relationship.husbandId,
+      sourceHandle: "spouse-source",
+      target: relationship.wifeId,
+      targetHandle: "spouse-target",
+      type: "straight",
+      style: { stroke: "#9a6b2f", strokeWidth: 1.8 },
+    });
+  });
+
+  draft.people.forEach((child) => {
+    const parentId =
+      child.fatherId && peopleById.has(child.fatherId)
+        ? child.fatherId
+        : child.motherId;
+
+    if (!parentId || !peopleById.has(parentId)) return;
+
+    edges.push({
+      id: "parent-" + parentId + "-" + child.id,
+      source: parentId,
+      sourceHandle: "child-source",
+      target: child.id,
+      targetHandle: "parent-target",
+      type: "smoothstep",
+      style: { stroke: "#9a6b2f", strokeWidth: 1.8 },
+    });
+  });
+  return { nodes, edges };
+}
+
+function findMember(
+  draft: DesignerDraft,
+  memberId: string,
+): DesignerMember | null {
+  return draft.people.find((member) => member.id === memberId) ?? null;
+}
+
+function updateMember(
+  draft: DesignerDraft,
+  memberId: string,
+  update: (member: DesignerMember) => DesignerMember,
+): DesignerDraft {
+  return {
+    ...draft,
+    people: draft.people.map((member) =>
+      member.id === memberId ? update(member) : member,
+    ),
+  };
+}
+
+function memberChildren(
+  draft: DesignerDraft,
+  memberId: string,
+): DesignerMember[] {
+  return draft.people
+    .filter(
+      (member) => member.fatherId === memberId || member.motherId === memberId,
+    )
+    .sort(sortMembers);
+}
+
+function buildDesignPayload(
+  draft: DesignerDraft,
+  deletedPersonIds: string[],
+): FamilyTreeDesignSaveInput {
+  const currentIds = new Set(draft.people.map((member) => member.id));
+  return {
+    people: [...draft.people].sort(sortMembers).map((member) => {
+      const lunar = parseLunarAnniversary(member.lunarDeathAnniversary);
+      return {
+        clientId: member.id,
+        databaseId: member.databaseId,
+        name: member.name.trim(),
+        honorific: trimmedOrNull(member.honorific),
+        nickname: trimmedOrNull(member.nickname),
+        courtesyName: trimmedOrNull(member.courtesyName),
+        gender: member.gender,
+        birthDate: member.birthDate || null,
+        deathDate: member.deathDate || null,
+        lunarDeathDay: lunar.day,
+        lunarDeathMonth: lunar.month,
+        isAlive: member.isAlive,
+        burialPlace: trimmedOrNull(member.burialPlace),
+        phone: trimmedOrNull(member.phone),
+        avatarUrl: trimmedOrNull(member.avatarUrl),
+        biography: trimmedOrNull(member.biography),
+        generation: member.generation,
+        orderInFamily: member.orderInFamily,
+        fatherClientId: member.fatherId,
+        motherClientId: member.motherId,
+      };
+    }),
+    relationships: draft.relationships
+      .filter(
+        (relationship) =>
+          currentIds.has(relationship.husbandId) &&
+          currentIds.has(relationship.wifeId),
+      )
+      .map((relationship) => ({
+        husbandClientId: relationship.husbandId,
+        wifeClientId: relationship.wifeId,
+        wifeOrder: relationship.wifeOrder,
+      })),
+    deletedPersonIds,
+  };
+}
+
+function applyDatabaseIds(
+  draft: DesignerDraft,
+  databaseIds: ReadonlyMap<string, string>,
+): DesignerDraft {
+  return {
+    ...draft,
+    people: draft.people.map((member) => ({
+      ...member,
+      databaseId: databaseIds.get(member.id) ?? member.databaseId,
+    })),
+  };
+}
+
+function applyAvatarUrls(
+  draft: DesignerDraft,
+  avatarUrls: ReadonlyMap<string, string>,
+): DesignerDraft {
+  return {
+    ...draft,
+    people: draft.people.map((member) => {
+      const avatarUrl = avatarUrls.get(member.id);
+      return avatarUrl ? { ...member, avatarUrl } : member;
+    }),
+  };
+}
+
+function collectBranchDeletionIds(
+  draft: DesignerDraft,
+  memberId: string,
+): Set<string> {
+  const member = findMember(draft, memberId);
+  if (!member || !member.deletesBranch) return new Set([memberId]);
+
+  const removedIds = new Set<string>();
+  function collect(primaryId: string): void {
+    if (removedIds.has(primaryId)) return;
+    removedIds.add(primaryId);
+
+    const coupleIds = new Set([primaryId]);
+    draft.relationships.forEach((relationship) => {
+      const spouseId =
+        relationship.husbandId === primaryId
+          ? relationship.wifeId
+          : relationship.wifeId === primaryId
+            ? relationship.husbandId
+            : null;
+      const spouse = spouseId ? findMember(draft, spouseId) : null;
+      if (spouse && !spouse.deletesBranch) {
+        coupleIds.add(spouse.id);
+        removedIds.add(spouse.id);
+      }
+    });
+
+    draft.people
+      .filter(
+        (person) =>
+          (person.fatherId && coupleIds.has(person.fatherId)) ||
+          (person.motherId && coupleIds.has(person.motherId)),
+      )
+      .forEach((child) => collect(child.id));
+  }
+
+  collect(memberId);
+  return removedIds;
+}
+
+function removeMembers(
+  draft: DesignerDraft,
+  removedIds: ReadonlySet<string>,
+): DesignerDraft {
+  return recalculateGenerations({
+    ...draft,
+    people: draft.people
+      .filter((member) => !removedIds.has(member.id))
+      .map((member) => ({
+        ...member,
+        fatherId:
+          member.fatherId && removedIds.has(member.fatherId)
+            ? null
+            : member.fatherId,
+        motherId:
+          member.motherId && removedIds.has(member.motherId)
+            ? null
+            : member.motherId,
+      })),
+    relationships: draft.relationships.filter(
+      (relationship) =>
+        !removedIds.has(relationship.husbandId) &&
+        !removedIds.has(relationship.wifeId),
+    ),
+  });
 }
 
 const fieldClassName =
@@ -738,151 +1028,6 @@ function DesignerTextField({
   );
 }
 
-function collectMembers(branch: FamilyBranch): DesignerMember[] {
-  return [
-    branch.primary,
-    ...branch.spouses,
-    ...branch.children.flatMap(collectMembers),
-  ];
-}
-
-function buildDesignPayload(
-  root: FamilyBranch,
-  deletedPersonIds: string[],
-): FamilyTreeDesignSaveInput {
-  const people: FamilyTreeDesignSaveInput["people"] = [];
-  const relationships: FamilyTreeDesignSaveInput["relationships"] = [];
-
-  function visitBranch(
-    branch: FamilyBranch,
-    generation: number,
-    orderInFamily: number,
-    fatherClientId: string | null,
-    motherClientId: string | null,
-  ): void {
-    const members = [branch.primary, ...branch.spouses];
-
-    members.forEach((member, memberIndex) => {
-      const lunar = parseLunarAnniversary(member.lunarDeathAnniversary);
-      people.push({
-        clientId: member.id,
-        databaseId: member.databaseId,
-        name: member.name.trim(),
-        honorific: trimmedOrNull(member.honorific),
-        nickname: trimmedOrNull(member.nickname),
-        courtesyName: trimmedOrNull(member.courtesyName),
-        gender: member.gender,
-        birthDate: member.birthDate || null,
-        deathDate: member.deathDate || null,
-        lunarDeathDay: lunar.day,
-        lunarDeathMonth: lunar.month,
-        isAlive: member.isAlive,
-        burialPlace: trimmedOrNull(member.burialPlace),
-        phone: trimmedOrNull(member.phone),
-        avatarUrl: trimmedOrNull(member.avatarUrl),
-        biography: trimmedOrNull(member.biography),
-        generation,
-        orderInFamily: memberIndex === 0 ? orderInFamily : memberIndex,
-        fatherClientId: memberIndex === 0 ? fatherClientId : null,
-        motherClientId: memberIndex === 0 ? motherClientId : null,
-      });
-    });
-
-    branch.spouses.forEach((spouse, index) => {
-      const primaryIsWife =
-        branch.primary.gender === "FEMALE" && spouse.gender !== "FEMALE";
-      relationships.push({
-        husbandClientId: primaryIsWife ? spouse.id : branch.primary.id,
-        wifeClientId: primaryIsWife ? branch.primary.id : spouse.id,
-        wifeOrder: index + 1,
-      });
-    });
-
-    const father =
-      members.find((member) => member.gender === "MALE") ??
-      (branch.primary.gender !== "FEMALE" ? branch.primary : null);
-    const mother =
-      members.find((member) => member.gender === "FEMALE") ??
-      (branch.primary.gender === "FEMALE" ? branch.primary : null);
-
-    branch.children.forEach((child, childIndex) => {
-      visitBranch(
-        child,
-        generation + 1,
-        childIndex + 1,
-        father?.id ?? null,
-        mother?.id ?? null,
-      );
-    });
-  }
-
-  visitBranch(root, 1, 1, null, null);
-  return { people, relationships, deletedPersonIds };
-}
-
-function applyDatabaseIds(
-  branch: FamilyBranch,
-  databaseIds: ReadonlyMap<string, string>,
-): FamilyBranch {
-  const updateDatabaseId = (member: DesignerMember): DesignerMember => ({
-    ...member,
-    databaseId: databaseIds.get(member.id) ?? member.databaseId,
-  });
-
-  return {
-    ...branch,
-    primary: updateDatabaseId(branch.primary),
-    spouses: branch.spouses.map(updateDatabaseId),
-    children: branch.children.map((child) =>
-      applyDatabaseIds(child, databaseIds),
-    ),
-  };
-}
-
-function applyAvatarUrls(
-  branch: FamilyBranch,
-  avatarUrls: ReadonlyMap<string, string>,
-): FamilyBranch {
-  const updateAvatar = (member: DesignerMember): DesignerMember => {
-    const avatarUrl = avatarUrls.get(member.id);
-    return avatarUrl ? { ...member, avatarUrl } : member;
-  };
-
-  return {
-    ...branch,
-    primary: updateAvatar(branch.primary),
-    spouses: branch.spouses.map(updateAvatar),
-    children: branch.children.map((child) =>
-      applyAvatarUrls(child, avatarUrls),
-    ),
-  };
-}
-
-function collectDatabaseIds(branch: FamilyBranch): string[] {
-  return [
-    branch.primary.databaseId,
-    ...branch.spouses.map((member) => member.databaseId),
-    ...branch.children.flatMap(collectDatabaseIds),
-  ].filter((databaseId): databaseId is string => Boolean(databaseId));
-}
-
-function databaseIdsRemovedByDeletion(
-  branch: FamilyBranch,
-  memberId: string,
-): string[] {
-  const spouse = branch.spouses.find((member) => member.id === memberId);
-  if (spouse) return spouse.databaseId ? [spouse.databaseId] : [];
-
-  for (const child of branch.children) {
-    if (child.primary.id === memberId) return collectDatabaseIds(child);
-
-    const nestedDatabaseIds = databaseIdsRemovedByDeletion(child, memberId);
-    if (nestedDatabaseIds.length > 0) return nestedDatabaseIds;
-  }
-
-  return [];
-}
-
 function validateMemberForSave(member: DesignerMember): string | null {
   if (!member.name.trim()) return "Vui lòng nhập họ và tên thành viên.";
 
@@ -906,13 +1051,13 @@ export function FamilyTreeDesigner({
   familySlug: string;
   initialTree: FamilyTreeResponse;
 }) {
-  const initialBranch = useMemo(
-    () => createInitialBranch(initialTree),
+  const initialDraft = useMemo(
+    () => createInitialDraft(initialTree),
     [initialTree],
   );
-  const [rootBranch, setRootBranch] = useState<FamilyBranch>(initialBranch);
+  const [draft, setDraft] = useState<DesignerDraft>(initialDraft);
   const [selectedMemberId, setSelectedMemberId] = useState(
-    initialBranch.primary.id,
+    initialDraft.protectedMemberId,
   );
   const [relationshipTargetId, setRelationshipTargetId] = useState<
     string | null
@@ -937,7 +1082,7 @@ export function FamilyTreeDesigner({
    */
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(() =>
     initialTree.people.length > 0
-      ? JSON.stringify(buildDesignPayload(initialBranch, []))
+      ? JSON.stringify(buildDesignPayload(initialDraft, []))
       : null,
   );
   const showToast = useToast();
@@ -952,34 +1097,37 @@ export function FamilyTreeDesigner({
   }, []);
 
   const selectedMember = useMemo(
-    () => findMember(rootBranch, selectedMemberId),
-    [rootBranch, selectedMemberId],
+    () => findMember(draft, selectedMemberId),
+    [draft, selectedMemberId],
   );
   const relationshipTarget = useMemo(
     () =>
-      relationshipTargetId
-        ? findMember(rootBranch, relationshipTargetId)
-        : null,
-    [relationshipTargetId, rootBranch],
+      relationshipTargetId ? findMember(draft, relationshipTargetId) : null,
+    [draft, relationshipTargetId],
   );
   const deleteTarget = useMemo(
-    () => (deleteTargetId ? findMember(rootBranch, deleteTargetId) : null),
-    [deleteTargetId, rootBranch],
+    () => (deleteTargetId ? findMember(draft, deleteTargetId) : null),
+    [deleteTargetId, draft],
   );
-  const deleteRemovesBranch = useMemo(
+  const deleteAffectedIds = useMemo(
     () =>
-      deleteTargetId ? isPrimaryMember(rootBranch, deleteTargetId) : false,
-    [deleteTargetId, rootBranch],
+      deleteTargetId
+        ? collectBranchDeletionIds(draft, deleteTargetId)
+        : new Set<string>(),
+    [deleteTargetId, draft],
   );
-  const memberCount = useMemo(() => countMembers(rootBranch), [rootBranch]);
+  const deleteRemovesBranch = deleteAffectedIds.size > 1;
+  const deleteDetachesChildren =
+    !deleteRemovesBranch &&
+    Boolean(deleteTargetId && memberChildren(draft, deleteTargetId).length > 0);
+  const memberCount = draft.people.length;
   const selectedChildren = useMemo(
-    () =>
-      findBranchContainingMember(rootBranch, selectedMemberId)?.children ?? [],
-    [rootBranch, selectedMemberId],
+    () => memberChildren(draft, selectedMemberId),
+    [draft, selectedMemberId],
   );
   const designPayload = useMemo(
-    () => buildDesignPayload(rootBranch, deletedPersonIds),
-    [deletedPersonIds, rootBranch],
+    () => buildDesignPayload(draft, deletedPersonIds),
+    [deletedPersonIds, draft],
   );
   const hasUnsavedChanges = useMemo(
     () =>
@@ -1029,7 +1177,7 @@ export function FamilyTreeDesigner({
   const { nodes, edges } = useMemo(
     () =>
       createFlowElements(
-        rootBranch,
+        draft,
         familySlug,
         avatarPreviews,
         selectedMemberId,
@@ -1040,7 +1188,7 @@ export function FamilyTreeDesigner({
       avatarPreviews,
       familySlug,
       openRelationshipPicker,
-      rootBranch,
+      draft,
       selectMember,
       selectedMemberId,
     ],
@@ -1048,75 +1196,167 @@ export function FamilyTreeDesigner({
 
   function addRelationship(kind: RelationshipKind): void {
     if (!relationshipTargetId || !relationshipTarget) return;
+    if (
+      relationshipChoiceBlockedReason(
+        kind,
+        relationshipTarget,
+        draft.relationships,
+      )
+    )
+      return;
 
-    const sourceGender = relationshipTarget.gender;
-    if (relationshipChoiceBlockedReason(kind, sourceGender)) return;
-
-    const member = createMember(relationshipGender(kind, sourceGender));
-    const isSpouse = SPOUSE_KINDS.has(kind);
-
-    setRootBranch((current) =>
-      updateBranchContainingMember(current, relationshipTargetId, (branch) =>
-        isSpouse
-          ? { ...branch, spouses: [...branch.spouses, member] }
-          : {
-              ...branch,
-              children: [
-                ...branch.children,
-                {
-                  id: "branch-" + member.id,
-                  primary: member,
-                  spouses: [],
-                  children: [],
-                },
-              ],
-            },
-      ),
+    const member = createMember(
+      relationshipGender(kind, relationshipTarget.gender),
+      kind === "FATHER"
+        ? Math.max(1, relationshipTarget.generation - 1)
+        : kind === "SON" || kind === "DAUGHTER"
+          ? relationshipTarget.generation + 1
+          : relationshipTarget.generation,
+      relationshipTarget.orderInFamily,
     );
+    const memberForDraft = {
+      ...member,
+      deletesBranch: kind !== "FATHER" && !SPOUSE_KINDS.has(kind),
+    };
+
+    setDraft((current) => {
+      const target = findMember(current, relationshipTargetId);
+      if (
+        !target ||
+        relationshipChoiceBlockedReason(kind, target, current.relationships)
+      )
+        return current;
+
+      if (kind === "FATHER") {
+        const withParent = updateMember(
+          { ...current, people: [...current.people, memberForDraft] },
+          target.id,
+          (person) => ({ ...person, fatherId: member.id }),
+        );
+        return recalculateGenerations(withParent);
+      }
+
+      if (SPOUSE_KINDS.has(kind)) {
+        const wifeOrder =
+          Math.max(
+            0,
+            ...current.relationships
+              .filter(
+                (relationship) =>
+                  relationship.husbandId === target.id ||
+                  relationship.wifeId === target.id,
+              )
+              .map((relationship) => relationship.wifeOrder),
+          ) + 1;
+        const relationship: DesignerRelationship =
+          kind === "WIFE"
+            ? { husbandId: target.id, wifeId: member.id, wifeOrder }
+            : { husbandId: member.id, wifeId: target.id, wifeOrder };
+
+        return recalculateGenerations({
+          ...current,
+          people: [...current.people, memberForDraft],
+          relationships: [...current.relationships, relationship],
+        });
+      }
+
+      const spouseIds = current.relationships.flatMap((relationship) => {
+        if (relationship.husbandId === target.id) return [relationship.wifeId];
+        if (relationship.wifeId === target.id) return [relationship.husbandId];
+        return [];
+      });
+      const spouse = current.people.find(
+        (person) =>
+          spouseIds.includes(person.id) && person.gender !== target.gender,
+      );
+      const siblings = memberChildren(current, target.id);
+      const child = {
+        ...member,
+        orderInFamily:
+          Math.max(0, ...siblings.map((sibling) => sibling.orderInFamily)) + 1,
+        fatherId: target.gender === "MALE" ? target.id : spouse?.id ?? null,
+        motherId: target.gender === "FEMALE" ? target.id : spouse?.id ?? null,
+      };
+
+      return recalculateGenerations({
+        ...current,
+        people: [...current.people, child],
+      });
+    });
     setSelectedMemberId(member.id);
     setRelationshipTargetId(null);
   }
 
   function deleteSelectedMember(): void {
-    if (!deleteTargetId || deleteTargetId === rootBranch.primary.id) {
+    if (
+      !deleteTargetId ||
+      !deleteTarget ||
+      deleteTargetId === draft.protectedMemberId
+    ) {
       setDeleteTargetId(null);
       return;
     }
 
+    const removedIds = collectBranchDeletionIds(draft, deleteTargetId);
+    const spouseId = draft.relationships
+      .flatMap((relationship) => {
+        if (relationship.husbandId === deleteTargetId) return [relationship.wifeId];
+        if (relationship.wifeId === deleteTargetId) return [relationship.husbandId];
+        return [];
+      })
+      .find(
+        (memberId) =>
+          !removedIds.has(memberId) && Boolean(findMember(draft, memberId)),
+      );
     const fallbackMemberId =
-      deletionFallbackMemberId(rootBranch, deleteTargetId) ??
-      rootBranch.primary.id;
-    const removedDatabaseIds = databaseIdsRemovedByDeletion(
-      rootBranch,
-      deleteTargetId,
-    );
+      [deleteTarget.fatherId, deleteTarget.motherId, spouseId].find(
+        (memberId): memberId is string =>
+          Boolean(memberId && !removedIds.has(memberId)),
+      ) ?? draft.protectedMemberId;
+    const removedDatabaseIds = draft.people
+      .filter((member) => removedIds.has(member.id))
+      .map((member) => member.databaseId)
+      .filter((databaseId): databaseId is string => Boolean(databaseId));
 
     setDeletedPersonIds((current) => [
       ...new Set([...current, ...removedDatabaseIds]),
     ]);
-    setRootBranch((current) => removeMember(current, deleteTargetId));
+    setDraft((current) =>
+      removeMembers(
+        current,
+        collectBranchDeletionIds(current, deleteTargetId),
+      ),
+    );
     setSelectedMemberId(fallbackMemberId);
     setDeleteTargetId(null);
   }
 
   function moveChild(index: number, offset: number): void {
-    setRootBranch((current) =>
-      updateBranchContainingMember(current, selectedMemberId, (branch) => {
-        const target = index + offset;
-        if (target < 0 || target >= branch.children.length) return branch;
+    setDraft((current) => {
+      const children = memberChildren(current, selectedMemberId);
+      const targetIndex = index + offset;
+      if (targetIndex < 0 || targetIndex >= children.length) return current;
 
-        const children = [...branch.children];
-        const [moved] = children.splice(index, 1);
-        if (!moved) return branch;
+      const ordered = [...children];
+      const [moved] = ordered.splice(index, 1);
+      if (!moved) return current;
+      ordered.splice(targetIndex, 0, moved);
+      const orders = new Map(
+        ordered.map((child, childIndex) => [child.id, childIndex + 1]),
+      );
 
-        children.splice(target, 0, moved);
-        return { ...branch, children };
-      }),
-    );
+      return {
+        ...current,
+        people: current.people.map((person) => ({
+          ...person,
+          orderInFamily: orders.get(person.id) ?? person.orderInFamily,
+        })),
+      };
+    });
   }
 
   function patchSelectedMember(patch: Partial<DesignerMember>): void {
-    setRootBranch((current) =>
+    setDraft((current) =>
       updateMember(current, selectedMemberId, (member) => ({
         ...member,
         ...patch,
@@ -1135,12 +1375,12 @@ export function FamilyTreeDesigner({
     patchSelectedMember(
       isAlive
         ? {
-            isAlive,
-            courtesyName: "",
-            deathDate: "",
-            lunarDeathAnniversary: "",
-            burialPlace: "",
-          }
+          isAlive,
+          courtesyName: "",
+          deathDate: "",
+          lunarDeathAnniversary: "",
+          burialPlace: "",
+        }
         : { isAlive },
     );
   }
@@ -1214,7 +1454,7 @@ export function FamilyTreeDesigner({
   async function saveAll(): Promise<void> {
     if (savingAll || !hasUnsavedChanges) return;
 
-    const invalid = collectMembers(rootBranch)
+    const invalid = draft.people
       .map((member) => ({ member, message: validateMemberForSave(member) }))
       .find(
         (entry): entry is { member: DesignerMember; message: string } =>
@@ -1246,7 +1486,7 @@ export function FamilyTreeDesigner({
           const uploaded = await uploadFamilyMedia(familySlug, pending.file);
           uploadedAvatars.set(memberId, uploaded.url);
 
-          const previous = findMember(rootBranch, memberId)?.avatarUrl;
+          const previous = findMember(draft, memberId)?.avatarUrl;
           if (previous && previous !== uploaded.url) {
             replacedAvatarUrls.push(previous);
           }
@@ -1262,9 +1502,9 @@ export function FamilyTreeDesigner({
       const payload =
         uploadedAvatars.size > 0
           ? buildDesignPayload(
-              applyAvatarUrls(rootBranch, uploadedAvatars),
-              deletedPersonIds,
-            )
+            applyAvatarUrls(draft, uploadedAvatars),
+            deletedPersonIds,
+          )
           : designPayload;
 
       const result = await saveFamilyTreeDesign(familySlug, payload);
@@ -1287,7 +1527,7 @@ export function FamilyTreeDesigner({
           deletedPersonIds: [],
         } satisfies FamilyTreeDesignSaveInput),
       );
-      setRootBranch((current) =>
+      setDraft((current) =>
         applyDatabaseIds(
           applyAvatarUrls(current, uploadedAvatars),
           databaseIds,
@@ -1454,6 +1694,8 @@ export function FamilyTreeDesigner({
               ) : (
                 <GenderAvatarFallback
                   gender={selectedMember?.gender ?? "UNKNOWN"}
+                  generation={selectedPlacement?.generation}
+                  birthDate={selectedMember?.birthDate}
                 />
               )}
             </span>
@@ -1462,20 +1704,20 @@ export function FamilyTreeDesigner({
           {selectedMember ? (
             <div className="mt-5 grid gap-4">
               <DesignerTextField
-                id="designer-member-name"
-                label="Họ và tên"
-                value={selectedMember.name}
-                maxLength={191}
-                onChange={(value) => patchSelectedMember({ name: value })}
-              />
-
-              <DesignerTextField
                 id="designer-member-honorific"
                 label="Danh xưng"
                 value={selectedMember.honorific}
                 maxLength={100}
                 placeholder="Ví dụ: Cụ tổ, Cụ, Ông, Bà..."
                 onChange={(value) => patchSelectedMember({ honorific: value })}
+              />
+
+              <DesignerTextField
+                id="designer-member-name"
+                label="Họ và tên"
+                value={selectedMember.name}
+                maxLength={191}
+                onChange={(value) => patchSelectedMember({ name: value })}
               />
 
               <DesignerTextField
@@ -1620,7 +1862,11 @@ export function FamilyTreeDesigner({
                         className="size-full object-cover"
                       />
                     ) : (
-                      <GenderAvatarFallback gender={selectedMember.gender} />
+                      <GenderAvatarFallback
+                        gender={selectedMember.gender}
+                        generation={selectedPlacement?.generation}
+                        birthDate={selectedMember.birthDate}
+                      />
                     )}
                   </span>
 
@@ -1694,7 +1940,7 @@ export function FamilyTreeDesigner({
                   <ol className="grid gap-2">
                     {selectedChildren.map((child, index) => (
                       <li
-                        key={child.primary.id}
+                        key={child.id}
                         className="flex items-center gap-2 rounded-xl border border-emerald-900/10 bg-white p-2"
                       >
                         <span className="shrink-0 rounded-lg bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-900">
@@ -1703,10 +1949,10 @@ export function FamilyTreeDesigner({
                         <button
                           type="button"
                           className="min-w-0 flex-1 truncate text-left text-sm font-medium text-emerald-950 underline-offset-2 hover:underline"
-                          title={child.primary.name}
-                          onClick={() => selectMember(child.primary.id)}
+                          title={child.name}
+                          onClick={() => selectMember(child.id)}
                         >
-                          {child.primary.name}
+                          {child.name}
                         </button>
                         <span className="flex shrink-0 items-center">
                           <button
@@ -1714,7 +1960,7 @@ export function FamilyTreeDesigner({
                             className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-emerald-900 disabled:pointer-events-none disabled:opacity-30"
                             disabled={index === 0}
                             aria-label={
-                              "Chuyển " + child.primary.name + " lên trên"
+                              "Chuyển " + child.name + " lên trên"
                             }
                             onClick={() => moveChild(index, -1)}
                           >
@@ -1725,7 +1971,7 @@ export function FamilyTreeDesigner({
                             className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-emerald-900 disabled:pointer-events-none disabled:opacity-30"
                             disabled={index === selectedChildren.length - 1}
                             aria-label={
-                              "Chuyển " + child.primary.name + " xuống dưới"
+                              "Chuyển " + child.name + " xuống dưới"
                             }
                             onClick={() => moveChild(index, 1)}
                           >
@@ -1767,10 +2013,10 @@ export function FamilyTreeDesigner({
                 variant="outline"
                 className="border-red-200 bg-white text-red-700 hover:bg-red-50 hover:text-red-800"
                 disabled={
-                  selectedMember.id === rootBranch.primary.id || savingAll
+                  selectedMember.id === draft.protectedMemberId || savingAll
                 }
                 title={
-                  selectedMember.id === rootBranch.primary.id
+                  selectedMember.id === draft.protectedMemberId
                     ? "Khung khởi điểm không thể xóa"
                     : "Xóa thành viên đang chọn"
                 }
@@ -1780,7 +2026,7 @@ export function FamilyTreeDesigner({
                 Xóa thành viên
               </Button>
 
-              {selectedMember.id === rootBranch.primary.id ? (
+              {selectedMember.id === draft.protectedMemberId ? (
                 <p className="-mt-2 text-center text-xs text-stone-500">
                   Khung khởi điểm không thể xóa.
                 </p>
@@ -1834,18 +2080,23 @@ export function FamilyTreeDesigner({
               Thêm quan hệ cho {relationshipTarget?.name ?? "thành viên"}
             </h2>
             <p className="mt-2 text-sm leading-6 text-stone-600">
-              Chọn loại quan hệ. Khung vợ hoặc chồng nằm cùng hàng; khung con
-              nằm ở hàng dưới.
+              Chọn loại quan hệ. Bố nằm ở thế hệ phía trên; vợ/chồng nằm
+              cùng hàng và con nằm ở hàng dưới.
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {RELATIONSHIP_CHOICES.map((choice) => {
+              {RELATIONSHIP_CHOICES.filter(
+                (choice) =>
+                  !relationshipTarget ||
+                  relationshipChoiceIsVisible(choice.kind, relationshipTarget),
+              ).map((choice) => {
                 const Icon = choice.icon;
                 const blockedReason = relationshipTarget
                   ? relationshipChoiceBlockedReason(
-                      choice.kind,
-                      relationshipTarget.gender,
-                    )
+                    choice.kind,
+                    relationshipTarget,
+                    draft.relationships,
+                  )
                   : null;
                 return (
                   <button
@@ -1928,7 +2179,11 @@ export function FamilyTreeDesigner({
               </p>
               {deleteRemovesBranch ? (
                 <p className="font-medium text-red-700">
-                  Các khung vợ/chồng và con thuộc nhánh này cũng sẽ bị xóa.
+                  Các khung vợ/chồng và con cháu thuộc nhánh này cũng sẽ bị xóa.
+                </p>
+              ) : deleteDetachesChildren ? (
+                <p className="font-medium text-amber-700">
+                  Các thành viên con sẽ được giữ lại và bỏ liên kết với người này.
                 </p>
               ) : null}
             </div>

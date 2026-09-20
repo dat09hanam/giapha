@@ -2,7 +2,7 @@
 
 ## Current objective
 
-QA trang thiết kế bằng phiên trưởng họ, gồm lưu và tải lại trường Danh xưng.
+QA trang thiết kế bằng phiên trưởng họ, gồm quy tắc chỉ thêm Bố, ẩn option Chồng cho con gái, đường nối con xuất phát từ Bố và lưu/tải lại dữ liệu.
 
 ## Work items
 
@@ -75,6 +75,15 @@ QA trang thiết kế bằng phiên trưởng họ, gồm lưu và tải lại t
 - [x] Nối Danh xưng vào DTO, response, create/update và transaction lưu thiết kế.
 - [x] Thêm ô Danh xưng và hiển thị trên node thiết kế/cây công khai.
 - [x] Áp các migration đang chờ, validate/generate Prisma, lint và typecheck hai workspace.
+- [x] Cố định hàng Danh xưng trên node thiết kế và node cây công khai để mọi khung có cùng chiều cao.
+- [x] Dùng imagegen tạo bộ avatar Nam/Nữ/Trung tính, tối ưu PNG 512×512 và thay PersonAvatar từ SVG sang next/image.
+- [x] Tạo thêm avatar cụ ông/cụ bà và áp quy tắc chọn theo đời/tuổi cho designer, panel và cây gia phả công khai.
+- [x] Chuẩn hóa draft designer thành danh sách Person và quan hệ tường minh để giữ cha/mẹ của mọi thành viên.
+- [x] Chỉ giữ lựa chọn Bố, khóa khi đã có bố hoặc khi thành viên nữ đã có chồng, và tính lại generation cho toàn đồ thị.
+- [x] Giữ hành vi xóa riêng vợ/chồng và xóa nhánh con bằng metadata chỉ dùng ở client.
+- [x] Chỉ vẽ một cạnh cha–con từ Bố; thêm con từ Mẹ vẫn dùng fatherId của người chồng làm nguồn cạnh.
+- [x] Chạy web lint, typecheck, production build và kiểm tra diff.
+- [x] Ẩn option Chồng cho Person Nữ có cha hoặc mẹ và chặn lại cùng quy tắc trong handler.
 
 ## Owned paths and coordination hotspots
 
@@ -150,6 +159,17 @@ QA trang thiết kế bằng phiên trưởng họ, gồm lưu và tải lại t
 - PASS: lint, typecheck và prettier web sau khi bỏ nút lưu thành viên; không còn tham chiếu `savingMemberId`/`saveSelectedMember`/`saveDesignerPerson`.
 - PASS: kiểm tra nguồn xác nhận thứ tự mảng `children` vừa quyết định vị trí trong `createFlowElements` vừa quyết định `orderInFamily` trong `buildDesignPayload`, nên đổi thứ tự là nhất quán giữa canvas và dữ liệu lưu.
 
+- PASS: web lint và TypeScript compiler sau khi cố định chiều cao khung có/không có Danh xưng.
+
+- PASS: web lint, web typecheck, git diff --check và kiểm tra trực quan ba PNG sau khi thay avatar SVG.
+
+- PASS: 6/6 ca quy tắc avatar qua; web lint, web typecheck, git diff --check và kiểm tra trực quan hai PNG lớn tuổi đều pass.
+
+- PASS: quan hệ Bố tiếp tục dùng fatherClientId hiện có; motherClientId của dữ liệu cũ vẫn được giữ khi lưu.
+- PASS: web lint, web typecheck và git diff --check sau khi bỏ Mẹ và khóa thêm Bố cho thành viên nữ đã có chồng.
+- PASS: web lint và web typecheck sau khi đổi cạnh con sang ưu tiên Bố; dữ liệu vẫn giữ cả fatherId và motherId.
+- PASS: web lint và web typecheck sau khi ẩn option Chồng cho con gái.
+
 ## Next action
 
-Đăng nhập `/ho-nguyen/thiet_ke`, nhập Danh xưng cho một thành viên, bấm “Lưu tất cả” và tải lại để xác nhận; đồng thời QA giới tính, quan hệ, ảnh và lưu hồ sơ còn tồn.
+Đăng nhập /ho-nguyen/thiet_ke; chọn một con gái để xác nhận không còn option Chồng, sau đó thêm con từ cả Bố và Mẹ để kiểm tra mỗi con chỉ có một đường nối xuất phát từ Bố và dữ liệu giữ nguyên sau “Lưu tất cả” + tải lại.

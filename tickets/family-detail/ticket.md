@@ -3,7 +3,7 @@ name: 'family-detail'
 slug: 'family-detail'
 status: 'in-progress'
 created: '2026-09-17'
-updated: '2026-09-18'
+updated: '2026-09-20'
 ---
 
 # Ticket: family-detail
@@ -35,6 +35,13 @@ updated: '2026-09-18'
 - 2026-09-18: Ảnh đại diện phải là nút thêm ảnh thay vì ô nhập đường dẫn; tạo thư mục `media` để lưu ảnh.
 - 2026-09-18: Áp quy tắc giới tính cho trang thiết kế: khung khởi điểm mặc định là Nam; chọn giới tính bằng hai checkbox Nam/Nữ thay cho select; giới tính thành viên mới suy ra từ giới tính thành viên gốc; làm mờ lựa chọn Chồng khi gốc là Nam và lựa chọn Vợ khi gốc là Nữ.
 - 2026-09-18: Thêm trường Person “Danh xưng” tùy chọn (ví dụ Cụ tổ, Cụ, Ông, Bà), cho phép chỉnh sửa, lưu và hiển thị trên các khung thành viên.
+- 2026-09-19: Các khung thành viên phải có cùng chiều cao dù có hoặc không có Danh xưng, để sơ đồ và đường nối không bị lệch.
+- 2026-09-19: Bỏ SVG dựng avatar mặc định; dùng ảnh raster do imagegen tạo theo mẫu cho Nam/Nữ và giữ một ảnh trung tính cho dữ liệu OTHER/UNKNOWN.
+- 2026-09-19: Thêm avatar imagegen cho cụ ông/cụ bà; đời 1–3 luôn dùng avatar lớn tuổi, từ đời 4 trở đi dùng khi tuổi tính theo năm sinh đến năm hiện tại từ 70 trở lên.
+- 2026-09-19: Cho phép thêm Bố/Mẹ từ mọi thành viên; tự tính lại số đời, giữ cây đúng quan hệ và vô hiệu hóa lựa chọn cha/mẹ đã tồn tại.
+- 2026-09-20: Bỏ lựa chọn thêm Mẹ, chỉ cho thêm Bố; thành viên nữ đã có chồng không được thêm Bố vì thuộc nhánh nhà chồng.
+- 2026-09-20: Đường nối tới con chỉ xuất phát từ Bố; nếu thêm con từ Mẹ thì vẫn gán và nối qua người Bố là chồng của Mẹ.
+- 2026-09-20: Bỏ hẳn option “Chồng” khi Person là con gái trong dòng họ.
 
 ## Outcome
 
@@ -58,6 +65,7 @@ updated: '2026-09-18'
 - Xóa cứng Person/Relationship cùng migration dọn dữ liệu đã soft delete.
 - Panel chỉnh sửa đầy đủ trường Person, gồm “Danh xưng”, và mở rộng contract lưu để giữ được các trường đó.
 - API tenant-scoped để lưu một thành viên hoặc toàn bộ bản thiết kế cùng quan hệ.
+- Draft thiết kế chuẩn hóa quan hệ cha/mẹ theo từng Person để hỗ trợ tổ tiên của cả người chính và vợ/chồng, không làm mất nhánh hội tụ.
 
 ### Out
 
@@ -81,7 +89,7 @@ updated: '2026-09-18'
 - [x] Cụm thao tác trên màn quản trị có nút dẫn đúng tới `/{slug}/thiet_ke`.
 - [x] Route `/{slug}/thiet_ke` chỉ cho trưởng họ của đúng tenant truy cập.
 - [x] Canvas khởi tạo một khung thành viên và mỗi khung có nút “Thêm quan hệ”.
-- [x] Bộ chọn quan hệ có vợ, chồng, con trai và con gái; khung mới không hiển thị chú thích vai trò.
+- [x] Bộ chọn quan hệ có Bố, Vợ/Chồng theo điều kiện giới tính/vai trò, Con trai và Con gái; khung mới không hiển thị chú thích vai trò.
 - [x] Vợ/chồng được xếp cùng hàng; con được xếp ở hàng thế hệ phía dưới và có đường nối.
 - [x] Trang có thể chỉnh sửa thông tin khung tại chỗ và đáp ứng trên màn hình nhỏ.
 - [x] Bấm vào bất kỳ vùng nào của khung sẽ chọn và highlight rõ duy nhất khung đó.
@@ -118,7 +126,17 @@ updated: '2026-09-18'
 - [x] Hủy hộp cắt ảnh thì không tải gì lên và ảnh đại diện hiện tại giữ nguyên.
 - [x] Khung trên canvas hiển thị ảnh đại diện nếu có, giữ icon mặc định nếu chưa có, và vòng màu theo giới tính vẫn còn.
 - [x] Cả ba chỗ hiển thị chân dung (khung canvas, biểu tượng đầu panel, ô xem trước ảnh) đều dùng ảnh đại diện khi có; icon mặc định chỉ còn là fallback.
-- [x] Icon mặc định là minh họa chân dung phẳng: nam tóc ngắn com-lê xanh navy, nữ tóc dài áo hồng; nhận biết giới tính không cần dựa vào màu và vẫn đọc được ở 28px.
+- [x] Avatar mặc định không còn dựng bằng SVG; PersonAvatar dùng PNG imagegen nền trong suốt cho Nam, Nữ và Trung tính, vẫn rõ trong khung tròn nhỏ.
+- [x] Avatar lớn tuổi có bản Nam/Nữ riêng; đời 1–3 luôn chọn bản lớn tuổi, đời 4+ chỉ chọn khi có năm sinh và chênh lệch với năm hiện tại từ 70 trở lên; ảnh người dùng tải lên vẫn được ưu tiên.
+- [x] Hộp “Thêm quan hệ” chỉ có Bố, không còn lựa chọn Mẹ; dữ liệu motherId đã lưu từ trước vẫn được giữ nguyên.
+- [x] Lựa chọn Bố bị vô hiệu hóa kèm lý do tiếng Việt khi Person đã có fatherId hoặc khi thành viên nữ đã có quan hệ vợ/chồng.
+- [x] Thêm Bố tạo đúng fatherId cho Person hợp lệ đang chọn, kể cả người ở giữa cây; handler kiểm tra lại cùng quy tắc trước khi sửa draft.
+- [x] Số đời được tính lại từ toàn bộ đồ thị cha mẹ; vợ/chồng giữ cùng đời, tổ tiên nằm trên và con cháu dịch xuống nhất quán.
+- [x] Payload “Lưu tất cả” giữ fatherClientId/motherClientId của mọi Person; backend tiếp tục chặn cha/mẹ ngoài bản thiết kế, tự tham chiếu, trùng cha-mẹ và vòng lặp.
+- [x] Mỗi người con chỉ có một đường nối hiển thị từ Bố khi fatherId hợp lệ; không vẽ thêm đường song song từ Mẹ.
+- [x] Thêm con từ Mẹ đã có chồng vẫn gán fatherId là người chồng và đường nối xuất phát từ khung Bố; motherId tiếp tục được lưu.
+- [x] Person Nữ có fatherId hoặc motherId được nhận diện là con gái; hộp thêm quan hệ không render option “Chồng”.
+- [x] Handler thêm quan hệ cũng từ chối HUSBAND cho con gái, không chỉ dựa vào việc ẩn option trên giao diện.
 - [x] Bấm “Xóa ảnh đại diện” hoặc “Đổi ảnh” sẽ xóa tệp cũ khỏi thư mục media.
 - [x] Bấm “Lưu ảnh” trong hộp cắt chỉ giữ ảnh trong bộ nhớ và hiện xem trước; thư mục media chưa có tệp nào.
 - [x] Ảnh chỉ được tải lên khi “Lưu tất cả” chạy; bỏ dở hoặc rời trang thì không sinh tệp nào.
@@ -132,5 +150,6 @@ updated: '2026-09-18'
 - [x] Server kiểm tra định dạng, dung lượng tối đa 2 MB và magic bytes trước khi ghi tệp.
 - [x] Person có cột `honorific` nullable, DTO/API và luồng “Lưu tất cả” giữ được giá trị tối đa 100 ký tự.
 - [x] Panel có ô “Danh xưng”; cây thiết kế và cây gia phả hiển thị danh xưng khi có.
+- [x] Khung thành viên ở cây thiết kế và cây gia phả luôn dành một hàng cố định cho Danh xưng; khi trống hàng này được ẩn nhưng vẫn giữ chiều cao.
 - [x] Migration `drop_person_relationship_soft_delete` và `add_person_honorific` đã áp dụng thành công vào database phát triển.
 - [ ] QA lại trang thiết kế bằng phiên trưởng họ, gồm lưu/tải lại Danh xưng.

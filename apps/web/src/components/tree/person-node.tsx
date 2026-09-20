@@ -1,6 +1,6 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { UserRound } from 'lucide-react';
 
+import { PersonAvatar } from '@/components/ui/person-avatar';
 import { cn } from '@/lib/utils';
 import type { PersonFlowNode } from '@/lib/tree-layout';
 
@@ -18,21 +18,28 @@ export function PersonNode({ data }: NodeProps<PersonFlowNode>) {
       <div className="flex items-start gap-3">
         <span
           className={cn(
-            'grid size-10 shrink-0 place-items-center rounded-full ring-1',
+            'grid size-10 shrink-0 place-items-center overflow-hidden rounded-full ring-1',
             genderStyles[data.gender],
           )}
         >
-          <UserRound className="size-5" aria-hidden="true" />
+          <PersonAvatar
+            gender={data.gender}
+            generation={data.generation}
+            birthDate={data.birthDate}
+            className="size-full"
+          />
         </span>
         <div className="min-w-0">
-          {data.honorific ? (
-            <p
-              className="truncate text-[11px] font-semibold uppercase tracking-wide text-amber-700"
-              title={data.honorific}
-            >
-              {data.honorific}
-            </p>
-          ) : null}
+          <p
+            className={cn(
+              'h-4 truncate text-[11px] font-semibold uppercase tracking-wide',
+              data.honorific ? 'text-amber-700' : 'invisible',
+            )}
+            title={data.honorific || undefined}
+            aria-hidden={data.honorific ? undefined : true}
+          >
+            {data.honorific || '\u00a0'}
+          </p>
           <h2 className="truncate font-semibold text-emerald-950" title={data.name}>
             {data.name}
           </h2>

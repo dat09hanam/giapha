@@ -6,6 +6,7 @@ export type PersonNodeData = {
   name: string;
   honorific: string | null;
   gender: Gender;
+  birthDate: string | null;
   lifespan: string;
   generation: number;
 };
@@ -79,6 +80,7 @@ export function toFlowElements(tree: FamilyTreeResponse): {
         name: person.name,
         honorific: person.honorific,
         gender: person.gender,
+        birthDate: person.birthDate,
         lifespan: lifespan(person.birthDate, person.deathDate),
         generation: generation + 1,
       },

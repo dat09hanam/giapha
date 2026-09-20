@@ -3,9 +3,9 @@
 ## Snapshot
 
 - Status: in-progress
-- Last updated: 2026-09-18
-- Current result: Person có `honorific` nullable; panel chỉnh sửa và các node hiển thị Danh xưng; API create/update/bulk save giữ trường này. Hai migration đang chờ đã áp dụng; Prisma validate/generate, lint và TypeScript đều qua
-- Next action: QA lưu/tải lại Danh xưng và các luồng thiết kế bằng phiên trưởng họ
+- Last updated: 2026-09-20
+- Current result: Hộp thêm quan hệ chỉ còn Bố; con gái (Person Nữ có cha hoặc mẹ) không còn option Chồng. Handler áp cùng quy tắc, dữ liệu fatherId/motherId vẫn giữ nguyên và web lint/typecheck đều qua.
+- Next action: QA bằng phiên trưởng họ: chọn một con gái để xác nhận không còn option Chồng, kiểm tra đường nối con xuất phát từ Bố, rồi lưu và tải lại.
 
 ## Decisions
 
@@ -35,8 +35,9 @@
 - Khung gốc không thể xóa. Xóa spouse chỉ lọc spouse khỏi branch; xóa primary ở thế hệ dưới loại toàn branch và chuyển selection về primary của branch cha.
 - Mọi thao tác xóa cần xác nhận qua `alertdialog`; cảnh báo rõ khi cả nhánh phụ thuộc sẽ bị xóa.
 - Khung khởi điểm của bản thiết kế trống mặc định `MALE` thay vì `UNKNOWN`.
-- Ảnh thay thế khi chưa có avatar là minh họa SVG tự vẽ trong `apps/web/src/components/ui/person-avatar.tsx` (nam: tóc ngắn sẫm, com-lê navy, cà vạt xanh; nữ: tóc dài nâu, áo hồng; `OTHER`/`UNKNOWN`: dáng trung tính màu xám). Hình vẽ tràn khung vuông nên khi bị `overflow-hidden rounded-full` cắt sẽ thành chân dung tròn.
-- Phân biệt giới tính bằng hình dáng tóc và trang phục chứ không chỉ bằng màu, nên vẫn đọc được khi in đen trắng hoặc với người mù màu. Đã render kiểm tra ở 64/40/28px.
+- Ảnh thay thế khi chưa có avatar là ba PNG imagegen nền trong suốt tại apps/web/public/images/avatars/; bản 512×512 đã được làm sạch alpha và nén cho web.
+- PersonAvatar ánh xạ MALE/FEMALE sang ảnh Nam/Nữ; OTHER và UNKNOWN dùng ảnh trung tính để không gán nhầm giới tính. Component dùng next/image và không còn chứa SVG.
+- PersonAvatar nhận generation và birthDate theo số đời hiển thị 1-based: đời 1–3 luôn là người lớn tuổi; đời 4+ dùng currentYear - birthYear >= 70; thiếu năm sinh thì giữ avatar hiện tại. OTHER/UNKNOWN tiếp tục dùng ảnh trung tính.
 - `GenderAvatarFallback` trong designer bọc `PersonAvatar` và thêm nhãn `sr-only`; dùng chung cho cả ba chỗ hiển thị chân dung.
 - Panel chỉ phơi hai giá trị giới tính Nam/Nữ dưới dạng checkbox loại trừ nhau; `OTHER`/`UNKNOWN` từ dữ liệu cũ hiển thị là không ô nào được tick và người dùng chọn lại được. Không đổi enum `Gender` ở API.
 - Giới tính thành viên mới suy từ thành viên gốc: vợ/chồng nhận giới tính ngược lại của gốc, con trai `MALE`, con gái `FEMALE`. Gốc `OTHER`/`UNKNOWN` quay về suy theo nhãn quan hệ.
@@ -47,11 +48,19 @@
 - Sau khi bỏ soft delete, `saveDesign` xóa hẳn quan hệ của những người được lưu rồi upsert lại, nên nhánh `update` của upsert không còn hồi sinh dòng cũ.
 - Panel thiết kế chỉnh sửa đủ trường Person; `generation`/`orderInFamily`/cha mẹ vẫn do vị trí canvas quyết định và chỉ hiển thị read-only.
 - Danh xưng dùng `Person.honorific` nullable `VARCHAR(100)`, tách khỏi họ tên/tên thường gọi/tên tự; panel cho nhập tự do và node chỉ hiển thị khi có giá trị.
+- Node luôn render một hàng Danh xưng cao 1rem; trạng thái trống dùng invisible và khoảng trắng không ngắt dòng để giữ bố cục nhưng không tạo nội dung thừa cho người dùng.
 - Ngày sinh/ngày mất chuyển từ ô nhập năm sang `input[type=date]`, nên contract design DTO dùng `birthDate`/`deathDate` thay cho `birthYear`/`deathYear`.
 - Panel xếp theo thứ tự: họ tên, tên thường gọi, giới tính, ngày sinh, ô “Còn sống”, khung “Thông tin người đã mất”, rồi điện thoại/ảnh/tiểu sử. Ô “Còn sống” đặt ngay trên khung nó điều khiển để không có trường nào biến mất ở phía trên chỗ vừa bấm.
 - `isAlive` điều khiển cả nhóm trường của người đã mất: tick “Còn sống” ẩn và xóa tên tự/hiệu, ngày mất, ngày giỗ, nơi an táng; nhập ngày mất thì tự bỏ tick. Phải xóa giá trị chứ không chỉ ẩn, nếu không dữ liệu bị ẩn vẫn được lưu xuống.
 - `DeathAnniversaryPicker` nhận thêm `label` và `maxDayInMonth`; ngày giỗ âm lịch của cá nhân giới hạn 30 ngày đúng ràng buộc DTO.
 - `.prettierrc.json` gốc dùng single quote/width 100 nhưng `family-tree-designer.tsx` đã commit theo double quote/width 80. Giữ style của tệp khi sửa; chạy prettier mặc định repo sẽ format lại toàn bộ tệp và làm nhiễu diff.
+
+- Designer dùng draft chuẩn hóa gồm toàn bộ Person, fatherId/motherId và quan hệ vợ chồng; không còn dùng cây FamilyBranch làm nguồn dữ liệu vì cấu trúc đó không thể biểu diễn đồng thời tổ tiên của cả hai vợ chồng.
+- Tính generation bằng cách gom vợ/chồng cùng một nhóm rồi chạy topo theo cạnh cha/mẹ; thêm tổ tiên phía trên sẽ dịch đồng bộ người đang chọn, vợ/chồng và con cháu.
+- UI chỉ cho tạo Bố mới. Lựa chọn Bố bị disable nếu fatherId đã tồn tại hoặc Person là nữ và đã tham gia quan hệ vợ/chồng; handler kiểm tra lại cùng điều kiện. motherId từ dữ liệu cũ vẫn được giữ trong draft/payload nhưng không còn nút tạo Mẹ.
+- Canvas chỉ dựng một cạnh cha–con: ưu tiên fatherId hợp lệ và chỉ dùng motherId làm phương án dự phòng cho dữ liệu cũ chưa có bố. Khi thêm con từ người mẹ đã có chồng, addRelationship đã gán người chồng vào fatherId nên đường nối vẫn xuất phát từ khung Bố; motherId vẫn được lưu nhưng không tạo cạnh thứ hai.
+- “Con gái” trong quy tắc thêm quan hệ là Person có gender FEMALE và có ít nhất một trong fatherId/motherId. Với đối tượng này, option HUSBAND không được render và relationshipChoiceBlockedReason cũng từ chối thao tác để bảo vệ quy tắc ngoài UI.
+- Trường deletesBranch chỉ tồn tại trong state web để giữ hành vi xóa cũ; cha/mẹ thêm mới và spouse xóa riêng, child branch vẫn xóa cả nhánh. Trường này không đi vào API payload.
 
 ## Files and contracts
 
@@ -70,6 +79,7 @@
 - `apps/web/src/lib/family-manager.ts`: guard server dùng chung cho hai khu vực của trưởng họ.
 - `apps/web/src/app/[slug]/thiet_ke/`: page, loading và error state của route thiết kế.
 - `apps/web/src/components/tree/family-tree-designer.tsx`: canvas, node, layout quan hệ, modal chọn quan hệ, panel chỉnh sửa, luồng “Lưu tất cả” và các helper giới tính `oppositeGender`/`relationshipGender`/`relationshipChoiceBlockedReason` cùng hằng `GENDER_CHOICES`/`SPOUSE_KINDS`.
+- apps/web/src/components/ui/person-avatar.tsx và apps/web/public/images/avatars/: ánh xạ Gender, đời và năm sinh sang năm ảnh PNG imagegen; tree-layout truyền birthDate vào node công khai.
 - `apps/web/src/lib/family-tree-design-api.ts`: client lưu toàn bộ thiết kế qua parser lỗi chung, gồm `honorific`.
 - `apps/api/src/family-tree/dto/save-family-tree-design.dto.ts`: contract tối đa 500 Person/Relationship cùng danh sách ID xóa; mỗi Person mang đủ trường hồ sơ.
 - `apps/api/prisma/schema.prisma` và `apps/api/prisma/migrations/20260918120000_drop_person_relationship_soft_delete/`: bỏ cột và index `deletedAt` của Person/Relationship.
@@ -108,6 +118,16 @@
 - Database phát triển đã áp cả migration bỏ soft delete và migration thêm `honorific`; Prisma Client generate bình thường sau migrate.
 - Trường Danh xưng: prisma validate, lint toàn hệ thống, API/web TypeScript compiler và `git diff --check` pass.
 
+- Chiều cao node có/không có Danh xưng: web lint, TypeScript compiler và kiểm tra diff đều pass.
+
+- Bộ avatar imagegen: kiểm tra trực quan ảnh Nam/Nữ/Trung tính sau resize/alpha cleanup; web lint, web typecheck và git diff --check đều pass.
+
+- Avatar các cụ: hai PNG 512×512 nền trong suốt đã kiểm tra trực quan; helper chọn avatar qua 6/6 ca, web lint/typecheck và git diff --check pass.
+
+- Quy tắc chỉ thêm Bố và khóa thành viên nữ đã có chồng: web lint, web typecheck và git diff --check pass; chưa QA tương tác bằng phiên trưởng họ.
+- Cạnh cha–con ưu tiên Bố: web lint, web typecheck và git diff --check pass; chưa QA trực quan bằng phiên trưởng họ.
+- Ẩn option Chồng cho con gái: web lint, web typecheck và git diff --check pass; chưa QA trực quan bằng phiên trưởng họ.
+
 ## Media
 
 - Ảnh lưu trên đĩa tại `MEDIA_ROOT` (mặc định `apps/api/media`), chia theo thư mục `<familyId>/`. Toàn bộ `apps/api/media/` nằm trong `.gitignore` gốc, không theo dõi gì trong git. Không cần giữ folder trong repo vì `saveImage` dùng `mkdir(..., { recursive: true })` nên thư mục tự sinh khi cần. `MEDIA_ROOT` đã có trong `apps/api/.env.example`.
@@ -145,4 +165,4 @@
 
 ## Handoff
 
-Đăng nhập `/ho-nguyen/thiet_ke`, nhập Danh xưng (ví dụ “Cụ tổ”), bấm “Lưu tất cả” rồi tải lại để xác nhận giá trị và node hiển thị đúng. Đồng thời QA giới tính/quan hệ/ảnh, xóa một thành viên và xác nhận tải lại; cuối cùng kiểm tra lưu/tải lại hồ sơ admin.
+Đăng nhập /ho-nguyen/thiet_ke; chọn Person Nữ có cha hoặc mẹ để xác nhận hộp thêm quan hệ không còn option Chồng. Sau đó thêm con lần lượt từ Bố và từ Mẹ đã có chồng, kiểm tra mỗi con chỉ có một đường nối xuất phát từ Bố, rồi bấm “Lưu tất cả” và tải lại.
