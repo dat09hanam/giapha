@@ -2,7 +2,7 @@
 
 ## Current objective
 
-Đã sửa quy tắc xếp nhóm vợ/chồng để chồng luôn đứng trước, các vợ theo wifeOrder và dữ liệu có thể chỉnh sửa không còn quyết định vị trí trái–phải.
+Hiển thị đủ sáu lựa chọn quan hệ theo lưới cố định; lựa chọn Chồng vẫn xuất hiện nhưng bị làm mờ và vô hiệu hóa khi quy tắc gia phả không cho phép.
 
 ## Work items
 
@@ -87,6 +87,7 @@
 - [x] Thiết kế lại modal thành ba hàng cố định Bố–Mẹ, Chồng–Vợ, Con trai–Con gái; hiển thị Mẹ mờ và khóa cả UI lẫn handler.
 - [x] Truy vết hiện tượng Cụ bà nhảy sang trái tới sortMembers → orderGenerationMembers → createFlowElements; xác nhận khóa phụ name gây đổi thứ tự.
 - [x] Dựng các nhóm cùng thế hệ từ husbandId/wifeId, lấy chồng làm đầu nhóm, sắp nhiều vợ theo wifeOrder và giữ fallback để không làm mất node của dữ liệu cũ.
+- [x] Bỏ filter ẩn Chồng, luôn render đủ lưới quan hệ và dùng blocked reason hiện có để khóa cả UI lẫn handler.
 
 ## Owned paths and coordination hotspots
 
@@ -175,7 +176,8 @@
 - PASS: web lint, web typecheck và git diff --check sau khi thêm ô Mẹ disabled và cố định lưới quan hệ ba hàng.
 - PASS: probe localeCompare tiếng Việt xác nhận “Thành viên mới” đứng sau “Ông”, còn “Bà” đứng trước “Ông”; khớp chính xác hiện tượng đổi bên.
 - PASS: web lint, web typecheck và git diff --check sau khi cố định thứ tự chồng–vợ, không còn dùng tên làm khóa sắp xếp bên trong nhóm.
+- PASS: web lint, web typecheck và git diff --check sau khi luôn hiển thị ô Chồng nhưng giữ trạng thái disabled theo blocked reason.
 
 ## Next action
 
-QA trực quan bằng tài khoản trưởng họ: tạo Cụ tổ Ông, thêm Vợ rồi sửa tên/danh xưng/năm sinh của Cụ tổ Bà; xác nhận Ông vẫn bên trái, Bà vẫn bên phải và nhiều vợ theo đúng wifeOrder.
+QA trực quan bằng tài khoản trưởng họ: với một con gái trong dòng họ, xác nhận ô Chồng vẫn ở hàng Chồng–Vợ nhưng bị mờ/disabled và không thể tạo quan hệ; đồng thời kiểm tra vị trí Cụ tổ Ông–Bà vẫn ổn định.

@@ -45,6 +45,7 @@ updated: '2026-09-27'
 - 2026-09-27: Giữ nguyên logic quan hệ hiện tại nhưng thiết kế lại hộp thêm quan hệ thành ba hàng Bố–Mẹ, Chồng–Vợ, Con trai–Con gái; ô Mẹ hiển thị mờ và chưa thể thao tác.
 - 2026-09-27: Chẩn đoán hiện tượng khung Cụ bà đổi từ bên phải sang bên trái sau khi sửa thông tin của người vợ.
 - 2026-09-27: Sửa lỗi để vị trí chồng/vợ luôn ổn định khi chỉnh sửa tên, danh xưng hoặc thông tin thành viên.
+- 2026-09-27: Thay yêu cầu ẩn lựa chọn “Chồng” của con gái: vẫn hiển thị đúng vị trí nhưng làm mờ, vô hiệu hóa và nêu rõ lý do không thể thêm.
 
 ## Outcome
 
@@ -132,7 +133,7 @@ updated: '2026-09-27'
 - [x] Avatar mặc định không còn dựng bằng SVG; PersonAvatar dùng PNG imagegen nền trong suốt cho Nam, Nữ và Trung tính, vẫn rõ trong khung tròn nhỏ.
 - [x] Avatar lớn tuổi có bản Nam/Nữ riêng; đời 1–3 luôn chọn bản lớn tuổi, đời 4+ chỉ chọn khi có năm sinh và chênh lệch với năm hiện tại từ 70 trở lên; ảnh người dùng tải lên vẫn được ưu tiên.
 - [x] Hộp “Thêm quan hệ” hiển thị ô Mẹ ở trạng thái mờ và luôn vô hiệu hóa; handler không tạo quan hệ Mẹ, còn dữ liệu motherId đã lưu từ trước vẫn được giữ nguyên.
-- [x] Trên màn hình hai cột, các lựa chọn giữ đúng ba hàng Bố–Mẹ, Chồng–Vợ, Con trai–Con gái; khi Chồng bị ẩn, các ô còn lại không bị dồn sai vị trí.
+- [x] Trên màn hình hai cột, các lựa chọn giữ đúng ba hàng Bố–Mẹ, Chồng–Vợ, Con trai–Con gái; lựa chọn bị khóa vẫn giữ nguyên vị trí và không làm dồn các ô còn lại.
 - [x] Xác định được nguyên nhân đổi bên: hai vợ chồng có cùng generation/orderInFamily, nên tên là khóa phụ quyết định ai được duyệt trước và đặt bên trái.
 - [x] Trong mỗi nhóm vợ/chồng hợp lệ, khung chồng luôn đứng trước khung vợ; nhiều vợ được xếp theo wifeOrder và việc sửa thông tin không làm đổi trái–phải.
 - [x] Lựa chọn Bố bị vô hiệu hóa kèm lý do tiếng Việt khi Person đã có fatherId hoặc khi thành viên nữ đã có quan hệ vợ/chồng.
@@ -141,7 +142,7 @@ updated: '2026-09-27'
 - [x] Payload “Lưu tất cả” giữ fatherClientId/motherClientId của mọi Person; backend tiếp tục chặn cha/mẹ ngoài bản thiết kế, tự tham chiếu, trùng cha-mẹ và vòng lặp.
 - [x] Mỗi người con chỉ có một đường nối hiển thị từ Bố khi fatherId hợp lệ; không vẽ thêm đường song song từ Mẹ.
 - [x] Thêm con từ Mẹ đã có chồng vẫn gán fatherId là người chồng và đường nối xuất phát từ khung Bố; motherId tiếp tục được lưu.
-- [x] Person Nữ có fatherId hoặc motherId được nhận diện là con gái; hộp thêm quan hệ không render option “Chồng”.
+- [x] Person Nữ có fatherId hoặc motherId được nhận diện là con gái; hộp thêm quan hệ vẫn render option “Chồng” nhưng làm mờ, disabled và hiển thị lý do tiếng Việt.
 - [x] Handler thêm quan hệ cũng từ chối HUSBAND cho con gái, không chỉ dựa vào việc ẩn option trên giao diện.
 - [x] Bấm “Xóa ảnh đại diện” hoặc “Đổi ảnh” sẽ xóa tệp cũ khỏi thư mục media.
 - [x] Bấm “Lưu ảnh” trong hộp cắt chỉ giữ ảnh trong bộ nhớ và hiện xem trước; thư mục media chưa có tệp nào.

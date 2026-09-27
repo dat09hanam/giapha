@@ -217,13 +217,6 @@ function isDaughter(member: DesignerMember): boolean {
   );
 }
 
-function relationshipChoiceIsVisible(
-  kind: RelationshipKind,
-  source: DesignerMember,
-): boolean {
-  return kind !== "HUSBAND" || !isDaughter(source);
-}
-
 function relationshipChoiceBlockedReason(
   kind: RelationshipKind,
   source: DesignerMember,
@@ -2151,11 +2144,7 @@ export function FamilyTreeDesigner({
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {RELATIONSHIP_CHOICES.filter(
-                (choice) =>
-                  !relationshipTarget ||
-                  relationshipChoiceIsVisible(choice.kind, relationshipTarget),
-              ).map((choice) => {
+              {RELATIONSHIP_CHOICES.map((choice) => {
                 const Icon = choice.icon;
                 const blockedReason = relationshipTarget
                   ? relationshipChoiceBlockedReason(
