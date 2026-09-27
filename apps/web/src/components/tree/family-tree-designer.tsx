@@ -97,6 +97,7 @@ type DesignerDraft = {
 
 type RelationshipKind =
   | "FATHER"
+  | "MOTHER"
   | "WIFE"
   | "HUSBAND"
   | "SON"
@@ -133,14 +134,20 @@ const RELATIONSHIP_CHOICES: RelationshipChoice[] = [
     icon: UserRound,
   },
   {
-    kind: "WIFE",
-    label: "Vợ",
-    description: "Thêm một khung cùng hàng",
-    icon: HeartHandshake,
+    kind: "MOTHER",
+    label: "Mẹ",
+    description: "Tạm thời chưa hỗ trợ thêm mẹ từ thành viên",
+    icon: UserRound,
   },
   {
     kind: "HUSBAND",
     label: "Chồng",
+    description: "Thêm một khung cùng hàng",
+    icon: HeartHandshake,
+  },
+  {
+    kind: "WIFE",
+    label: "Vợ",
     description: "Thêm một khung cùng hàng",
     icon: HeartHandshake,
   },
@@ -157,6 +164,15 @@ const RELATIONSHIP_CHOICES: RelationshipChoice[] = [
     icon: Baby,
   },
 ];
+
+const RELATIONSHIP_CHOICE_GRID_CLASSES: Record<RelationshipKind, string> = {
+  FATHER: "sm:col-start-1 sm:row-start-1",
+  MOTHER: "sm:col-start-2 sm:row-start-1",
+  HUSBAND: "sm:col-start-1 sm:row-start-2",
+  WIFE: "sm:col-start-2 sm:row-start-2",
+  SON: "sm:col-start-1 sm:row-start-3",
+  DAUGHTER: "sm:col-start-2 sm:row-start-3",
+};
 
 const GENDER_CHOICES: ReadonlyArray<{
   value: Extract<DesignerGender, "MALE" | "FEMALE">;
@@ -182,6 +198,7 @@ function relationshipGender(
   sourceGender: DesignerGender,
 ): DesignerGender {
   if (kind === "FATHER") return "MALE";
+  if (kind === "MOTHER") return "FEMALE";
 
   if (SPOUSE_KINDS.has(kind)) {
     const spouseGender = oppositeGender(sourceGender);
@@ -212,6 +229,10 @@ function relationshipChoiceBlockedReason(
   source: DesignerMember,
   relationships: readonly DesignerRelationship[],
 ): string | null {
+  if (kind === "MOTHER") {
+    return "Tạm thời chưa hỗ trợ thêm mẹ từ thành viên.";
+  }
+
   if (kind === "FATHER" && source.fatherId) {
     return "Thành viên này đã có bố trong cây gia phả.";
   }
@@ -690,19 +711,47 @@ function orderGenerationMembers(
   draft: DesignerDraft,
 ): DesignerMember[] {
   const membersById = new Map(members.map((member) => [member.id, member]));
+  const dependentMemberIds = new Set<string>();
+
+  draft.relationships.forEach((relationship) => {
+    if (
+      membersById.has(relationship.husbandId) &&
+      membersById.has(relationship.wifeId)
+    ) {
+      dependentMemberIds.add(relationship.wifeId);
+    }
+  });
+  draft.people.forEach((child) => {
+    if (
+      child.fatherId &&
+      child.motherId &&
+      membersById.has(child.fatherId) &&
+      membersById.has(child.motherId)
+    ) {
+      dependentMemberIds.add(child.motherId);
+    }
+  });
+
   const visited = new Set<string>();
   const ordered: DesignerMember[] = [];
+  const sortedMembers = [...members].sort(sortMembers);
 
-  [...members].sort(sortMembers).forEach((member) => {
+  function appendMemberGroup(member: DesignerMember): void {
     if (visited.has(member.id)) return;
 
     ordered.push(member);
     visited.add(member.id);
 
     const relatedIds = new Set<string>();
+    const wifeOrders = new Map<string, number>();
     draft.relationships.forEach((relationship) => {
-      if (relationship.husbandId === member.id) relatedIds.add(relationship.wifeId);
-      if (relationship.wifeId === member.id) relatedIds.add(relationship.husbandId);
+      if (relationship.husbandId === member.id) {
+        relatedIds.add(relationship.wifeId);
+        wifeOrders.set(relationship.wifeId, relationship.wifeOrder);
+      }
+      if (relationship.wifeId === member.id) {
+        relatedIds.add(relationship.husbandId);
+      }
     });
     draft.people.forEach((child) => {
       if (child.fatherId === member.id && child.motherId) {
@@ -719,12 +768,29 @@ function orderGenerationMembers(
         (related): related is DesignerMember =>
           related !== undefined && !visited.has(related.id),
       )
-      .sort(sortMembers)
+      .sort((left, right) => {
+        const leftWifeOrder = wifeOrders.get(left.id);
+        const rightWifeOrder = wifeOrders.get(right.id);
+        if (leftWifeOrder !== undefined || rightWifeOrder !== undefined) {
+          return (
+            (leftWifeOrder ?? Number.MAX_SAFE_INTEGER) -
+              (rightWifeOrder ?? Number.MAX_SAFE_INTEGER) ||
+            left.id.localeCompare(right.id)
+          );
+        }
+
+        return sortMembers(left, right);
+      })
       .forEach((related) => {
         ordered.push(related);
         visited.add(related.id);
       });
-  });
+  }
+
+  sortedMembers
+    .filter((member) => !dependentMemberIds.has(member.id))
+    .forEach(appendMemberGroup);
+  sortedMembers.forEach(appendMemberGroup);
 
   return ordered;
 }
@@ -2080,8 +2146,8 @@ export function FamilyTreeDesigner({
               Thêm quan hệ cho {relationshipTarget?.name ?? "thành viên"}
             </h2>
             <p className="mt-2 text-sm leading-6 text-stone-600">
-              Chọn loại quan hệ. Bố nằm ở thế hệ phía trên; vợ/chồng nằm
-              cùng hàng và con nằm ở hàng dưới.
+              Chọn loại quan hệ. Bố/mẹ nằm ở thế hệ phía trên; vợ/chồng
+              nằm cùng hàng và con nằm ở hàng dưới.
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -2106,6 +2172,7 @@ export function FamilyTreeDesigner({
                     title={blockedReason ?? undefined}
                     className={cn(
                       "flex items-center gap-3 rounded-2xl border border-amber-900/15 bg-white p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700",
+                      RELATIONSHIP_CHOICE_GRID_CLASSES[choice.kind],
                       blockedReason
                         ? "opacity-40"
                         : "hover:border-emerald-800/35 hover:bg-emerald-50",

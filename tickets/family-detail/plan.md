@@ -2,7 +2,7 @@
 
 ## Current objective
 
-QA trang thiết kế bằng phiên trưởng họ, gồm quy tắc chỉ thêm Bố, ẩn option Chồng cho con gái, đường nối con xuất phát từ Bố và lưu/tải lại dữ liệu.
+Đã sửa quy tắc xếp nhóm vợ/chồng để chồng luôn đứng trước, các vợ theo wifeOrder và dữ liệu có thể chỉnh sửa không còn quyết định vị trí trái–phải.
 
 ## Work items
 
@@ -84,6 +84,9 @@ QA trang thiết kế bằng phiên trưởng họ, gồm quy tắc chỉ thêm 
 - [x] Chỉ vẽ một cạnh cha–con từ Bố; thêm con từ Mẹ vẫn dùng fatherId của người chồng làm nguồn cạnh.
 - [x] Chạy web lint, typecheck, production build và kiểm tra diff.
 - [x] Ẩn option Chồng cho Person Nữ có cha hoặc mẹ và chặn lại cùng quy tắc trong handler.
+- [x] Thiết kế lại modal thành ba hàng cố định Bố–Mẹ, Chồng–Vợ, Con trai–Con gái; hiển thị Mẹ mờ và khóa cả UI lẫn handler.
+- [x] Truy vết hiện tượng Cụ bà nhảy sang trái tới sortMembers → orderGenerationMembers → createFlowElements; xác nhận khóa phụ name gây đổi thứ tự.
+- [x] Dựng các nhóm cùng thế hệ từ husbandId/wifeId, lấy chồng làm đầu nhóm, sắp nhiều vợ theo wifeOrder và giữ fallback để không làm mất node của dữ liệu cũ.
 
 ## Owned paths and coordination hotspots
 
@@ -169,7 +172,10 @@ QA trang thiết kế bằng phiên trưởng họ, gồm quy tắc chỉ thêm 
 - PASS: web lint, web typecheck và git diff --check sau khi bỏ Mẹ và khóa thêm Bố cho thành viên nữ đã có chồng.
 - PASS: web lint và web typecheck sau khi đổi cạnh con sang ưu tiên Bố; dữ liệu vẫn giữ cả fatherId và motherId.
 - PASS: web lint và web typecheck sau khi ẩn option Chồng cho con gái.
+- PASS: web lint, web typecheck và git diff --check sau khi thêm ô Mẹ disabled và cố định lưới quan hệ ba hàng.
+- PASS: probe localeCompare tiếng Việt xác nhận “Thành viên mới” đứng sau “Ông”, còn “Bà” đứng trước “Ông”; khớp chính xác hiện tượng đổi bên.
+- PASS: web lint, web typecheck và git diff --check sau khi cố định thứ tự chồng–vợ, không còn dùng tên làm khóa sắp xếp bên trong nhóm.
 
 ## Next action
 
-Đăng nhập /ho-nguyen/thiet_ke; chọn một con gái để xác nhận không còn option Chồng, sau đó thêm con từ cả Bố và Mẹ để kiểm tra mỗi con chỉ có một đường nối xuất phát từ Bố và dữ liệu giữ nguyên sau “Lưu tất cả” + tải lại.
+QA trực quan bằng tài khoản trưởng họ: tạo Cụ tổ Ông, thêm Vợ rồi sửa tên/danh xưng/năm sinh của Cụ tổ Bà; xác nhận Ông vẫn bên trái, Bà vẫn bên phải và nhiều vợ theo đúng wifeOrder.

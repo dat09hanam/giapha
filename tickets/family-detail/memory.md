@@ -3,9 +3,9 @@
 ## Snapshot
 
 - Status: in-progress
-- Last updated: 2026-09-20
-- Current result: Hộp thêm quan hệ chỉ còn Bố; con gái (Person Nữ có cha hoặc mẹ) không còn option Chồng. Handler áp cùng quy tắc, dữ liệu fatherId/motherId vẫn giữ nguyên và web lint/typecheck đều qua.
-- Next action: QA bằng phiên trưởng họ: chọn một con gái để xác nhận không còn option Chồng, kiểm tra đường nối con xuất phát từ Bố, rồi lưu và tải lại.
+- Last updated: 2026-09-27
+- Current result: Đã sửa orderGenerationMembers để chồng luôn là đầu nhóm, vợ theo sau và nhiều vợ xếp theo wifeOrder; sửa tên, danh xưng hoặc năm sinh không còn làm hai khung đổi trái–phải.
+- Next action: QA trực quan bằng phiên trưởng họ với Cụ tổ Ông + Cụ tổ Bà, gồm sửa tên/danh xưng/năm sinh và trường hợp có nhiều vợ.
 
 ## Decisions
 
@@ -57,9 +57,12 @@
 
 - Designer dùng draft chuẩn hóa gồm toàn bộ Person, fatherId/motherId và quan hệ vợ chồng; không còn dùng cây FamilyBranch làm nguồn dữ liệu vì cấu trúc đó không thể biểu diễn đồng thời tổ tiên của cả hai vợ chồng.
 - Tính generation bằng cách gom vợ/chồng cùng một nhóm rồi chạy topo theo cạnh cha/mẹ; thêm tổ tiên phía trên sẽ dịch đồng bộ người đang chọn, vợ/chồng và con cháu.
-- UI chỉ cho tạo Bố mới. Lựa chọn Bố bị disable nếu fatherId đã tồn tại hoặc Person là nữ và đã tham gia quan hệ vợ/chồng; handler kiểm tra lại cùng điều kiện. motherId từ dữ liệu cũ vẫn được giữ trong draft/payload nhưng không còn nút tạo Mẹ.
+- Logic vẫn chỉ cho tạo Bố mới. Modal hiển thị thêm ô Mẹ để đủ cặp Bố–Mẹ nhưng MOTHER luôn trả blocked reason tiếng Việt, nên nút bị mờ/disabled và addRelationship thoát trước khi sửa draft. motherId từ dữ liệu cũ vẫn được giữ trong draft/payload.
 - Canvas chỉ dựng một cạnh cha–con: ưu tiên fatherId hợp lệ và chỉ dùng motherId làm phương án dự phòng cho dữ liệu cũ chưa có bố. Khi thêm con từ người mẹ đã có chồng, addRelationship đã gán người chồng vào fatherId nên đường nối vẫn xuất phát từ khung Bố; motherId vẫn được lưu nhưng không tạo cạnh thứ hai.
 - “Con gái” trong quy tắc thêm quan hệ là Person có gender FEMALE và có ít nhất một trong fatherId/motherId. Với đối tượng này, option HUSBAND không được render và relationshipChoiceBlockedReason cũng từ chối thao tác để bảo vệ quy tắc ngoài UI.
+- Modal dùng vị trí grid tường minh theo từng RelationshipKind: hàng 1 Bố–Mẹ, hàng 2 Chồng–Vợ, hàng 3 Con trai–Con gái. Nhờ vậy khi HUSBAND bị ẩn cho con gái, WIFE và các lựa chọn con không bị dồn sang ô khác.
+- Trên canvas, spouse mới sao chép orderInFamily của người gốc. Khi generation và orderInFamily bằng nhau, sortMembers so name; orderGenerationMembers duyệt phần tử đứng trước rồi ghép spouse phía sau, và createFlowElements ánh xạ thứ tự đó trực tiếp sang trục x. Vì vậy đổi tên có thể đảo trái–phải dù relationship husbandId/wifeId không đổi.
+- orderGenerationMembers hiện coi wifeId (và motherId trong cặp đồng cha mẹ) là thành viên phụ thuộc, lấy chồng/bố làm đầu nhóm và sắp các wifeId theo wifeOrder. Tên chỉ còn sắp giữa các nhóm độc lập; vòng fallback vẫn bảo đảm dữ liệu cũ không làm mất node.
 - Trường deletesBranch chỉ tồn tại trong state web để giữ hành vi xóa cũ; cha/mẹ thêm mới và spouse xóa riêng, child branch vẫn xóa cả nhánh. Trường này không đi vào API payload.
 
 ## Files and contracts
@@ -127,6 +130,8 @@
 - Quy tắc chỉ thêm Bố và khóa thành viên nữ đã có chồng: web lint, web typecheck và git diff --check pass; chưa QA tương tác bằng phiên trưởng họ.
 - Cạnh cha–con ưu tiên Bố: web lint, web typecheck và git diff --check pass; chưa QA trực quan bằng phiên trưởng họ.
 - Ẩn option Chồng cho con gái: web lint, web typecheck và git diff --check pass; chưa QA trực quan bằng phiên trưởng họ.
+- Lưới quan hệ ba hàng và ô Mẹ disabled: web lint, web typecheck và git diff --check pass. Không có browser khả dụng trong phiên nên chưa QA trực quan.
+- Sửa vị trí spouse: web lint, web typecheck và git diff --check pass. Chồng luôn đứng trước vợ, nhiều vợ theo wifeOrder; chưa QA trực quan vì không có browser khả dụng trong phiên.
 
 ## Media
 
@@ -165,4 +170,4 @@
 
 ## Handoff
 
-Đăng nhập /ho-nguyen/thiet_ke; chọn Person Nữ có cha hoặc mẹ để xác nhận hộp thêm quan hệ không còn option Chồng. Sau đó thêm con lần lượt từ Bố và từ Mẹ đã có chồng, kiểm tra mỗi con chỉ có một đường nối xuất phát từ Bố, rồi bấm “Lưu tất cả” và tải lại.
+Bản sửa thứ tự vợ/chồng đã hoàn tất. Khi có browser/session trưởng họ, QA trường hợp Cụ tổ Ông + Cụ tổ Bà sau khi sửa tên/danh xưng/năm sinh và kiểm tra nhiều vợ vẫn theo wifeOrder.

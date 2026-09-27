@@ -3,7 +3,7 @@ name: 'family-detail'
 slug: 'family-detail'
 status: 'in-progress'
 created: '2026-09-17'
-updated: '2026-09-20'
+updated: '2026-09-27'
 ---
 
 # Ticket: family-detail
@@ -42,6 +42,9 @@ updated: '2026-09-20'
 - 2026-09-20: Bỏ lựa chọn thêm Mẹ, chỉ cho thêm Bố; thành viên nữ đã có chồng không được thêm Bố vì thuộc nhánh nhà chồng.
 - 2026-09-20: Đường nối tới con chỉ xuất phát từ Bố; nếu thêm con từ Mẹ thì vẫn gán và nối qua người Bố là chồng của Mẹ.
 - 2026-09-20: Bỏ hẳn option “Chồng” khi Person là con gái trong dòng họ.
+- 2026-09-27: Giữ nguyên logic quan hệ hiện tại nhưng thiết kế lại hộp thêm quan hệ thành ba hàng Bố–Mẹ, Chồng–Vợ, Con trai–Con gái; ô Mẹ hiển thị mờ và chưa thể thao tác.
+- 2026-09-27: Chẩn đoán hiện tượng khung Cụ bà đổi từ bên phải sang bên trái sau khi sửa thông tin của người vợ.
+- 2026-09-27: Sửa lỗi để vị trí chồng/vợ luôn ổn định khi chỉnh sửa tên, danh xưng hoặc thông tin thành viên.
 
 ## Outcome
 
@@ -89,7 +92,7 @@ updated: '2026-09-20'
 - [x] Cụm thao tác trên màn quản trị có nút dẫn đúng tới `/{slug}/thiet_ke`.
 - [x] Route `/{slug}/thiet_ke` chỉ cho trưởng họ của đúng tenant truy cập.
 - [x] Canvas khởi tạo một khung thành viên và mỗi khung có nút “Thêm quan hệ”.
-- [x] Bộ chọn quan hệ có Bố, Vợ/Chồng theo điều kiện giới tính/vai trò, Con trai và Con gái; khung mới không hiển thị chú thích vai trò.
+- [x] Bộ chọn quan hệ có Bố, Mẹ ở trạng thái chưa hỗ trợ, Vợ/Chồng theo điều kiện giới tính/vai trò, Con trai và Con gái; khung mới không hiển thị chú thích vai trò.
 - [x] Vợ/chồng được xếp cùng hàng; con được xếp ở hàng thế hệ phía dưới và có đường nối.
 - [x] Trang có thể chỉnh sửa thông tin khung tại chỗ và đáp ứng trên màn hình nhỏ.
 - [x] Bấm vào bất kỳ vùng nào của khung sẽ chọn và highlight rõ duy nhất khung đó.
@@ -128,7 +131,10 @@ updated: '2026-09-20'
 - [x] Cả ba chỗ hiển thị chân dung (khung canvas, biểu tượng đầu panel, ô xem trước ảnh) đều dùng ảnh đại diện khi có; icon mặc định chỉ còn là fallback.
 - [x] Avatar mặc định không còn dựng bằng SVG; PersonAvatar dùng PNG imagegen nền trong suốt cho Nam, Nữ và Trung tính, vẫn rõ trong khung tròn nhỏ.
 - [x] Avatar lớn tuổi có bản Nam/Nữ riêng; đời 1–3 luôn chọn bản lớn tuổi, đời 4+ chỉ chọn khi có năm sinh và chênh lệch với năm hiện tại từ 70 trở lên; ảnh người dùng tải lên vẫn được ưu tiên.
-- [x] Hộp “Thêm quan hệ” chỉ có Bố, không còn lựa chọn Mẹ; dữ liệu motherId đã lưu từ trước vẫn được giữ nguyên.
+- [x] Hộp “Thêm quan hệ” hiển thị ô Mẹ ở trạng thái mờ và luôn vô hiệu hóa; handler không tạo quan hệ Mẹ, còn dữ liệu motherId đã lưu từ trước vẫn được giữ nguyên.
+- [x] Trên màn hình hai cột, các lựa chọn giữ đúng ba hàng Bố–Mẹ, Chồng–Vợ, Con trai–Con gái; khi Chồng bị ẩn, các ô còn lại không bị dồn sai vị trí.
+- [x] Xác định được nguyên nhân đổi bên: hai vợ chồng có cùng generation/orderInFamily, nên tên là khóa phụ quyết định ai được duyệt trước và đặt bên trái.
+- [x] Trong mỗi nhóm vợ/chồng hợp lệ, khung chồng luôn đứng trước khung vợ; nhiều vợ được xếp theo wifeOrder và việc sửa thông tin không làm đổi trái–phải.
 - [x] Lựa chọn Bố bị vô hiệu hóa kèm lý do tiếng Việt khi Person đã có fatherId hoặc khi thành viên nữ đã có quan hệ vợ/chồng.
 - [x] Thêm Bố tạo đúng fatherId cho Person hợp lệ đang chọn, kể cả người ở giữa cây; handler kiểm tra lại cùng quy tắc trước khi sửa draft.
 - [x] Số đời được tính lại từ toàn bộ đồ thị cha mẹ; vợ/chồng giữ cùng đời, tổ tiên nằm trên và con cháu dịch xuống nhất quán.
