@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "concurrently --names WEB,API --prefix-colors cyan,magenta \"npm run dev:web\" \"npm run dev:api\"",
-    "dev:web": "npm run dev --workspace @giapha/web",
+    "dev:web": "npm run dev --workspace @giapha/web -- --port 3005",
     "dev:api": "npm run dev --workspace @giapha/api",
     "build": "npm run build --workspace @giapha/api && npm run build --workspace @giapha/web",
     "lint": "npm run lint --workspaces --if-present",

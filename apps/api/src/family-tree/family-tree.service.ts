@@ -132,6 +132,35 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
         "Cha và mẹ phải là hai thành viên khác nhau.",
       );
     }
+    if (
+      person.fatherClientId &&
+      peopleByClientId.get(person.fatherClientId)?.gender !== "MALE"
+    ) {
+      throw new BadRequestException("Người cha phải có giới tính nam.");
+    }
+    if (
+      person.motherClientId &&
+      peopleByClientId.get(person.motherClientId)?.gender !== "FEMALE"
+    ) {
+      throw new BadRequestException("Người mẹ phải có giới tính nữ.");
+    }
+  }
+
+  // Same name, birth date and parents means the same person entered twice.
+  const identityKeys = new Set<string>();
+  for (const person of input.people) {
+    const key = [
+      person.name.trim().replace(/\s+/g, " ").toLocaleLowerCase("vi"),
+      person.birthDate ?? "",
+      person.fatherClientId ?? "",
+      person.motherClientId ?? "",
+    ].join("|");
+    if (identityKeys.has(key)) {
+      throw new BadRequestException(
+        "Bản thiết kế có hai thành viên trùng họ tên, ngày sinh và bố mẹ.",
+      );
+    }
+    identityKeys.add(key);
   }
 
   const relationshipKeys = new Set<string>();
@@ -147,6 +176,14 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
     if (relationship.husbandClientId === relationship.wifeClientId) {
       throw new BadRequestException(
         "Một thành viên không thể kết hôn với chính mình.",
+      );
+    }
+    if (
+      peopleByClientId.get(relationship.husbandClientId)?.gender !== "MALE" ||
+      peopleByClientId.get(relationship.wifeClientId)?.gender !== "FEMALE"
+    ) {
+      throw new BadRequestException(
+        "Quan hệ vợ chồng yêu cầu người chồng là nam và người vợ là nữ.",
       );
     }
     const key = [relationship.husbandClientId, relationship.wifeClientId]
@@ -669,12 +706,21 @@ export class FamilyTreeService {
     if (!requested.length) return;
     const parents = await transaction.person.findMany({
       where: { familyId, id: { in: requested } },
-      select: { id: true },
+      select: { id: true, gender: true },
     });
     if (parents.length !== requested.length) {
       throw new BadRequestException(
         "Cha và mẹ phải thuộc cùng dòng họ đang quản lý.",
       );
+    }
+    const parentGenders = new Map(
+      parents.map((parent) => [parent.id, parent.gender]),
+    );
+    if (fatherId && parentGenders.get(fatherId) !== "MALE") {
+      throw new BadRequestException("Người cha phải có giới tính nam.");
+    }
+    if (motherId && parentGenders.get(motherId) !== "FEMALE") {
+      throw new BadRequestException("Người mẹ phải có giới tính nữ.");
     }
     if (!personId) return;
 

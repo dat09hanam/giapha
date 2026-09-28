@@ -85,6 +85,12 @@ rather than a single text field, so the Family's death-anniversary calendar can 
 `(familyId, personId)`, so a marriage can never span two Families. `(familyId, husbandId, wifeId)`
 is unique.
 
+Genealogy invariants enforced by the API on every save: a father is `MALE` and a mother is
+`FEMALE`; in a Relationship the husband is `MALE` and the wife is `FEMALE` (a man may have several
+wives, ordered by `wifeOrder`); no one is their own parent and parent links never form a cycle; and
+no two people in a design share the same normalized name, birth date, father and mother. The
+designer applies the same rules before saving.
+
 `Media` is the Family library: `fileUrl`, `title`, `status` and the optional `personId` of the
 Person credited with the item. It is Family-scoped with the same composite Person foreign key.
 

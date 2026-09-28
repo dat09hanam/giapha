@@ -8,7 +8,6 @@ import {
   Panel,
   Position,
   ReactFlow,
-  type Edge,
   type Node,
   type NodeProps,
   type NodeTypes,
@@ -35,6 +34,7 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { familyEdgeTypes } from "@/components/tree/family-link-edge";
 import { Button } from "@/components/ui/button";
 import { ImageCropper } from "@/components/ui/image-cropper";
 import { PersonAvatar } from "@/components/ui/person-avatar";
@@ -52,56 +52,34 @@ import {
   saveFamilyTreeDesign,
   type FamilyTreeDesignSaveInput,
 } from "@/lib/family-tree-design-api";
+import {
+  computeGenerations,
+  layoutFamily,
+  type LayoutDimensions,
+} from "@/lib/family-layout";
+import { familyEdges, type FamilyEdge } from "@/lib/tree-layout";
 import { cn } from "@/lib/utils";
-import type { FamilyTreeResponse, Gender, Person } from "@/types/family-tree";
+import type { FamilyTreeResponse, Person } from "@/types/family-tree";
 
-type DesignerGender = Gender;
-
-type DesignerMember = {
-  id: string;
-  databaseId: string | null;
-  name: string;
-  honorific: string;
-  nickname: string;
-  courtesyName: string;
-  gender: DesignerGender;
-  /** yyyy-mm-dd, as a native date input holds it. */
-  birthDate: string;
-  deathDate: string;
-  /** DD/MM lunar anniversary, matching DeathAnniversaryPicker. */
-  lunarDeathAnniversary: string;
-  isAlive: boolean;
-  burialPlace: string;
-  phone: string;
-  avatarUrl: string;
-  biography: string;
-  fatherId: string | null;
-  motherId: string | null;
-  generation: number;
-  orderInFamily: number;
-  /** Keeps the existing delete-one-spouse/delete-descendant-branch behavior. */
-  deletesBranch: boolean;
-};
-
-type DesignerRelationship = {
-  husbandId: string;
-  wifeId: string;
-  wifeOrder: number;
-};
-
-type DesignerDraft = {
-  people: DesignerMember[];
-  relationships: DesignerRelationship[];
-  protectedMemberId: string;
-};
-
-type RelationshipKind =
-  | "FATHER"
-  | "MOTHER"
-  | "WIFE"
-  | "HUSBAND"
-  | "SON"
-  | "DAUGHTER";
+import {
+  findMember,
+  sortMembers,
+  type DesignerDraft,
+  type DesignerGender,
+  type DesignerMember,
+} from "./designer-model";
+import {
+  findDuplicatePair,
+  isChildKind,
+  needsMotherChoice,
+  nextWifeOrder,
+  plannedChildParents,
+  relationshipChoiceBlockedReason,
+  relationshipGender,
+  wivesOf,
+  type PlannedParents,
+  type RelationshipKind,
+} from "./designer-relationship-rules";
 
 type RelationshipChoice = {
   kind: RelationshipKind;
@@ -110,9 +88,16 @@ type RelationshipChoice = {
   icon: LucideIcon;
 };
 
+/** Steps of the "Thêm quan hệ" dialog after the menu choice. */
+type AdditionState =
+  | { step: "choose" }
+  | { step: "mother"; kind: RelationshipKind };
+
 type DesignerNodeData = {
   member: DesignerMember;
   generation: number;
+  /** "Vợ 2" and so on, shown only when a husband has more than one wife. */
+  spouseLabel: string | null;
   /** Resolved here because the node itself has no access to the family slug. */
   avatarSrc: string | null;
   selected: boolean;
@@ -122,45 +107,36 @@ type DesignerNodeData = {
 
 type DesignerFlowNode = Node<DesignerNodeData, "designerPerson">;
 
-const NODE_WIDTH = 214;
-const SPOUSE_GAP = 70;
-const GENERATION_GAP = 260;
 
 const RELATIONSHIP_CHOICES: RelationshipChoice[] = [
   {
     kind: "FATHER",
-    label: "Bố",
-    description: "Thêm bố ở thế hệ phía trên",
+    label: "Thêm bố",
+    description: "Thế hệ phía trên",
     icon: UserRound,
   },
   {
     kind: "MOTHER",
-    label: "Mẹ",
-    description: "Tạm thời chưa hỗ trợ thêm mẹ từ thành viên",
+    label: "Thêm mẹ",
+    description: "Thế hệ phía trên",
     icon: UserRound,
   },
   {
-    kind: "HUSBAND",
-    label: "Chồng",
-    description: "Thêm một khung cùng hàng",
-    icon: HeartHandshake,
-  },
-  {
     kind: "WIFE",
-    label: "Vợ",
-    description: "Thêm một khung cùng hàng",
+    label: "Thêm vợ",
+    description: "Cùng hàng, tự đánh số Vợ 1, Vợ 2…",
     icon: HeartHandshake,
   },
   {
     kind: "SON",
-    label: "Con trai",
-    description: "Thêm một khung ở hàng dưới",
+    label: "Thêm con trai",
+    description: "Hàng phía dưới",
     icon: Baby,
   },
   {
     kind: "DAUGHTER",
-    label: "Con gái",
-    description: "Thêm một khung ở hàng dưới",
+    label: "Thêm con gái",
+    description: "Hàng phía dưới",
     icon: Baby,
   },
 ];
@@ -168,8 +144,7 @@ const RELATIONSHIP_CHOICES: RelationshipChoice[] = [
 const RELATIONSHIP_CHOICE_GRID_CLASSES: Record<RelationshipKind, string> = {
   FATHER: "sm:col-start-1 sm:row-start-1",
   MOTHER: "sm:col-start-2 sm:row-start-1",
-  HUSBAND: "sm:col-start-1 sm:row-start-2",
-  WIFE: "sm:col-start-2 sm:row-start-2",
+  WIFE: "sm:col-span-2 sm:row-start-2",
   SON: "sm:col-start-1 sm:row-start-3",
   DAUGHTER: "sm:col-start-2 sm:row-start-3",
 };
@@ -181,90 +156,6 @@ const GENDER_CHOICES: ReadonlyArray<{
     { value: "MALE", label: "Nam" },
     { value: "FEMALE", label: "Nữ" },
   ];
-
-const SPOUSE_KINDS: ReadonlySet<RelationshipKind> = new Set<RelationshipKind>([
-  "WIFE",
-  "HUSBAND",
-]);
-
-function oppositeGender(gender: DesignerGender): DesignerGender | null {
-  if (gender === "MALE") return "FEMALE";
-  if (gender === "FEMALE") return "MALE";
-  return null;
-}
-
-function relationshipGender(
-  kind: RelationshipKind,
-  sourceGender: DesignerGender,
-): DesignerGender {
-  if (kind === "FATHER") return "MALE";
-  if (kind === "MOTHER") return "FEMALE";
-
-  if (SPOUSE_KINDS.has(kind)) {
-    const spouseGender = oppositeGender(sourceGender);
-    if (spouseGender) return spouseGender;
-
-    return kind === "WIFE" ? "FEMALE" : "MALE";
-  }
-
-  return kind === "DAUGHTER" ? "FEMALE" : "MALE";
-}
-
-function isDaughter(member: DesignerMember): boolean {
-  return (
-    member.gender === "FEMALE" &&
-    Boolean(member.fatherId || member.motherId)
-  );
-}
-
-function relationshipChoiceBlockedReason(
-  kind: RelationshipKind,
-  source: DesignerMember,
-  relationships: readonly DesignerRelationship[],
-): string | null {
-  if (kind === "MOTHER") {
-    return "Tạm thời chưa hỗ trợ thêm mẹ từ thành viên.";
-  }
-
-  if (kind === "FATHER" && source.fatherId) {
-    return "Thành viên này đã có bố trong cây gia phả.";
-  }
-
-  const marriedDaughter =
-    kind === "FATHER" &&
-    source.gender === "FEMALE" &&
-    relationships.some(
-      (relationship) =>
-        relationship.husbandId === source.id ||
-        relationship.wifeId === source.id,
-    );
-  if (marriedDaughter) {
-    return "Con gái đã có chồng không được thêm bố/mẹ vào nhánh gia phả này.";
-  }
-
-  const sourceGender = source.gender;
-  if (kind === "HUSBAND" && isDaughter(source)) {
-    return "Con gái trong dòng họ không được thêm chồng vào gia phả.";
-  }
-
-  if (kind === "HUSBAND" && sourceGender === "MALE") {
-    return "Thành viên đang chọn là nam nên không thể thêm chồng.";
-  }
-
-  if (kind === "WIFE" && sourceGender === "FEMALE") {
-    return "Thành viên đang chọn là nữ nên không thể thêm vợ.";
-  }
-
-  if (
-    (kind === "SON" || kind === "DAUGHTER") &&
-    sourceGender !== "MALE" &&
-    sourceGender !== "FEMALE"
-  ) {
-    return "Hãy chọn giới tính Nam hoặc Nữ cho thành viên trước khi thêm con.";
-  }
-
-  return null;
-}
 
 const genderStyles: Record<DesignerGender, string> = {
   MALE: "bg-sky-100 text-sky-800 ring-sky-200",
@@ -335,6 +226,11 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
         position={Position.Left}
         className="!size-2 !border-0 !bg-amber-700"
       />
+      {data.spouseLabel ? (
+        <span className="absolute left-3 top-3 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-800">
+          {data.spouseLabel}
+        </span>
+      ) : null}
 
       <button
         type="button"
@@ -413,6 +309,13 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
         position={Position.Bottom}
         className="!size-2 !border-0 !bg-amber-700"
       />
+      {/* Anchors the marriage bracket for a wife not standing beside her husband. */}
+      <Handle
+        id="bracket-target"
+        type="target"
+        position={Position.Bottom}
+        className="!size-0 !border-0 !bg-transparent"
+      />
     </article>
   );
 }
@@ -473,14 +376,6 @@ function toDesignerMember(person: Person): DesignerMember {
   };
 }
 
-function sortMembers(left: DesignerMember, right: DesignerMember): number {
-  return (
-    left.generation - right.generation ||
-    left.orderInFamily - right.orderInFamily ||
-    left.name.localeCompare(right.name, "vi")
-  );
-}
-
 function createMember(
   gender: DesignerGender,
   generation = 1,
@@ -511,95 +406,12 @@ function createMember(
 }
 
 function recalculateGenerations(draft: DesignerDraft): DesignerDraft {
-  const peopleById = new Map(draft.people.map((person) => [person.id, person]));
-  const groupParents = new Map(draft.people.map((person) => [person.id, person.id]));
-
-  function findGroup(memberId: string): string {
-    const parentId = groupParents.get(memberId) ?? memberId;
-    if (parentId === memberId) return memberId;
-
-    const rootId = findGroup(parentId);
-    groupParents.set(memberId, rootId);
-    return rootId;
-  }
-
-  function joinGroups(leftId: string, rightId: string): void {
-    const leftRoot = findGroup(leftId);
-    const rightRoot = findGroup(rightId);
-    if (leftRoot !== rightRoot) groupParents.set(rightRoot, leftRoot);
-  }
-
-  draft.relationships.forEach((relationship) => {
-    if (
-      peopleById.has(relationship.husbandId) &&
-      peopleById.has(relationship.wifeId)
-    ) {
-      joinGroups(relationship.husbandId, relationship.wifeId);
-    }
-  });
-
-  const groupIds = new Set(draft.people.map((person) => findGroup(person.id)));
-  const childGroups = new Map<string, Set<string>>();
-  const indegrees = new Map([...groupIds].map((groupId) => [groupId, 0]));
-
-  draft.people.forEach((person) => {
-    const childGroup = findGroup(person.id);
-    [person.fatherId, person.motherId].forEach((parentId) => {
-      if (!parentId || !peopleById.has(parentId)) return;
-
-      const parentGroup = findGroup(parentId);
-      if (parentGroup === childGroup) return;
-
-      const children = childGroups.get(parentGroup) ?? new Set<string>();
-      if (children.has(childGroup)) return;
-
-      children.add(childGroup);
-      childGroups.set(parentGroup, children);
-      indegrees.set(childGroup, (indegrees.get(childGroup) ?? 0) + 1);
-    });
-  });
-
-  const generations = new Map<string, number>();
-  const queue = [...groupIds].filter(
-    (groupId) => (indegrees.get(groupId) ?? 0) === 0,
-  );
-  queue.forEach((groupId) => generations.set(groupId, 1));
-
-  for (let index = 0; index < queue.length; index += 1) {
-    const groupId = queue[index]!;
-    const generation = generations.get(groupId) ?? 1;
-
-    (childGroups.get(groupId) ?? new Set<string>()).forEach((childGroup) => {
-      generations.set(
-        childGroup,
-        Math.max(generations.get(childGroup) ?? 1, generation + 1),
-      );
-      const remainingParents = (indegrees.get(childGroup) ?? 1) - 1;
-      indegrees.set(childGroup, remainingParents);
-      if (remainingParents === 0) queue.push(childGroup);
-    });
-  }
-
-  groupIds.forEach((groupId) => {
-    if (!generations.has(groupId)) {
-      const existingGeneration = draft.people
-        .filter((person) => findGroup(person.id) === groupId)
-        .reduce(
-          (lowest, person) => Math.min(lowest, person.generation),
-          Number.MAX_SAFE_INTEGER,
-        );
-      generations.set(
-        groupId,
-        Number.isFinite(existingGeneration) ? Math.max(1, existingGeneration) : 1,
-      );
-    }
-  });
-
+  const generations = computeGenerations(draft.people, draft.relationships);
   return {
     ...draft,
     people: draft.people.map((person) => ({
       ...person,
-      generation: generations.get(findGroup(person.id)) ?? 1,
+      generation: generations.get(person.id) ?? 1,
     })),
   };
 }
@@ -699,93 +511,25 @@ function createInitialDraft(initialTree: FamilyTreeResponse): DesignerDraft {
   });
 }
 
-function orderGenerationMembers(
-  members: DesignerMember[],
-  draft: DesignerDraft,
-): DesignerMember[] {
-  const membersById = new Map(members.map((member) => [member.id, member]));
-  const dependentMemberIds = new Set<string>();
+const DESIGNER_DIMENSIONS: LayoutDimensions = {
+  nodeWidth: 214,
+  spouseGap: 70,
+  siblingGap: 48,
+  generationGap: 320,
+};
 
-  draft.relationships.forEach((relationship) => {
-    if (
-      membersById.has(relationship.husbandId) &&
-      membersById.has(relationship.wifeId)
-    ) {
-      dependentMemberIds.add(relationship.wifeId);
-    }
-  });
-  draft.people.forEach((child) => {
-    if (
-      child.fatherId &&
-      child.motherId &&
-      membersById.has(child.fatherId) &&
-      membersById.has(child.motherId)
-    ) {
-      dependentMemberIds.add(child.motherId);
-    }
-  });
+const LINK_STYLE = { stroke: "#9a6b2f", strokeWidth: 1.8 };
 
-  const visited = new Set<string>();
-  const ordered: DesignerMember[] = [];
-  const sortedMembers = [...members].sort(sortMembers);
-
-  function appendMemberGroup(member: DesignerMember): void {
-    if (visited.has(member.id)) return;
-
-    ordered.push(member);
-    visited.add(member.id);
-
-    const relatedIds = new Set<string>();
-    const wifeOrders = new Map<string, number>();
-    draft.relationships.forEach((relationship) => {
-      if (relationship.husbandId === member.id) {
-        relatedIds.add(relationship.wifeId);
-        wifeOrders.set(relationship.wifeId, relationship.wifeOrder);
-      }
-      if (relationship.wifeId === member.id) {
-        relatedIds.add(relationship.husbandId);
-      }
-    });
-    draft.people.forEach((child) => {
-      if (child.fatherId === member.id && child.motherId) {
-        relatedIds.add(child.motherId);
-      }
-      if (child.motherId === member.id && child.fatherId) {
-        relatedIds.add(child.fatherId);
-      }
-    });
-
-    [...relatedIds]
-      .map((memberId) => membersById.get(memberId))
-      .filter(
-        (related): related is DesignerMember =>
-          related !== undefined && !visited.has(related.id),
-      )
-      .sort((left, right) => {
-        const leftWifeOrder = wifeOrders.get(left.id);
-        const rightWifeOrder = wifeOrders.get(right.id);
-        if (leftWifeOrder !== undefined || rightWifeOrder !== undefined) {
-          return (
-            (leftWifeOrder ?? Number.MAX_SAFE_INTEGER) -
-              (rightWifeOrder ?? Number.MAX_SAFE_INTEGER) ||
-            left.id.localeCompare(right.id)
-          );
-        }
-
-        return sortMembers(left, right);
-      })
-      .forEach((related) => {
-        ordered.push(related);
-        visited.add(related.id);
-      });
-  }
-
-  sortedMembers
-    .filter((member) => !dependentMemberIds.has(member.id))
-    .forEach(appendMemberGroup);
-  sortedMembers.forEach(appendMemberGroup);
-
-  return ordered;
+function spouseLabels(draft: DesignerDraft): Map<string, string> {
+  const labels = new Map<string, string>();
+  new Set(draft.relationships.map((relationship) => relationship.husbandId)).forEach(
+    (husbandId) => {
+      const wives = wivesOf(draft, husbandId);
+      if (wives.length < 2) return;
+      wives.forEach((wife, index) => labels.set(wife.member.id, "Vợ " + (index + 1)));
+    },
+  );
+  return labels;
 }
 
 function createFlowElements(
@@ -795,97 +539,34 @@ function createFlowElements(
   selectedMemberId: string,
   onSelect: (memberId: string) => void,
   onAddRelationship: (memberId: string) => void,
-): { nodes: DesignerFlowNode[]; edges: Edge[] } {
-  const nodes: DesignerFlowNode[] = [];
-  const edges: Edge[] = [];
-  const peopleById = new Map(draft.people.map((member) => [member.id, member]));
-  const generations = new Map<number, DesignerMember[]>();
+): { nodes: DesignerFlowNode[]; edges: FamilyEdge[] } {
+  const layout = layoutFamily(draft, DESIGNER_DIMENSIONS);
+  const labels = spouseLabels(draft);
 
-  draft.people.forEach((member) => {
-    const row = generations.get(member.generation) ?? [];
-    row.push(member);
-    generations.set(member.generation, row);
+  const nodes: DesignerFlowNode[] = draft.people.map((member) => {
+    const isSelected = member.id === selectedMemberId;
+    return {
+      id: member.id,
+      type: "designerPerson",
+      selected: isSelected,
+      position: layout.positions.get(member.id) ?? { x: 0, y: 0 },
+      data: {
+        member,
+        generation: member.generation,
+        spouseLabel: labels.get(member.id) ?? null,
+        avatarSrc:
+          avatarPreviews.get(member.id) ??
+          (member.avatarUrl
+            ? familyMediaSrc(familySlug, member.avatarUrl)
+            : null),
+        selected: isSelected,
+        onSelect,
+        onAddRelationship,
+      },
+    };
   });
 
-  [...generations.entries()]
-    .sort(([left], [right]) => left - right)
-    .forEach(([generation, row]) => {
-      const members = orderGenerationMembers(row, draft);
-      const rowWidth =
-        members.length * NODE_WIDTH +
-        Math.max(0, members.length - 1) * SPOUSE_GAP;
-      const left = -rowWidth / 2;
-
-      members.forEach((member, index) => {
-        const isSelected = member.id === selectedMemberId;
-        nodes.push({
-          id: member.id,
-          type: "designerPerson",
-          selected: isSelected,
-          position: {
-            x: left + index * (NODE_WIDTH + SPOUSE_GAP),
-            y: (generation - 1) * GENERATION_GAP,
-          },
-          data: {
-            member,
-            generation,
-            avatarSrc:
-              avatarPreviews.get(member.id) ??
-              (member.avatarUrl
-                ? familyMediaSrc(familySlug, member.avatarUrl)
-                : null),
-            selected: isSelected,
-            onSelect,
-            onAddRelationship,
-          },
-        });
-      });
-    });
-
-  draft.relationships.forEach((relationship) => {
-    if (
-      !peopleById.has(relationship.husbandId) ||
-      !peopleById.has(relationship.wifeId)
-    ) {
-      return;
-    }
-    edges.push({
-      id: "spouse-" + relationship.husbandId + "-" + relationship.wifeId,
-      source: relationship.husbandId,
-      sourceHandle: "spouse-source",
-      target: relationship.wifeId,
-      targetHandle: "spouse-target",
-      type: "straight",
-      style: { stroke: "#9a6b2f", strokeWidth: 1.8 },
-    });
-  });
-
-  draft.people.forEach((child) => {
-    const parentId =
-      child.fatherId && peopleById.has(child.fatherId)
-        ? child.fatherId
-        : child.motherId;
-
-    if (!parentId || !peopleById.has(parentId)) return;
-
-    edges.push({
-      id: "parent-" + parentId + "-" + child.id,
-      source: parentId,
-      sourceHandle: "child-source",
-      target: child.id,
-      targetHandle: "parent-target",
-      type: "smoothstep",
-      style: { stroke: "#9a6b2f", strokeWidth: 1.8 },
-    });
-  });
-  return { nodes, edges };
-}
-
-function findMember(
-  draft: DesignerDraft,
-  memberId: string,
-): DesignerMember | null {
-  return draft.people.find((member) => member.id === memberId) ?? null;
+  return { nodes, edges: familyEdges(layout, LINK_STYLE) };
 }
 
 function updateMember(
@@ -898,6 +579,29 @@ function updateMember(
     people: draft.people.map((member) =>
       member.id === memberId ? update(member) : member,
     ),
+  };
+}
+
+/** Adds a marriage (with the husband's next wife order) unless it exists. */
+function withMarriage(
+  draft: DesignerDraft,
+  husbandId: string,
+  wifeId: string,
+): DesignerDraft {
+  if (
+    draft.relationships.some(
+      (relationship) =>
+        relationship.husbandId === husbandId && relationship.wifeId === wifeId,
+    )
+  ) {
+    return draft;
+  }
+  return {
+    ...draft,
+    relationships: [
+      ...draft.relationships,
+      { husbandId, wifeId, wifeOrder: nextWifeOrder(draft, husbandId) },
+    ],
   };
 }
 
@@ -1101,6 +805,64 @@ function validateMemberForSave(member: DesignerMember): string | null {
   return null;
 }
 
+/** Tree-wide rules that single-member validation cannot see. */
+function validateDraftForSave(
+  draft: DesignerDraft,
+): { memberId: string; message: string } | null {
+  const peopleById = new Map(draft.people.map((person) => [person.id, person]));
+
+  for (const person of draft.people) {
+    const father = person.fatherId ? peopleById.get(person.fatherId) : null;
+    const mother = person.motherId ? peopleById.get(person.motherId) : null;
+    if (father && father.gender !== "MALE") {
+      return {
+        memberId: father.id,
+        message: "“" + father.name + "” là bố của “" + person.name + "” nên phải là nam.",
+      };
+    }
+    if (mother && mother.gender !== "FEMALE") {
+      return {
+        memberId: mother.id,
+        message: "“" + mother.name + "” là mẹ của “" + person.name + "” nên phải là nữ.",
+      };
+    }
+  }
+
+  for (const relationship of draft.relationships) {
+    const husband = peopleById.get(relationship.husbandId);
+    const wife = peopleById.get(relationship.wifeId);
+    if (husband && husband.gender !== "MALE") {
+      return {
+        memberId: husband.id,
+        message: "“" + husband.name + "” đang là chồng trong một quan hệ hôn nhân nên phải là nam.",
+      };
+    }
+    if (wife && wife.gender !== "FEMALE") {
+      return {
+        memberId: wife.id,
+        message: "“" + wife.name + "” đang là vợ trong một quan hệ hôn nhân nên phải là nữ.",
+      };
+    }
+  }
+
+  const duplicate = findDuplicatePair(draft);
+  if (duplicate) {
+    return {
+      memberId: duplicate[1].id,
+      message:
+        "Có hai person “" +
+        duplicate[1].name +
+        "” trùng họ tên, ngày sinh và bố mẹ. Hãy sửa hoặc xóa một người.",
+    };
+  }
+
+  return null;
+}
+
+function relationshipChoiceLabel(kind: RelationshipKind): string {
+  return RELATIONSHIP_CHOICES.find((choice) => choice.kind === kind)?.label ?? "";
+}
+
 export function FamilyTreeDesigner({
   familyName,
   familySlug,
@@ -1121,6 +883,7 @@ export function FamilyTreeDesigner({
   const [relationshipTargetId, setRelationshipTargetId] = useState<
     string | null
   >(null);
+  const [addition, setAddition] = useState<AdditionState>({ step: "choose" });
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deletedPersonIds, setDeletedPersonIds] = useState<string[]>([]);
   const [avatarCropSource, setAvatarCropSource] = useState<File | null>(null);
@@ -1153,6 +916,7 @@ export function FamilyTreeDesigner({
   const openRelationshipPicker = useCallback((memberId: string): void => {
     setSelectedMemberId(memberId);
     setRelationshipTargetId(memberId);
+    setAddition({ step: "choose" });
   }, []);
 
   const selectedMember = useMemo(
@@ -1182,6 +946,10 @@ export function FamilyTreeDesigner({
   const memberCount = draft.people.length;
   const selectedChildren = useMemo(
     () => memberChildren(draft, selectedMemberId),
+    [draft, selectedMemberId],
+  );
+  const selectedWives = useMemo(
+    () => wivesOf(draft, selectedMemberId),
     [draft, selectedMemberId],
   );
   const designPayload = useMemo(
@@ -1253,97 +1021,127 @@ export function FamilyTreeDesigner({
     ],
   );
 
-  function addRelationship(kind: RelationshipKind): void {
-    if (!relationshipTargetId || !relationshipTarget) return;
-    if (
-      relationshipChoiceBlockedReason(
-        kind,
-        relationshipTarget,
-        draft.relationships,
-      )
-    )
-      return;
+  function closeRelationshipPicker(): void {
+    setRelationshipTargetId(null);
+    setAddition({ step: "choose" });
+  }
 
-    const member = createMember(
-      relationshipGender(kind, relationshipTarget.gender),
-      kind === "FATHER"
-        ? Math.max(1, relationshipTarget.generation - 1)
-        : kind === "SON" || kind === "DAUGHTER"
-          ? relationshipTarget.generation + 1
-          : relationshipTarget.generation,
-      relationshipTarget.orderInFamily,
+  function chooseRelationship(kind: RelationshipKind): void {
+    if (!relationshipTarget) return;
+    // Disabled choices stay in the menu and keep it open.
+    if (relationshipChoiceBlockedReason(kind, relationshipTarget)) return;
+
+    if (needsMotherChoice(draft, relationshipTarget, kind)) {
+      setAddition({ step: "mother", kind });
+      return;
+    }
+    createRelationship(
+      kind,
+      isChildKind(kind)
+        ? plannedChildParents(draft, relationshipTarget, undefined)
+        : null,
     );
-    const memberForDraft = {
-      ...member,
-      deletesBranch: kind !== "FATHER" && !SPOUSE_KINDS.has(kind),
+  }
+
+  function chooseMother(kind: RelationshipKind, motherId: string | null): void {
+    if (!relationshipTarget) return;
+    createRelationship(
+      kind,
+      plannedChildParents(draft, relationshipTarget, motherId),
+    );
+  }
+
+  function createRelationship(
+    kind: RelationshipKind,
+    parents: PlannedParents | null,
+  ): void {
+    if (!relationshipTargetId || !relationshipTarget) return;
+
+    const member: DesignerMember = {
+      ...createMember(
+        relationshipGender(kind),
+        kind === "FATHER" || kind === "MOTHER"
+          ? Math.max(1, relationshipTarget.generation - 1)
+          : isChildKind(kind)
+            ? relationshipTarget.generation + 1
+            : relationshipTarget.generation,
+        relationshipTarget.orderInFamily,
+      ),
+      deletesBranch: isChildKind(kind),
     };
 
     setDraft((current) => {
       const target = findMember(current, relationshipTargetId);
-      if (
-        !target ||
-        relationshipChoiceBlockedReason(kind, target, current.relationships)
-      )
+      if (!target || relationshipChoiceBlockedReason(kind, target)) {
         return current;
+      }
+      const withMember = { ...current, people: [...current.people, member] };
 
-      if (kind === "FATHER") {
-        const withParent = updateMember(
-          { ...current, people: [...current.people, memberForDraft] },
-          target.id,
-          (person) => ({ ...person, fatherId: member.id }),
+      if (kind === "FATHER" || kind === "MOTHER") {
+        const withParent = updateMember(withMember, target.id, (person) =>
+          kind === "FATHER"
+            ? { ...person, fatherId: member.id }
+            : { ...person, motherId: member.id },
         );
-        return recalculateGenerations(withParent);
+        const otherParentId = kind === "FATHER" ? target.motherId : target.fatherId;
+        return recalculateGenerations(
+          otherParentId
+            ? withMarriage(
+              withParent,
+              kind === "FATHER" ? member.id : otherParentId,
+              kind === "FATHER" ? otherParentId : member.id,
+            )
+            : withParent,
+        );
       }
 
-      if (SPOUSE_KINDS.has(kind)) {
-        const wifeOrder =
-          Math.max(
-            0,
-            ...current.relationships
-              .filter(
-                (relationship) =>
-                  relationship.husbandId === target.id ||
-                  relationship.wifeId === target.id,
-              )
-              .map((relationship) => relationship.wifeOrder),
-          ) + 1;
-        const relationship: DesignerRelationship =
-          kind === "WIFE"
-            ? { husbandId: target.id, wifeId: member.id, wifeOrder }
-            : { husbandId: member.id, wifeId: target.id, wifeOrder };
-
-        return recalculateGenerations({
-          ...current,
-          people: [...current.people, memberForDraft],
-          relationships: [...current.relationships, relationship],
-        });
+      if (kind === "WIFE") {
+        return recalculateGenerations(withMarriage(withMember, target.id, member.id));
       }
 
-      const spouseIds = current.relationships.flatMap((relationship) => {
-        if (relationship.husbandId === target.id) return [relationship.wifeId];
-        if (relationship.wifeId === target.id) return [relationship.husbandId];
-        return [];
-      });
-      const spouse = current.people.find(
-        (person) =>
-          spouseIds.includes(person.id) && person.gender !== target.gender,
-      );
       const siblings = memberChildren(current, target.id);
       const child = {
         ...member,
         orderInFamily:
           Math.max(0, ...siblings.map((sibling) => sibling.orderInFamily)) + 1,
-        fatherId: target.gender === "MALE" ? target.id : spouse?.id ?? null,
-        motherId: target.gender === "FEMALE" ? target.id : spouse?.id ?? null,
+        fatherId: parents?.fatherId ?? null,
+        motherId: parents?.motherId ?? null,
       };
-
       return recalculateGenerations({
         ...current,
         people: [...current.people, child],
       });
     });
     setSelectedMemberId(member.id);
-    setRelationshipTargetId(null);
+    closeRelationshipPicker();
+  }
+
+  function moveWife(index: number, offset: number): void {
+    setDraft((current) => {
+      const wives = wivesOf(current, selectedMemberId);
+      const targetIndex = index + offset;
+      if (targetIndex < 0 || targetIndex >= wives.length) return current;
+
+      const ordered = [...wives];
+      const [moved] = ordered.splice(index, 1);
+      if (!moved) return current;
+      ordered.splice(targetIndex, 0, moved);
+      const orders = new Map(
+        ordered.map((wife, wifeIndex) => [wife.member.id, wifeIndex + 1]),
+      );
+
+      return {
+        ...current,
+        relationships: current.relationships.map((relationship) =>
+          relationship.husbandId === selectedMemberId
+            ? {
+              ...relationship,
+              wifeOrder: orders.get(relationship.wifeId) ?? relationship.wifeOrder,
+            }
+            : relationship,
+        ),
+      };
+    });
   }
 
   function deleteSelectedMember(): void {
@@ -1533,6 +1331,13 @@ export function FamilyTreeDesigner({
       return;
     }
 
+    const treeProblem = validateDraftForSave(draft);
+    if (treeProblem) {
+      setSelectedMemberId(treeProblem.memberId);
+      showToast({ kind: "error", message: treeProblem.message });
+      return;
+    }
+
     setSavingAll(true);
 
     try {
@@ -1695,6 +1500,7 @@ export function FamilyTreeDesigner({
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
+            edgeTypes={familyEdgeTypes}
             fitView
             fitViewOptions={{ padding: 0.25, maxZoom: 1 }}
             minZoom={0.25}
@@ -1990,6 +1796,60 @@ export function FamilyTreeDesigner({
                 />
               </label>
 
+              {selectedWives.length > 1 ? (
+                <fieldset className="grid gap-3 rounded-2xl border border-rose-900/20 bg-rose-50/50 p-4">
+                  <legend className="px-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-rose-700">
+                    Danh sách vợ ({selectedWives.length})
+                  </legend>
+
+                  <ol className="grid gap-2">
+                    {selectedWives.map((wife, index) => (
+                      <li
+                        key={wife.member.id}
+                        className="flex items-center gap-2 rounded-xl border border-rose-900/10 bg-white p-2"
+                      >
+                        <span className="shrink-0 rounded-lg bg-rose-100 px-2 py-1 text-xs font-semibold text-rose-900">
+                          Vợ {index + 1}
+                        </span>
+                        <button
+                          type="button"
+                          className="min-w-0 flex-1 truncate text-left text-sm font-medium text-emerald-950 underline-offset-2 hover:underline"
+                          title={wife.member.name}
+                          onClick={() => selectMember(wife.member.id)}
+                        >
+                          {wife.member.name}
+                        </button>
+                        <span className="flex shrink-0 items-center">
+                          <button
+                            type="button"
+                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-emerald-900 disabled:pointer-events-none disabled:opacity-30"
+                            disabled={index === 0}
+                            aria-label={"Chuyển " + wife.member.name + " lên trên"}
+                            onClick={() => moveWife(index, -1)}
+                          >
+                            <ChevronUp className="size-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-emerald-900 disabled:pointer-events-none disabled:opacity-30"
+                            disabled={index === selectedWives.length - 1}
+                            aria-label={"Chuyển " + wife.member.name + " xuống dưới"}
+                            onClick={() => moveWife(index, 1)}
+                          >
+                            <ChevronDown className="size-4" aria-hidden="true" />
+                          </button>
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+
+                  <p className="text-xs leading-5 text-rose-950/70">
+                    Thứ tự vợ được lưu cùng quan hệ hôn nhân. Vợ 1 đứng bên
+                    phải, Vợ 2 bên trái, các vợ sau xen kẽ hai bên.
+                  </p>
+                </fieldset>
+              ) : null}
+
               {selectedChildren.length > 0 ? (
                 <fieldset className="grid gap-3 rounded-2xl border border-emerald-900/20 bg-emerald-50/50 p-4">
                   <legend className="px-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
@@ -2106,24 +1966,24 @@ export function FamilyTreeDesigner({
         </aside>
       </div>
 
-      {relationshipTargetId ? (
+      {relationshipTargetId && relationshipTarget ? (
         <div className="fixed inset-0 z-50 grid place-items-center p-4">
           <button
             type="button"
             className="absolute inset-0 bg-emerald-950/45 backdrop-blur-[2px]"
             aria-label="Đóng hộp chọn quan hệ"
-            onClick={() => setRelationshipTargetId(null)}
+            onClick={closeRelationshipPicker}
           />
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="relationship-dialog-title"
-            className="relative w-full max-w-lg rounded-3xl border border-amber-900/15 bg-[#fffdf8] p-5 shadow-2xl sm:p-6"
+            className="relative max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-amber-900/15 bg-[#fffdf8] p-5 shadow-2xl sm:p-6"
           >
             <button
               type="button"
               className="absolute right-4 top-4 grid size-9 place-items-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-800"
-              onClick={() => setRelationshipTargetId(null)}
+              onClick={closeRelationshipPicker}
               aria-label="Đóng"
             >
               <X className="size-5" aria-hidden="true" />
@@ -2136,53 +1996,132 @@ export function FamilyTreeDesigner({
               id="relationship-dialog-title"
               className="mt-2 pr-10 text-xl font-semibold text-emerald-950"
             >
-              Thêm quan hệ cho {relationshipTarget?.name ?? "thành viên"}
+              {addition.step === "choose"
+                ? "Thêm quan hệ cho " + relationshipTarget.name
+                : relationshipChoiceLabel(addition.kind) +
+                  " cho " +
+                  relationshipTarget.name}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-stone-600">
-              Chọn loại quan hệ. Bố/mẹ nằm ở thế hệ phía trên; vợ/chồng
-              nằm cùng hàng và con nằm ở hàng dưới.
-            </p>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {RELATIONSHIP_CHOICES.map((choice) => {
-                const Icon = choice.icon;
-                const blockedReason = relationshipTarget
-                  ? relationshipChoiceBlockedReason(
-                    choice.kind,
-                    relationshipTarget,
-                    draft.relationships,
-                  )
-                  : null;
-                return (
+            {addition.step === "choose" ? (
+              <>
+                <p className="mt-2 text-sm leading-6 text-stone-600">
+                  Bố/mẹ nằm ở thế hệ phía trên; vợ nằm cùng hàng và con nằm ở
+                  hàng dưới, ngay dưới cặp bố mẹ.
+                </p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {RELATIONSHIP_CHOICES.map((choice) => {
+                    const Icon = choice.icon;
+                    const blockedReason = relationshipChoiceBlockedReason(
+                      choice.kind,
+                      relationshipTarget,
+                    );
+                    const tooltipId = "relationship-choice-tip-" + choice.kind;
+                    return (
+                      <div
+                        key={choice.kind}
+                        className={cn(
+                          "group relative flex hover:z-20 focus-within:z-20",
+                          RELATIONSHIP_CHOICE_GRID_CLASSES[choice.kind],
+                        )}
+                      >
+                        <button
+                          type="button"
+                          aria-disabled={blockedReason ? true : undefined}
+                          aria-describedby={blockedReason ? tooltipId : undefined}
+                          className={cn(
+                            "flex min-h-[76px] w-full items-center gap-3 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700",
+                            blockedReason
+                              ? "cursor-not-allowed border-stone-200 bg-stone-50"
+                              : "border-amber-900/15 bg-white hover:border-emerald-800/35 hover:bg-emerald-50",
+                          )}
+                          onClick={() => chooseRelationship(choice.kind)}
+                        >
+                          <span
+                            className={cn(
+                              "grid size-10 shrink-0 place-items-center rounded-xl",
+                              blockedReason
+                                ? "bg-stone-100 text-stone-400"
+                                : "bg-emerald-100 text-emerald-900",
+                            )}
+                          >
+                            <Icon className="size-5" aria-hidden="true" />
+                          </span>
+                          <span className="min-w-0">
+                            <span
+                              className={cn(
+                                "block text-sm font-semibold",
+                                blockedReason ? "text-stone-400" : "text-emerald-950",
+                              )}
+                            >
+                              {choice.label}
+                            </span>
+                            <span
+                              className={cn(
+                                "mt-0.5 block truncate text-xs",
+                                blockedReason ? "text-stone-400" : "text-stone-500",
+                              )}
+                            >
+                              {choice.description}
+                            </span>
+                          </span>
+                        </button>
+                        {blockedReason ? (
+                          <span
+                            id={tooltipId}
+                            role="tooltip"
+                            className="pointer-events-none invisible absolute bottom-full left-1/2 mb-2 w-max max-w-[16rem] -translate-x-1/2 rounded-lg bg-emerald-950 px-3 py-2 text-center text-xs font-medium leading-5 text-white shadow-xl group-focus-within:visible group-hover:visible"
+                          >
+                            {blockedReason}
+                            <span
+                              aria-hidden="true"
+                              className="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-emerald-950"
+                            />
+                          </span>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : null}
+
+            {addition.step === "mother" ? (
+              <>
+                <p className="mt-2 text-sm leading-6 text-stone-600">
+                  {relationshipTarget.name} có nhiều vợ. Chọn mẹ của người con
+                  để đặt con dưới đúng cặp bố – mẹ.
+                </p>
+                <div className="mt-5 grid gap-2">
+                  {wivesOf(draft, relationshipTarget.id).map((wife, index) => (
+                    <button
+                      key={wife.member.id}
+                      type="button"
+                      className="rounded-2xl border border-amber-900/15 bg-white px-4 py-3 text-left text-sm font-medium text-emerald-950 transition hover:border-emerald-800/35 hover:bg-emerald-50"
+                      onClick={() => chooseMother(addition.kind, wife.member.id)}
+                    >
+                      Vợ {index + 1} – {wife.member.name}
+                    </button>
+                  ))}
                   <button
-                    key={choice.kind}
                     type="button"
-                    disabled={Boolean(blockedReason)}
-                    title={blockedReason ?? undefined}
-                    className={cn(
-                      "flex items-center gap-3 rounded-2xl border border-amber-900/15 bg-white p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700",
-                      RELATIONSHIP_CHOICE_GRID_CLASSES[choice.kind],
-                      blockedReason
-                        ? "opacity-40"
-                        : "hover:border-emerald-800/35 hover:bg-emerald-50",
-                    )}
-                    onClick={() => addRelationship(choice.kind)}
+                    className="rounded-2xl border border-dashed border-amber-900/25 bg-white px-4 py-3 text-left text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+                    onClick={() => chooseMother(addition.kind, null)}
                   >
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-900">
-                      <Icon className="size-5" aria-hidden="true" />
-                    </span>
-                    <span>
-                      <span className="block text-sm font-semibold text-emerald-950">
-                        {choice.label}
-                      </span>
-                      <span className="mt-0.5 block text-xs text-stone-500">
-                        {blockedReason ?? choice.description}
-                      </span>
-                    </span>
+                    Chưa xác định mẹ
                   </button>
-                );
-              })}
-            </div>
+                </div>
+                <div className="mt-5 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAddition({ step: "choose" })}
+                  >
+                    Quay lại
+                  </Button>
+                </div>
+              </>
+            ) : null}
           </section>
         </div>
       ) : null}
