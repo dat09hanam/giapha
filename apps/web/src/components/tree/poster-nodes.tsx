@@ -1,11 +1,7 @@
+import Image from 'next/image';
 import type { NodeProps } from '@xyflow/react';
 
-import type {
-  CoupletNode,
-  GenerationLabelNode,
-  PosterFrameNode,
-  PosterTitleNode,
-} from '@/lib/tree-layout';
+import type { PosterFrameNode, PosterTitleNode } from '@/lib/tree-layout';
 
 const SERIF = '"Noto Serif", "Times New Roman", Georgia, serif';
 
@@ -60,89 +56,33 @@ export function PosterFrame({ data }: NodeProps<PosterFrameNode>) {
   );
 }
 
-function ScrollRoll({ side }: { side: 'left' | 'right' }) {
-  return (
-    <span
-      className={
-        'absolute top-1/2 h-[118%] w-14 -translate-y-1/2 rounded-full ' +
-        (side === 'left' ? '-left-9' : '-right-9')
-      }
-      style={{
-        background:
-          'linear-gradient(90deg, #7a4b06 0%, #f7d774 30%, #fff3b0 50%, #d9a526 72%, #6b3f05 100%)',
-        boxShadow: '0 6px 14px rgba(80, 30, 0, 0.35)',
-      }}
-      aria-hidden="true"
-    />
-  );
-}
-
 /** Red ribbon banner: "PHẢ ĐỒ" over the family name, rolled at both ends. */
 export function PosterTitle({ data }: NodeProps<PosterTitleNode>) {
   return (
-    <div className={decorative + ' relative h-[190px]'} style={{ width: data.width }}>
-      <ScrollRoll side="left" />
-      <ScrollRoll side="right" />
+    <div
+      className={decorative + ' relative h-[190px] drop-shadow-[0_12px_14px_rgba(92,34,4,0.35)]'}
+      style={{ width: data.width }}
+    >
+      <Image
+        src="/images/headers/pha-do-scroll.png"
+        alt=""
+        fill
+        sizes="1100px"
+        className="object-fill"
+        aria-hidden="true"
+        priority
+      />
       <div
-        className="relative flex h-full flex-col items-center justify-center rounded-[28px] px-16 text-center"
-        style={{
-          background: 'linear-gradient(180deg, #c62828 0%, #9b1c1c 55%, #7a1414 100%)',
-          border: '6px solid #f3c843',
-          boxShadow: 'inset 0 0 0 3px #7a1414, inset 0 0 0 7px #f7dd7a',
-          fontFamily: SERIF,
-        }}
+        className="relative z-10 flex h-full flex-col items-center justify-center px-[23%] pb-8 text-center"
+        style={{ fontFamily: SERIF }}
       >
-        <p className="text-[34px] font-bold uppercase tracking-[0.3em] text-[#fde68a]">
+        <p className="text-[29px] font-bold uppercase leading-none tracking-[0.26em] text-[#fff0a6] drop-shadow-[0_2px_1px_rgba(91,17,8,0.95)]">
           {data.heading}
         </p>
-        <h1 className="mt-1 max-w-full truncate text-[58px] font-bold uppercase leading-tight text-[#fde047] drop-shadow-[0_3px_0_rgba(90,10,10,0.8)]">
+        <h1 className="mt-1 max-w-full truncate text-[48px] font-black uppercase leading-none text-[#ffe047] drop-shadow-[0_3px_1px_rgba(91,17,8,0.95)]">
           {data.familyName}
         </h1>
-        {data.subtitle ? (
-          <p className="mt-1 max-w-full truncate text-[18px] font-medium uppercase tracking-wider text-[#fef3c7]">
-            {data.subtitle}
-          </p>
-        ) : null}
       </div>
-    </div>
-  );
-}
-
-/** "ĐỜI N" beside each row, like the margin notes of a printed phả đồ. */
-export function GenerationLabel({ data }: NodeProps<GenerationLabelNode>) {
-  return (
-    <div
-      className={decorative + ' flex h-[56px] w-[320px] items-center justify-end'}
-      style={{ fontFamily: SERIF }}
-    >
-      <span className="border-b-2 border-dashed border-[#b8321e]/70 pb-1 text-[30px] font-bold uppercase tracking-wide text-[#b8321e]">
-        {data.label}
-      </span>
-    </div>
-  );
-}
-
-/** One line of the couplet, read top to bottom. */
-export function Couplet({ data }: NodeProps<CoupletNode>) {
-  return (
-    <div
-      className={decorative + ' flex w-[96px] flex-col items-center justify-around rounded-md px-2 py-6'}
-      style={{
-        height: data.height,
-        background: 'linear-gradient(90deg, #fff4c9, #fffbe8 50%, #fff4c9)',
-        border: '3px solid #b8321e',
-        boxShadow: 'inset 0 0 0 5px #fffbe8, inset 0 0 0 7px #e2b33c',
-        fontFamily: SERIF,
-      }}
-    >
-      {data.words.map((word, index) => (
-        <span
-          key={index}
-          className="text-[38px] font-semibold capitalize italic leading-none text-[#3b1d06]"
-        >
-          {word}
-        </span>
-      ))}
     </div>
   );
 }

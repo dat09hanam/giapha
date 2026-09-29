@@ -29,15 +29,7 @@ export type PosterTitleNode = Node<
   { heading: string; familyName: string; subtitle: string | null; width: number },
   'posterTitle'
 >;
-export type GenerationLabelNode = Node<{ generation: number; label: string }, 'generationLabel'>;
-export type CoupletNode = Node<{ words: string[]; height: number }, 'couplet'>;
-
-export type PosterFlowNode =
-  | PersonFlowNode
-  | PosterFrameNode
-  | PosterTitleNode
-  | GenerationLabelNode
-  | CoupletNode;
+export type PosterFlowNode = PersonFlowNode | PosterFrameNode | PosterTitleNode;
 
 export type FamilyLinkData =
   | { kind: 'bracket'; drop: number }
@@ -167,30 +159,16 @@ const NODE_HEIGHT = (VIEWER_NODE_WIDTH * 9) / 16;
 const CREST_HEIGHT = 36;
 const TITLE_HEIGHT = 190;
 const TITLE_GAP = 70;
-const LABEL_WIDTH = 320;
-const LABEL_HEIGHT = 56;
-const LABEL_GAP = 60;
-const COUPLET_WIDTH = 96;
-const COUPLET_GAP = 70;
 const FRAME_PADDING = 90;
 const POSTER_RATIO = 16 / 9;
 const MAX_GENERATION_GAP = 720;
 
 const POSTER_LINK_STYLE: CSSProperties = { stroke: '#2f6b3a', strokeWidth: 2.5 };
 
-export const POSTER_COUPLETS = {
-  left: 'Công đức tổ tiên muôn đời thịnh',
-  right: 'Hiếu trung con cháu vạn thuở vinh',
-} as const;
-
-function generationLabel(generation: number): string {
-  return generation === 1 ? 'Đời 1: Thủy tổ' : 'Đời ' + generation;
-}
 
 /**
- * The tree drawn as a traditional phả đồ: a 16:9 poster with a title banner,
- * a generation label beside every row and a couplet down each side. Rows are
- * spread vertically so wide trees still fill the 16:9 sheet.
+ * The tree drawn as a traditional phả đồ with a title banner. Rows are spread
+ * vertically so wide trees still fill the 16:9 sheet.
  */
 export function toPosterElements(
   tree: FamilyTreeResponse,
@@ -205,8 +183,8 @@ export function toPosterElements(
   const minX = Math.min(...personNodes.map((node) => node.position.x));
   const maxX = Math.max(...personNodes.map((node) => node.position.x)) + VIEWER_NODE_WIDTH;
 
-  const contentLeft = minX - LABEL_GAP - LABEL_WIDTH - COUPLET_GAP - COUPLET_WIDTH;
-  const contentRight = maxX + COUPLET_GAP + COUPLET_WIDTH;
+  const contentLeft = minX;
+  const contentRight = maxX;
   const width = contentRight - contentLeft + FRAME_PADDING * 2;
   const verticalExtras =
     FRAME_PADDING * 2 + TITLE_HEIGHT + TITLE_GAP + CREST_HEIGHT + NODE_HEIGHT;
@@ -239,35 +217,6 @@ export function toPosterElements(
     position: { x: node.position.x, y: (node.data.generation - 1) * generationGap },
   }));
 
-  const labels = Array.from({ length: generationCount }, (_, index): GenerationLabelNode => ({
-    id: 'generation-label-' + (index + 1),
-    type: 'generationLabel',
-    position: {
-      x: minX - LABEL_GAP - LABEL_WIDTH,
-      y: index * generationGap + NODE_HEIGHT / 2 - LABEL_HEIGHT / 2,
-    },
-    data: { generation: index + 1, label: generationLabel(index + 1) },
-    selectable: false,
-  }));
-
-  const coupletTop = titleY + TITLE_HEIGHT / 2;
-  const coupletHeight = treeTop + treeHeight - coupletTop;
-  const couplets: CoupletNode[] = [
-    {
-      id: 'couplet-left',
-      type: 'couplet',
-      position: { x: frameX + FRAME_PADDING, y: coupletTop },
-      data: { words: POSTER_COUPLETS.left.split(' '), height: coupletHeight },
-      selectable: false,
-    },
-    {
-      id: 'couplet-right',
-      type: 'couplet',
-      position: { x: frameX + frameWidth - FRAME_PADDING - COUPLET_WIDTH, y: coupletTop },
-      data: { words: POSTER_COUPLETS.right.split(' '), height: coupletHeight },
-      selectable: false,
-    },
-  ];
 
   const frame: PosterFrameNode = {
     id: 'poster-frame',
@@ -293,7 +242,7 @@ export function toPosterElements(
   };
 
   return {
-    nodes: [frame, title, ...couplets, ...labels, ...people],
+    nodes: [frame, title, ...people],
     edges: edgesOnPoster,
   };
 }

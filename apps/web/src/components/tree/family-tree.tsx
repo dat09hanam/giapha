@@ -13,7 +13,7 @@ import '@xyflow/react/dist/style.css';
 
 import { familyEdgeTypes } from '@/components/tree/family-link-edge';
 import { PersonNode } from '@/components/tree/person-node';
-import { Couplet, GenerationLabel, PosterFrame, PosterTitle } from '@/components/tree/poster-nodes';
+import { PosterFrame, PosterTitle } from '@/components/tree/poster-nodes';
 import { toPosterElements } from '@/lib/tree-layout';
 import type { FamilySummary, FamilyTreeResponse } from '@/types/family-tree';
 
@@ -21,8 +21,6 @@ const nodeTypes = {
   person: PersonNode,
   posterFrame: PosterFrame,
   posterTitle: PosterTitle,
-  generationLabel: GenerationLabel,
-  couplet: Couplet,
 } satisfies NodeTypes;
 
 const FIT_VIEW_OPTIONS = { padding: 0.01 };
