@@ -1,8 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 
-import { PersonAvatar } from '@/components/ui/person-avatar';
-import { cn } from '@/lib/utils';
 import type { PersonFlowNode } from '@/lib/tree-layout';
 
 /**
@@ -21,13 +19,6 @@ const FRAME_STYLES = {
     borderImage: 'url(/images/frames/frame-doi-2.png) 90 fill / 33px stretch',
   },
 } satisfies Record<string, CSSProperties>;
-
-const genderRings = {
-  MALE: 'ring-sky-200 bg-sky-50',
-  FEMALE: 'ring-rose-200 bg-rose-50',
-  OTHER: 'ring-violet-200 bg-violet-50',
-  UNKNOWN: 'ring-stone-200 bg-stone-50',
-} as const;
 
 const hiddenHandle = '!size-1 !min-h-0 !min-w-0 !border-0 !bg-transparent';
 
@@ -49,48 +40,23 @@ export function PersonNode({ data }: NodeProps<PersonFlowNode>) {
       ) : null}
 
       <article
-        className="absolute inset-0 flex items-center gap-3 px-1 drop-shadow-[0_6px_10px_rgba(80,55,10,0.18)]"
+        className="absolute inset-0 flex flex-col items-center justify-center px-1 text-center drop-shadow-[0_6px_10px_rgba(80,55,10,0.18)]"
         style={isFounder ? FRAME_STYLES.founder : FRAME_STYLES.descendant}
       >
-        <span
-          className={cn(
-            'grid size-14 shrink-0 place-items-center overflow-hidden rounded-full ring-2',
-            genderRings[data.gender],
-          )}
-        >
-          {data.avatarSrc ? (
-            // Avatars are served by the API, outside next/image's loader.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={data.avatarSrc} alt="" className="size-full object-cover" draggable={false} />
-          ) : (
-            <PersonAvatar
-              gender={data.gender}
-              generation={data.generation}
-              birthDate={data.birthDate}
-              className="size-full"
-            />
-          )}
-        </span>
-        <div className="min-w-0 flex-1">
-          {data.honorific ? (
-            <p
-              className="truncate text-[10px] font-semibold uppercase tracking-wider text-amber-800"
-              title={data.honorific}
-            >
-              {data.honorific}
-            </p>
-          ) : null}
-          <h2
-            className="line-clamp-2 text-[15px] font-semibold leading-tight text-[#3b2a0c]"
-            title={data.name}
+        {data.honorific ? (
+          <p
+            className="max-w-full truncate text-[11px] font-semibold uppercase tracking-wider text-amber-800"
+            title={data.honorific}
           >
-            {data.name}
-          </h2>
-          <p className="mt-0.5 truncate text-[11px] text-stone-600">{data.lifespan}</p>
-          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700">
-            Đời thứ {data.generation}
+            {data.honorific}
           </p>
-        </div>
+        ) : null}
+        <h2
+          className="line-clamp-2 max-w-full text-[17px] font-semibold leading-tight text-[#3b2a0c]"
+          title={data.name}
+        >
+          {data.name}
+        </h2>
       </article>
 
       <Handle id="parent-target" type="target" position={Position.Top} className={hiddenHandle} />
