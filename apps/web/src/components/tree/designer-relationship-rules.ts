@@ -124,21 +124,38 @@ export function needsMotherChoice(
   );
 }
 
-/** First pair of people sharing name, birth date and both parents. */
+/**
+ * First pair of full siblings (same father and mother) with the same name.
+ * People without parents in the tree, such as in-laws, and a husband and wife
+ * may share names freely.
+ */
 export function findDuplicatePair(
   draft: DesignerDraft,
 ): [DesignerMember, DesignerMember] | null {
-  const seen = new Map<string, DesignerMember>();
+  const couples = new Set(
+    draft.relationships.map((relationship) =>
+      coupleKey(relationship.husbandId, relationship.wifeId),
+    ),
+  );
+  const seen = new Map<string, DesignerMember[]>();
   for (const person of draft.people) {
+    if (!person.fatherId && !person.motherId) continue;
     const key = [
       normalizedName(person.name),
-      person.birthDate,
       person.fatherId ?? "",
       person.motherId ?? "",
     ].join("|");
-    const previous = seen.get(key);
+    const namesakes = seen.get(key) ?? [];
+    const previous = namesakes.find(
+      (other) => !couples.has(coupleKey(other.id, person.id)),
+    );
     if (previous) return [previous, person];
-    seen.set(key, person);
+    seen.set(key, [...namesakes, person]);
   }
   return null;
+}
+
+/** Order-independent key for a married pair. */
+function coupleKey(leftId: string, rightId: string): string {
+  return leftId < rightId ? leftId + "|" + rightId : rightId + "|" + leftId;
 }

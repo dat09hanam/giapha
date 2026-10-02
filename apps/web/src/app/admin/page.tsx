@@ -14,13 +14,15 @@ import {
 
 import { LogoutButton } from '@/components/auth/logout-button';
 import { CreateFamilyForm } from '@/components/admin/create-family-form';
+import { PosterDecorationManager } from '@/components/admin/poster-decoration-manager';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ApiErrorState } from '@/components/ui/api-error-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ApiUnauthorizedError, getAuthProfile } from '@/lib/api';
+import { ApiUnauthorizedError, getAuthProfile, getPosterDecorations } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { profileDestination, type AuthProfile } from '@/lib/auth-api';
+import type { AdminPosterDecoration } from '@/lib/poster-decorations';
 
 export const metadata: Metadata = {
   title: 'Quản trị hệ thống',
@@ -65,8 +67,11 @@ const managementAreas = [
 
 export default async function AdminPage() {
   let profile: AuthProfile;
+  let decorations: AdminPosterDecoration[];
   try {
     profile = await requireAdmin();
+    const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
+    decorations = await getPosterDecorations<AdminPosterDecoration>(sessionToken);
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
       return (
@@ -172,6 +177,10 @@ export default async function AdminPage() {
             </p>
           </CardContent>
         </Card>
+      </section>
+
+      <section className="mt-7" aria-label="Thư viện hình nền phả đồ">
+        <PosterDecorationManager initial={decorations} />
       </section>
     </main>
   );

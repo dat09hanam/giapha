@@ -1,16 +1,19 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { Network, Palette, ShieldCheck, UsersRound } from 'lucide-react';
 
+import { FamilyPosterForm } from '@/components/admin/family-poster-form';
 import { FamilyProfileForm } from '@/components/admin/family-profile-form';
 import { LogoutButton } from '@/components/auth/logout-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ApiErrorState } from '@/components/ui/api-error-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getFamily } from '@/lib/api';
+import { getFamily, getPosterDecorations } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { requireFamilyManager, type FamilyManagerProfile } from '@/lib/family-manager';
+import type { PosterDecoration } from '@/lib/poster-decorations';
 import type { FamilyDetails } from '@/types/family-tree';
 
 type FamilyAdminPageProps = {
@@ -28,9 +31,14 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
   const { slug } = await params;
   let profile: FamilyManagerProfile;
   let family: FamilyDetails;
+  let decorations: PosterDecoration[];
   try {
     profile = await requireFamilyManager(slug, 'admin');
-    family = await getFamily(profile.family.slug);
+    const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
+    [family, decorations] = await Promise.all([
+      getFamily(profile.family.slug),
+      getPosterDecorations(sessionToken),
+    ]);
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
       return (
@@ -82,7 +90,10 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
         className="mt-7 grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)]"
         aria-label="Khu vực quản trị dòng họ"
       >
-        <FamilyProfileForm family={family} />
+        <div className="grid gap-5">
+          <FamilyProfileForm family={family} />
+          <FamilyPosterForm family={family} decorations={decorations} />
+        </div>
 
         <div className="grid gap-5">
           <Card className="bg-white/75 shadow-sm">

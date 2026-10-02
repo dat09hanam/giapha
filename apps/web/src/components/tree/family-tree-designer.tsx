@@ -850,9 +850,9 @@ function validateDraftForSave(
     return {
       memberId: duplicate[1].id,
       message:
-        "Có hai person “" +
+        "Có hai anh chị em ruột cùng tên “" +
         duplicate[1].name +
-        "” trùng họ tên, ngày sinh và bố mẹ. Hãy sửa hoặc xóa một người.",
+        "”. Hãy sửa tên hoặc xóa một người.",
     };
   }
 

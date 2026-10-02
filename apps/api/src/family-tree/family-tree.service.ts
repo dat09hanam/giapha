@@ -146,21 +146,30 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
     }
   }
 
-  // Same name, birth date and parents means the same person entered twice.
-  const identityKeys = new Set<string>();
+  // Full siblings may not share a name; people without parents in the tree
+  // (such as in-laws) and a husband and wife may.
+  const coupleKey = (leftId: string, rightId: string): string =>
+    leftId < rightId ? leftId + "|" + rightId : rightId + "|" + leftId;
+  const couples = new Set(
+    input.relationships.map((relationship) =>
+      coupleKey(relationship.husbandClientId, relationship.wifeClientId),
+    ),
+  );
+  const namesakesByKey = new Map<string, string[]>();
   for (const person of input.people) {
+    if (!person.fatherClientId && !person.motherClientId) continue;
     const key = [
       person.name.trim().replace(/\s+/g, " ").toLocaleLowerCase("vi"),
-      person.birthDate ?? "",
       person.fatherClientId ?? "",
       person.motherClientId ?? "",
     ].join("|");
-    if (identityKeys.has(key)) {
+    const namesakes = namesakesByKey.get(key) ?? [];
+    if (namesakes.some((otherId) => !couples.has(coupleKey(otherId, person.clientId)))) {
       throw new BadRequestException(
-        "Bản thiết kế có hai thành viên trùng họ tên, ngày sinh và bố mẹ.",
+        "Bản thiết kế có hai anh chị em ruột trùng họ tên.",
       );
     }
-    identityKeys.add(key);
+    namesakesByKey.set(key, [...namesakes, person.clientId]);
   }
 
   const relationshipKeys = new Set<string>();

@@ -5,11 +5,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { FamilyStatus, Prisma, UserRole } from '@prisma/client';
+import { FamilyStatus, PosterDecorationKind, Prisma, UserRole } from '@prisma/client';
 
 import { normalizeFamilySlug } from '../common/pipes/family-slug.pipe.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { hashPassword } from '../auth/password.js';
+import {
+  posterDecorationSelect,
+  toPosterDecorationResponse,
+  type PosterDecorationResponse,
+} from '../poster-decorations/poster-decoration.types.js';
 import type { CreateFamilyDto } from './dto/create-family.dto.js';
 import type { UpdateFamilyDto } from './dto/update-family.dto.js';
 import {
@@ -17,6 +22,11 @@ import {
   normalizeFamilyName,
   parseDeathAnniversary,
 } from './family-credentials.js';
+
+/** The phả đồ sheet: the chosen library background (null shows plain paper) carries all decoration. */
+export type FamilyPoster = {
+  background: PosterDecorationResponse | null;
+};
 
 export type FamilySummary = {
   id: string;
@@ -27,7 +37,32 @@ export type FamilySummary = {
   deathAnniversaryMonth: number | null;
   address: string | null;
   ancestryOrigin: string | null;
+  poster: FamilyPoster;
 };
+
+const familySummarySelect = {
+  id: true,
+  slug: true,
+  name: true,
+  description: true,
+  deathAnniversaryDay: true,
+  deathAnniversaryMonth: true,
+  address: true,
+  ancestryOrigin: true,
+  posterBackground: { select: posterDecorationSelect },
+} satisfies Prisma.FamilySelect;
+
+type FamilySummaryRecord = Prisma.FamilyGetPayload<{ select: typeof familySummarySelect }>;
+
+function toFamilySummary(record: FamilySummaryRecord): FamilySummary {
+  const { posterBackground, ...family } = record;
+  return {
+    ...family,
+    poster: {
+      background: posterBackground ? toPosterDecorationResponse(posterBackground) : null,
+    },
+  };
+}
 
 export type CreatedFamilyResult = {
   family: FamilySummary & { deathAnniversary: string };
@@ -44,20 +79,11 @@ export class FamiliesService {
   async getPublicFamily(slug: string): Promise<FamilySummary> {
     const family = await this.prisma.family.findFirst({
       where: { slug, status: FamilyStatus.ACTIVE, deletedAt: null },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        description: true,
-        deathAnniversaryDay: true,
-        deathAnniversaryMonth: true,
-        address: true,
-        ancestryOrigin: true,
-      },
+      select: familySummarySelect,
     });
     if (!family)
       throw new NotFoundException('Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.');
-    return family;
+    return toFamilySummary(family);
   }
 
   async createFamily(input: CreateFamilyDto): Promise<CreatedFamilyResult> {
@@ -70,6 +96,8 @@ export class FamiliesService {
       hashPassword(usernames.member),
     ]);
 
+    const posterDefaults = await this.defaultPosterDecorations();
+
     try {
       const family = await this.prisma.$transaction(async (transaction) => {
         const created = await transaction.family.create({
@@ -78,17 +106,9 @@ export class FamiliesService {
             slug,
             deathAnniversaryDay: anniversary.day,
             deathAnniversaryMonth: anniversary.month,
+            ...posterDefaults,
           },
-          select: {
-            id: true,
-            slug: true,
-            name: true,
-            description: true,
-            deathAnniversaryDay: true,
-            deathAnniversaryMonth: true,
-            address: true,
-            ancestryOrigin: true,
-          },
+          select: familySummarySelect,
         });
         await transaction.user.createMany({
           data: [
@@ -112,7 +132,7 @@ export class FamiliesService {
       });
 
       return {
-        family: { ...family, deathAnniversary: anniversary.display },
+        family: { ...toFamilySummary(family), deathAnniversary: anniversary.display },
         accounts: {
           memberPlus: {
             role: UserRole.MEMBER_PLUS,
@@ -168,22 +188,43 @@ export class FamiliesService {
                 deathAnniversaryDay: anniversary.day,
                 deathAnniversaryMonth: anniversary.month,
               }),
+        ...(await this.posterBackgroundChange(input)),
       },
     });
     if (updated.count !== 1)
       throw new NotFoundException('Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.');
-    return this.prisma.family.findUniqueOrThrow({
-      where: { id: familyId },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        description: true,
-        deathAnniversaryDay: true,
-        deathAnniversaryMonth: true,
-        address: true,
-        ancestryOrigin: true,
-      },
+    return toFamilySummary(
+      await this.prisma.family.findUniqueOrThrow({
+        where: { id: familyId },
+        select: familySummarySelect,
+      }),
+    );
+  }
+
+  /** A new family starts with the first active background. */
+  private async defaultPosterDecorations(): Promise<{ posterBackgroundId?: string }> {
+    const first = await this.prisma.posterDecoration.findFirst({
+      where: { kind: PosterDecorationKind.BACKGROUND, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true },
     });
+    return first ? { posterBackgroundId: first.id } : {};
+  }
+
+  /** The background the family head sent, checked to be an active library background. */
+  private async posterBackgroundChange(
+    input: UpdateFamilyDto,
+  ): Promise<{ posterBackgroundId?: string | null }> {
+    if (input.posterBackgroundId === undefined) return {};
+    const id = input.posterBackgroundId;
+    if (id === null) return { posterBackgroundId: null };
+    const found = await this.prisma.posterDecoration.findFirst({
+      where: { id, kind: PosterDecorationKind.BACKGROUND, isActive: true },
+      select: { id: true },
+    });
+    if (!found) {
+      throw new BadRequestException('Hình nền đã chọn không tồn tại hoặc đã bị ẩn.');
+    }
+    return { posterBackgroundId: id };
   }
 }

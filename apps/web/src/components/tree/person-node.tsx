@@ -1,32 +1,35 @@
 import type { CSSProperties } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 
-import type { PersonFlowNode } from '@/lib/tree-layout';
+import { VIEWER_NODE_WIDTH, type PersonFlowNode } from '@/lib/tree-layout';
 
 /**
  * Nine-slice frames: the corners keep their carved shape while the card stays a
- * fixed 16:9 at every screen size. Slice values are in source-image pixels.
+ * fixed 16:9 at every screen size. Slice values are in source-image pixels;
+ * border widths are for a full-size card and scale with it.
  */
-const FRAME_STYLES = {
-  founder: {
+const FRAMES = {
+  founder: { src: '/images/frames/frame-doi-1.png', slice: 80, border: 30 },
+  descendant: { src: '/images/frames/frame-doi-2.png', slice: 90, border: 33 },
+};
+
+function frameStyle(frame: (typeof FRAMES)[keyof typeof FRAMES], border: number): CSSProperties {
+  return {
     borderStyle: 'solid',
-    borderWidth: 30,
-    borderImage: 'url(/images/frames/frame-doi-1.png) 80 fill / 30px stretch',
-  },
-  descendant: {
-    borderStyle: 'solid',
-    borderWidth: 33,
-    borderImage: 'url(/images/frames/frame-doi-2.png) 90 fill / 33px stretch',
-  },
-} satisfies Record<string, CSSProperties>;
+    borderWidth: border,
+    borderImage: `url(${frame.src}) ${frame.slice} fill / ${border}px stretch`,
+  };
+}
 
 const hiddenHandle = '!size-1 !min-h-0 !min-w-0 !border-0 !bg-transparent';
 
 export function PersonNode({ data }: NodeProps<PersonFlowNode>) {
   const isFounder = data.generation === 1;
+  const frame = isFounder ? FRAMES.founder : FRAMES.descendant;
+  const border = Math.round((frame.border * data.width) / VIEWER_NODE_WIDTH);
 
   return (
-    <div className="relative aspect-video w-[288px]">
+    <div className="relative" style={{ width: data.width, height: data.height }}>
       {isFounder ? (
         // The Đời 1 crest sits on the top edge of the frame.
         // eslint-disable-next-line @next/next/no-img-element
@@ -41,18 +44,20 @@ export function PersonNode({ data }: NodeProps<PersonFlowNode>) {
 
       <article
         className="absolute inset-0 flex flex-col items-center justify-center px-1 text-center drop-shadow-[0_6px_10px_rgba(80,55,10,0.18)]"
-        style={isFounder ? FRAME_STYLES.founder : FRAME_STYLES.descendant}
+        style={frameStyle(frame, border)}
       >
         {data.honorific ? (
           <p
-            className="max-w-full truncate text-[11px] font-semibold uppercase tracking-wider text-amber-800"
+            className="max-w-full truncate font-semibold uppercase tracking-wider text-amber-800"
+            style={{ fontSize: 11 * data.textScale }}
             title={data.honorific}
           >
             {data.honorific}
           </p>
         ) : null}
         <h2
-          className="line-clamp-2 max-w-full text-[17px] font-semibold leading-tight text-[#3b2a0c]"
+          className="line-clamp-2 max-w-full font-bold leading-tight text-[#3b2a0c]"
+          style={{ fontSize: 18 * data.textScale }}
           title={data.name}
         >
           {data.name}

@@ -1,4 +1,4 @@
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class UpdateFamilyDto {
   @IsOptional()
@@ -26,4 +26,9 @@ export class UpdateFamilyDto {
   @IsString()
   @Matches(/^\d{2}\/\d{2}$/)
   deathAnniversary?: string | null;
+
+  /** Library background ID; null shows plain paper. */
+  @IsOptional()
+  @IsUUID()
+  posterBackgroundId?: string | null;
 }

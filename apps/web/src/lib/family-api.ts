@@ -22,13 +22,16 @@ export type CreateFamilyInput = {
   deathAnniversary: string;
 };
 
-export type UpdateFamilyInput = {
+/** Fields left out are not changed, so each admin form sends only its own. */
+export type UpdateFamilyInput = Partial<{
   name: string;
   description: string;
   address: string;
   ancestryOrigin: string;
   deathAnniversary: string | null;
-};
+  /** Library background ID; null shows plain paper. */
+  posterBackgroundId: string | null;
+}>;
 
 export function createFamily(input: CreateFamilyInput): Promise<CreatedFamilyResult> {
   return apiFetch<CreatedFamilyResult>(

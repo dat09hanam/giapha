@@ -6,7 +6,7 @@ import { FamilyTree } from '@/components/tree/family-tree';
 import { ApiErrorState } from '@/components/ui/api-error-state';
 import { ApiNotFoundError, ApiUnauthorizedError, getFamilyTree, getFamily } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
-import type { FamilySummary, FamilyTreeResponse } from '@/types/family-tree';
+import type { FamilyDetails, FamilyTreeResponse } from '@/types/family-tree';
 
 type FamilyPageProps = {
   params: Promise<{ slug: string }>;
@@ -52,7 +52,7 @@ async function loadFamilyTree(slug: string) {
 export default async function FamilyPage({ params }: FamilyPageProps) {
   const { slug } = await params;
   let tree: FamilyTreeResponse;
-  let family: FamilySummary;
+  let family: FamilyDetails;
   try {
     tree = await loadFamilyTree(slug);
     family = await getFamily(slug);
@@ -81,7 +81,7 @@ export default async function FamilyPage({ params }: FamilyPageProps) {
     <main className="overflow-hidden">
       <FamilyTree
         tree={tree}
-        family={{ name: family.name, ancestryOrigin: family.ancestryOrigin, address: family.address }}
+        family={{ name: family.name, poster: family.poster }}
         familySlug={slug}
       />
     </main>

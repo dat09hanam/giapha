@@ -38,28 +38,43 @@ enum RelationshipStatus {
   WIDOWED
 }
 
+/// Only sheet backgrounds remain: each one is the sheet's whole decoration.
+enum PosterDecorationKind {
+  BACKGROUND
+}
+
+enum PosterBackgroundMode {
+  TILE
+  COVER
+  /// Fills the sheet exactly; for full-sheet art that already includes its frame.
+  STRETCH
+}
+
 enum MediaStatus {
   ACTIVE
   HIDDEN
 }
 
 model Family {
-  id                    String         @id @default(uuid()) @db.Char(36)
-  slug                  String         @unique @db.VarChar(100)
-  name                  String         @db.VarChar(191)
-  description           String?        @db.Text
-  status                FamilyStatus   @default(ACTIVE)
-  deathAnniversaryDay   Int?           @db.UnsignedTinyInt
-  deathAnniversaryMonth Int?           @db.UnsignedTinyInt
-  address               String?        @db.VarChar(255)
-  ancestryOrigin        String?        @db.VarChar(255)
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  id                    String            @id @default(uuid()) @db.Char(36)
+  slug                  String            @unique @db.VarChar(100)
+  name                  String            @db.VarChar(191)
+  description           String?           @db.Text
+  status                FamilyStatus      @default(ACTIVE)
+  deathAnniversaryDay   Int?              @db.UnsignedTinyInt
+  deathAnniversaryMonth Int?              @db.UnsignedTinyInt
+  address               String?           @db.VarChar(255)
+  ancestryOrigin        String?           @db.VarChar(255)
+  /// Phả đồ background chosen by the family head from the platform library; null shows plain paper.
+  posterBackgroundId    String?           @db.Char(36)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
   deletedAt             DateTime?
   users                 User[]
   people                Person[]
   relationships         Relationship[]
   media                 Media[]
+  posterBackground      PosterDecoration? @relation("FamilyPosterBackground", fields: [posterBackgroundId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([deletedAt])
@@ -170,4 +185,42 @@ model Media {
   @@index([familyId, status])
   @@index([familyId, personId])
   @@index([deletedAt])
+}
+
+/// Platform-wide phả đồ decoration library, managed by the platform ADMIN. Not tenant-owned:
+/// every Family chooses from the same library.
+model PosterDecoration {
+  id             String                @id @default(uuid()) @db.Char(36)
+  kind           PosterDecorationKind
+  name           String                @db.VarChar(100)
+  /// Drawn by the web app's own code; null means the decoration is an uploaded image.
+  builtinKey     String?               @db.VarChar(32)
+  /// Server-generated `<uuid>.<ext>` under the decoration media folder.
+  imageFile      String?               @db.VarChar(64)
+  isActive       Boolean               @default(true)
+  sortOrder      Int                   @default(0)
+  backgroundMode PosterBackgroundMode?
+  /// The area the tree is placed in, set by the ADMIN as percent of the art's height or
+  /// width in from each edge. Null: the tree sits inside the frame band.
+  insetTop       Int?                  @db.UnsignedTinyInt
+  insetRight     Int?                  @db.UnsignedTinyInt
+  insetBottom    Int?                  @db.UnsignedTinyInt
+  insetLeft      Int?                  @db.UnsignedTinyInt
+  /// Where the family name is written, as percent in from each edge of the art; all four or
+  /// none. Null writes no name.
+  nameInsetTop    Int?                 @db.UnsignedTinyInt
+  nameInsetRight  Int?                 @db.UnsignedTinyInt
+  nameInsetBottom Int?                 @db.UnsignedTinyInt
+  nameInsetLeft   Int?                 @db.UnsignedTinyInt
+  /// How far the name's middle rises above its ends, in percent of the name area's height;
+  /// negative bends it down.
+  nameCurve       Int                  @default(0) @db.TinyInt
+  /// Name color as `#rrggbb`.
+  nameColor       String               @default("#ffd83a") @db.VarChar(7)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  backgroundsOf  Family[]              @relation("FamilyPosterBackground")
+
+  @@unique([kind, builtinKey])
+  @@index([kind, isActive, sortOrder])
 }

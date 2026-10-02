@@ -70,7 +70,28 @@ Platform Admin accounts are provisioned or rotated with `npm run admin:bootstrap
 
 `Family` stores the public locator and clan-level record: `slug`, `name`, `description`, `status`,
 the recurring death anniversary (`deathAnniversaryDay` and `deathAnniversaryMonth`), the ancestral
-hall `address` and the clan origin (`ancestryOrigin`).
+hall `address` and the clan origin (`ancestryOrigin`). It also stores the phả đồ background the
+clan head chose: a nullable foreign key `posterBackgroundId` into the decoration library (null shows
+plain paper). The background is the sheet's only decoration; center and side art, couplets and the
+title were retired.
+
+`PosterDecoration` is the platform-wide background library and is deliberately **not**
+tenant-owned: every Family chooses from the same rows. Every row has `kind` `BACKGROUND` and is either
+built-in (`builtinKey`, drawn by the web app's own code, seeded by migration with fixed IDs, never
+deletable) or an uploaded raster image (`imageFile` under `MEDIA_ROOT/poster-decorations/`) with a
+`backgroundMode`. Only the platform `ADMIN` creates, edits, hides or deletes rows
+(`/api/poster-decorations`); signed-in users list active rows; images are served publicly because
+they are shared artwork, not family data. Deleting a row sets the families using it to null. A
+family head may only pick an active row.
+
+An uploaded background may carry `insetTop/Right/Bottom/Left` (percent, all four or none): the tree
+area the `ADMIN` drew over the art. The web app's `poster-geometry.ts` sizes the 16:9 sheet so the
+tree fills exactly that area at any tree size; without one the tree sits inside the frame band.
+
+It may also carry a name area (`nameInsetTop/Right/Bottom/Left`, all four or none) with `nameCurve`
+(how far the middle of the text rises, in percent of the area's height; negative bends it down) and
+`nameColor`. The web app writes the family's `name` there along that arc, sized to the area, so the
+clan head only edits the name in the family profile.
 
 `Person` belongs to one Family and stores optional `fatherId` and `motherId` self-references. Both
 foreign keys include `familyId`, preventing cross-Family parent links at the database boundary. A

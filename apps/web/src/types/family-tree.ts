@@ -1,3 +1,5 @@
+import type { FamilyPoster } from "@/lib/poster-decorations";
+
 export type Gender = "MALE" | "FEMALE" | "OTHER" | "UNKNOWN";
 
 export type FamilySummary = {
@@ -12,6 +14,7 @@ export type FamilySummary = {
 export type FamilyDetails = FamilySummary & {
   deathAnniversaryDay: number | null;
   deathAnniversaryMonth: number | null;
+  poster: FamilyPoster;
 };
 
 export type Person = {

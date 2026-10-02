@@ -2,6 +2,7 @@ import { cache } from 'react';
 
 import { ApiRequestError, apiFetch } from '@/lib/api-error';
 import type { AuthProfile } from '@/lib/auth-api';
+import type { PosterDecoration } from '@/lib/poster-decorations';
 import type { FamilyDetails, FamilyTreeResponse } from '@/types/family-tree';
 
 const API_URL = (process.env.API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
@@ -63,3 +64,8 @@ export const getFamilyTree = cache((slug: string, sessionToken?: string) =>
 export const getAuthProfile = cache((sessionToken: string) =>
   getJson<AuthProfile>('/auth/me', 'tải thông tin tài khoản', sessionToken),
 );
+
+/** Active decorations for family heads; the platform ADMIN also gets hidden ones and usage. */
+export const getPosterDecorations = cache(<T extends PosterDecoration = PosterDecoration>(
+  sessionToken: string,
+) => getJson<T[]>('/poster-decorations', 'tải thư viện hình nền', sessionToken));

@@ -24,7 +24,7 @@ export function familyMediaSrc(slug: string, avatarUrl: string): string {
   return `${API_URL}/families/${encodeURIComponent(slug)}/media/${encodeURIComponent(fileName)}`;
 }
 
-function readAsBase64(file: File): Promise<string> {
+export function readAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Không đọc được tệp ảnh đã chọn.'));
