@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsIn,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
@@ -23,6 +24,8 @@ const MAX_BASE64_LENGTH = 5_600_000;
 const MAX_INSET_PERCENT = 80;
 /** The name area may be a thin band, so its edges may reach further in. */
 const MAX_NAME_INSET_PERCENT = 95;
+/** Area edges are kept to a tenth of a percent so the ADMIN can nudge them finely. */
+const INSET_PRECISION = { allowNaN: false, allowInfinity: false, maxDecimalPlaces: 1 };
 
 export class PosterDecorationImageDto {
   @IsIn(IMAGE_CONTENT_TYPES)
@@ -37,22 +40,22 @@ export class PosterDecorationImageDto {
 
 /** Percent of the art in from each edge; the service also caps opposite edges together. */
 export class PosterInsetsDto {
-  @IsInt()
+  @IsNumber(INSET_PRECISION)
   @Min(0)
   @Max(MAX_INSET_PERCENT)
   top!: number;
 
-  @IsInt()
+  @IsNumber(INSET_PRECISION)
   @Min(0)
   @Max(MAX_INSET_PERCENT)
   right!: number;
 
-  @IsInt()
+  @IsNumber(INSET_PRECISION)
   @Min(0)
   @Max(MAX_INSET_PERCENT)
   bottom!: number;
 
-  @IsInt()
+  @IsNumber(INSET_PRECISION)
   @Min(0)
   @Max(MAX_INSET_PERCENT)
   left!: number;
@@ -60,22 +63,22 @@ export class PosterInsetsDto {
 
 /** Where the family name is written; the service also caps opposite edges together. */
 export class PosterNameAreaDto {
-  @IsInt()
+  @IsNumber(INSET_PRECISION)
   @Min(0)
   @Max(MAX_NAME_INSET_PERCENT)
   top!: number;
 
-  @IsInt()
+  @IsNumber(INSET_PRECISION)
   @Min(0)
   @Max(MAX_NAME_INSET_PERCENT)
   right!: number;
 
-  @IsInt()
+  @IsNumber(INSET_PRECISION)
   @Min(0)
   @Max(MAX_NAME_INSET_PERCENT)
   bottom!: number;
 
-  @IsInt()
+  @IsNumber(INSET_PRECISION)
   @Min(0)
   @Max(MAX_NAME_INSET_PERCENT)
   left!: number;
@@ -85,6 +88,32 @@ export class PosterNameAreaDto {
   @Min(-100)
   @Max(100)
   curve!: number;
+
+  @Matches(/^#[0-9a-f]{6}$/i)
+  color!: string;
+}
+
+/** Where one family-specific couplet line is written vertically. */
+export class PosterVerticalTextAreaDto {
+  @IsNumber(INSET_PRECISION)
+  @Min(0)
+  @Max(MAX_NAME_INSET_PERCENT)
+  top!: number;
+
+  @IsNumber(INSET_PRECISION)
+  @Min(0)
+  @Max(MAX_NAME_INSET_PERCENT)
+  right!: number;
+
+  @IsNumber(INSET_PRECISION)
+  @Min(0)
+  @Max(MAX_NAME_INSET_PERCENT)
+  bottom!: number;
+
+  @IsNumber(INSET_PRECISION)
+  @Min(0)
+  @Max(MAX_NAME_INSET_PERCENT)
+  left!: number;
 
   @Matches(/^#[0-9a-f]{6}$/i)
   color!: string;
@@ -117,6 +146,18 @@ class PosterDecorationFieldsDto {
   @ValidateNested()
   @Type(() => PosterNameAreaDto)
   nameArea?: PosterNameAreaDto | null;
+
+  /** Where the family's left vertical text is written; null removes it. */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PosterVerticalTextAreaDto)
+  leftTextArea?: PosterVerticalTextAreaDto | null;
+
+  /** Where the family's right vertical text is written; null removes it. */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PosterVerticalTextAreaDto)
+  rightTextArea?: PosterVerticalTextAreaDto | null;
 }
 
 export class CreatePosterDecorationDto extends PosterDecorationFieldsDto {

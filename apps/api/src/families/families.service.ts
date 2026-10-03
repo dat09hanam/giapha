@@ -26,6 +26,8 @@ import {
 /** The phả đồ sheet: the chosen library background (null shows plain paper) carries all decoration. */
 export type FamilyPoster = {
   background: PosterDecorationResponse | null;
+  leftText: string | null;
+  rightText: string | null;
 };
 
 export type FamilySummary = {
@@ -49,17 +51,21 @@ const familySummarySelect = {
   deathAnniversaryMonth: true,
   address: true,
   ancestryOrigin: true,
+  posterLeftText: true,
+  posterRightText: true,
   posterBackground: { select: posterDecorationSelect },
 } satisfies Prisma.FamilySelect;
 
 type FamilySummaryRecord = Prisma.FamilyGetPayload<{ select: typeof familySummarySelect }>;
 
 function toFamilySummary(record: FamilySummaryRecord): FamilySummary {
-  const { posterBackground, ...family } = record;
+  const { posterBackground, posterLeftText, posterRightText, ...family } = record;
   return {
     ...family,
     poster: {
       background: posterBackground ? toPosterDecorationResponse(posterBackground) : null,
+      leftText: posterLeftText,
+      rightText: posterRightText,
     },
   };
 }
@@ -180,6 +186,12 @@ export class FamiliesService {
         ...(input.ancestryOrigin === undefined
           ? {}
           : { ancestryOrigin: input.ancestryOrigin.trim() || null }),
+        ...(input.posterLeftText === undefined
+          ? {}
+          : { posterLeftText: input.posterLeftText?.trim() || null }),
+        ...(input.posterRightText === undefined
+          ? {}
+          : { posterRightText: input.posterRightText?.trim() || null }),
         ...(anniversary === undefined
           ? {}
           : anniversary === null

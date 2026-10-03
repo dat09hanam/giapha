@@ -20,12 +20,13 @@ export type PosterNameArea = PosterInsets & {
   color: string;
 };
 
+/** Where one family-specific line is written from top to bottom. */
+export type PosterVerticalTextArea = PosterInsets & { color: string };
+
 export type PosterDecoration = {
   id: string;
   kind: PosterDecorationKind;
   name: string;
-  /** Set for decorations this app draws itself (see `poster-art.tsx`). */
-  builtinKey: string | null;
   /** API-relative path of an uploaded image; resolve with `decorationImageSrc`. */
   imageUrl: string | null;
   isActive: boolean;
@@ -35,6 +36,9 @@ export type PosterDecoration = {
   insets: PosterInsets | null;
   /** Where the family name is written; null writes none. */
   nameArea: PosterNameArea | null;
+  /** Optional areas for the family's two vertical couplet lines. */
+  leftTextArea: PosterVerticalTextArea | null;
+  rightTextArea: PosterVerticalTextArea | null;
 };
 
 export type AdminPosterDecoration = PosterDecoration & { usageCount: number };
@@ -42,6 +46,8 @@ export type AdminPosterDecoration = PosterDecoration & { usageCount: number };
 /** What a family's sheet shows; a null background shows plain paper. */
 export type FamilyPoster = {
   background: PosterDecoration | null;
+  leftText: string | null;
+  rightText: string | null;
 };
 
 /** Matches the API's limits on decoration insets. */
@@ -70,6 +76,8 @@ export type PosterDecorationOptions = {
   backgroundMode: PosterBackgroundMode;
   insets: PosterInsets | null;
   nameArea: PosterNameArea | null;
+  leftTextArea: PosterVerticalTextArea | null;
+  rightTextArea: PosterVerticalTextArea | null;
 };
 
 const JSON_HEADERS = { Accept: 'application/json', 'Content-Type': 'application/json' };

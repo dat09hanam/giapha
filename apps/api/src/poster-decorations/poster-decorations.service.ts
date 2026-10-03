@@ -4,7 +4,6 @@ import { join, resolve } from 'node:path';
 
 import {
   BadRequestException,
-  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -19,6 +18,7 @@ import type {
   PosterDecorationImageDto,
   PosterInsetsDto,
   PosterNameAreaDto,
+  PosterVerticalTextAreaDto,
   UpdatePosterDecorationDto,
 } from './dto/poster-decoration.dto.js';
 import {
@@ -39,6 +39,11 @@ type InsetFields = Pick<
   'insetTop' | 'insetRight' | 'insetBottom' | 'insetLeft'
 >;
 
+/** Whether two edges in tenths of a percent add up past `limit`, ignoring float noise. */
+function sumOver(a: number, b: number, limit: number): boolean {
+  return Math.round((a + b) * 10) > limit * 10;
+}
+
 /** Opposite edges together must leave at least this much of the art free. */
 const MIN_FREE_PERCENT = 20;
 
@@ -48,8 +53,8 @@ function insetFields(insets: PosterInsetsDto | null | undefined): InsetFields {
     return { insetTop: null, insetRight: null, insetBottom: null, insetLeft: null };
   }
   if (
-    insets.top + insets.bottom > 100 - MIN_FREE_PERCENT ||
-    insets.left + insets.right > 100 - MIN_FREE_PERCENT
+    sumOver(insets.top, insets.bottom, 100 - MIN_FREE_PERCENT) ||
+    sumOver(insets.left, insets.right, 100 - MIN_FREE_PERCENT)
   ) {
     throw new BadRequestException(
       `Lề hai cạnh đối diện cộng lại không được vượt quá ${100 - MIN_FREE_PERCENT}%.`,
@@ -82,8 +87,8 @@ function nameFields(area: PosterNameAreaDto | null | undefined): NameFields {
     return { nameInsetTop: null, nameInsetRight: null, nameInsetBottom: null, nameInsetLeft: null };
   }
   if (
-    area.top + area.bottom > 100 - MIN_NAME_PERCENT ||
-    area.left + area.right > 100 - MIN_NAME_PERCENT
+    sumOver(area.top, area.bottom, 100 - MIN_NAME_PERCENT) ||
+    sumOver(area.left, area.right, 100 - MIN_NAME_PERCENT)
   ) {
     throw new BadRequestException(
       `Vùng tên dòng họ phải rộng và cao ít nhất ${MIN_NAME_PERCENT}% ảnh.`,
@@ -99,9 +104,78 @@ function nameFields(area: PosterNameAreaDto | null | undefined): NameFields {
   };
 }
 
+function validateVerticalTextArea(area: PosterVerticalTextAreaDto, label: string): void {
+  if (
+    sumOver(area.top, area.bottom, 100 - MIN_NAME_PERCENT) ||
+    sumOver(area.left, area.right, 100 - MIN_NAME_PERCENT)
+  ) {
+    throw new BadRequestException(`${label} phải rộng và cao ít nhất ${MIN_NAME_PERCENT}% ảnh.`);
+  }
+}
+
+type LeftTextFields = Pick<
+  Prisma.PosterDecorationUncheckedCreateInput,
+  | 'leftTextInsetTop'
+  | 'leftTextInsetRight'
+  | 'leftTextInsetBottom'
+  | 'leftTextInsetLeft'
+  | 'leftTextColor'
+>;
+
+function leftTextFields(area: PosterVerticalTextAreaDto | null | undefined): LeftTextFields {
+  if (area === undefined) return {};
+  if (area === null) {
+    return {
+      leftTextInsetTop: null,
+      leftTextInsetRight: null,
+      leftTextInsetBottom: null,
+      leftTextInsetLeft: null,
+    };
+  }
+  validateVerticalTextArea(area, 'Vùng chữ dọc bên trái');
+  return {
+    leftTextInsetTop: area.top,
+    leftTextInsetRight: area.right,
+    leftTextInsetBottom: area.bottom,
+    leftTextInsetLeft: area.left,
+    leftTextColor: area.color.toLowerCase(),
+  };
+}
+
+type RightTextFields = Pick<
+  Prisma.PosterDecorationUncheckedCreateInput,
+  | 'rightTextInsetTop'
+  | 'rightTextInsetRight'
+  | 'rightTextInsetBottom'
+  | 'rightTextInsetLeft'
+  | 'rightTextColor'
+>;
+
+function rightTextFields(area: PosterVerticalTextAreaDto | null | undefined): RightTextFields {
+  if (area === undefined) return {};
+  if (area === null) {
+    return {
+      rightTextInsetTop: null,
+      rightTextInsetRight: null,
+      rightTextInsetBottom: null,
+      rightTextInsetLeft: null,
+    };
+  }
+  validateVerticalTextArea(area, 'Vùng chữ dọc bên phải');
+  return {
+    rightTextInsetTop: area.top,
+    rightTextInsetRight: area.right,
+    rightTextInsetBottom: area.bottom,
+    rightTextInsetLeft: area.left,
+    rightTextColor: area.color.toLowerCase(),
+  };
+}
+
 type ImageFields = Pick<Prisma.PosterDecorationUncheckedCreateInput, 'backgroundMode'> &
   InsetFields &
-  NameFields;
+  NameFields &
+  LeftTextFields &
+  RightTextFields;
 
 /** Drawing options of an uploaded background; built-in ones are drawn by fixed code. */
 function imageFields(
@@ -109,12 +183,16 @@ function imageFields(
     backgroundMode?: PosterBackgroundMode;
     insets?: PosterInsetsDto | null;
     nameArea?: PosterNameAreaDto | null;
+    leftTextArea?: PosterVerticalTextAreaDto | null;
+    rightTextArea?: PosterVerticalTextAreaDto | null;
   },
   isCreate: boolean,
 ): ImageFields {
   return {
     ...insetFields(input.insets),
     ...nameFields(input.nameArea),
+    ...leftTextFields(input.leftTextArea),
+    ...rightTextFields(input.rightTextArea),
     // Uploaded sheets usually include their own frame, so they stretch to the edges by default.
     ...(input.backgroundMode !== undefined || isCreate
       ? { backgroundMode: input.backgroundMode ?? PosterBackgroundMode.STRETCH }
@@ -187,12 +265,9 @@ export class PosterDecorationsService {
   async update(id: string, input: UpdatePosterDecorationDto): Promise<PosterDecorationResponse> {
     const existing = await this.prisma.posterDecoration.findUnique({
       where: { id },
-      select: { kind: true, builtinKey: true, imageFile: true },
+      select: { kind: true, imageFile: true },
     });
     if (!existing) throw new NotFoundException(NOT_FOUND);
-    if (input.image && existing.builtinKey) {
-      throw new BadRequestException('Hình nền có sẵn được vẽ bằng mã nên không thể thay ảnh.');
-    }
 
     const imageFile = input.image ? await this.storeImage(input.image) : undefined;
     try {
@@ -203,8 +278,7 @@ export class PosterDecorationsService {
           ...(input.isActive === undefined ? {} : { isActive: input.isActive }),
           ...(input.sortOrder === undefined ? {} : { sortOrder: input.sortOrder }),
           ...(imageFile === undefined ? {} : { imageFile }),
-          // Built-in art has fixed drawing; only uploaded images take drawing options.
-          ...(existing.builtinKey ? {} : imageFields(input, false)),
+          ...imageFields(input, false),
         },
         select: posterDecorationSelect,
       });
@@ -220,14 +294,9 @@ export class PosterDecorationsService {
   async remove(id: string): Promise<void> {
     const existing = await this.prisma.posterDecoration.findUnique({
       where: { id },
-      select: { builtinKey: true, imageFile: true },
+      select: { imageFile: true },
     });
     if (!existing) throw new NotFoundException(NOT_FOUND);
-    if (existing.builtinKey) {
-      throw new ConflictException(
-        'Không thể xóa hình nền có sẵn. Hãy ẩn hình nền này nếu không dùng.',
-      );
-    }
 
     await this.prisma.posterDecoration.delete({ where: { id } });
     if (existing.imageFile) await this.removeImage(existing.imageFile);

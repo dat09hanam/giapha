@@ -10,6 +10,7 @@ import {
   type RowDimensions,
 } from '@/lib/family-layout';
 import { familyMediaSrc } from '@/lib/media-api';
+import { displayPersonName } from '@/lib/person-name';
 import { backgroundTreeArea, fitPosterSheet, posterTreeRegion } from '@/lib/poster-geometry';
 import type { FamilyPoster } from '@/lib/poster-decorations';
 import type { FamilyTreeResponse, Gender } from '@/types/family-tree';
@@ -48,6 +49,7 @@ export type PosterFrameNode = Node<
 export type PosterFlowNode = PersonFlowNode | PosterFrameNode;
 
 export type FamilyLinkData =
+  | { kind: 'spouse' }
   | { kind: 'bracket'; drop: number }
   | { kind: 'child'; offsetX: number; offsetY: number; busOffset: number };
 
@@ -58,6 +60,17 @@ export type FamilyEdge = Edge | FamilyLinkEdgeType;
 /** Framed 16:9 cards are 288 × 162 at full size; busy trees shrink them. */
 export const VIEWER_NODE_WIDTH = 288;
 const LANDSCAPE_RATIO = 9 / 16;
+/**
+ * The tallest a crowded row's card may get relative to its width. Wide trees
+ * leave spare height on the 16:9 sheet; taller cards in the crowded rows use
+ * it, so their names can wrap onto more lines and read larger.
+ */
+const MAX_CARD_RATIO = 1.1;
+/**
+ * A row is crowded, and may use taller cards, when it holds at least this
+ * share of the busiest row's people. Other rows keep landscape cards.
+ */
+const CROWDED_ROW_SHARE = 0.6;
 /** The Đời 1 crest stands above the founders' frames: 36px tall on a 288px card. */
 const CREST_RATIO = 36 / 288;
 const MIN_VIEWER_NODE_WIDTH = 160;
@@ -71,19 +84,27 @@ const MAX_ROW_GROWTH = 2;
 export type ViewerRow = RowDimensions & {
   nodeHeight: number;
   textScale: number;
+  /** Nearly as busy as the busiest row: its cards may be taller than landscape. */
+  crowded: boolean;
 };
 
 /**
  * Busy trees get smaller cards so names stay legible once the whole poster is
- * fitted to the screen. Every row uses landscape cards; the busiest row keeps
- * the base size and sparser rows near the top grow so their names read larger.
+ * fitted to the screen. The busiest row keeps the base size and sparser rows
+ * grow so their names read larger, but a generation is never larger than the
+ * one above it, so cards shrink steadily from the ancestors down instead of
+ * jumping in size. Rows keep landscape cards unless they are crowded; crowded
+ * rows use `crowdedRatio`.
  */
 type ViewerDimensions = Omit<LayoutDimensions, 'rowForGeneration'> & {
   nodeHeight: number;
   rowForGeneration: (generation: number) => ViewerRow;
 };
 
-function viewerDimensions(people: readonly LayoutPerson[]): ViewerDimensions {
+function viewerDimensions(
+  people: readonly LayoutPerson[],
+  crowdedRatio = LANDSCAPE_RATIO,
+): ViewerDimensions {
   const extraMembers = Math.max(0, people.length - FULL_SIZE_MEMBER_LIMIT);
   const nodeWidth = Math.max(
     MIN_VIEWER_NODE_WIDTH,
@@ -96,6 +117,7 @@ function viewerDimensions(people: readonly LayoutPerson[]): ViewerDimensions {
     spouseGap: Math.round(40 * scale),
     siblingGap: Math.round(32 * scale),
     textScale: 1,
+    crowded: false,
   };
 
   const rowCounts = new Map<number, number>();
@@ -103,20 +125,26 @@ function viewerDimensions(people: readonly LayoutPerson[]): ViewerDimensions {
     rowCounts.set(person.generation, (rowCounts.get(person.generation) ?? 0) + 1),
   );
   const busiestRow = Math.max(1, ...rowCounts.values());
+  let growthAbove = MAX_ROW_GROWTH;
   const rows = new Map(
-    [...rowCounts].map(([generation, count]): [number, ViewerRow] => {
-      const growth = Math.min(MAX_ROW_GROWTH, Math.sqrt(busiestRow / count));
-      const width = Math.round(nodeWidth * growth);
-      return [
-        generation,
-        {
-          ...landscapeRow,
-          nodeWidth: width,
-          nodeHeight: Math.round(width * LANDSCAPE_RATIO),
-          textScale: width / nodeWidth,
-        },
-      ];
-    }),
+    [...rowCounts]
+      .sort(([a], [b]) => a - b)
+      .map(([generation, count]): [number, ViewerRow] => {
+        const growth = Math.min(growthAbove, Math.sqrt(busiestRow / count));
+        growthAbove = growth;
+        const width = Math.round(nodeWidth * growth);
+        const crowded = count >= busiestRow * CROWDED_ROW_SHARE;
+        return [
+          generation,
+          {
+            ...landscapeRow,
+            nodeWidth: width,
+            nodeHeight: Math.round(width * (crowded ? crowdedRatio : LANDSCAPE_RATIO)),
+            textScale: width / nodeWidth,
+            crowded,
+          },
+        ];
+      }),
   );
 
   return {
@@ -156,7 +184,8 @@ export function familyEdges(layout: FamilyLayout, style: CSSProperties): FamilyE
           sourceHandle: 'spouse-source',
           target: marriage.rightId,
           targetHandle: 'spouse-target',
-          type: 'straight',
+          type: 'familyLink',
+          data: { kind: 'spouse' },
           style,
         }
       : {
@@ -190,9 +219,45 @@ export function familyEdges(layout: FamilyLayout, style: CSSProperties): FamilyE
   return [...marriageEdges, ...childEdges];
 }
 
+/**
+ * The crowded rows' card shape (height ÷ width) at which the laid-out tree's
+ * width ÷ height matches `targetAspect`, between landscape and slightly taller
+ * than square. The other rows stay landscape and count as they are.
+ */
+function cardRatioFor(
+  people: readonly LayoutPerson[],
+  positions: ReadonlyMap<string, { x: number; y: number }>,
+  dimensions: ViewerDimensions,
+  targetAspect: number,
+): number {
+  if (people.length === 0) return LANDSCAPE_RATIO;
+  const lefts = people.map((person) => positions.get(person.id)?.x ?? 0);
+  const rights = people.map(
+    (person) =>
+      (positions.get(person.id)?.x ?? 0) + dimensions.rowForGeneration(person.generation).nodeWidth,
+  );
+  const treeWidth = Math.max(...rights) - Math.min(...lefts);
+  const rows = [...new Set(people.map((person) => person.generation))].map((generation) =>
+    dimensions.rowForGeneration(generation),
+  );
+  const crowdedWidths = rows
+    .filter((row) => row.crowded)
+    .reduce((total, row) => total + row.nodeWidth, 0);
+  if (crowdedWidths === 0) return LANDSCAPE_RATIO;
+  const landscapeHeights = rows
+    .filter((row) => !row.crowded)
+    .reduce((total, row) => total + row.nodeHeight, 0);
+  const crest = dimensions.rowForGeneration(1).nodeWidth * CREST_RATIO;
+  const spacing = (rows.length - 1) * (dimensions.generationGap - dimensions.nodeHeight);
+  const ratio = (treeWidth / targetAspect - crest - spacing - landscapeHeights) / crowdedWidths;
+  return Math.min(MAX_CARD_RATIO, Math.max(LANDSCAPE_RATIO, ratio));
+}
+
 export function toFlowElements(
   tree: FamilyTreeResponse,
   familySlug: string,
+  /** Width ÷ height of the space the tree is drawn in; shapes the cards to fill it. */
+  targetAspect?: number,
 ): {
   nodes: PersonFlowNode[];
   edges: FamilyEdge[];
@@ -217,8 +282,16 @@ export function toFlowElements(
     ...person,
     generation: generations.get(person.id) ?? 1,
   }));
-  const dimensions = viewerDimensions(people);
-  const layout = layoutFamily({ people, relationships }, dimensions);
+  // Card heights do not move anything sideways, so lay out once with the
+  // widths, then pick the card shape that best fills the target space.
+  const widthDimensions = viewerDimensions(people);
+  const layout = layoutFamily({ people, relationships }, widthDimensions);
+  const dimensions = targetAspect
+    ? viewerDimensions(
+        people,
+        cardRatioFor(people, layout.positions, widthDimensions, targetAspect),
+      )
+    : widthDimensions;
 
   const nodes = tree.people.map<PersonFlowNode>((person) => {
     const generation = generations.get(person.id) ?? 1;
@@ -228,7 +301,7 @@ export function toFlowElements(
       type: 'person',
       position: layout.positions.get(person.id) ?? { x: 0, y: 0 },
       data: {
-        name: person.name,
+        name: displayPersonName(person.name),
         honorific: person.honorific,
         gender: person.gender,
         birthDate: person.birthDate,
@@ -264,7 +337,14 @@ export function toPosterElements(
   family: { name: string; poster: FamilyPoster },
   familySlug: string,
 ): { nodes: PosterFlowNode[]; edges: FamilyEdge[] } {
-  const { nodes: personNodes, edges, dimensions } = toFlowElements(tree, familySlug);
+  const posterTreeArea = backgroundTreeArea(family.poster);
+  // The tree region's own shape on the 16:9 sheet; without a marked area the
+  // frame band leaves roughly the sheet's shape.
+  const regionAspect = posterTreeArea
+    ? (POSTER_RATIO * (1 - posterTreeArea.left - posterTreeArea.right)) /
+      (1 - posterTreeArea.top - posterTreeArea.bottom)
+    : POSTER_RATIO;
+  const { nodes: personNodes, edges, dimensions } = toFlowElements(tree, familySlug, regionAspect);
   const edgesOnPoster = edges.map((edge) => ({ ...edge, style: POSTER_LINK_STYLE }));
   if (personNodes.length === 0) return { nodes: [], edges: [] };
 
@@ -281,7 +361,7 @@ export function toPosterElements(
   const scale = Math.max(1, treeWidth / DECORATION_BASE_WIDTH);
   const crestHeight = dimensions.rowForGeneration(1).nodeWidth * CREST_RATIO;
   const baseSpacing = dimensions.generationGap - dimensions.nodeHeight;
-  const treeArea = backgroundTreeArea(family.poster);
+  const treeArea = posterTreeArea;
 
   // The smallest 16:9 sheet whose tree region holds the tree at its tightest spacing.
   const { width: frameWidth, height: frameHeight } = fitPosterSheet(

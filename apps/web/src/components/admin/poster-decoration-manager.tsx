@@ -1,14 +1,24 @@
 'use client';
 
-import { Eye, EyeOff, ImagePlus, LoaderCircle, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  ImageIcon,
+  ImagePlus,
+  LoaderCircle,
+  Pencil,
+  Plus,
+  Save,
+  Trash2,
+} from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 import { Field } from '@/components/auth/form-fields';
 import { hasTreeArea, NO_TREE_AREA, PosterAreaEditor } from '@/components/admin/poster-area-editor';
 import { PosterBackgroundSwatch } from '@/components/tree/poster-art';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SectionCard } from '@/components/admin/admin-layout';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { ACCEPTED_IMAGE_TYPES, readAsBase64 } from '@/lib/media-api';
@@ -25,18 +35,20 @@ import {
   type PosterDecoration,
   type PosterInsets,
   type PosterNameArea,
+  type PosterVerticalTextArea,
 } from '@/lib/poster-decorations';
 
 type Draft = {
   /** Null while adding a new background. */
   id: string | null;
-  builtin: boolean;
   name: string;
   sortOrder: string;
   isActive: boolean;
   backgroundMode: PosterBackgroundMode;
   insets: PosterInsets;
   nameArea: PosterNameArea | null;
+  leftTextArea: PosterVerticalTextArea | null;
+  rightTextArea: PosterVerticalTextArea | null;
   file: File | null;
   /** The saved image, kept for the preview until a new file replaces it. */
   imageUrl: string | null;
@@ -87,10 +99,10 @@ function InsetFields({
               type="number"
               min={0}
               max={MAX_INSET_PERCENT}
-              step={1}
+              step={0.1}
               value={insets[edge]}
               onChange={(event) => {
-                const value = Math.round(Number(event.currentTarget.value));
+                const value = Math.round(Number(event.currentTarget.value) * 10) / 10;
                 onChange({
                   ...insets,
                   [edge]: Number.isFinite(value)
@@ -114,13 +126,14 @@ function InsetFields({
 function draftFor(decoration?: PosterDecoration): Draft {
   return {
     id: decoration?.id ?? null,
-    builtin: Boolean(decoration?.builtinKey),
     name: decoration?.name ?? '',
     sortOrder: decoration ? String(decoration.sortOrder) : '',
     isActive: decoration?.isActive ?? true,
     backgroundMode: decoration?.backgroundMode ?? 'STRETCH',
     insets: decoration?.insets ?? NO_TREE_AREA,
     nameArea: decoration?.nameArea ?? null,
+    leftTextArea: decoration?.leftTextArea ?? null,
+    rightTextArea: decoration?.rightTextArea ?? null,
     file: null,
     imageUrl: decoration?.imageUrl ?? null,
   };
@@ -147,6 +160,14 @@ function BackgroundEditor({
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  // The editor replaces the library, so bring its top into view when it opens.
+  useEffect(() => {
+    document
+      .getElementById('background-editor')
+      ?.closest('[role="tabpanel"]')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
   useEffect(() => {
     if (!draft.file) {
       setPreviewUrl(null);
@@ -162,15 +183,15 @@ function BackgroundEditor({
     id: draft.id ?? 'new',
     kind: 'BACKGROUND',
     name: draft.name,
-    builtinKey: saved?.builtinKey ?? null,
     imageUrl: previewUrl ?? draft.imageUrl,
     isActive: draft.isActive,
     sortOrder: Number(draft.sortOrder) || 0,
     backgroundMode: draft.backgroundMode,
     insets: draft.insets,
     nameArea: draft.nameArea,
+    leftTextArea: draft.leftTextArea,
+    rightTextArea: draft.rightTextArea,
   };
-  const canPreview = Boolean(sample.builtinKey || sample.imageUrl);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -178,64 +199,70 @@ function BackgroundEditor({
   }
 
   return (
-    <form
-      className="grid gap-4 rounded-2xl border border-emerald-900/15 bg-emerald-50/40 p-4"
-      onSubmit={handleSubmit}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-emerald-950">
-          {draft.id ? 'Sửa hình nền' : 'Thêm hình nền mới'}
-        </h3>
-        <Button type="button" variant="ghost" size="icon" onClick={onCancel} aria-label="Đóng">
-          <X className="size-4" aria-hidden="true" />
+    <SectionCard
+      icon={draft.id ? <Pencil aria-hidden="true" /> : <ImagePlus aria-hidden="true" />}
+      title={draft.id ? `Sửa hình nền “${saved?.name ?? draft.name}”` : 'Thêm hình nền mới'}
+      description="Đánh dấu các vùng trên ảnh ở bên trái, chỉnh thông tin ở bên phải rồi lưu."
+      actions={
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          Quay lại thư viện
         </Button>
-      </div>
-
-      {!draft.builtin && canPreview ? (
-        <PosterAreaEditor
-          background={sample}
-          treeArea={draft.insets}
-          nameArea={draft.nameArea}
-          onTreeAreaChange={(insets) => onChange({ ...draft, insets })}
-          onNameAreaChange={(nameArea) => onChange({ ...draft, nameArea })}
-        />
-      ) : (
-        <div className="grid h-36 place-items-center overflow-hidden rounded-xl border bg-[#fff6c9]">
-          {canPreview ? (
-            <PosterBackgroundSwatch decoration={sample} width={231} height={130} />
+      }
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
+            Hủy
+          </Button>
+          <Button type="submit" form="background-editor" disabled={saving}>
+            {saving ? (
+              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Save className="size-4" aria-hidden="true" />
+            )}
+            {saving ? 'Đang lưu…' : draft.id ? 'Lưu thay đổi' : 'Thêm hình nền'}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="background-editor"
+        className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]"
+        onSubmit={handleSubmit}
+      >
+        <div className="min-w-0">
+          {sample.imageUrl ? (
+            <PosterAreaEditor
+              background={sample}
+              treeArea={draft.insets}
+              nameArea={draft.nameArea}
+              leftTextArea={draft.leftTextArea}
+              rightTextArea={draft.rightTextArea}
+              onTreeAreaChange={(insets) => onChange({ ...draft, insets })}
+              onNameAreaChange={(nameArea) => onChange({ ...draft, nameArea })}
+              onLeftTextAreaChange={(leftTextArea) => onChange({ ...draft, leftTextArea })}
+              onRightTextAreaChange={(rightTextArea) => onChange({ ...draft, rightTextArea })}
+            />
           ) : (
-            <span className="text-sm text-stone-500">Chọn ảnh để xem trước</span>
+            <div className="grid aspect-video place-items-center rounded-xl border border-dashed border-emerald-900/25 bg-[#fff6c9]/60 p-6 text-center">
+              <span className="grid justify-items-center gap-2 text-sm text-stone-500">
+                <ImagePlus className="size-8 text-stone-400" aria-hidden="true" />
+                Chọn ảnh nền để bắt đầu đánh dấu các vùng
+              </span>
+            </div>
           )}
         </div>
-      )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          id="decoration-name"
-          label="Tên hình nền"
-          value={draft.name}
-          onChange={(event) => onChange({ ...draft, name: event.currentTarget.value })}
-          maxLength={100}
-          required
-        />
-        <Field
-          id="decoration-order"
-          label="Thứ tự hiển thị"
-          type="number"
-          min={0}
-          max={9999}
-          value={draft.sortOrder}
-          onChange={(event) => onChange({ ...draft, sortOrder: event.currentTarget.value })}
-          hint="Số nhỏ hiện trước. Để trống khi thêm mới để xếp cuối."
-        />
-      </div>
+        <div className="grid gap-5">
+          <Field
+            id="decoration-name"
+            label="Tên hình nền"
+            value={draft.name}
+            onChange={(event) => onChange({ ...draft, name: event.currentTarget.value })}
+            maxLength={100}
+            required
+          />
 
-      {draft.builtin ? (
-        <p className="text-sm text-stone-600">
-          Hình nền có sẵn được vẽ bằng mã nên chỉ đổi được tên, thứ tự và trạng thái hiển thị.
-        </p>
-      ) : (
-        <>
           <label className="grid gap-1.5" htmlFor="decoration-image">
             <span className="text-sm font-medium text-emerald-950">
               Ảnh nền {draft.id ? '(để trống nếu giữ ảnh cũ)' : ''}
@@ -250,8 +277,8 @@ function BackgroundEditor({
               }
               className="rounded-xl border bg-white px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-900 file:px-3 file:py-1.5 file:text-white"
             />
-            <span className="text-xs text-stone-500">
-              PNG, JPG hoặc WEBP, tối đa 4 MB. Nên vẽ sẵn toàn bộ hoa văn, tỉ lệ 16:9.
+            <span className="text-xs leading-5 text-stone-500">
+              PNG, JPG hoặc WEBP, tối đa 4 MB, tỉ lệ 16:9 với hoa văn vẽ sẵn.
             </span>
           </label>
 
@@ -268,41 +295,87 @@ function BackgroundEditor({
                 })
               }
             >
-              <option value="STRETCH">Kéo giãn vừa tờ (giữ khung viền sát mép)</option>
-              <option value="COVER">Phủ kín cả tờ (có thể cắt bớt mép ảnh)</option>
-              <option value="TILE">Lát lặp lại (cho hoa văn nhỏ, không có khung)</option>
+              <option value="STRETCH">Kéo giãn vừa tờ (giữ khung sát mép)</option>
+              <option value="COVER">Phủ kín cả tờ (có thể cắt mép)</option>
+              <option value="TILE">Lát lặp lại (hoa văn nhỏ, không khung)</option>
             </select>
           </label>
 
-          <InsetFields
-            legend="Chỉnh chính xác vùng đặt cây"
-            hint="Khoảng cách từ mỗi mép ảnh tới khung đặt cây, tính theo phần trăm chiều cao/chiều rộng. Để cả bốn ô bằng 0 nếu ảnh không có vùng đặt cây."
-            insets={draft.insets}
-            onChange={(insets) => onChange({ ...draft, insets })}
+          <Field
+            id="decoration-order"
+            label="Thứ tự hiển thị"
+            type="number"
+            min={0}
+            max={9999}
+            value={draft.sortOrder}
+            onChange={(event) => onChange({ ...draft, sortOrder: event.currentTarget.value })}
+            hint="Số nhỏ hiện trước. Để trống khi thêm mới để xếp cuối."
           />
-        </>
-      )}
 
-      <label className="flex items-center gap-2 text-sm text-emerald-950">
-        <input
-          type="checkbox"
-          className={checkboxClass}
-          checked={draft.isActive}
-          onChange={(event) => onChange({ ...draft, isActive: event.currentTarget.checked })}
-        />
-        Hiển thị cho trưởng họ lựa chọn
-      </label>
+          <label className="flex items-start gap-3 rounded-xl border bg-white px-3.5 py-3 text-sm text-emerald-950">
+            <input
+              type="checkbox"
+              className={checkboxClass + ' mt-0.5'}
+              checked={draft.isActive}
+              onChange={(event) => onChange({ ...draft, isActive: event.currentTarget.checked })}
+            />
+            <span>
+              <span className="font-medium">Hiển thị cho trưởng họ</span>
+              <span className="block text-xs text-stone-500">
+                Bỏ chọn để ẩn khỏi danh sách lựa chọn.
+              </span>
+            </span>
+          </label>
 
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
-          Hủy
-        </Button>
-        <Button type="submit" disabled={saving}>
-          {saving ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
-          {saving ? 'Đang lưu…' : draft.id ? 'Lưu thay đổi' : 'Thêm hình nền'}
-        </Button>
-      </div>
-    </form>
+          <details className="rounded-xl border bg-white px-3.5 py-3">
+            <summary className="cursor-pointer text-sm font-medium text-emerald-950">
+              Nhập số chính xác cho vùng đặt cây
+            </summary>
+            <div className="mt-3">
+              <InsetFields
+                legend="Lề vùng đặt cây"
+                hint="Khoảng cách từ mỗi mép ảnh tới vùng đặt cây, theo phần trăm. Để cả bốn ô bằng 0 nếu ảnh không có vùng đặt cây."
+                insets={draft.insets}
+                onChange={(insets) => onChange({ ...draft, insets })}
+              />
+            </div>
+          </details>
+        </div>
+      </form>
+    </SectionCard>
+  );
+}
+
+/** A background sample stretched to the width of its container at 16:9. */
+function FittedSwatch({
+  decoration,
+  className,
+}: {
+  decoration: PosterDecoration;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const box = ref.current;
+    if (!box) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setWidth(entry.contentRect.width);
+    });
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={'aspect-video w-full overflow-hidden bg-[#fff6c9] ' + (className ?? '')}
+    >
+      {width > 0 ? (
+        <PosterBackgroundSwatch decoration={decoration} width={width} height={(width * 9) / 16} />
+      ) : null}
+    </div>
   );
 }
 
@@ -322,7 +395,7 @@ export function PosterDecorationManager({ initial }: { initial: AdminPosterDecor
 
   async function save(): Promise<void> {
     if (!draft) return;
-    const insetsError = draft.builtin ? null : insetsProblem(draft.insets);
+    const insetsError = insetsProblem(draft.insets);
     if (insetsError) {
       showToast({ kind: 'error', message: insetsError });
       return;
@@ -341,13 +414,11 @@ export function PosterDecorationManager({ initial }: { initial: AdminPosterDecor
         name: draft.name.trim(),
         isActive: draft.isActive,
         ...(draft.sortOrder.trim() === '' ? {} : { sortOrder: Number(draft.sortOrder) }),
-        ...(draft.builtin
-          ? {}
-          : {
-              backgroundMode: draft.backgroundMode,
-              insets: insetsToSave(draft.insets),
-              nameArea: draft.nameArea,
-            }),
+        backgroundMode: draft.backgroundMode,
+        insets: insetsToSave(draft.insets),
+        nameArea: draft.nameArea,
+        leftTextArea: draft.leftTextArea,
+        rightTextArea: draft.rightTextArea,
       };
 
       if (draft.id) {
@@ -397,64 +468,69 @@ export function PosterDecorationManager({ initial }: { initial: AdminPosterDecor
     }
   }
 
-  return (
-    <Card className="bg-white/80 shadow-sm">
-      <CardHeader>
-        <span className="grid size-11 place-items-center rounded-2xl bg-rose-100 text-rose-900">
-          <ImagePlus className="size-5" aria-hidden="true" />
-        </span>
-        <CardTitle className="mt-4 text-xl">Thư viện hình nền phả đồ</CardTitle>
-        <p className="text-sm leading-6 text-stone-600">
-          Các hình nền đang hiển thị sẽ xuất hiện trong mục “Hình nền phả đồ” của trưởng họ. Hình
-          nền có sẵn không thể xóa nhưng có thể ẩn.
-        </p>
-      </CardHeader>
-      <CardContent className="grid gap-5">
-        {draft ? (
-          <BackgroundEditor
-            draft={draft}
-            saved={shown.find((decoration) => decoration.id === draft.id)}
-            saving={saving}
-            onChange={setDraft}
-            onCancel={() => setDraft(null)}
-            onSubmit={() => void save()}
-          />
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            className="justify-self-start"
-            onClick={() => setDraft(draftFor())}
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Thêm hình nền
-          </Button>
-        )}
+  if (draft) {
+    return (
+      <BackgroundEditor
+        draft={draft}
+        saved={shown.find((decoration) => decoration.id === draft.id)}
+        saving={saving}
+        onChange={setDraft}
+        onCancel={() => setDraft(null)}
+        onSubmit={() => void save()}
+      />
+    );
+  }
 
-        {shown.length === 0 ? (
-          <p className="rounded-xl border border-dashed p-6 text-center text-sm text-stone-500">
-            Chưa có hình nền nào.
-          </p>
-        ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {shown.map((decoration) => (
-              <li
-                key={decoration.id}
-                className={
-                  'grid gap-3 rounded-2xl border bg-white p-3 ' +
-                  (decoration.isActive ? '' : 'opacity-60')
-                }
+  const activeCount = shown.filter((decoration) => decoration.isActive).length;
+  return (
+    <SectionCard
+      icon={<ImageIcon aria-hidden="true" />}
+      title="Thư viện hình nền phả đồ"
+      description={`${shown.length} hình nền · ${activeCount} đang hiển thị cho trưởng họ. Tải ảnh lên để thêm hình nền mới.`}
+      actions={
+        <Button type="button" onClick={() => setDraft(draftFor())}>
+          <Plus className="size-4" aria-hidden="true" />
+          Thêm hình nền
+        </Button>
+      }
+    >
+      {shown.length === 0 ? (
+        <div className="grid justify-items-center gap-3 rounded-2xl border border-dashed p-10 text-center">
+          <ImagePlus className="size-8 text-stone-400" aria-hidden="true" />
+          <p className="text-sm text-stone-500">Chưa có hình nền nào.</p>
+          <Button type="button" variant="outline" onClick={() => setDraft(draftFor())}>
+            <Plus className="size-4" aria-hidden="true" />
+            Thêm hình nền đầu tiên
+          </Button>
+        </div>
+      ) : (
+        <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {shown.map((decoration) => (
+            <li
+              key={decoration.id}
+              className="group grid overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:shadow-md"
+            >
+              <button
+                type="button"
+                onClick={() => setDraft(draftFor(decoration))}
+                className="relative block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-700"
+                aria-label={`Sửa hình nền ${decoration.name}`}
               >
-                <div className="grid h-24 place-items-center overflow-hidden rounded-xl bg-[#fff6c9]">
-                  <PosterBackgroundSwatch decoration={decoration} width={156} height={88} />
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-emerald-950">{decoration.name}</span>
-                  <Badge variant="outline">
-                    {decoration.builtinKey ? 'Có sẵn' : 'Ảnh tải lên'}
-                  </Badge>
-                  {decoration.isActive ? null : <Badge variant="outline">Đang ẩn</Badge>}
-                </div>
+                <FittedSwatch
+                  decoration={decoration}
+                  className={decoration.isActive ? '' : 'opacity-50 grayscale'}
+                />
+                {decoration.isActive ? null : (
+                  <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-stone-900/75 px-2.5 py-1 text-xs font-medium text-white">
+                    <EyeOff className="size-3" aria-hidden="true" />
+                    Đang ẩn
+                  </span>
+                )}
+              </button>
+              <div className="grid gap-3 p-4">
+                <p className="truncate font-medium text-emerald-950" title={decoration.name}>
+                  {decoration.name}
+                </p>
                 <p className="text-xs text-stone-500">
                   Thứ tự {decoration.sortOrder} · {decoration.usageCount} dòng họ đang dùng
                 </p>
@@ -482,25 +558,23 @@ export function PosterDecorationManager({ initial }: { initial: AdminPosterDecor
                     )}
                     {decoration.isActive ? 'Ẩn' : 'Hiện'}
                   </Button>
-                  {decoration.builtinKey ? null : (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="text-red-700 hover:text-red-800"
-                      disabled={busyId === decoration.id}
-                      onClick={() => void remove(decoration)}
-                    >
-                      <Trash2 className="size-3.5" aria-hidden="true" />
-                      Xóa
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="ml-auto text-red-700 hover:bg-red-50 hover:text-red-800"
+                    disabled={busyId === decoration.id}
+                    onClick={() => void remove(decoration)}
+                  >
+                    <Trash2 className="size-3.5" aria-hidden="true" />
+                    Xóa
+                  </Button>
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SectionCard>
   );
 }

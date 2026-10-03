@@ -4,9 +4,10 @@ import { Frame, LoaderCircle, RotateCcw, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 
+import { Field } from '@/components/auth/form-fields';
 import { PosterBackgroundSwatch, PosterSheet } from '@/components/tree/poster-art';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SectionCard } from '@/components/admin/admin-layout';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { updateFamily } from '@/lib/family-api';
@@ -80,7 +81,7 @@ function BackgroundPicker({
   return (
     <fieldset className="grid gap-2">
       <legend className="mb-2 text-sm font-medium text-emerald-950">Hình nền</legend>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
         {choices.map((choice) => {
           const selected = choice.id === value;
           return (
@@ -123,10 +124,16 @@ export function FamilyPosterForm({
   const router = useRouter();
   const showToast = useToast();
   const savedId = family.poster.background?.id ?? null;
+  const initialLeftText = family.poster.leftText ?? '';
+  const initialRightText = family.poster.rightText ?? '';
   const [value, setValue] = useState<string | null>(savedId);
   const [saved, setSaved] = useState<string | null>(savedId);
+  const [leftText, setLeftText] = useState(initialLeftText);
+  const [rightText, setRightText] = useState(initialRightText);
+  const [savedLeftText, setSavedLeftText] = useState(initialLeftText);
+  const [savedRightText, setSavedRightText] = useState(initialRightText);
   const [submitting, setSubmitting] = useState(false);
-  const isDirty = value !== saved;
+  const isDirty = value !== saved || leftText !== savedLeftText || rightText !== savedRightText;
 
   // The family's current pick stays resolvable even if the ADMIN has since hidden it.
   const byId = useMemo(() => {
@@ -134,68 +141,121 @@ export function FamilyPosterForm({
     return new Map([...current, ...decorations].map((decoration) => [decoration.id, decoration]));
   }, [decorations, family.poster.background]);
 
-  const previewPoster: FamilyPoster = { background: value ? (byId.get(value) ?? null) : null };
+  const previewPoster: FamilyPoster = {
+    background: value ? (byId.get(value) ?? null) : null,
+    leftText,
+    rightText,
+  };
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setSubmitting(true);
     try {
-      const updated = await updateFamily(family.slug, { posterBackgroundId: value });
+      const updated = await updateFamily(family.slug, {
+        posterBackgroundId: value,
+        posterLeftText: leftText,
+        posterRightText: rightText,
+      });
       const next = updated.poster.background?.id ?? null;
+      const nextLeftText = updated.poster.leftText ?? '';
+      const nextRightText = updated.poster.rightText ?? '';
       setValue(next);
       setSaved(next);
-      showToast({ kind: 'success', message: 'Đã lưu hình nền phả đồ.' });
+      setLeftText(nextLeftText);
+      setRightText(nextRightText);
+      setSavedLeftText(nextLeftText);
+      setSavedRightText(nextRightText);
+      showToast({ kind: 'success', message: 'Đã lưu trang trí phả đồ.' });
       router.refresh();
     } catch (error: unknown) {
-      showToast({ kind: 'error', message: getApiErrorMessage(error, 'lưu hình nền phả đồ') });
+      showToast({ kind: 'error', message: getApiErrorMessage(error, 'lưu trang trí phả đồ') });
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Card className="bg-white/80 shadow-sm">
-      <CardHeader>
-        <span className="grid size-11 place-items-center rounded-2xl bg-rose-100 text-rose-900">
-          <Frame className="size-5" aria-hidden="true" />
-        </span>
-        <CardTitle className="mt-4 text-xl">Hình nền phả đồ</CardTitle>
-        <p className="text-sm leading-6 text-stone-600">
-          Chọn hình nền cho trang cây gia phả. Cây gia phả tự co giãn vào khung nét đứt trong bản
-          xem trước. Tên dòng họ lấy từ mục thông tin dòng họ ở trên.
-        </p>
-      </CardHeader>
-      <CardContent>
-        <form className="grid gap-6" onSubmit={handleSubmit}>
+    <SectionCard
+      icon={<Frame aria-hidden="true" />}
+      title="Trang trí phả đồ"
+      description="Chọn hình nền và câu chữ dọc hai bên. Bản xem trước cập nhật ngay khi bạn thay đổi; cây gia phả tự co giãn vào khung nét đứt."
+      footer={
+        <>
+          {isDirty ? (
+            <span className="text-sm text-amber-800 sm:mr-auto">Có thay đổi chưa lưu</span>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setValue(saved);
+              setLeftText(savedLeftText);
+              setRightText(savedRightText);
+            }}
+            disabled={submitting || !isDirty}
+          >
+            <RotateCcw className="size-4" aria-hidden="true" />
+            Khôi phục
+          </Button>
+          <Button type="submit" form="family-poster-form" disabled={submitting || !isDirty}>
+            {submitting ? (
+              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Save className="size-4" aria-hidden="true" />
+            )}
+            {submitting ? 'Đang lưu…' : 'Lưu trang trí'}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="family-poster-form"
+        className="grid items-start gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+        onSubmit={handleSubmit}
+      >
+        <div className="grid gap-2 lg:sticky lg:top-6">
+          <p className="text-sm font-medium text-emerald-950">Xem trước</p>
           <PosterPreview poster={previewPoster} familyName={family.name} />
+          <p className="text-xs leading-5 text-stone-500">
+            Tên dòng họ lấy từ tab Thông tin dòng họ.
+          </p>
+        </div>
 
+        <div className="grid gap-7">
           <BackgroundPicker
             options={decorations.filter((decoration) => decoration.kind === 'BACKGROUND')}
             value={value}
             onChange={setValue}
           />
 
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setValue(saved)}
-              disabled={submitting || !isDirty}
-            >
-              <RotateCcw className="size-4" aria-hidden="true" />
-              Khôi phục
-            </Button>
-            <Button type="submit" disabled={submitting || !isDirty}>
-              {submitting ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <Save className="size-4" aria-hidden="true" />
-              )}
-              {submitting ? 'Đang lưu…' : 'Lưu hình nền'}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+          <fieldset className="grid gap-3">
+            <legend className="mb-2 text-sm font-medium text-emerald-950">
+              Câu chữ dọc hai bên
+            </legend>
+            <div className="grid gap-4">
+              <Field
+                id="poster-left-text"
+                label="Chữ dọc bên trái"
+                value={leftText}
+                onChange={(event) => setLeftText(event.currentTarget.value)}
+                maxLength={191}
+                placeholder="Nhập nội dung bên trái"
+              />
+              <Field
+                id="poster-right-text"
+                label="Chữ dọc bên phải"
+                value={rightText}
+                onChange={(event) => setRightText(event.currentTarget.value)}
+                maxLength={191}
+                placeholder="Nhập nội dung bên phải"
+              />
+            </div>
+            <p className="text-xs leading-5 text-stone-500">
+              Để trống ô không muốn hiển thị. Vị trí và màu chữ theo hình nền đã chọn.
+            </p>
+          </fieldset>
+        </div>
+      </form>
+    </SectionCard>
   );
 }

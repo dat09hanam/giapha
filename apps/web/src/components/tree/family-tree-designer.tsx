@@ -14,6 +14,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
+  Camera,
   ArrowLeft,
   Baby,
   Check,
@@ -36,6 +37,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { familyEdgeTypes } from "@/components/tree/family-link-edge";
 import { Button } from "@/components/ui/button";
+import { CameraCapture } from "@/components/ui/camera-capture";
 import { ImageCropper } from "@/components/ui/image-cropper";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { useToast } from "@/components/ui/toast";
@@ -403,6 +405,17 @@ function createMember(
     orderInFamily,
     deletesBranch: true,
   };
+}
+
+/**
+ * The placeholder name of a newly added member: "Thành viên thứ n", where n
+ * is the member's position in the tree, skipping numbers already in use.
+ */
+function nextMemberName(people: readonly DesignerMember[]): string {
+  const names = new Set(people.map((person) => person.name));
+  let number = people.length + 1;
+  while (names.has(`Thành viên thứ ${number}`)) number += 1;
+  return `Thành viên thứ ${number}`;
 }
 
 function recalculateGenerations(draft: DesignerDraft): DesignerDraft {
@@ -887,6 +900,7 @@ export function FamilyTreeDesigner({
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deletedPersonIds, setDeletedPersonIds] = useState<string[]>([]);
   const [avatarCropSource, setAvatarCropSource] = useState<File | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   /**
    * Photos cropped but not committed yet, keyed by member. Nothing reaches the
    * media folder until "Lưu tất cả" succeeds, so an abandoned edit leaves no file.
@@ -1075,7 +1089,9 @@ export function FamilyTreeDesigner({
       if (!target || relationshipChoiceBlockedReason(kind, target)) {
         return current;
       }
-      const withMember = { ...current, people: [...current.people, member] };
+      // Every kind of relative gets the same numbered placeholder name.
+      const named = { ...member, name: nextMemberName(current.people) };
+      const withMember = { ...current, people: [...current.people, named] };
 
       if (kind === "FATHER" || kind === "MOTHER") {
         const withParent = updateMember(withMember, target.id, (person) =>
@@ -1101,7 +1117,7 @@ export function FamilyTreeDesigner({
 
       const siblings = memberChildren(current, target.id);
       const child = {
-        ...member,
+        ...named,
         orderInFamily:
           Math.max(0, ...siblings.map((sibling) => sibling.orderInFamily)) + 1,
         fatherId: parents?.fatherId ?? null,
@@ -1748,15 +1764,26 @@ export function FamilyTreeDesigner({
                         if (file) pickAvatarSource(file);
                       }}
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={savingAll}
-                      onClick={() => avatarInputRef.current?.click()}
-                    >
-                      <ImagePlus className="size-4" aria-hidden="true" />
-                      {selectedAvatarSrc ? "Đổi ảnh" : "Thêm ảnh"}
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={savingAll}
+                        onClick={() => avatarInputRef.current?.click()}
+                      >
+                        <ImagePlus className="size-4" aria-hidden="true" />
+                        {selectedAvatarSrc ? "Đổi ảnh" : "Chọn ảnh"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={savingAll}
+                        onClick={() => setCameraOpen(true)}
+                      >
+                        <Camera className="size-4" aria-hidden="true" />
+                        Chụp ảnh
+                      </Button>
+                    </div>
                     {selectedAvatarSrc ? (
                       <button
                         type="button"
@@ -2124,6 +2151,16 @@ export function FamilyTreeDesigner({
             ) : null}
           </section>
         </div>
+      ) : null}
+
+      {cameraOpen ? (
+        <CameraCapture
+          onCancel={() => setCameraOpen(false)}
+          onCaptured={(photo) => {
+            setCameraOpen(false);
+            pickAvatarSource(photo);
+          }}
+        />
       ) : null}
 
       {avatarCropSource ? (

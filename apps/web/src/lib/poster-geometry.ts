@@ -10,7 +10,7 @@ import type { FamilyPoster } from '@/lib/poster-decorations';
  * with a small margin.
  */
 export const POSTER_GEOMETRY = {
-  /** Width of a built-in frame band, in canvas pixels at decoration scale 1. */
+  /** Margin kept free along the sheet edge when no tree area is marked, at decoration scale 1. */
   band: 40,
   /** Margin between the frame band and the tree, at decoration scale 1. */
   margin: 60,

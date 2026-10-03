@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Controls,
   ReactFlow,
@@ -12,6 +12,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { familyEdgeTypes } from '@/components/tree/family-link-edge';
+import { PersonDetailsDialog } from '@/components/tree/person-details-dialog';
 import { PersonNode } from '@/components/tree/person-node';
 import { PosterFrame } from '@/components/tree/poster-nodes';
 import { toPosterElements } from '@/lib/tree-layout';
@@ -55,6 +56,24 @@ export function FamilyTree({
     () => toPosterElements(tree, family, familySlug),
     [family, familySlug, tree],
   );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const closeDetails = useCallback(() => setSelectedId(null), []);
+
+  // Generations as the layout numbered them, so the popup matches the cards.
+  const generations = useMemo(
+    () =>
+      new Map(
+        nodes.flatMap((node) =>
+          node.type === 'person' && 'generation' in node.data
+            ? [[node.id, node.data.generation as number] as const]
+            : [],
+        ),
+      ),
+    [nodes],
+  );
+  const selectedPerson = selectedId
+    ? tree.people.find((person) => person.id === selectedId)
+    : undefined;
 
   if (nodes.length === 0) {
     return (
@@ -81,6 +100,9 @@ export function FamilyTree({
           fitViewOptions={FIT_VIEW_OPTIONS}
           minZoom={0.02}
           maxZoom={2}
+          onNodeClick={(_, node) => {
+            if (node.type === 'person') setSelectedId(node.id);
+          }}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
@@ -91,6 +113,17 @@ export function FamilyTree({
           <Controls position="top-right" orientation="horizontal" showInteractive={false} />
         </ReactFlow>
       </div>
+      {selectedPerson ? (
+        <PersonDetailsDialog
+          person={selectedPerson}
+          generation={generations.get(selectedPerson.id) ?? selectedPerson.generation}
+          people={tree.people}
+          relationships={tree.relationships}
+          familySlug={familySlug}
+          onSelectPerson={setSelectedId}
+          onClose={closeDetails}
+        />
+      ) : null}
     </div>
   );
 }

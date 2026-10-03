@@ -31,6 +31,8 @@ export type UpdateFamilyInput = Partial<{
   deathAnniversary: string | null;
   /** Library background ID; null shows plain paper. */
   posterBackgroundId: string | null;
+  posterLeftText: string | null;
+  posterRightText: string | null;
 }>;
 
 export function createFamily(input: CreateFamilyInput): Promise<CreatedFamilyResult> {

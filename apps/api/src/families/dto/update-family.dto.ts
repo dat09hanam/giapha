@@ -31,4 +31,14 @@ export class UpdateFamilyDto {
   @IsOptional()
   @IsUUID()
   posterBackgroundId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  posterLeftText?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  posterRightText?: string | null;
 }

@@ -39,6 +39,17 @@ export function logout(): Promise<void> {
   );
 }
 
+export function getCurrentProfile(): Promise<AuthProfile> {
+  return apiFetch<AuthProfile>(
+    `${API_URL}/auth/me`,
+    {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    },
+    'tải thông tin tài khoản',
+  );
+}
+
 export function profileDestination(profile: AuthProfile): string {
   if (profile.role === 'ADMIN') {
     return '/admin';

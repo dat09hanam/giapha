@@ -72,14 +72,13 @@ Platform Admin accounts are provisioned or rotated with `npm run admin:bootstrap
 the recurring death anniversary (`deathAnniversaryDay` and `deathAnniversaryMonth`), the ancestral
 hall `address` and the clan origin (`ancestryOrigin`). It also stores the phả đồ background the
 clan head chose: a nullable foreign key `posterBackgroundId` into the decoration library (null shows
-plain paper). The background is the sheet's only decoration; center and side art, couplets and the
-title were retired.
+plain paper), plus the optional family-specific vertical inscriptions `posterLeftText` and
+`posterRightText`.
 
 `PosterDecoration` is the platform-wide background library and is deliberately **not**
-tenant-owned: every Family chooses from the same rows. Every row has `kind` `BACKGROUND` and is either
-built-in (`builtinKey`, drawn by the web app's own code, seeded by migration with fixed IDs, never
-deletable) or an uploaded raster image (`imageFile` under `MEDIA_ROOT/poster-decorations/`) with a
-`backgroundMode`. Only the platform `ADMIN` creates, edits, hides or deletes rows
+tenant-owned: every Family chooses from the same rows. Every row has `kind` `BACKGROUND` and is an
+uploaded raster image (`imageFile` under `MEDIA_ROOT/poster-decorations/`) with a `backgroundMode`;
+there are no built-in, code-drawn backgrounds. Only the platform `ADMIN` creates, edits, hides or deletes rows
 (`/api/poster-decorations`); signed-in users list active rows; images are served publicly because
 they are shared artwork, not family data. Deleting a row sets the families using it to null. A
 family head may only pick an active row.
@@ -91,7 +90,10 @@ tree fills exactly that area at any tree size; without one the tree sits inside 
 It may also carry a name area (`nameInsetTop/Right/Bottom/Left`, all four or none) with `nameCurve`
 (how far the middle of the text rises, in percent of the area's height; negative bends it down) and
 `nameColor`. The web app writes the family's `name` there along that arc, sized to the area, so the
-clan head only edits the name in the family profile.
+clan head only edits the name in the family profile. Two further optional areas
+(`leftTextInsetTop/Right/Bottom/Left` and `rightTextInsetTop/Right/Bottom/Left`, each all four or
+none) and their colors place the family's left and right inscriptions vertically. The platform
+`ADMIN` defines these areas on uploaded backgrounds; the clan head supplies only the two texts.
 
 `Person` belongs to one Family and stores optional `fatherId` and `motherId` self-references. Both
 foreign keys include `familyId`, preventing cross-Family parent links at the database boundary. A

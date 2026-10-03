@@ -7,7 +7,7 @@ import { useState, type FormEvent } from 'react';
 import { Field } from '@/components/auth/form-fields';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SectionCard } from '@/components/admin/admin-layout';
 import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { updateFamily } from '@/lib/family-api';
@@ -91,104 +91,101 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
   }
 
   return (
-    <Card className="bg-white/80 shadow-sm">
-      <CardHeader>
-        <span className="grid size-11 place-items-center rounded-2xl bg-emerald-100 text-emerald-900">
-          <Landmark className="size-5" aria-hidden="true" />
-        </span>
-        <CardTitle className="mt-4 text-xl">Thông tin dòng họ</CardTitle>
-        <p className="text-sm leading-6 text-stone-600">
-          Cập nhật thông tin giới thiệu được hiển thị cho các thành viên của dòng họ.
-        </p>
-      </CardHeader>
-      <CardContent>
-        <form className="grid gap-5" onSubmit={handleSubmit}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              id="family-profile-name"
-              label="Tên dòng họ"
-              value={values.name}
-              onChange={(event) => updateValue('name', event.currentTarget.value)}
-              autoComplete="organization"
-              minLength={2}
-              maxLength={191}
-              required
-            />
+    <SectionCard
+      icon={<Landmark aria-hidden="true" />}
+      title="Thông tin dòng họ"
+      description="Thông tin giới thiệu hiển thị cho các thành viên của dòng họ."
+      footer={
+        <>
+          {isDirty ? (
+            <span className="text-sm text-amber-800 sm:mr-auto">Có thay đổi chưa lưu</span>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={resetForm}
+            disabled={submitting || !isDirty}
+          >
+            <RotateCcw className="size-4" aria-hidden="true" />
+            Khôi phục
+          </Button>
+          <Button type="submit" form="family-profile-form" disabled={submitting || !isDirty}>
+            {submitting ? (
+              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Save className="size-4" aria-hidden="true" />
+            )}
+            {submitting ? 'Đang lưu…' : 'Lưu thay đổi'}
+          </Button>
+        </>
+      }
+    >
+      <form id="family-profile-form" className="grid gap-6" onSubmit={handleSubmit}>
+        <div className="grid gap-x-5 gap-y-5 md:grid-cols-2">
+          <Field
+            id="family-profile-name"
+            label="Tên dòng họ"
+            value={values.name}
+            onChange={(event) => updateValue('name', event.currentTarget.value)}
+            autoComplete="organization"
+            minLength={2}
+            maxLength={191}
+            required
+          />
 
-            <div className="grid gap-1.5">
-              <span className="text-sm font-medium text-emerald-950">Đường dẫn công khai</span>
-              <div className="flex h-11 items-center gap-2 rounded-xl border bg-stone-50 px-3 text-sm text-stone-600">
-                <Link2 className="size-4 shrink-0" aria-hidden="true" />
-                <code className="min-w-0 truncate">/{family.slug}</code>
-              </div>
-              <span className="text-xs text-stone-500">
-                Đường dẫn được khóa để các liên kết đã chia sẻ luôn hoạt động.
-              </span>
+          <div className="grid gap-1.5">
+            <span className="text-sm font-medium text-emerald-950">Đường dẫn công khai</span>
+            <div className="flex h-11 items-center gap-2 rounded-xl border bg-stone-50 px-3 text-sm text-stone-600">
+              <Link2 className="size-4 shrink-0" aria-hidden="true" />
+              <code className="min-w-0 truncate">/{family.slug}</code>
             </div>
-
-            <Field
-              id="family-profile-origin"
-              label="Quê quán / nguồn gốc"
-              value={values.ancestryOrigin}
-              onChange={(event) => updateValue('ancestryOrigin', event.currentTarget.value)}
-              placeholder="Ví dụ: Làng Đại Phùng, Hà Nội"
-              maxLength={255}
-            />
-
-            <Field
-              id="family-profile-address"
-              label="Địa chỉ hiện nay"
-              value={values.address}
-              onChange={(event) => updateValue('address', event.currentTarget.value)}
-              autoComplete="street-address"
-              placeholder="Nơi sinh hoạt chính của dòng họ"
-              maxLength={255}
-            />
-
-            <DeathAnniversaryPicker
-              id="family-profile-anniversary"
-              value={values.deathAnniversary}
-              onChange={(value) => updateValue('deathAnniversary', value)}
-              hint="Chọn ngày và tháng; để trống nếu chưa xác định."
-            />
-          </div>
-
-          <label className="grid gap-1.5" htmlFor="family-profile-description">
-            <span className="text-sm font-medium text-emerald-950">Giới thiệu dòng họ</span>
-            <textarea
-              id="family-profile-description"
-              value={values.description}
-              onChange={(event) => updateValue('description', event.currentTarget.value)}
-              className="min-h-36 resize-y rounded-xl border bg-white px-3 py-3 text-sm leading-6 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
-              placeholder="Ghi lại lịch sử hình thành, truyền thống và những thông tin chung của dòng họ…"
-              maxLength={5000}
-            />
             <span className="text-xs text-stone-500">
-              Tối đa 5.000 ký tự. Không nhập thông tin riêng tư của từng thành viên tại đây.
+              Đường dẫn được khóa để các liên kết đã chia sẻ luôn hoạt động.
             </span>
-          </label>
-
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={resetForm}
-              disabled={submitting || !isDirty}
-            >
-              <RotateCcw className="size-4" aria-hidden="true" />
-              Khôi phục
-            </Button>
-            <Button type="submit" disabled={submitting || !isDirty}>
-              {submitting ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <Save className="size-4" aria-hidden="true" />
-              )}
-              {submitting ? 'Đang lưu…' : 'Lưu thay đổi'}
-            </Button>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+
+          <Field
+            id="family-profile-origin"
+            label="Quê quán / nguồn gốc"
+            value={values.ancestryOrigin}
+            onChange={(event) => updateValue('ancestryOrigin', event.currentTarget.value)}
+            placeholder="Ví dụ: Làng Đại Phùng, Hà Nội"
+            maxLength={255}
+          />
+
+          <Field
+            id="family-profile-address"
+            label="Địa chỉ hiện nay"
+            value={values.address}
+            onChange={(event) => updateValue('address', event.currentTarget.value)}
+            autoComplete="street-address"
+            placeholder="Nơi sinh hoạt chính của dòng họ"
+            maxLength={255}
+          />
+
+          <DeathAnniversaryPicker
+            id="family-profile-anniversary"
+            value={values.deathAnniversary}
+            onChange={(value) => updateValue('deathAnniversary', value)}
+            hint="Chọn ngày và tháng; để trống nếu chưa xác định."
+          />
+        </div>
+
+        <label className="grid gap-1.5" htmlFor="family-profile-description">
+          <span className="text-sm font-medium text-emerald-950">Giới thiệu dòng họ</span>
+          <textarea
+            id="family-profile-description"
+            value={values.description}
+            onChange={(event) => updateValue('description', event.currentTarget.value)}
+            className="min-h-44 resize-y rounded-xl border bg-white px-3 py-3 text-sm leading-6 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+            placeholder="Ghi lại lịch sử hình thành, truyền thống và những thông tin chung của dòng họ…"
+            maxLength={5000}
+          />
+          <span className="text-xs text-stone-500">
+            Tối đa 5.000 ký tự. Không nhập thông tin riêng tư của từng thành viên tại đây.
+          </span>
+        </label>
+      </form>
+    </SectionCard>
   );
 }

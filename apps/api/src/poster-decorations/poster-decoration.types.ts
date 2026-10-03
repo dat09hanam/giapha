@@ -4,7 +4,6 @@ export const posterDecorationSelect = {
   id: true,
   kind: true,
   name: true,
-  builtinKey: true,
   imageFile: true,
   isActive: true,
   sortOrder: true,
@@ -19,6 +18,16 @@ export const posterDecorationSelect = {
   nameInsetLeft: true,
   nameCurve: true,
   nameColor: true,
+  leftTextInsetTop: true,
+  leftTextInsetRight: true,
+  leftTextInsetBottom: true,
+  leftTextInsetLeft: true,
+  leftTextColor: true,
+  rightTextInsetTop: true,
+  rightTextInsetRight: true,
+  rightTextInsetBottom: true,
+  rightTextInsetLeft: true,
+  rightTextColor: true,
   updatedAt: true,
 } satisfies Prisma.PosterDecorationSelect;
 
@@ -36,12 +45,12 @@ export type PosterNameArea = PosterInsets & {
   color: string;
 };
 
+export type PosterVerticalTextArea = PosterInsets & { color: string };
+
 export type PosterDecorationResponse = {
   id: string;
   kind: PosterDecorationKind;
   name: string;
-  /** Set for decorations the web app draws itself. */
-  builtinKey: string | null;
   /** API-relative image path for uploaded decorations, versioned so caches refresh on change. */
   imageUrl: string | null;
   isActive: boolean;
@@ -51,6 +60,9 @@ export type PosterDecorationResponse = {
   insets: PosterInsets | null;
   /** Where the family name is written; null writes none. */
   nameArea: PosterNameArea | null;
+  /** Where family-specific text is written vertically on the left and right. */
+  leftTextArea: PosterVerticalTextArea | null;
+  rightTextArea: PosterVerticalTextArea | null;
 };
 
 export type AdminPosterDecorationResponse = PosterDecorationResponse & {
@@ -74,6 +86,16 @@ export function toPosterDecorationResponse(
     nameInsetLeft,
     nameCurve,
     nameColor,
+    leftTextInsetTop,
+    leftTextInsetRight,
+    leftTextInsetBottom,
+    leftTextInsetLeft,
+    leftTextColor,
+    rightTextInsetTop,
+    rightTextInsetRight,
+    rightTextInsetBottom,
+    rightTextInsetLeft,
+    rightTextColor,
     ...rest
   } = record;
   return {
@@ -91,6 +113,32 @@ export function toPosterDecorationResponse(
             left: nameInsetLeft,
             curve: nameCurve,
             color: nameColor,
+          },
+    leftTextArea:
+      leftTextInsetTop === null ||
+      leftTextInsetRight === null ||
+      leftTextInsetBottom === null ||
+      leftTextInsetLeft === null
+        ? null
+        : {
+            top: leftTextInsetTop,
+            right: leftTextInsetRight,
+            bottom: leftTextInsetBottom,
+            left: leftTextInsetLeft,
+            color: leftTextColor,
+          },
+    rightTextArea:
+      rightTextInsetTop === null ||
+      rightTextInsetRight === null ||
+      rightTextInsetBottom === null ||
+      rightTextInsetLeft === null
+        ? null
+        : {
+            top: rightTextInsetTop,
+            right: rightTextInsetRight,
+            bottom: rightTextInsetBottom,
+            left: rightTextInsetLeft,
+            color: rightTextColor,
           },
     insets:
       insetTop === null || insetRight === null || insetBottom === null || insetLeft === null
