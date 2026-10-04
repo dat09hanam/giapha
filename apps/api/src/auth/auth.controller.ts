@@ -16,6 +16,7 @@ import type { FastifyReply } from 'fastify';
 
 import type { AuthRequest } from '../common/auth/auth.types.js';
 import { AuthThrottleGuard } from '../common/auth/auth-throttle.guard.js';
+import { AllowPendingPasswordChange } from '../common/auth/password-change.decorator.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import {
   expiredSessionCookie,
@@ -24,6 +25,8 @@ import {
 } from '../common/auth/session-token.js';
 import { AuthService, type AuthProfile, type AuthResult } from './auth.service.js';
 // Runtime imports are required for Nest's emitted DTO validation metadata.
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { ChangePasswordDto } from './dto/change-password.dto.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { LoginDto } from './dto/login.dto.js';
 
@@ -46,6 +49,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(SessionAuthGuard)
+  @AllowPendingPasswordChange()
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(
     @Req() request: AuthRequest,
@@ -57,12 +61,28 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(SessionAuthGuard)
+  @AllowPendingPasswordChange()
   getMe(@Req() request: AuthRequest): Promise<AuthProfile> {
     if (!request.auth) {
       throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
     }
 
     return this.authService.getProfile(request.auth.userId);
+  }
+
+  @Post('password')
+  @UseGuards(AuthThrottleGuard, SessionAuthGuard)
+  @AllowPendingPasswordChange()
+  @HttpCode(HttpStatus.OK)
+  changePassword(
+    @Body() input: ChangePasswordDto,
+    @Req() request: AuthRequest,
+  ): Promise<AuthProfile> {
+    if (!request.auth) {
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
+    }
+
+    return this.authService.changePassword(request.auth.userId, request.auth.sessionId, input);
   }
 
   private finishAuthentication(result: AuthResult, reply: FastifyReply): AuthProfile {

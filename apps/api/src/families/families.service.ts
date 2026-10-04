@@ -9,7 +9,7 @@ import { FamilyStatus, PosterDecorationKind, Prisma, UserRole } from '@prisma/cl
 
 import { normalizeFamilySlug } from '../common/pipes/family-slug.pipe.js';
 import { PrismaService } from '../database/prisma.service.js';
-import { hashPassword, resolveNewPassword } from '../auth/password.js';
+import { generatePassword, hashPassword } from '../auth/password.js';
 import {
   posterDecorationSelect,
   toPosterDecorationResponse,
@@ -97,7 +97,7 @@ export class FamiliesService {
     const slug = normalizeFamilySlug(input.slug);
     const anniversary = parseDeathAnniversary(input.deathAnniversary);
     const usernames = generateFamilyUsernames(name, anniversary);
-    const memberPlusPassword = resolveNewPassword(input.memberPlusPassword);
+    const memberPlusPassword = generatePassword();
     const [memberPlusPasswordHash, memberPasswordHash] = await Promise.all([
       hashPassword(memberPlusPassword),
       hashPassword(usernames.member),
@@ -122,6 +122,7 @@ export class FamiliesService {
             {
               username: usernames.memberPlus,
               passwordHash: memberPlusPasswordHash,
+              mustChangePassword: true,
               displayName: `Trưởng họ - ${name}`,
               role: UserRole.MEMBER_PLUS,
               familyId: created.id,
@@ -129,6 +130,7 @@ export class FamiliesService {
             {
               username: usernames.member,
               passwordHash: memberPasswordHash,
+              isShared: true,
               displayName: `Thành viên - ${name}`,
               role: UserRole.MEMBER,
               familyId: created.id,

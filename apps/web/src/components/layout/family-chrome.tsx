@@ -5,24 +5,28 @@ import { FamilyHeader, type FamilyHeaderViewer } from '@/components/layout/famil
 import { SiteHeaderBar } from '@/components/layout/site-header';
 import { ViewerIdentityScope } from '@/components/layout/viewer-identity-scope';
 import { ApiNotFoundError, getAuthProfile, getFamily, getPlatformFeatures } from '@/lib/api';
+import type { AuthProfile } from '@/lib/auth-api';
 import { familyNav } from '@/lib/family-nav';
+import { requirePasswordChanged } from '@/lib/session';
 import type { FamilyFeatures } from '@/types/family-tree';
 
-async function loadViewer(): Promise<FamilyHeaderViewer> {
+async function loadViewer(slug: string): Promise<FamilyHeaderViewer> {
   const sessionToken = (await cookies()).get('giapha_session')?.value;
   if (!sessionToken) return null;
+  let profile: AuthProfile;
   try {
-    const profile = await getAuthProfile(sessionToken);
-    return {
-      id: profile.id,
-      displayName: profile.displayName,
-      role: profile.role,
-      managesBranches: profile.managesBranches,
-    };
+    profile = await getAuthProfile(sessionToken);
   } catch {
     // The pages below handle expired sessions; the header just shows the sign-in link.
     return null;
   }
+  requirePasswordChanged(profile, `/${encodeURIComponent(slug)}`);
+  return {
+    id: profile.id,
+    displayName: profile.displayName,
+    role: profile.role,
+    managesBranches: profile.managesBranches,
+  };
 }
 
 /** The family's name; null when no family has this slug. */
@@ -54,7 +58,7 @@ export async function FamilyChrome({ slug, children }: { slug: string; children:
   const [name, features, viewer] = await Promise.all([
     loadFamilyName(slug),
     loadFeatures(),
-    loadViewer(),
+    loadViewer(slug),
   ]);
 
   if (name === null) {

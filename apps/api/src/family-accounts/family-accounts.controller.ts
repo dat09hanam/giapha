@@ -27,7 +27,6 @@ import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import {
   CreateFamilyAccountDto,
-  ResetFamilyAccountPasswordDto,
   SetBranchesDto,
   UpdateFamilyAccountDto,
 } from './family-accounts.dto.js';
@@ -78,10 +77,9 @@ export class FamilyAccountsController {
   resetPassword(
     @Param('slug', FamilySlugPipe) _slug: string,
     @Param('userId', new ParseUUIDPipe()) userId: string,
-    @Body() input: ResetFamilyAccountPasswordDto,
     @Req() request: AuthRequest,
   ): Promise<FamilyAccountWithPassword> {
-    return this.accounts.resetPassword(this.familyId(request), userId, input);
+    return this.accounts.resetPassword(this.familyId(request), userId);
   }
 
   @Put(':userId/branches')

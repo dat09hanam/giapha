@@ -18,6 +18,7 @@ import {
 import { ApiRequestError } from '@/lib/api-error';
 import { profileDestination, type AuthProfile } from '@/lib/auth-api';
 import type { AdminPosterDecoration } from '@/lib/poster-decorations';
+import { requirePasswordChanged } from '@/lib/session';
 import type { FamilyFeatures } from '@/types/family-tree';
 
 export const metadata: Metadata = {
@@ -31,16 +32,18 @@ async function requireAdmin(): Promise<AuthProfile> {
   const sessionToken = (await cookies()).get('giapha_session')?.value;
   if (!sessionToken) redirect('/login?next=/admin');
 
+  let profile: AuthProfile;
   try {
-    const profile = await getAuthProfile(sessionToken);
-    if (profile.role !== 'ADMIN') redirect(profileDestination(profile));
-    return profile;
+    profile = await getAuthProfile(sessionToken);
   } catch (error) {
     if (error instanceof ApiUnauthorizedError) {
       redirect('/login?next=/admin&reason=session-expired');
     }
     throw error;
   }
+  requirePasswordChanged(profile, '/admin');
+  if (profile.role !== 'ADMIN') redirect(profileDestination(profile));
+  return profile;
 }
 
 export default async function AdminPage() {

@@ -7,12 +7,11 @@ import {
 } from '@nestjs/common';
 import { Prisma, UserRole, UserStatus } from '@prisma/client';
 
-import { hashPassword, resolveNewPassword } from '../auth/password.js';
+import { generatePassword, hashPassword } from '../auth/password.js';
 import { computeBranchScope } from '../branches/branch-scope.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type {
   CreateFamilyAccountDto,
-  ResetFamilyAccountPasswordDto,
   SetBranchesDto,
   UpdateFamilyAccountDto,
 } from './family-accounts.dto.js';
@@ -25,6 +24,8 @@ export type FamilyAccount = {
   displayName: string;
   role: UserRole;
   status: UserStatus;
+  /** The family's shared member account, whose password cannot be reset. */
+  isShared: boolean;
   createdAt: string;
   branches: FamilyAccountBranch[];
 };
@@ -38,6 +39,7 @@ const accountSelect = {
   displayName: true,
   role: true,
   status: true,
+  isShared: true,
   createdAt: true,
   branches: {
     select: { rootPersonId: true, root: { select: { name: true } } },
@@ -54,6 +56,7 @@ function toAccount(record: AccountRecord): FamilyAccount {
     displayName: record.displayName,
     role: record.role,
     status: record.status,
+    isShared: record.isShared,
     createdAt: record.createdAt.toISOString(),
     branches: record.branches.map((branch) => ({
       rootPersonId: branch.rootPersonId,
@@ -83,7 +86,7 @@ export class FamilyAccountsService {
     familyId: string,
     input: CreateFamilyAccountDto,
   ): Promise<FamilyAccountWithPassword> {
-    const password = resolveNewPassword(input.password);
+    const password = generatePassword();
     try {
       const account = await this.prisma.user.create({
         data: {
@@ -91,6 +94,7 @@ export class FamilyAccountsService {
           username: input.username.trim(),
           displayName: input.displayName.trim(),
           passwordHash: await hashPassword(password),
+          mustChangePassword: true,
           role: UserRole.MEMBER,
         },
         select: accountSelect,
@@ -127,20 +131,19 @@ export class FamilyAccountsService {
     return toAccount(account);
   }
 
-  async resetPassword(
-    familyId: string,
-    userId: string,
-    input: ResetFamilyAccountPasswordDto,
-  ): Promise<FamilyAccountWithPassword> {
-    await this.findMemberAccount(familyId, userId);
-    const password = resolveNewPassword(input.password);
+  /** A generated password the owner must replace on their next sign-in. */
+  async resetPassword(familyId: string, userId: string): Promise<FamilyAccountWithPassword> {
+    if ((await this.findMemberAccount(familyId, userId)).isShared) {
+      throw new BadRequestException('Không thể đặt lại mật khẩu của tài khoản dùng chung.');
+    }
+    const password = generatePassword();
     const passwordHash = await hashPassword(password);
     const account = await this.prisma.$transaction(async (transaction) => {
       // Signs the account out everywhere, so the old password stops working at once.
       await transaction.authSession.deleteMany({ where: { userId } });
       return transaction.user.update({
         where: { id: userId },
-        data: { passwordHash },
+        data: { passwordHash, mustChangePassword: true },
         select: accountSelect,
       });
     });
@@ -225,14 +228,18 @@ export class FamilyAccountsService {
   }
 
   /** Only member accounts of this family are managed here, never the family head's own. */
-  private async findMemberAccount(familyId: string, userId: string): Promise<void> {
+  private async findMemberAccount(
+    familyId: string,
+    userId: string,
+  ): Promise<{ isShared: boolean }> {
     const account = await this.prisma.user.findFirst({
       where: { id: userId, familyId, deletedAt: null },
-      select: { role: true },
+      select: { role: true, isShared: true },
     });
     if (!account) throw new NotFoundException('Không tìm thấy tài khoản trong dòng họ này.');
     if (account.role !== UserRole.MEMBER) {
       throw new BadRequestException('Chỉ quản lý được tài khoản thành viên tại đây.');
     }
+    return { isShared: account.isShared };
   }
 }

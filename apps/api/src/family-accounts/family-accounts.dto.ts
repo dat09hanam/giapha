@@ -24,12 +24,6 @@ export class CreateFamilyAccountDto {
   @MinLength(2)
   @MaxLength(191)
   displayName!: string;
-
-  /** Omitted or blank lets the server generate one. */
-  @IsOptional()
-  @IsString()
-  @MaxLength(128)
-  password?: string;
 }
 
 export class UpdateFamilyAccountDto {
@@ -42,14 +36,6 @@ export class UpdateFamilyAccountDto {
   @IsOptional()
   @IsIn([UserStatus.ACTIVE, UserStatus.SUSPENDED])
   status?: UserStatus;
-}
-
-export class ResetFamilyAccountPasswordDto {
-  /** Omitted or blank lets the server generate one. */
-  @IsOptional()
-  @IsString()
-  @MaxLength(128)
-  password?: string;
 }
 
 export class SetBranchesDto {

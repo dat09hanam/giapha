@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { ApiUnauthorizedError, getAuthProfile } from "@/lib/api";
 import { profileDestination, type AuthProfile } from "@/lib/auth-api";
+import { requirePasswordChanged } from "@/lib/session";
 
 export type FamilyManagerProfile = AuthProfile & {
   /** MEMBER only in the designer, for an account that manages a chi/nhánh. */
@@ -38,6 +39,7 @@ export async function requireFamilyManager(
     }
     throw error;
   }
+  requirePasswordChanged(profile, requestedPath);
 
   const branchManager =
     area === "designer" && profile.role === "MEMBER" && profile.managesBranches;

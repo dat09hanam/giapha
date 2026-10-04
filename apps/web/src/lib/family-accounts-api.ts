@@ -8,6 +8,8 @@ export type FamilyAccount = {
   displayName: string;
   role: 'MEMBER_PLUS' | 'MEMBER';
   status: 'ACTIVE' | 'SUSPENDED';
+  /** The family's shared member account, whose password cannot be reset. */
+  isShared: boolean;
   createdAt: string;
   branches: FamilyAccountBranch[];
 };
@@ -41,7 +43,7 @@ function send<T>(url: string, method: string, body: unknown, action: string): Pr
 
 export function createFamilyAccount(
   slug: string,
-  input: { username: string; displayName: string; password?: string },
+  input: { username: string; displayName: string },
 ): Promise<FamilyAccountWithPassword> {
   return send(accountsUrl(slug), 'POST', input, 'tạo tài khoản');
 }
@@ -54,17 +56,12 @@ export function updateFamilyAccount(
   return send(accountsUrl(slug, `/${userId}`), 'PATCH', input, 'cập nhật tài khoản');
 }
 
+/** A generated password the account's owner must replace on their next sign-in. */
 export function resetFamilyAccountPassword(
   slug: string,
   userId: string,
-  password?: string,
 ): Promise<FamilyAccountWithPassword> {
-  return send(
-    accountsUrl(slug, `/${userId}/password`),
-    'POST',
-    password ? { password } : {},
-    'đặt lại mật khẩu',
-  );
+  return send(accountsUrl(slug, `/${userId}/password`), 'POST', undefined, 'đặt lại mật khẩu');
 }
 
 export function setFamilyAccountBranches(

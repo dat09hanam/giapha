@@ -1,4 +1,8 @@
-import { redirectToLoginFromBrowser } from '@/lib/login-redirect';
+import {
+  PASSWORD_CHANGE_REQUIRED_MESSAGE,
+  redirectToChangePasswordFromBrowser,
+  redirectToLoginFromBrowser,
+} from '@/lib/login-redirect';
 
 export type ApiErrorKind = 'http' | 'network' | 'invalid-response' | 'unknown';
 
@@ -146,6 +150,14 @@ export async function apiFetch<T>(url: string, init: RequestInit, action: string
   }
 
   const body = await responseBody(response);
+
+  if (
+    response.status === 403 &&
+    messagesFromBody(body).includes(PASSWORD_CHANGE_REQUIRED_MESSAGE) &&
+    redirectToChangePasswordFromBrowser()
+  ) {
+    return new Promise<T>(() => undefined);
+  }
 
   if (!response.ok) {
     const localizedMessages = [

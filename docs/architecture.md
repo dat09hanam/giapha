@@ -55,11 +55,13 @@ Endpoints:
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
+- `POST /api/auth/password`: the signed-in account replaces its own password (current password
+  required); its other sessions are signed out and `mustChangePassword` is cleared.
 - `POST /api/families`: `ADMIN` only. It atomically creates one Family, one `MEMBER_PLUS` account and
   one `MEMBER` account.
 - `/api/families/:slug/accounts`: `MEMBER_PLUS` only. `GET` lists the Family's accounts with their
   branches; `POST` creates a `MEMBER` account; `PATCH :userId` renames or suspends/reactivates it;
-  `POST :userId/password` resets its password and signs it out; `PUT :userId/branches` replaces its
+  `POST :userId/password` resets it to a generated password and signs it out; `PUT :userId/branches` replaces its
   branch roots; `DELETE :userId` removes it so the username can be reused. The clan head's own
   account is never changed here. Password responses are `Cache-Control: no-store`.
 - `GET /api/families/:slug/tree/scope`: `MEMBER` and `MEMBER_PLUS`; `fullAccess` for the clan head,
@@ -81,15 +83,17 @@ Family creation accepts a display name, a safe URL slug and a recurring death-an
 month lengths and permits `29/02`.
 
 The two initial usernames are deterministically derived from the accent-free PascalCase Family name
-and `DDMM`, for example `TruongHoHoNguyen1003` and `ThanhVienHoNguyen1003`. The Admin types the
-clan head's password (at least 6 characters) or leaves it blank for a generated 10-character one.
-The shared `MEMBER` account's initial password is still identical to its username; the clan head
-can reset it from the accounts tab. The response is `Cache-Control: no-store`, returns the
-plaintext credentials once to the authenticated Admin, and the database stores only scrypt hashes.
-If the slug or either username already exists, the entire transaction rolls back with a conflict.
+and `DDMM`, for example `TruongHoHoNguyen1003` and `ThanhVienHoNguyen1003`. The clan head's password is
+always a generated 10-character one; nobody types another person's password. The shared `MEMBER`
+account (`User.isShared`) keeps a password identical to its username; its password cannot be reset. The response is `Cache-Control: no-store`, returns the plaintext credentials once to
+the authenticated Admin, and the database stores only scrypt hashes. If the slug or either username
+already exists, the entire transaction rolls back with a conflict.
 
-The shared member password is guessable until it is reset. A forced first-login password change is
-still required before handling real private data.
+`User.mustChangePassword` marks a password someone else saw: it is set for the new clan head, every
+account the clan head creates, and every reset. While it is set, `SessionAuthGuard` answers 403 to
+every route except those marked `@AllowPendingPasswordChange()` (`auth/me`, `auth/logout`,
+`auth/password`), and the web app sends the account to `/doi-mat-khau` from every page. The shared
+member account is never marked, since its password is meant to be shared and stays guessable.
 
 Platform Admin accounts are provisioned or rotated with `npm run admin:bootstrap --workspace
 @giapha/api` using `ADMIN_NICKNAME`, `ADMIN_PASSWORD` and `DATABASE_URL`.

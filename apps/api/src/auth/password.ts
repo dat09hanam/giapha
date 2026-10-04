@@ -18,14 +18,15 @@ export function generatePassword(): string {
   ).join('');
 }
 
-/** The typed password, or a generated one when the field was left blank. */
-export function resolveNewPassword(typed: string | undefined): string {
-  const password = typed?.trim() ?? '';
-  if (!password) return generatePassword();
-  if (password.length < MIN_PASSWORD_LENGTH) {
+/** A password the account's owner chose themselves. */
+export function validateOwnPassword(typed: string): string {
+  if (typed.length < MIN_PASSWORD_LENGTH) {
     throw new BadRequestException(`Mật khẩu phải có ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`);
   }
-  return password;
+  if (typed.trim() !== typed) {
+    throw new BadRequestException('Mật khẩu không được bắt đầu hoặc kết thúc bằng khoảng trắng.');
+  }
+  return typed;
 }
 
 function deriveKey(password: string, salt: Buffer): Promise<Buffer> {

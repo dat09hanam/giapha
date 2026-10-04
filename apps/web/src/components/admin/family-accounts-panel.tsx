@@ -14,11 +14,11 @@ import {
   UsersRound,
   X,
 } from 'lucide-react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 
 import { SectionCard } from '@/components/admin/admin-layout';
 import { BranchRootPicker, type ClaimedBranch } from '@/components/admin/branch-root-picker';
-import { Field, NewPasswordField } from '@/components/auth/form-fields';
+import { Field } from '@/components/auth/form-fields';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -52,11 +52,11 @@ export function FamilyAccountsPanel({
 }) {
   const showToast = useToast();
   const [accounts, setAccounts] = useState(initialAccounts);
-  const [password, setPassword] = useState('');
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [credential, setCredential] = useState<Credential | null>(null);
   const [copied, setCopied] = useState(false);
+  const credentialRef = useRef<HTMLDivElement>(null);
   /** The account whose "giao chi" tree dialog is open. */
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const assigning = accounts.find((account) => account.id === assigningId) ?? null;
@@ -71,6 +71,11 @@ export function FamilyAccountsPanel({
       ),
     [accounts, assigningId],
   );
+
+  // The new password shows at the top of the page; a reset is clicked far below it in the list.
+  useEffect(() => {
+    credentialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [credential]);
 
   function replaceAccount(next: FamilyAccount): void {
     setAccounts((current) => current.map((account) => (account.id === next.id ? next : account)));
@@ -105,12 +110,10 @@ export function FamilyAccountsPanel({
       const result = await createFamilyAccount(familySlug, {
         username: String(form.get('username') ?? '').trim(),
         displayName: String(form.get('displayName') ?? '').trim(),
-        ...(password.trim() ? { password } : {}),
       });
       setAccounts((current) => [...current, result.account]);
       reveal(result.account, result.password);
       formElement.reset();
-      setPassword('');
       showToast({ kind: 'success', message: `Đã tạo tài khoản ${result.account.displayName}.` });
     } catch (error: unknown) {
       showToast({ kind: 'error', message: getApiErrorMessage(error, 'tạo tài khoản') });
@@ -129,13 +132,19 @@ export function FamilyAccountsPanel({
 
   function resetPassword(account: FamilyAccount): void {
     if (
-      !window.confirm(`Đặt lại mật khẩu cho ${account.displayName}? Mật khẩu cũ sẽ hết hiệu lực.`)
+      !window.confirm(
+        `Đặt lại mật khẩu cho ${account.displayName}? Mật khẩu cũ sẽ hết hiệu lực và người dùng phải đổi mật khẩu ở lần đăng nhập tới.`,
+      )
     )
       return;
     void run(account.id, 'đặt lại mật khẩu', async () => {
       const result = await resetFamilyAccountPassword(familySlug, account.id);
       replaceAccount(result.account);
       reveal(result.account, result.password);
+      showToast({
+        kind: 'success',
+        message: `Đã đặt lại mật khẩu cho ${result.account.displayName}.`,
+      });
     });
   }
 
@@ -193,12 +202,10 @@ export function FamilyAccountsPanel({
               hint="Chữ không dấu, số và các ký tự . _ @ -"
               required
             />
-            <NewPasswordField
-              id="account-password"
-              label="Mật khẩu"
-              value={password}
-              onChange={setPassword}
-            />
+            <p className="text-xs leading-5 text-stone-500">
+              Hệ thống tự sinh mật khẩu. Người dùng phải đổi sang mật khẩu riêng ở lần đăng nhập
+              đầu tiên.
+            </p>
             <Button type="submit" className="sm:justify-self-start" disabled={creating}>
               <Plus className="size-4" aria-hidden="true" />
               {creating ? 'Đang tạo…' : 'Tạo tài khoản'}
@@ -207,6 +214,7 @@ export function FamilyAccountsPanel({
 
           {credential ? (
             <div
+              ref={credentialRef}
               className="grid content-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5"
               role="status"
             >
@@ -233,7 +241,8 @@ export function FamilyAccountsPanel({
               </dl>
               <p className="flex gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-900">
                 <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                Mật khẩu chỉ hiển thị một lần tại đây. Hãy lưu và gửi riêng cho đúng người dùng.
+                Mật khẩu tạm chỉ hiển thị một lần tại đây. Hãy gửi riêng cho đúng người dùng; họ sẽ
+                phải đổi mật khẩu ở lần đăng nhập đầu tiên.
               </p>
             </div>
           ) : (
@@ -276,6 +285,11 @@ export function FamilyAccountsPanel({
                           Trưởng họ
                         </span>
                       ) : null}
+                      {account.isShared ? (
+                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-900">
+                          Dùng chung
+                        </span>
+                      ) : null}
                       {account.status === 'SUSPENDED' ? (
                         <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs font-semibold text-stone-700">
                           Đã khóa
@@ -286,16 +300,18 @@ export function FamilyAccountsPanel({
                   </div>
                   {isHead ? null : (
                     <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => resetPassword(account)}
-                      >
-                        <KeyRound className="size-3.5" aria-hidden="true" />
-                        Đặt lại mật khẩu
-                      </Button>
+                      {account.isShared ? null : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => resetPassword(account)}
+                        >
+                          <KeyRound className="size-3.5" aria-hidden="true" />
+                          Đặt lại mật khẩu
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         size="sm"

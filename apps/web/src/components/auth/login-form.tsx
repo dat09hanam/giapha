@@ -4,34 +4,12 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { getApiErrorMessage } from '@/lib/api-error';
-import { login, profileDestination, type AuthProfile } from '@/lib/auth-api';
+import { login, profileDestination } from '@/lib/auth-api';
+import { changePasswordHref } from '@/lib/login-redirect';
+import { safeReturnPath } from '@/lib/return-path';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { Field } from './form-fields';
-
-/**
- * The page the visitor was on before being sent to sign in (`?next=`), when it
- * is a path on this site that the account just signed in may open: its own
- * family's pages, or /admin for the platform admin. Anything else, including
- * links to other sites, falls back to the account's usual landing page.
- */
-function returnPath(profile: AuthProfile): string | null {
-  const next = new URLSearchParams(window.location.search).get('next');
-  // "//host" and "/\host" both leave the site in a browser.
-  if (!next || !/^\/(?![/\\])/.test(next) || next.startsWith('/login')) return null;
-  const [, first = '', second = ''] = next.split(/[/?#]/);
-  if (profile.role === 'ADMIN') return first === 'admin' ? next : null;
-  const slug = profile.family?.slug;
-  if (!slug) return null;
-  try {
-    const ownFamily =
-      decodeURIComponent(first) === slug ||
-      (first === 'admin' && decodeURIComponent(second) === slug);
-    return ownFamily ? next : null;
-  } catch {
-    return null;
-  }
-}
 
 export function LoginForm({ initialError = null }: { initialError?: string | null }) {
   const router = useRouter();
@@ -53,7 +31,16 @@ export function LoginForm({ initialError = null }: { initialError?: string | nul
         username: String(form.get('username') ?? ''),
         password: String(form.get('password') ?? ''),
       });
-      router.replace(returnPath(profile) ?? profileDestination(profile));
+      // A page the visitor was sent here from; anything else lands on the account's usual page.
+      const next = safeReturnPath(
+        profile,
+        new URLSearchParams(window.location.search).get('next'),
+      );
+      router.replace(
+        profile.mustChangePassword && next
+          ? changePasswordHref(next)
+          : (next ?? profileDestination(profile)),
+      );
       router.refresh();
     } catch (submissionError: unknown) {
       showToast({

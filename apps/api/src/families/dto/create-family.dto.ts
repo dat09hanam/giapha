@@ -1,4 +1,4 @@
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class CreateFamilyDto {
   @IsString()
@@ -14,10 +14,4 @@ export class CreateFamilyDto {
   @IsString()
   @Matches(/^\d{2}\/\d{2}$/)
   deathAnniversary!: string;
-
-  /** Family head's password; omitted or blank lets the server generate one. */
-  @IsOptional()
-  @IsString()
-  @MaxLength(128)
-  memberPlusPassword?: string;
 }

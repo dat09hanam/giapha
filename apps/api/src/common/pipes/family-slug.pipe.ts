@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, type PipeTransform } from '@nestjs/common';
 
 const FAMILY_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const RESERVED_FAMILY_SLUGS = new Set(['admin', 'api', 'login', 'register']);
+const RESERVED_FAMILY_SLUGS = new Set(['admin', 'api', 'login', 'register', 'doi-mat-khau']);
 
 export function normalizeFamilySlug(value: string): string {
   const slug = value.trim().toLowerCase();

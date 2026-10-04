@@ -17,12 +17,11 @@ import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker
 import { getApiErrorMessage } from '@/lib/api-error';
 import { createFamily, type CreatedFamilyResult } from '@/lib/family-api';
 import { SectionCard } from '@/components/admin/admin-layout';
-import { Field, NewPasswordField } from '@/components/auth/form-fields';
+import { Field } from '@/components/auth/form-fields';
 import { useToast } from '@/components/ui/toast';
 
 export function CreateFamilyForm() {
   const [deathAnniversary, setDeathAnniversary] = useState('');
-  const [memberPlusPassword, setMemberPlusPassword] = useState('');
   const showToast = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<CreatedFamilyResult | null>(null);
@@ -40,12 +39,10 @@ export function CreateFamilyForm() {
         name: String(form.get('name') ?? ''),
         slug: String(form.get('slug') ?? ''),
         deathAnniversary,
-        ...(memberPlusPassword.trim() ? { memberPlusPassword } : {}),
       });
       setCreated(body);
       formElement.reset();
       setDeathAnniversary('');
-      setMemberPlusPassword('');
       showToast({
         kind: 'success',
         message: `Đã tạo dòng họ ${body.family.name}.`,
@@ -99,12 +96,6 @@ export function CreateFamilyForm() {
             onChange={setDeathAnniversary}
             hint="Chọn ngày và tháng giỗ họ."
             required
-          />
-          <NewPasswordField
-            id="member-plus-password"
-            label="Mật khẩu tài khoản Trưởng họ"
-            value={memberPlusPassword}
-            onChange={setMemberPlusPassword}
           />
           <Button
             type="submit"
@@ -186,7 +177,8 @@ export function CreateFamilyForm() {
                 <KeyRound className="mt-1 size-4 shrink-0 text-emerald-700" aria-hidden="true" />
                 <span>
                   <strong className="font-medium text-emerald-950">Tài khoản Trưởng họ</strong> để
-                  quản lý thông tin, thành viên và trang trí phả đồ.
+                  quản lý thông tin, thành viên và trang trí phả đồ. Mật khẩu do hệ thống tự sinh
+                  và phải được đổi ở lần đăng nhập đầu tiên.
                 </span>
               </li>
               <li className="flex gap-3">

@@ -20,8 +20,6 @@ export type CreateFamilyInput = {
   name: string;
   slug: string;
   deathAnniversary: string;
-  /** Left out to let the server generate the family head's password. */
-  memberPlusPassword?: string;
 };
 
 /** Fields left out are not changed, so each admin form sends only its own. */

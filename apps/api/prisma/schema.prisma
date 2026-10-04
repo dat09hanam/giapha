@@ -125,6 +125,10 @@ model User {
   role         UserRole
   familyId     String?         @db.Char(36)
   status       UserStatus      @default(ACTIVE)
+  /// Set when someone else chose the password; the owner must replace it before using the app.
+  mustChangePassword Boolean   @default(false)
+  /// The family's shared member account (password = username); its password is never reset.
+  isShared     Boolean         @default(false)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   deletedAt    DateTime?
