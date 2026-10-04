@@ -24,7 +24,6 @@ import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
 import type { UserRole } from '@/lib/auth-api';
 import {
-  FAMILY_NAV,
   familyHref,
   isInSection,
   type FamilyNavItem,
@@ -140,9 +139,12 @@ export function BottomTab({
  */
 export function FamilyHeader({
   family,
+  nav,
   viewer,
 }: {
   family: { slug: string; name: string };
+  /** The sections this family shows, in menu order. */
+  nav: readonly FamilyNavItem[];
   viewer: FamilyHeaderViewer;
 }) {
   const pathname = usePathname();
@@ -165,10 +167,10 @@ export function FamilyHeader({
         }
       : null;
   // The phone's bar keeps only sections that work; the others are listed in the menu.
-  const available = FAMILY_NAV.filter(
+  const available = nav.filter(
     (item): item is FamilyNavItem & { path: string } => item.path !== null,
   );
-  const comingSoon = FAMILY_NAV.filter((item) => item.path === null);
+  const comingSoon = nav.filter((item) => item.path === null);
   const loginHref = `/login?next=${encodeURIComponent(familyHref(family.slug, ''))}`;
 
   useEffect(() => setMenuOpen(false), [pathname]);
@@ -184,7 +186,7 @@ export function FamilyHeader({
 
   return (
     <>
-      <header className="relative z-40 hidden border-b border-emerald-950/10 bg-[#fffdf8]/95 backdrop-blur lg:block">
+      <header className="relative z-40 hidden border-b border-emerald-950/10 bg-[#fffdf8]/95 backdrop-blur lg:block print:hidden!">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-8">
           <Link
             href={familyHref(family.slug, '')}
@@ -194,7 +196,7 @@ export function FamilyHeader({
           </Link>
 
           <nav className="ml-4 flex items-center gap-1" aria-label="Mục của dòng họ">
-            {FAMILY_NAV.map((item) => (
+            {nav.map((item) => (
               <TopNavEntry key={item.key} item={item} slug={family.slug} pathname={pathname} />
             ))}
           </nav>
@@ -301,7 +303,7 @@ export function FamilyHeader({
 
       {inDesigner ? null : (
         <nav
-          className="fixed inset-x-0 bottom-0 z-50 border-t border-emerald-950/10 bg-[#fffdf8]/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(30,41,35,0.06)] backdrop-blur lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-emerald-950/10 bg-[#fffdf8]/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(30,41,35,0.06)] backdrop-blur lg:hidden print:hidden"
           aria-label="Mục của dòng họ"
         >
           <ul className="mx-auto grid h-16 max-w-xl auto-cols-fr grid-flow-col">

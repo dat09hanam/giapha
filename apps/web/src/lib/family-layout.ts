@@ -79,7 +79,8 @@ type Couple = {
 type DesignerMember = LayoutPerson;
 type DesignerDraft = LayoutInput;
 
-function sortMembers(left: LayoutPerson, right: LayoutPerson): number {
+/** Birth order within a row: generation, then order in the family, then name. */
+export function sortMembers(left: LayoutPerson, right: LayoutPerson): number {
   return (
     left.generation - right.generation ||
     left.orderInFamily - right.orderInFamily ||

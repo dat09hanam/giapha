@@ -123,6 +123,7 @@ export function PersonDetailsDialog({
   people,
   relationships,
   familySlug,
+  canSuggestEdits,
   onSelectPerson,
   onFindKinship,
   onClose,
@@ -132,6 +133,8 @@ export function PersonDetailsDialog({
   people: readonly Person[];
   relationships: readonly FamilyTreeRelationship[];
   familySlug: string;
+  /** False while the platform admin has switched edit suggestions off. */
+  canSuggestEdits: boolean;
   onSelectPerson: (id: string) => void;
   /** Opens the kinship calculator starting from this person. */
   onFindKinship: (id: string) => void;
@@ -286,15 +289,17 @@ export function PersonDetailsDialog({
                 <MessagesSquare className="size-4" aria-hidden="true" />
                 Tính xưng hô
               </button>
-              <button
-                type="button"
-                onClick={() => setSuggestingFor(person.id)}
-                aria-expanded={suggesting}
-                className={HEADER_ACTION_CLASS}
-              >
-                <FilePenLine className="size-4" aria-hidden="true" />
-                Đề xuất chỉnh sửa
-              </button>
+              {canSuggestEdits ? (
+                <button
+                  type="button"
+                  onClick={() => setSuggestingFor(person.id)}
+                  aria-expanded={suggesting}
+                  className={HEADER_ACTION_CLASS}
+                >
+                  <FilePenLine className="size-4" aria-hidden="true" />
+                  Đề xuất chỉnh sửa
+                </button>
+              ) : null}
             </div>
           </div>
           <button

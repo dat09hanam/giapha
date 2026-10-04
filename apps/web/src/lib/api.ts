@@ -8,7 +8,7 @@ import type { PosterDecoration } from '@/lib/poster-decorations';
 import type { FundLedger } from '@/lib/fund-api';
 import type { AlbumDetail, LibraryOverview } from '@/lib/library-api';
 import type { EditSuggestion } from '@/types/edit-suggestion';
-import type { FamilyDetails, FamilyTreeResponse } from '@/types/family-tree';
+import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
 
 const API_URL = (process.env.API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
@@ -56,6 +56,11 @@ async function getJson<T>(path: string, action: string, sessionToken?: string): 
 
 export const getFamily = cache((slug: string) =>
   getJson<FamilyDetails>(`/families/${encodeURIComponent(slug)}`, 'tải thông tin dòng họ'),
+);
+
+/** Which family sections the platform admin has switched on, for every family. */
+export const getPlatformFeatures = cache(() =>
+  getJson<FamilyFeatures>('/platform-features', 'tải danh sách chức năng'),
 );
 
 export const getFamilyTree = cache((slug: string, sessionToken?: string) =>

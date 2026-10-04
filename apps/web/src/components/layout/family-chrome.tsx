@@ -4,7 +4,9 @@ import type { ReactNode } from 'react';
 import { FamilyHeader, type FamilyHeaderViewer } from '@/components/layout/family-header';
 import { SiteHeaderBar } from '@/components/layout/site-header';
 import { ViewerIdentityScope } from '@/components/layout/viewer-identity-scope';
-import { ApiNotFoundError, getAuthProfile, getFamily } from '@/lib/api';
+import { ApiNotFoundError, getAuthProfile, getFamily, getPlatformFeatures } from '@/lib/api';
+import { familyNav } from '@/lib/family-nav';
+import type { FamilyFeatures } from '@/types/family-tree';
 
 async function loadViewer(): Promise<FamilyHeaderViewer> {
   const sessionToken = (await cookies()).get('giapha_session')?.value;
@@ -34,12 +36,26 @@ async function loadFamilyName(slug: string): Promise<string | null> {
   }
 }
 
+/** The sections switched on for the platform; null shows them all if they cannot be read. */
+async function loadFeatures(): Promise<FamilyFeatures | null> {
+  try {
+    return await getPlatformFeatures();
+  } catch {
+    // The API still refuses a switched-off section.
+    return null;
+  }
+}
+
 /**
  * The navigation around every page of a family, for members and the clan
  * head alike: a top bar on desktops, a bottom tab bar on phones and tablets.
  */
 export async function FamilyChrome({ slug, children }: { slug: string; children: ReactNode }) {
-  const [name, viewer] = await Promise.all([loadFamilyName(slug), loadViewer()]);
+  const [name, features, viewer] = await Promise.all([
+    loadFamilyName(slug),
+    loadFeatures(),
+    loadViewer(),
+  ]);
 
   if (name === null) {
     return (
@@ -59,9 +75,13 @@ export async function FamilyChrome({ slug, children }: { slug: string; children:
         viewer?.role === 'MEMBER_PLUS' || viewer?.managesBranches ? viewer.displayName : null
       }
     >
-      <FamilyHeader family={{ slug, name }} viewer={viewer} />
+      <FamilyHeader
+        family={{ slug, name }}
+        nav={familyNav(features)}
+        viewer={viewer}
+      />
       {/* Below lg the navigation is a 4rem bar fixed to the bottom; keep content above it. */}
-      <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">{children}</div>
+      <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 print:pb-0">{children}</div>
     </ViewerIdentityScope>
   );
 }

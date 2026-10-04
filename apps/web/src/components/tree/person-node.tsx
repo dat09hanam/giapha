@@ -1,4 +1,10 @@
-import { createContext, useContext, useSyncExternalStore, type CSSProperties } from 'react';
+import {
+  createContext,
+  useContext,
+  useSyncExternalStore,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 
 import { FITTED_LINE_HEIGHT, fitTextSize } from '@/lib/fit-text';
@@ -79,8 +85,19 @@ export const HighlightedPersonContext = createContext<string | null>(null);
 
 const hiddenHandle = '!size-1 !min-h-0 !min-w-0 !border-0 !bg-transparent';
 
-export function PersonNode({ id, data }: NodeProps<PersonFlowNode>) {
-  const highlighted = useContext(HighlightedPersonContext) === id;
+/**
+ * The framed card itself, with no React Flow handles, so the printed poster can draw the same
+ * card. `children` go inside the card box; the canvas puts its handles there.
+ */
+export function PersonCard({
+  data,
+  highlighted = false,
+  children,
+}: {
+  data: PersonFlowNode['data'];
+  highlighted?: boolean;
+  children?: ReactNode;
+}) {
   const isFounder = data.generation === 1;
   const frame = isFounder ? FRAMES.founder : FRAMES.descendant;
   const border = Math.round((frame.border * data.width) / VIEWER_NODE_WIDTH);
@@ -145,6 +162,15 @@ export function PersonNode({ id, data }: NodeProps<PersonFlowNode>) {
         </h2>
       </article>
 
+      {children}
+    </div>
+  );
+}
+
+export function PersonNode({ id, data }: NodeProps<PersonFlowNode>) {
+  const highlighted = useContext(HighlightedPersonContext) === id;
+  return (
+    <PersonCard data={data} highlighted={highlighted}>
       <Handle id="parent-target" type="target" position={Position.Top} className={hiddenHandle} />
       <Handle id="spouse-target" type="target" position={Position.Left} className={hiddenHandle} />
       <Handle id="spouse-source" type="source" position={Position.Right} className={hiddenHandle} />
@@ -155,6 +181,6 @@ export function PersonNode({ id, data }: NodeProps<PersonFlowNode>) {
         position={Position.Bottom}
         className={hiddenHandle}
       />
-    </div>
+    </PersonCard>
   );
 }

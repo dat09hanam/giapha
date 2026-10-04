@@ -21,7 +21,8 @@ import {
   type Viewport,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Minimize2, RotateCw, UsersRound } from 'lucide-react';
+import { Minimize2, Printer, RotateCw, UsersRound } from 'lucide-react';
+import Link from 'next/link';
 
 import { familyEdgeTypes } from '@/components/tree/family-link-edge';
 import { KinshipDialog } from '@/components/tree/kinship-dialog';
@@ -36,7 +37,7 @@ import type { PersonSearchEntry } from '@/lib/person-search';
 import { toPosterElements } from '@/lib/tree-layout';
 import { cn } from '@/lib/utils';
 import type { FamilyPoster } from '@/lib/poster-decorations';
-import type { FamilyTreeResponse } from '@/types/family-tree';
+import type { FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
 
 const nodeTypes = {
   person: PersonNode,
@@ -97,7 +98,7 @@ function useShowPoster(surface: RefObject<HTMLDivElement | null>, poster: Rect |
 
 type FamilyTreeProps = {
   tree: FamilyTreeResponse;
-  family: { name: string; poster: FamilyPoster };
+  family: { name: string; poster: FamilyPoster; features: FamilyFeatures };
   familySlug: string;
 };
 
@@ -244,6 +245,16 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
           <UsersRound className="size-4" aria-hidden="true" />
           Xưng hô
         </button>
+        {family.features.printBook ? (
+          <Link
+            href={`/${encodeURIComponent(familySlug)}/in-gia-pha`}
+            aria-label="In gia phả"
+            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-stone-600 bg-stone-800 px-3 text-sm font-medium text-stone-100 hover:border-amber-400 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40"
+          >
+            <Printer className="size-4" aria-hidden="true" />
+            <span className="hidden sm:inline">In gia phả</span>
+          </Link>
+        ) : null}
       </div>
       {landscape ? (
         <div
@@ -340,6 +351,7 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
               people={tree.people}
               relationships={tree.relationships}
               familySlug={familySlug}
+              canSuggestEdits={family.features.editSuggestions}
               onSelectPerson={setSelectedId}
               onFindKinship={openKinshipFrom}
               onClose={closeDetails}

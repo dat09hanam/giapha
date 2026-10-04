@@ -20,6 +20,7 @@ import { UserRole } from '@prisma/client';
 import type { AuthRequest } from '../common/auth/auth.types.js';
 import { FamilyAccessGuard } from '../common/auth/family-access.guard.js';
 import { FamilyRoles } from '../common/auth/family-roles.decorator.js';
+import { RequiresFamilyFeature } from '../common/auth/family-feature.decorator.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
 // Runtime imports are required for Nest's emitted DTO validation metadata.
@@ -47,6 +48,7 @@ import type {
  * (MEMBER_PLUS) may delete any of them.
  */
 @Controller('families/:slug/feed')
+@RequiresFamilyFeature('feed')
 @UseGuards(SessionAuthGuard, FamilyAccessGuard)
 @FamilyRoles(UserRole.MEMBER_PLUS, UserRole.MEMBER)
 export class FeedController {

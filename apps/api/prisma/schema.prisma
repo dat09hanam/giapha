@@ -440,3 +440,11 @@ model FundEntry {
 
   @@index([familyId, occurredOn])
 }
+
+/// A section of every family's space that the platform admin switches on or off for the whole
+/// platform. A feature without a row is on.
+model PlatformFeature {
+  key       String   @id @db.VarChar(50)
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}

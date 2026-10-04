@@ -13,6 +13,7 @@ import { LibraryModule } from './library/library.module.js';
 import { FamilyTreeModule } from './family-tree/family-tree.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MediaModule } from './media/media.module.js';
+import { PlatformFeaturesModule } from './platform-features/platform-features.module.js';
 import { PosterDecorationsModule } from './poster-decorations/poster-decorations.module.js';
 
 @Module({
@@ -30,6 +31,7 @@ import { PosterDecorationsModule } from './poster-decorations/poster-decorations
     FeedModule,
     FundModule,
     LibraryModule,
+    PlatformFeaturesModule,
   ],
 })
 export class AppModule {}

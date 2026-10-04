@@ -1,17 +1,24 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { ImageIcon, Network, ShieldCheck } from 'lucide-react';
+import { ImageIcon, Network, ShieldCheck, ToggleRight } from 'lucide-react';
 
 import { AdminPageHeader } from '@/components/admin/admin-layout';
 import { CreateFamilyForm } from '@/components/admin/create-family-form';
+import { PlatformFeaturesForm } from '@/components/admin/platform-features-form';
 import { PosterDecorationManager } from '@/components/admin/poster-decoration-manager';
 import { ApiErrorState } from '@/components/ui/api-error-state';
 import { Tabs } from '@/components/ui/tabs';
-import { ApiUnauthorizedError, getAuthProfile, getPosterDecorations } from '@/lib/api';
+import {
+  ApiUnauthorizedError,
+  getAuthProfile,
+  getPlatformFeatures,
+  getPosterDecorations,
+} from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { profileDestination, type AuthProfile } from '@/lib/auth-api';
 import type { AdminPosterDecoration } from '@/lib/poster-decorations';
+import type { FamilyFeatures } from '@/types/family-tree';
 
 export const metadata: Metadata = {
   title: 'Quản trị hệ thống',
@@ -39,10 +46,14 @@ async function requireAdmin(): Promise<AuthProfile> {
 export default async function AdminPage() {
   let profile: AuthProfile;
   let decorations: AdminPosterDecoration[];
+  let features: FamilyFeatures;
   try {
     profile = await requireAdmin();
     const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
-    decorations = await getPosterDecorations<AdminPosterDecoration>(sessionToken);
+    [decorations, features] = await Promise.all([
+      getPosterDecorations<AdminPosterDecoration>(sessionToken),
+      getPlatformFeatures(),
+    ]);
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
       return (
@@ -66,7 +77,7 @@ export default async function AdminPage() {
           </>
         }
         title={`Xin chào, ${profile.displayName}`}
-        description="Tạo không gian gia phả cho các dòng họ và quản lý thư viện hình nền phả đồ dùng chung."
+        description="Tạo không gian gia phả cho các dòng họ, quản lý thư viện hình nền phả đồ dùng chung và bật tắt chức năng cho toàn hệ thống."
       />
 
       <Tabs
@@ -83,6 +94,12 @@ export default async function AdminPage() {
             label: 'Hình nền phả đồ',
             icon: <ImageIcon aria-hidden="true" />,
             content: <PosterDecorationManager initial={decorations} />,
+          },
+          {
+            id: 'chuc-nang',
+            label: 'Chức năng',
+            icon: <ToggleRight aria-hidden="true" />,
+            content: <PlatformFeaturesForm initial={features} />,
           },
         ]}
       />

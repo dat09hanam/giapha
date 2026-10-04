@@ -103,6 +103,14 @@ clan head chose: a nullable foreign key `posterBackgroundId` into the decoration
 plain paper), plus the optional family-specific vertical inscriptions `posterLeftText` and
 `posterRightText`.
 
+The platform `ADMIN` switches Family sections on or off for every Family at once. `PlatformFeature`
+is a platform-level table (not tenant-owned) keyed by feature: `feed`, `fund`, `library`,
+`editSuggestions` and `printBook`; a feature without a row is on. `GET /api/platform-features` is
+public, because every Family page reads it to build its menu; `PATCH` is `ADMIN` only and accepts a
+partial map. A controller or route marked `@RequiresFamilyFeature(...)` is refused by
+`FamilyAccessGuard` with 404 while its switch is off; the web app hides the section from the menu
+and answers its pages with not found. Switching a section off keeps its data.
+
 `PosterDecoration` is the platform-wide background library and is deliberately **not**
 tenant-owned: every Family chooses from the same rows. Every row has `kind` `BACKGROUND` and is an
 uploaded raster image (`imageFile` under `MEDIA_ROOT/poster-decorations/`) with a `backgroundMode`;

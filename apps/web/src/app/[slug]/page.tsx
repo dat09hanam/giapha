@@ -4,9 +4,15 @@ import { notFound, redirect } from 'next/navigation';
 
 import { FamilyTree } from '@/components/tree/family-tree';
 import { ApiErrorState } from '@/components/ui/api-error-state';
-import { ApiNotFoundError, ApiUnauthorizedError, getFamilyTree, getFamily } from '@/lib/api';
+import {
+  ApiNotFoundError,
+  ApiUnauthorizedError,
+  getFamilyTree,
+  getFamily,
+  getPlatformFeatures,
+} from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
-import type { FamilyDetails, FamilyTreeResponse } from '@/types/family-tree';
+import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
 
 type FamilyPageProps = {
   params: Promise<{ slug: string }>;
@@ -53,9 +59,10 @@ export default async function FamilyPage({ params }: FamilyPageProps) {
   const { slug } = await params;
   let tree: FamilyTreeResponse;
   let family: FamilyDetails;
+  let features: FamilyFeatures;
   try {
     tree = await loadFamilyTree(slug);
-    family = await getFamily(slug);
+    [family, features] = await Promise.all([getFamily(slug), getPlatformFeatures()]);
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
       return (
@@ -81,7 +88,7 @@ export default async function FamilyPage({ params }: FamilyPageProps) {
     <main className="overflow-hidden">
       <FamilyTree
         tree={tree}
-        family={{ name: family.name, poster: family.poster }}
+        family={{ name: family.name, poster: family.poster, features }}
         familySlug={slug}
       />
     </main>

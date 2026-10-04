@@ -1,3 +1,5 @@
+import type { FamilyFeature, FamilyFeatures } from '@/types/family-tree';
+
 /**
  * Top-level paths owned by the platform rather than a family. Every other first
  * segment is a family slug (`/{slug}`), which draws its own family header in
@@ -23,16 +25,57 @@ export type FamilyNavItem = {
   label: string;
   /** Path under `/{slug}`; empty is the family's home. Null while the section is still being built. */
   path: string | null;
+  /** The switch the platform admin turns this section off with; none for sections always shown. */
+  feature?: FamilyFeature;
 };
 
 /** The family sections, in menu order. Give a section its `path` once its page exists. */
 export const FAMILY_NAV: readonly FamilyNavItem[] = [
   { key: 'tree', label: 'Gia phả', path: '' },
-  { key: 'feed', label: 'Bảng tin', path: 'bang-tin' },
-  { key: 'fund', label: 'Quỹ họ', path: 'quy-ho' },
-  { key: 'library', label: 'Album', path: 'tu-lieu' },
+  { key: 'feed', label: 'Bảng tin', path: 'bang-tin', feature: 'feed' },
+  { key: 'fund', label: 'Quỹ họ', path: 'quy-ho', feature: 'fund' },
+  { key: 'library', label: 'Album', path: 'tu-lieu', feature: 'library' },
   { key: 'announcements', label: 'Thông báo', path: null },
   { key: 'about', label: 'Giới thiệu', path: null },
+];
+
+/** The sections a family shows: those the platform admin has not switched off. */
+export function familyNav(features: FamilyFeatures | null): readonly FamilyNavItem[] {
+  if (!features) return FAMILY_NAV;
+  return FAMILY_NAV.filter((item) => !item.feature || features[item.feature]);
+}
+
+/** The switches the platform admin manages, in the order the admin lists them. */
+export const FAMILY_FEATURE_CHOICES: readonly {
+  feature: FamilyFeature;
+  label: string;
+  description: string;
+}[] = [
+  {
+    feature: 'feed',
+    label: 'Bảng tin',
+    description: 'Thành viên đăng bài, bình luận và bày tỏ cảm xúc.',
+  },
+  {
+    feature: 'fund',
+    label: 'Quỹ họ',
+    description: 'Sổ thu chi của dòng họ.',
+  },
+  {
+    feature: 'library',
+    label: 'Album và tư liệu',
+    description: 'Album ảnh và tài liệu của dòng họ.',
+  },
+  {
+    feature: 'editSuggestions',
+    label: 'Đề xuất chỉnh sửa',
+    description: 'Thành viên gửi đề xuất sửa thông tin một người trên cây để trưởng họ duyệt.',
+  },
+  {
+    feature: 'printBook',
+    label: 'In gia phả',
+    description: 'Xuất cây gia phả thành quyển để in hoặc lưu PDF.',
+  },
 ];
 
 /** Whether  is in this section: its page or one below it, e.g. an album in Album. */

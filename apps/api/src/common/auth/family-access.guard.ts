@@ -1,6 +1,7 @@
 import {
   ForbiddenException,
   Inject,
+  NotFoundException,
   Injectable,
   UnauthorizedException,
   type CanActivate,
@@ -10,8 +11,10 @@ import { Reflector } from '@nestjs/core';
 import { FamilyStatus, UserRole } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma.service.js';
+import { isFamilyFeatureOn, type FamilyFeature } from '../family-features.js';
 import { normalizeFamilySlug } from '../pipes/family-slug.pipe.js';
 import type { AuthRequest } from './auth.types.js';
+import { FAMILY_FEATURE_KEY } from './family-feature.decorator.js';
 import { FAMILY_ROLES_KEY } from './family-roles.decorator.js';
 
 @Injectable()
@@ -49,6 +52,14 @@ export class FamilyAccessGuard implements CanActivate {
       throw new ForbiddenException(
         'Vai trò hiện tại không có quyền thực hiện thao tác này trong dòng họ.',
       );
+    }
+
+    const feature = this.reflector.getAllAndOverride<FamilyFeature | undefined>(FAMILY_FEATURE_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (feature && !(await isFamilyFeatureOn(this.prisma, feature))) {
+      throw new NotFoundException('Chức năng này đang tạm tắt trên hệ thống.');
     }
 
     request.familyAccess = {
