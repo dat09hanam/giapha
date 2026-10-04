@@ -28,7 +28,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: origins,
     credentials: true,
-    methods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
   app.enableShutdownHooks();
   app.useGlobalFilters(new ApiExceptionFilter());

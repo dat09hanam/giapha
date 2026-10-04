@@ -4,7 +4,11 @@ import { ImagePlus, LoaderCircle, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { NameAvatar } from '@/components/feed/feed-format';
-import { setViewerName, useViewerName } from '@/components/feed/use-viewer-name';
+import {
+  isViewerNameFixed,
+  setViewerName,
+  useViewerName,
+} from '@/components/feed/use-viewer-name';
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
 import { useToast } from '@/components/ui/toast';
@@ -152,15 +156,19 @@ function ComposerDialog({
         <div className="grid min-h-0 gap-3 overflow-y-auto px-4 py-3">
           <div className="flex items-center gap-2.5">
             <NameAvatar name={authorName || '?'} />
-            <input
-              className="h-10 min-w-0 flex-1 rounded-xl border border-transparent bg-stone-100 px-3 text-base font-semibold text-stone-900 outline-none placeholder:font-normal placeholder:text-stone-500 focus:border-emerald-700 focus:bg-white sm:text-sm"
-              placeholder="Tên của bạn"
-              aria-label="Tên của bạn"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              maxLength={100}
-              autoComplete="name"
-            />
+            {isViewerNameFixed() ? (
+              <p className="min-w-0 flex-1 truncate font-semibold text-stone-900">{name}</p>
+            ) : (
+              <input
+                className="h-10 min-w-0 flex-1 rounded-xl border border-transparent bg-stone-100 px-3 text-base font-semibold text-stone-900 outline-none placeholder:font-normal placeholder:text-stone-500 focus:border-emerald-700 focus:bg-white sm:text-sm"
+                placeholder="Tên của bạn"
+                aria-label="Tên của bạn"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={100}
+                autoComplete="name"
+              />
+            )}
           </div>
 
           <textarea

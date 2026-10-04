@@ -11,13 +11,14 @@ import { setViewerScope } from '@/lib/viewer-identity';
  */
 export function ViewerIdentityScope({
   accountId,
-  defaultName,
+  accountName,
   children,
 }: {
   accountId: string;
-  defaultName: string;
+  /** A personal account's own name; null for the members' shared account. */
+  accountName: string | null;
   children: ReactNode;
 }) {
-  setViewerScope({ accountId, defaultName });
+  setViewerScope({ accountId, accountName });
   return children;
 }

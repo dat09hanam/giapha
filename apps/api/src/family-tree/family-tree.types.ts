@@ -70,3 +70,9 @@ export type SaveFamilyTreeDesignResponse = {
   savedRelationshipCount: number;
   deletedPersonCount: number;
 };
+
+/** The chi/nhánh roots an account may edit in the designer; the family head has full access. */
+export type FamilyTreeEditScope = {
+  fullAccess: boolean;
+  rootPersonIds: string[];
+};

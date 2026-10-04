@@ -110,6 +110,7 @@ model Family {
   feedComments          FeedComment[]
   feedReactions         FeedReaction[]
   fundEntries           FundEntry[]
+  branchManagers        BranchManager[]
   posterBackground      PosterDecoration? @relation("FamilyPosterBackground", fields: [posterBackgroundId], references: [id], onDelete: SetNull)
 
   @@index([status])
@@ -117,18 +118,19 @@ model Family {
 }
 
 model User {
-  id           String        @id @default(uuid()) @db.Char(36)
-  username     String        @unique @db.VarChar(191)
-  passwordHash String        @db.VarChar(255)
-  displayName  String        @db.VarChar(191)
+  id           String          @id @default(uuid()) @db.Char(36)
+  username     String          @unique @db.VarChar(191)
+  passwordHash String          @db.VarChar(255)
+  displayName  String          @db.VarChar(191)
   role         UserRole
-  familyId     String?       @db.Char(36)
-  status       UserStatus    @default(ACTIVE)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  familyId     String?         @db.Char(36)
+  status       UserStatus      @default(ACTIVE)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
   deletedAt    DateTime?
-  family       Family?       @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  family       Family?         @relation(fields: [familyId], references: [id], onDelete: Restrict)
   sessions     AuthSession[]
+  branches     BranchManager[]
 
   @@index([familyId, role, status])
   @@index([deletedAt])
@@ -178,6 +180,7 @@ model Person {
   wifeInMarriages    Relationship[]   @relation("WifeRelationships")
   uploadedMedia      Media[]          @relation("MediaAuthor")
   editSuggestions    EditSuggestion[]
+  branchManagers     BranchManager[]
 
   @@unique([familyId, id])
   @@index([familyId, fatherId])
@@ -303,6 +306,23 @@ model PosterDecoration {
   backgroundsOf        Family[]              @relation("FamilyPosterBackground")
 
   @@index([kind, isActive, sortOrder])
+}
+
+/// A family member account the family head put in charge of one chi/nhánh: rootPersonId and every
+/// descendant (through either parent) plus their spouses. A root belongs to at most one manager, and the
+/// service keeps one manager's branch from sitting inside another's.
+model BranchManager {
+  id           String   @id @default(uuid()) @db.Char(36)
+  familyId     String   @db.Char(36)
+  userId       String   @db.Char(36)
+  rootPersonId String   @db.Char(36)
+  createdAt    DateTime @default(now())
+  family       Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  root         Person   @relation(fields: [familyId, rootPersonId], references: [familyId, id], onDelete: Cascade, map: "BranchManager_root_fkey")
+
+  @@unique([familyId, rootPersonId])
+  @@index([userId])
 }
 
 /// A change to a Person proposed by a family member for the clan head to review. Members share one

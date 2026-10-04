@@ -14,11 +14,14 @@
 type ViewerScope = {
   /** The signed-in account's id, or "guest". */
   accountId: string;
-  /** The name to start from before anything is typed: a personal account's own name. */
-  defaultName: string;
+  /**
+   * A personal account's own name (the clan head, a branch manager), always used as is;
+   * null for the members' shared account, where each phone types its own.
+   */
+  accountName: string | null;
 };
 
-let scope: ViewerScope = { accountId: 'guest', defaultName: '' };
+let scope: ViewerScope = { accountId: 'guest', accountName: null };
 const sessionDeviceKeys = new Map<string, string>();
 
 export function setViewerScope(next: ViewerScope): void {
@@ -28,15 +31,22 @@ export function setViewerScope(next: ViewerScope): void {
 const nameKey = (): string => `giapha:viewer-name:${scope.accountId}`;
 const deviceKeyKey = (): string => `giapha:device-key:${scope.accountId}`;
 
+/** True when the name comes from the signed-in account and cannot be typed over. */
+export function isViewerNameFixed(): boolean {
+  return scope.accountName !== null;
+}
+
 export function readViewerName(): string {
+  if (scope.accountName !== null) return scope.accountName;
   try {
-    return window.localStorage.getItem(nameKey()) || scope.defaultName;
+    return window.localStorage.getItem(nameKey()) ?? '';
   } catch {
-    return scope.defaultName;
+    return '';
   }
 }
 
 export function saveViewerName(name: string): void {
+  if (scope.accountName !== null) return;
   try {
     window.localStorage.setItem(nameKey(), name.trim());
   } catch {

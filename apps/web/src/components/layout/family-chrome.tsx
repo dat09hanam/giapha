@@ -11,7 +11,12 @@ async function loadViewer(): Promise<FamilyHeaderViewer> {
   if (!sessionToken) return null;
   try {
     const profile = await getAuthProfile(sessionToken);
-    return { id: profile.id, displayName: profile.displayName, role: profile.role };
+    return {
+      id: profile.id,
+      displayName: profile.displayName,
+      role: profile.role,
+      managesBranches: profile.managesBranches,
+    };
   } catch {
     // The pages below handle expired sessions; the header just shows the sign-in link.
     return null;
@@ -46,11 +51,13 @@ export async function FamilyChrome({ slug, children }: { slug: string; children:
   }
 
   return (
-    // The clan head's account is personal, so it posts under its own name by default;
-    // the members' shared account asks each phone for one.
+    // The clan head's and a branch manager's accounts are personal, so they always post under
+    // their own name (the API enforces it); the members' shared account asks each phone for one.
     <ViewerIdentityScope
       accountId={viewer?.id ?? 'guest'}
-      defaultName={viewer?.role === 'MEMBER_PLUS' ? viewer.displayName : ''}
+      accountName={
+        viewer?.role === 'MEMBER_PLUS' || viewer?.managesBranches ? viewer.displayName : null
+      }
     >
       <FamilyHeader family={{ slug, name }} viewer={viewer} />
       {/* Below lg the navigation is a 4rem bar fixed to the bottom; keep content above it. */}

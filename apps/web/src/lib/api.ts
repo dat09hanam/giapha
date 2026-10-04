@@ -2,6 +2,8 @@ import { cache } from 'react';
 
 import { ApiRequestError, apiFetch } from '@/lib/api-error';
 import type { AuthProfile } from '@/lib/auth-api';
+import type { TreeEditScope } from '@/lib/branch-scope';
+import type { FamilyAccount } from '@/lib/family-accounts-api';
 import type { PosterDecoration } from '@/lib/poster-decorations';
 import type { FundLedger } from '@/lib/fund-api';
 import type { AlbumDetail, LibraryOverview } from '@/lib/library-api';
@@ -60,6 +62,24 @@ export const getFamilyTree = cache((slug: string, sessionToken?: string) =>
   getJson<FamilyTreeResponse>(
     `/families/${encodeURIComponent(slug)}/tree`,
     'tải cây gia phả',
+    sessionToken,
+  ),
+);
+
+/** Everything for the clan head; a branch manager gets the roots of their chi/nhánh. */
+export const getTreeEditScope = cache((slug: string, sessionToken: string) =>
+  getJson<TreeEditScope>(
+    `/families/${encodeURIComponent(slug)}/tree/scope`,
+    'tải quyền chỉnh sửa',
+    sessionToken,
+  ),
+);
+
+/** Member accounts and the chi/nhánh each manages; clan head (MEMBER_PLUS) only. */
+export const getFamilyAccounts = cache((slug: string, sessionToken: string) =>
+  getJson<FamilyAccount[]>(
+    `/families/${encodeURIComponent(slug)}/accounts`,
+    'tải danh sách tài khoản',
     sessionToken,
   ),
 );

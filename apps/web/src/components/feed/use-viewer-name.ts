@@ -4,6 +4,8 @@ import { useSyncExternalStore } from 'react';
 
 import { readViewerName, saveViewerName } from '@/lib/viewer-identity';
 
+export { isViewerNameFixed } from '@/lib/viewer-identity';
+
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void): () => void {

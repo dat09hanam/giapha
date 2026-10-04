@@ -1,20 +1,28 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { FilePenLine, Frame, Landmark, Palette } from 'lucide-react';
+import { FilePenLine, Frame, Landmark, Palette, UsersRound } from 'lucide-react';
 
 import { EditSuggestionsPanel } from '@/components/admin/edit-suggestions-panel';
+import { FamilyAccountsPanel } from '@/components/admin/family-accounts-panel';
 import { FamilyPosterForm } from '@/components/admin/family-poster-form';
 import { FamilyProfileForm } from '@/components/admin/family-profile-form';
 import { Button } from '@/components/ui/button';
 import { ApiErrorState } from '@/components/ui/api-error-state';
 import { Tabs } from '@/components/ui/tabs';
-import { getEditSuggestions, getFamily, getPosterDecorations } from '@/lib/api';
+import {
+  getEditSuggestions,
+  getFamily,
+  getFamilyAccounts,
+  getFamilyTree,
+  getPosterDecorations,
+} from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
+import type { FamilyAccount } from '@/lib/family-accounts-api';
 import { requireFamilyManager, type FamilyManagerProfile } from '@/lib/family-manager';
 import type { PosterDecoration } from '@/lib/poster-decorations';
 import type { EditSuggestion } from '@/types/edit-suggestion';
-import type { FamilyDetails } from '@/types/family-tree';
+import type { FamilyDetails, FamilyTreeResponse } from '@/types/family-tree';
 
 type FamilyAdminPageProps = {
   params: Promise<{ slug: string }>;
@@ -34,16 +42,21 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
   let decorations: PosterDecoration[];
   // The other tabs still work if only the suggestions fail to load.
   let suggestions: EditSuggestion[] | ApiRequestError;
+  let accounts: FamilyAccount[];
+  let tree: FamilyTreeResponse;
   try {
     profile = await requireFamilyManager(slug, 'admin');
     const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
-    [family, decorations, suggestions] = await Promise.all([
+    [family, decorations, suggestions, accounts, tree] = await Promise.all([
       getFamily(profile.family.slug),
       getPosterDecorations(sessionToken),
       getEditSuggestions(profile.family.slug, sessionToken).catch((error: unknown) => {
         if (error instanceof ApiRequestError) return error;
         throw error;
       }),
+      getFamilyAccounts(profile.family.slug, sessionToken),
+      // The clan head picks a branch root on the tree.
+      getFamilyTree(profile.family.slug, sessionToken),
     ]);
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
@@ -90,6 +103,19 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
             shortLabel: 'Trang trí',
             icon: <Frame aria-hidden="true" />,
             content: <FamilyPosterForm family={family} decorations={decorations} />,
+          },
+          {
+            id: 'tai-khoan',
+            label: 'Tài khoản & phân chi',
+            shortLabel: 'Tài khoản',
+            icon: <UsersRound aria-hidden="true" />,
+            content: (
+              <FamilyAccountsPanel
+                familySlug={profile.family.slug}
+                initialAccounts={accounts}
+                tree={tree}
+              />
+            ),
           },
           {
             id: 'de-xuat',

@@ -62,12 +62,15 @@ export class FeedController {
   }
 
   @Post('posts')
-  createPost(
+  async createPost(
     @Param('slug', FamilySlugPipe) _slug: string,
     @Body() input: CreateFeedPostDto,
     @Req() request: AuthRequest,
   ): Promise<FeedPostResponse> {
-    return this.feed.createPost(this.familyId(request), requireFeedKeyHash(request), input);
+    return this.feed.createPost(this.familyId(request), requireFeedKeyHash(request), {
+      ...input,
+      authorName: await this.nameFor(request, input.authorName),
+    });
   }
 
   @Patch('posts/:postId')
@@ -96,7 +99,7 @@ export class FeedController {
   }
 
   @Post('posts/:postId/comments')
-  createComment(
+  async createComment(
     @Param('slug', FamilySlugPipe) _slug: string,
     @Param('postId', new ParseUUIDPipe()) postId: string,
     @Body() input: CreateFeedCommentDto,
@@ -106,7 +109,7 @@ export class FeedController {
       this.familyId(request),
       requireFeedKeyHash(request),
       postId,
-      input,
+      { ...input, authorName: await this.nameFor(request, input.authorName) },
     );
   }
 
@@ -136,7 +139,7 @@ export class FeedController {
   }
 
   @Post('posts/:postId/reaction')
-  reactToPost(
+  async reactToPost(
     @Param('slug', FamilySlugPipe) _slug: string,
     @Param('postId', new ParseUUIDPipe()) postId: string,
     @Body() input: SetFeedReactionDto,
@@ -147,7 +150,7 @@ export class FeedController {
       requireFeedKeyHash(request),
       { postId },
       input.type,
-      input.reactorName,
+      await this.nameFor(request, input.reactorName),
     );
   }
 
@@ -163,7 +166,7 @@ export class FeedController {
   }
 
   @Post('comments/:commentId/reaction')
-  reactToComment(
+  async reactToComment(
     @Param('slug', FamilySlugPipe) _slug: string,
     @Param('commentId', new ParseUUIDPipe()) commentId: string,
     @Body() input: SetFeedReactionDto,
@@ -174,7 +177,7 @@ export class FeedController {
       requireFeedKeyHash(request),
       { commentId },
       input.type,
-      input.reactorName,
+      await this.nameFor(request, input.reactorName),
     );
   }
 
@@ -194,6 +197,16 @@ export class FeedController {
       throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
     }
     return request.familyAccess.familyId;
+  }
+
+  /** The account's own name for a personal account; otherwise the name the phone typed. */
+  private async nameFor(request: AuthRequest, typed: string): Promise<string> {
+    if (!request.familyAccess || !request.auth) {
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
+    }
+    return (
+      (await this.feed.personalName(request.familyAccess, request.auth.displayName)) ?? typed
+    );
   }
 
   private actor(request: AuthRequest): FeedActor {

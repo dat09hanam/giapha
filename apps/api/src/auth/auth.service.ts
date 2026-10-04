@@ -18,6 +18,7 @@ const profileSelect = {
   displayName: true,
   role: true,
   family: { select: { id: true, slug: true, name: true } },
+  _count: { select: { branches: true } },
 } satisfies Prisma.UserSelect;
 
 type ProfileRecord = Prisma.UserGetPayload<{ select: typeof profileSelect }>;
@@ -28,6 +29,8 @@ export type AuthProfile = {
   displayName: string;
   role: ProfileRecord['role'];
   family: { id: string; slug: string; name: string } | null;
+  /** True for a member account the family head put in charge of at least one chi/nhánh. */
+  managesBranches: boolean;
 };
 
 export type AuthResult = {
@@ -46,6 +49,7 @@ function mapProfile(user: ProfileRecord): AuthProfile {
     displayName: user.displayName,
     role: user.role,
     family: user.family,
+    managesBranches: user._count.branches > 0,
   };
 }
 

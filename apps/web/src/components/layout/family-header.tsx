@@ -2,6 +2,7 @@
 
 import {
   Bell,
+  GitBranch,
   Info,
   LogIn,
   Menu,
@@ -31,7 +32,13 @@ import {
 } from '@/lib/family-nav';
 import { cn } from '@/lib/utils';
 
-export type FamilyHeaderViewer = { id: string; displayName: string; role: UserRole } | null;
+export type FamilyHeaderViewer = {
+  id: string;
+  displayName: string;
+  role: UserRole;
+  /** A member account the clan head put in charge of a chi/nhánh; it edits that in the designer. */
+  managesBranches: boolean;
+} | null;
 
 const NAV_ICONS: Record<FamilyNavKey, LucideIcon> = {
   tree: Network,
@@ -146,6 +153,17 @@ export function FamilyHeader({
   const adminActive = isManager && pathname.startsWith('/admin');
   // The designer brings its own bottom bar of editing tools.
   const inDesigner = pathname.endsWith('/thiet_ke');
+  // The clan head's admin area, or a branch manager's way into the designer.
+  const managerLink = isManager
+    ? { href: adminHref, label: 'Quản trị', icon: Settings, active: adminActive }
+    : viewer?.managesBranches
+      ? {
+          href: familyHref(family.slug, 'thiet_ke'),
+          label: 'Quản lý chi',
+          icon: GitBranch,
+          active: inDesigner,
+        }
+      : null;
   // The phone's bar keeps only sections that work; the others are listed in the menu.
   const available = FAMILY_NAV.filter(
     (item): item is FamilyNavItem & { path: string } => item.path !== null,
@@ -190,11 +208,14 @@ export function FamilyHeader({
                 >
                   {viewer.displayName}
                 </span>
-                {isManager ? (
-                  <Button asChild variant={adminActive ? 'default' : 'ghost'}>
-                    <Link href={adminHref} aria-current={adminActive ? 'page' : undefined}>
-                      <Settings className="size-4" aria-hidden="true" />
-                      Quản trị
+                {managerLink ? (
+                  <Button asChild variant={managerLink.active ? 'default' : 'ghost'}>
+                    <Link
+                      href={managerLink.href}
+                      aria-current={managerLink.active ? 'page' : undefined}
+                    >
+                      <managerLink.icon className="size-4" aria-hidden="true" />
+                      {managerLink.label}
                     </Link>
                   </Button>
                 ) : null}
@@ -301,16 +322,20 @@ export function FamilyHeader({
                 </li>
               );
             })}
-            {isManager ? (
-              // The clan head's own tab; members never see it.
+            {managerLink ? (
+              // The clan head's or a branch manager's own tab; other members never see it.
               <li>
                 <Link
-                  href={adminHref}
-                  aria-current={adminActive && !menuOpen ? 'page' : undefined}
+                  href={managerLink.href}
+                  aria-current={managerLink.active && !menuOpen ? 'page' : undefined}
                   className="block h-full"
                   onClick={() => setMenuOpen(false)}
                 >
-                  <BottomTab icon={Settings} label="Quản trị" active={adminActive && !menuOpen} />
+                  <BottomTab
+                    icon={managerLink.icon}
+                    label={managerLink.label}
+                    active={managerLink.active && !menuOpen}
+                  />
                 </Link>
               </li>
             ) : null}

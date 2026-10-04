@@ -11,7 +11,10 @@ import {
 } from "@nestjs/common";
 import { UserRole } from "@prisma/client";
 
-import type { AuthRequest } from "../common/auth/auth.types.js";
+import type {
+  AuthRequest,
+  FamilyAccess,
+} from "../common/auth/auth.types.js";
 import { FamilyAccessGuard } from "../common/auth/family-access.guard.js";
 import { FamilyRoles } from "../common/auth/family-roles.decorator.js";
 import { SessionAuthGuard } from "../common/auth/session-auth.guard.js";
@@ -21,6 +24,7 @@ import { FamilySlugPipe } from "../common/pipes/family-slug.pipe.js";
 import { SaveFamilyTreeDesignDto } from "./dto/save-family-tree-design.dto.js";
 import { FamilyTreeService } from "./family-tree.service.js";
 import type {
+  FamilyTreeEditScope,
   FamilyTreeResponse,
   SaveFamilyTreeDesignResponse,
 } from "./family-tree.types.js";
@@ -42,23 +46,36 @@ export class FamilyTreeController {
     return this.familyTreeService.getTree(this.getFamilyId(request));
   }
 
+  /** Who may edit what in the designer: everything, or the chi/nhánh rooted at these people. */
+  @Get("scope")
+  getEditScope(
+    @Param("slug", FamilySlugPipe) _slug: string,
+    @Req() request: AuthRequest,
+  ): Promise<FamilyTreeEditScope> {
+    return this.familyTreeService.getEditScope(this.getAccess(request));
+  }
+
+  /** Branch managers (MEMBER accounts given a chi/nhánh) save too; the service holds them to it. */
   @Post("design")
-  @FamilyRoles(UserRole.MEMBER_PLUS)
   saveDesign(
     @Param("slug", FamilySlugPipe) _slug: string,
     @Body() input: SaveFamilyTreeDesignDto,
     @Req() request: AuthRequest,
   ): Promise<SaveFamilyTreeDesignResponse> {
-    return this.familyTreeService.saveDesign(this.getFamilyId(request), input);
+    return this.familyTreeService.saveDesign(this.getAccess(request), input);
   }
 
   private getFamilyId(request: AuthRequest): string {
+    return this.getAccess(request).familyId;
+  }
+
+  private getAccess(request: AuthRequest): FamilyAccess {
     if (!request.familyAccess) {
       throw new UnauthorizedException(
         "Bạn cần đăng nhập để thực hiện thao tác này.",
       );
     }
 
-    return request.familyAccess.familyId;
+    return request.familyAccess;
   }
 }

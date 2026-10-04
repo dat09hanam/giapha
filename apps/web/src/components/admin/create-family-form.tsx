@@ -17,11 +17,12 @@ import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker
 import { getApiErrorMessage } from '@/lib/api-error';
 import { createFamily, type CreatedFamilyResult } from '@/lib/family-api';
 import { SectionCard } from '@/components/admin/admin-layout';
-import { Field } from '@/components/auth/form-fields';
+import { Field, NewPasswordField } from '@/components/auth/form-fields';
 import { useToast } from '@/components/ui/toast';
 
 export function CreateFamilyForm() {
   const [deathAnniversary, setDeathAnniversary] = useState('');
+  const [memberPlusPassword, setMemberPlusPassword] = useState('');
   const showToast = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<CreatedFamilyResult | null>(null);
@@ -39,10 +40,12 @@ export function CreateFamilyForm() {
         name: String(form.get('name') ?? ''),
         slug: String(form.get('slug') ?? ''),
         deathAnniversary,
+        ...(memberPlusPassword.trim() ? { memberPlusPassword } : {}),
       });
       setCreated(body);
       formElement.reset();
       setDeathAnniversary('');
+      setMemberPlusPassword('');
       showToast({
         kind: 'success',
         message: `Đã tạo dòng họ ${body.family.name}.`,
@@ -96,6 +99,12 @@ export function CreateFamilyForm() {
             onChange={setDeathAnniversary}
             hint="Chọn ngày và tháng giỗ họ."
             required
+          />
+          <NewPasswordField
+            id="member-plus-password"
+            label="Mật khẩu tài khoản Trưởng họ"
+            value={memberPlusPassword}
+            onChange={setMemberPlusPassword}
           />
           <Button
             type="submit"

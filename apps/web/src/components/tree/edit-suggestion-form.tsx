@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { setViewerName } from '@/components/feed/use-viewer-name';
 import { createEditSuggestion, MAX_SUGGESTION_CONTENT_LENGTH } from '@/lib/edit-suggestion-api';
-import { readViewerName } from '@/lib/viewer-identity';
+import { isViewerNameFixed, readViewerName } from '@/lib/viewer-identity';
 
 const inputClass =
   'w-full rounded-xl border border-amber-900/20 bg-white px-3 text-base text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-amber-600 focus:ring-2 focus:ring-amber-600/25 sm:text-sm';
@@ -105,6 +105,7 @@ export function EditSuggestionForm({
           id={`${id}-name`}
           className={`${inputClass} h-11`}
           value={proposerName}
+          readOnly={isViewerNameFixed()}
           onChange={(event) => setProposerName(event.target.value)}
           placeholder="Ví dụ: Nguyễn Văn Bình (con ông Toàn)"
           autoComplete="name"

@@ -6,6 +6,7 @@ import { validateEnvironment } from './config/environment.js';
 import { DatabaseModule } from './database/database.module.js';
 import { EditSuggestionsModule } from './edit-suggestions/edit-suggestions.module.js';
 import { FamiliesModule } from './families/families.module.js';
+import { FamilyAccountsModule } from './family-accounts/family-accounts.module.js';
 import { FeedModule } from './feed/feed.module.js';
 import { FundModule } from './fund/fund.module.js';
 import { LibraryModule } from './library/library.module.js';
@@ -21,6 +22,7 @@ import { PosterDecorationsModule } from './poster-decorations/poster-decorations
     AuthModule,
     HealthModule,
     FamiliesModule,
+    FamilyAccountsModule,
     FamilyTreeModule,
     MediaModule,
     PosterDecorationsModule,

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 import { FamilyTreeDesigner } from '@/components/tree/family-tree-designer';
 import { ApiErrorState } from '@/components/ui/api-error-state';
-import { getEditSuggestions, getFamilyTree } from '@/lib/api';
+import { getEditSuggestions, getFamilyTree, getTreeEditScope } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { requireFamilyManager } from '@/lib/family-manager';
 import type { EditSuggestion } from '@/types/edit-suggestion';
@@ -35,10 +35,11 @@ export default async function FamilyDesignerPage({
 
   try {
     const profile = await requireFamilyManager(slug, 'designer');
-    const [tree, suggestions] = await Promise.all([
+    const [tree, editScope, suggestions] = await Promise.all([
       getFamilyTree(profile.family.slug, profile.sessionToken),
+      getTreeEditScope(profile.family.slug, profile.sessionToken),
       // The suggestion is a reading aid; the designer still opens without it.
-      suggestionId
+      suggestionId && profile.role === 'MEMBER_PLUS'
         ? getEditSuggestions(profile.family.slug, profile.sessionToken).catch(() => null)
         : null,
     ]);
@@ -51,6 +52,7 @@ export default async function FamilyDesignerPage({
         familyName={profile.family.name}
         familySlug={profile.family.slug}
         initialTree={tree}
+        editScope={editScope}
         focus={focusPersonId ? { personId: focusPersonId, suggestion } : null}
       />
     );

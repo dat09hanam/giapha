@@ -5,8 +5,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { FeedReactionType, Prisma } from '@prisma/client';
+import { UserRole, type FeedReactionType, type Prisma } from '@prisma/client';
 
+import type { FamilyAccess } from '../common/auth/auth.types.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { MediaService } from '../media/media.service.js';
 import {
@@ -104,6 +105,19 @@ export class FeedService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(MediaService) private readonly media: MediaService,
   ) {}
+
+  /**
+   * The clan head's and a branch manager's accounts belong to one person, so they always post,
+   * comment and react under the account's name. The members' shared account returns null and
+   * keeps the name each phone types.
+   */
+  async personalName(access: FamilyAccess, displayName: string): Promise<string | null> {
+    if (access.role === UserRole.MEMBER_PLUS) return displayName;
+    const managed = await this.prisma.branchManager.count({
+      where: { familyId: access.familyId, userId: access.userId },
+    });
+    return managed > 0 ? displayName : null;
+  }
 
   async getPage(familyId: string, actor: FeedActor, cursor?: string): Promise<FeedPageResponse> {
     const records = await this.prisma.feedPost.findMany({

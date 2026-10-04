@@ -51,7 +51,12 @@ export class FamilyAccessGuard implements CanActivate {
       );
     }
 
-    request.familyAccess = { familyId: family.id, slug: family.slug, role: request.auth.role };
+    request.familyAccess = {
+      familyId: family.id,
+      userId: request.auth.userId,
+      slug: family.slug,
+      role: request.auth.role,
+    };
     return true;
   }
 }

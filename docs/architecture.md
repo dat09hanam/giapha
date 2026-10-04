@@ -23,7 +23,22 @@ The three roles are stored directly on `User`:
 - `ADMIN`: platform operator, always has `familyId = NULL`. It may create a Family but does not
   inherit access to private genealogy data.
 - `MEMBER_PLUS`: the clan head, attached to one Family and allowed to mutate that Family.
-- `MEMBER`: attached to one Family and read-only.
+- `MEMBER`: attached to one Family and read-only, except as a branch manager (below).
+
+### Chi/nhánh managers
+
+The clan head creates `MEMBER` accounts and puts each in charge of one or more chi/nhánh through
+`BranchManager` rows (`familyId`, `userId`, `rootPersonId`). A branch is the root Person, every
+descendant through either parent, and the spouses married into that lineage; spouses do not extend
+the branch. A root belongs to at most one account, and an assignment is refused when its branch
+contains, or sits inside, a branch already given out (including the same account's other roots).
+Assignments go away with the account, the root Person or the Family.
+
+The rule lives in `apps/api/src/branches/branch-scope.ts` and is mirrored for display in
+`apps/web/src/lib/branch-scope.ts`. The API is the authority: on `tree/design` a branch manager's
+changes to people outside the branch are dropped, roots and married-in spouses keep their parents,
+deletions must be inside the branch and exclude roots, and the save rolls back if anyone added, or
+anyone who was in the branch, ends up outside it.
 
 Every Family-owned query must use the server-trusted `familyId`. Client-supplied IDs and slugs are
 never sufficient authorization.
@@ -42,9 +57,16 @@ Endpoints:
 - `GET /api/auth/me`
 - `POST /api/families`: `ADMIN` only. It atomically creates one Family, one `MEMBER_PLUS` account and
   one `MEMBER` account.
+- `/api/families/:slug/accounts`: `MEMBER_PLUS` only. `GET` lists the Family's accounts with their
+  branches; `POST` creates a `MEMBER` account; `PATCH :userId` renames or suspends/reactivates it;
+  `POST :userId/password` resets its password and signs it out; `PUT :userId/branches` replaces its
+  branch roots; `DELETE :userId` removes it so the username can be reused. The clan head's own
+  account is never changed here. Password responses are `Cache-Control: no-store`.
+- `GET /api/families/:slug/tree/scope`: `MEMBER` and `MEMBER_PLUS`; `fullAccess` for the clan head,
+  otherwise the account's branch root IDs.
 - `GET /api/families/:slug` and authenticated `GET /api/families/:slug/tree`; the tree response includes tenant-scoped people and spousal relationships.
 - `PATCH /api/families/:slug` and Person mutations: `MEMBER_PLUS` only.
-- `POST /api/families/:slug/tree/design`: `MEMBER_PLUS` only. It saves the visible Person graph, parent links, spouse links and requested soft deletions atomically.
+- `POST /api/families/:slug/tree/design`: `MEMBER_PLUS`, and `MEMBER` accounts that manage a branch (held to it as described above). It saves the visible Person graph, parent links, spouse links and requested soft deletions atomically.
 - `POST /api/families/:slug/people/:personId/suggestions`: `MEMBER` and `MEMBER_PLUS`. Proposes a change to a Person for the clan head.
 - `GET /api/families/:slug/suggestions` and `PATCH /api/families/:slug/suggestions/:suggestionId`: `MEMBER_PLUS` only. Lists the newest suggestions and sets their status.
 - `/api/families/:slug/feed` (Bảng tin): `MEMBER` and `MEMBER_PLUS`. `GET` pages posts (with comments and reaction summaries); `POST posts`, `PATCH|DELETE posts/:postId`, `POST posts/:postId/comments`, `PATCH|DELETE comments/:commentId`, and `POST|DELETE posts/:postId/reaction` / `comments/:commentId/reaction`. Writes need the `X-Feed-Key` device header described below.
@@ -59,14 +81,15 @@ Family creation accepts a display name, a safe URL slug and a recurring death-an
 month lengths and permits `29/02`.
 
 The two initial usernames are deterministically derived from the accent-free PascalCase Family name
-and `DDMM`, for example `TruongHoHoNguyen1003` and `ThanhVienHoNguyen1003`. Their requested initial
-passwords are identical to their usernames. The response is `Cache-Control: no-store`, returns the
+and `DDMM`, for example `TruongHoHoNguyen1003` and `ThanhVienHoNguyen1003`. The Admin types the
+clan head's password (at least 6 characters) or leaves it blank for a generated 10-character one.
+The shared `MEMBER` account's initial password is still identical to its username; the clan head
+can reset it from the accounts tab. The response is `Cache-Control: no-store`, returns the
 plaintext credentials once to the authenticated Admin, and the database stores only scrypt hashes.
 If the slug or either username already exists, the entire transaction rolls back with a conflict.
 
-This deterministic password rule is intentionally retained from the current product requirement,
-but it is not suitable for production because the values are guessable. A forced first-login
-password change with random temporary passwords is required before handling real private data.
+The shared member password is guessable until it is reset. A forced first-login password change is
+still required before handling real private data.
 
 Platform Admin accounts are provisioned or rotated with `npm run admin:bootstrap --workspace
 @giapha/api` using `ADMIN_NICKNAME`, `ADMIN_PASSWORD` and `DATABASE_URL`.
@@ -148,6 +171,8 @@ account, each browser keeps a random key and sends it as `X-Feed-Key`; only its 
 (`authorKeyHash`, `reactorKeyHash`) is stored. It decides which posts and comments a device may edit
 or delete and which reaction is its own. It identifies a device, not a person, and is not an
 authorization boundary between relatives; the clan head (`MEMBER_PLUS`) may delete anything.
+Personal accounts (the clan head and branch managers) always post, comment and react under their
+account's `displayName`: the API replaces any typed author or reactor name, and the web does not ask.
 
 `FundEntry` is one line of the family fund ledger (Quỹ họ): `content`, `kind` (`INCOME` or
 `EXPENSE`), a positive whole-đồng `amount` (`BIGINT UNSIGNED`, capped at 10^13 so it stays exact

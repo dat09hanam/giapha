@@ -8,6 +8,8 @@ export type AuthProfile = {
   displayName: string;
   role: UserRole;
   family: { id: string; slug: string; name: string } | null;
+  /** A member account the clan head put in charge of at least one chi/nhánh. */
+  managesBranches: boolean;
 };
 
 type LoginInput = { username: string; password: string };

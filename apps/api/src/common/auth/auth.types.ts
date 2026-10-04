@@ -12,6 +12,7 @@ export type AuthenticatedUser = {
 
 export type FamilyAccess = {
   familyId: string;
+  userId: string;
   slug: string;
   role: UserRole;
 };

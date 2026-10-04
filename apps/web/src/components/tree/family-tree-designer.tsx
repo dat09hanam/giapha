@@ -26,6 +26,7 @@ import {
   MessageSquareQuote,
   HeartHandshake,
   LoaderCircle,
+  Lock,
   Network,
   PencilLine,
   Plus,
@@ -58,6 +59,7 @@ import {
   uploadFamilyMedia,
 } from '@/lib/media-api';
 import { updateEditSuggestionStatus } from '@/lib/edit-suggestion-api';
+import { computeBranchScope, type BranchScope, type TreeEditScope } from '@/lib/branch-scope';
 import { saveFamilyTreeDesign, type FamilyTreeDesignSaveInput } from '@/lib/family-tree-design-api';
 import { computeGenerations, layoutFamily, type LayoutDimensions } from '@/lib/family-layout';
 import { familyEdges, type FamilyEdge } from '@/lib/tree-layout';
@@ -104,6 +106,8 @@ type DesignerNodeData = {
   /** Resolved here because the node itself has no access to the family slug. */
   avatarSrc: string | null;
   selected: boolean;
+  /** False outside a branch manager's chi/nhánh: the card can be viewed but not changed. */
+  editable: boolean;
   onSelect: (memberId: string) => void;
   onAddRelationship: (memberId: string) => void;
 };
@@ -214,6 +218,7 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
         data.selected
           ? 'scale-[1.03] border-emerald-700 bg-emerald-50 shadow-2xl shadow-emerald-950/25 ring-4 ring-emerald-500/30'
           : 'border-amber-900/20 hover:border-amber-700/45',
+        !data.editable && !data.selected && 'opacity-60',
       )}
     >
       <Handle
@@ -280,21 +285,27 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
         </span>
       </button>
 
-      <button
-        type="button"
-        className={cn(
-          'flex w-full items-center justify-center gap-1.5 border-t border-amber-900/10 px-3 py-2.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-700',
-          data.selected ? 'bg-emerald-100/80 text-emerald-950' : 'bg-amber-50/70',
-        )}
-        onClick={(event) => {
-          // Not a tap on the card: that would also open the member form on phones.
-          event.stopPropagation();
-          data.onAddRelationship(data.member.id);
-        }}
-      >
-        <Plus className="size-3.5" aria-hidden="true" />
-        Thêm quan hệ
-      </button>
+      {data.editable ? (
+        <button
+          type="button"
+          className={cn(
+            'flex w-full items-center justify-center gap-1.5 border-t border-amber-900/10 px-3 py-2.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-700',
+            data.selected ? 'bg-emerald-100/80 text-emerald-950' : 'bg-amber-50/70',
+          )}
+          onClick={(event) => {
+            // Not a tap on the card: that would also open the member form on phones.
+            event.stopPropagation();
+            data.onAddRelationship(data.member.id);
+          }}
+        >
+          <Plus className="size-3.5" aria-hidden="true" />
+          Thêm quan hệ
+        </button>
+      ) : (
+        <p className="border-t border-amber-900/10 bg-stone-50 px-3 py-2.5 text-center text-xs text-stone-500">
+          Ngoài chi bạn quản lý
+        </p>
+      )}
 
       <Handle
         id="spouse-source"
@@ -520,6 +531,7 @@ function createFlowElements(
   familySlug: string,
   avatarPreviews: ReadonlyMap<string, string>,
   selectedMemberId: string,
+  editableIds: ReadonlySet<string> | null,
   onSelect: (memberId: string) => void,
   onAddRelationship: (memberId: string) => void,
 ): { nodes: DesignerFlowNode[]; edges: FamilyEdge[] } {
@@ -541,6 +553,7 @@ function createFlowElements(
           avatarPreviews.get(member.id) ??
           (member.avatarUrl ? familyMediaSrc(familySlug, member.avatarUrl) : null),
         selected: isSelected,
+        editable: !editableIds || editableIds.has(member.id),
         onSelect,
         onAddRelationship,
       },
@@ -831,15 +844,20 @@ function relationshipChoiceLabel(kind: RelationshipKind): string {
   return RELATIONSHIP_CHOICES.find((choice) => choice.kind === kind)?.label ?? '';
 }
 
+const FULL_ACCESS: TreeEditScope = { fullAccess: true, rootPersonIds: [] };
+
 export function FamilyTreeDesigner({
   familyName,
   familySlug,
   initialTree,
   focus = null,
+  editScope = FULL_ACCESS,
 }: {
   familyName: string;
   familySlug: string;
   initialTree: FamilyTreeResponse;
+  /** A branch manager edits only their chi/nhánh; the API enforces the same rule on save. */
+  editScope?: TreeEditScope;
   /** Opens on this person, e.g. from an edit suggestion, with the suggestion shown beside the form. */
   focus?: { personId: string; suggestion: EditSuggestion | null } | null;
 }) {
@@ -850,8 +868,42 @@ export function FamilyTreeDesigner({
       ? focus.personId
       : null;
   const [selectedMemberId, setSelectedMemberId] = useState(
-    focusMemberId ?? initialDraft.protectedMemberId,
+    focusMemberId ??
+      (editScope.fullAccess
+        ? null
+        : editScope.rootPersonIds.find((id) =>
+            initialDraft.people.some((member) => member.id === id),
+          )) ??
+      initialDraft.protectedMemberId,
   );
+  /** Null for the clan head; otherwise recomputed as the draft grows, so new relatives count. */
+  const branchScope = useMemo<BranchScope | null>(
+    () =>
+      editScope.fullAccess
+        ? null
+        : computeBranchScope(draft.people, draft.relationships, editScope.rootPersonIds),
+    [draft, editScope],
+  );
+  const branchRootIds = useMemo(
+    () => new Set(editScope.fullAccess ? [] : editScope.rootPersonIds),
+    [editScope],
+  );
+  const canEditMember = (memberId: string): boolean =>
+    !branchScope || branchScope.editable.has(memberId);
+  /** Parents and new wives would land outside the branch for its roots and for spouses who married in. */
+  function choiceBlockedReason(kind: RelationshipKind, target: DesignerMember): string | null {
+    const ruleReason = relationshipChoiceBlockedReason(kind, target);
+    if (ruleReason || !branchScope) return ruleReason;
+    if (!branchScope.editable.has(target.id)) return 'Thành viên này không thuộc chi bạn quản lý.';
+    const anchored = branchScope.lineage.has(target.id) && !branchRootIds.has(target.id);
+    if ((kind === 'FATHER' || kind === 'MOTHER') && !anchored) {
+      return 'Bố mẹ của người này nằm ngoài chi bạn quản lý.';
+    }
+    if (kind === 'WIFE' && !branchScope.lineage.has(target.id)) {
+      return 'Chỉ thêm vợ cho người thuộc dòng của chi.';
+    }
+    return null;
+  }
   const [relationshipTargetId, setRelationshipTargetId] = useState<string | null>(null);
   const [addition, setAddition] = useState<AdditionState>({ step: 'choose' });
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -965,10 +1017,19 @@ export function FamilyTreeDesigner({
         familySlug,
         avatarPreviews,
         selectedMemberId,
+        branchScope?.editable ?? null,
         selectMember,
         openRelationshipPicker,
       ),
-    [avatarPreviews, familySlug, openRelationshipPicker, draft, selectMember, selectedMemberId],
+    [
+      avatarPreviews,
+      branchScope,
+      familySlug,
+      openRelationshipPicker,
+      draft,
+      selectMember,
+      selectedMemberId,
+    ],
   );
 
   function closeRelationshipPicker(): void {
@@ -979,7 +1040,7 @@ export function FamilyTreeDesigner({
   function chooseRelationship(kind: RelationshipKind): void {
     if (!relationshipTarget) return;
     // Disabled choices stay in the menu and keep it open.
-    if (relationshipChoiceBlockedReason(kind, relationshipTarget)) return;
+    if (choiceBlockedReason(kind, relationshipTarget)) return;
 
     if (needsMotherChoice(draft, relationshipTarget, kind)) {
       setAddition({ step: 'mother', kind });
@@ -1579,8 +1640,19 @@ export function FamilyTreeDesigner({
             </section>
           ) : null}
 
+          {selectedMember && !canEditMember(selectedMember.id) ? (
+            <p className="mt-5 flex gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm leading-6 text-stone-600">
+              <Lock className="mt-1 size-4 shrink-0" aria-hidden="true" />
+              Thành viên này không thuộc chi/nhánh bạn được giao quản lý nên chỉ xem được.
+            </p>
+          ) : null}
+
           {selectedMember ? (
-            <div className="mt-5 grid gap-4">
+            // A disabled fieldset locks every control for someone outside the manager's branch.
+            <fieldset
+              disabled={!canEditMember(selectedMember.id)}
+              className="mt-5 grid min-w-0 gap-4"
+            >
               <DesignerTextField
                 id="designer-member-honorific"
                 label="Danh xưng"
@@ -1917,18 +1989,24 @@ export function FamilyTreeDesigner({
                 type="button"
                 variant="outline"
                 className="border-red-200 bg-white text-red-700 hover:bg-red-50 hover:text-red-800"
-                disabled={selectedMember.id === draft.protectedMemberId || savingAll}
+                disabled={
+                  selectedMember.id === draft.protectedMemberId ||
+                  branchRootIds.has(selectedMember.id) ||
+                  savingAll
+                }
                 title={
                   selectedMember.id === draft.protectedMemberId
                     ? 'Khung khởi điểm không thể xóa'
-                    : 'Xóa thành viên đang chọn'
+                    : branchRootIds.has(selectedMember.id)
+                      ? 'Người đứng đầu chi chỉ trưởng họ mới xóa được'
+                      : 'Xóa thành viên đang chọn'
                 }
                 onClick={() => setDeleteTargetId(selectedMember.id)}
               >
                 <Trash2 className="size-4" aria-hidden="true" />
                 Xóa thành viên
               </Button>
-            </div>
+            </fieldset>
           ) : null}
         </aside>
       </div>
@@ -2054,7 +2132,7 @@ export function FamilyTreeDesigner({
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
                     {RELATIONSHIP_CHOICES.map((choice) => {
                       const Icon = choice.icon;
-                      const blockedReason = relationshipChoiceBlockedReason(
+                      const blockedReason = choiceBlockedReason(
                         choice.kind,
                         relationshipTarget,
                       );
