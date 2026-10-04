@@ -178,7 +178,7 @@ export function FamilyPosterForm({
     <SectionCard
       icon={<Frame aria-hidden="true" />}
       title="Trang trí phả đồ"
-      description="Chọn hình nền và câu chữ dọc hai bên. Bản xem trước cập nhật ngay khi bạn thay đổi; cây gia phả tự co giãn vào khung nét đứt."
+      description="Chọn hình nền và câu chữ dọc hai bên."
       footer={
         <>
           {isDirty ? (
@@ -210,15 +210,12 @@ export function FamilyPosterForm({
     >
       <form
         id="family-poster-form"
-        className="grid items-start gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+        className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
         onSubmit={handleSubmit}
       >
         <div className="grid gap-2 lg:sticky lg:top-6">
           <p className="text-sm font-medium text-emerald-950">Xem trước</p>
           <PosterPreview poster={previewPoster} familyName={family.name} />
-          <p className="text-xs leading-5 text-stone-500">
-            Tên dòng họ lấy từ tab Thông tin dòng họ.
-          </p>
         </div>
 
         <div className="grid gap-7">
@@ -250,9 +247,6 @@ export function FamilyPosterForm({
                 placeholder="Nhập nội dung bên phải"
               />
             </div>
-            <p className="text-xs leading-5 text-stone-500">
-              Để trống ô không muốn hiển thị. Vị trí và màu chữ theo hình nền đã chọn.
-            </p>
           </fieldset>
         </div>
       </form>

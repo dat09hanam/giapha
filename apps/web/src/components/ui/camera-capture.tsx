@@ -122,7 +122,7 @@ export function CameraCapture({
     <div className="fixed inset-0 z-[70] grid place-items-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-emerald-950/55 backdrop-blur-[2px]"
+        className="ui-backdrop absolute inset-0 bg-emerald-950/55 backdrop-blur-[2px]"
         aria-label="Đóng camera"
         tabIndex={-1}
         onClick={onCancel}
@@ -131,7 +131,7 @@ export function CameraCapture({
         role="dialog"
         aria-modal="true"
         aria-labelledby="camera-capture-title"
-        className="relative w-full max-w-lg rounded-3xl border border-amber-900/15 bg-[#fffdf8] p-5 shadow-2xl sm:p-6"
+        className="ui-dialog relative w-full max-w-lg rounded-3xl border border-amber-900/15 bg-[#fffdf8] p-5 shadow-2xl sm:p-6"
       >
         <button
           type="button"
@@ -149,7 +149,7 @@ export function CameraCapture({
           Chụp ảnh trực tiếp
         </h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">
-          Đặt khuôn mặt vào giữa khung rồi bấm chụp. Bạn sẽ được chỉnh vùng ảnh ở bước sau.
+          Đặt khuôn mặt vào giữa khung rồi bấm chụp.
         </p>
 
         <div className="relative mt-5 aspect-square overflow-hidden rounded-2xl bg-stone-900">

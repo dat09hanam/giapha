@@ -4,7 +4,11 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module.js';
 import { validateEnvironment } from './config/environment.js';
 import { DatabaseModule } from './database/database.module.js';
+import { EditSuggestionsModule } from './edit-suggestions/edit-suggestions.module.js';
 import { FamiliesModule } from './families/families.module.js';
+import { FeedModule } from './feed/feed.module.js';
+import { FundModule } from './fund/fund.module.js';
+import { LibraryModule } from './library/library.module.js';
 import { FamilyTreeModule } from './family-tree/family-tree.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MediaModule } from './media/media.module.js';
@@ -20,6 +24,10 @@ import { PosterDecorationsModule } from './poster-decorations/poster-decorations
     FamilyTreeModule,
     MediaModule,
     PosterDecorationsModule,
+    EditSuggestionsModule,
+    FeedModule,
+    FundModule,
+    LibraryModule,
   ],
 })
 export class AppModule {}

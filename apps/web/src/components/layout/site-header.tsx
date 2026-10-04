@@ -5,12 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { SiteHeaderContent } from '@/components/layout/site-header-content';
-import { isFamilyRoute } from '@/lib/family-nav';
+import { isFamilyAdminRoute, isFamilyRoute } from '@/lib/family-nav';
 
-/** The platform header; family pages draw their own family header instead. */
+/** The platform header; family pages and the clan head's admin pages draw the family's instead. */
 export function SiteHeader() {
   const pathname = usePathname();
-  return isFamilyRoute(pathname) ? null : <SiteHeaderBar />;
+  return isFamilyRoute(pathname) || isFamilyAdminRoute(pathname) ? null : <SiteHeaderBar />;
 }
 
 /** The platform header bar itself, also used under a family path that has no family. */

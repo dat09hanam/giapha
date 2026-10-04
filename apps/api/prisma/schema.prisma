@@ -50,6 +50,32 @@ enum PosterBackgroundMode {
   STRETCH
 }
 
+enum FundEntryKind {
+  INCOME
+  EXPENSE
+}
+
+enum FeedReactionType {
+  LIKE
+  LOVE
+  CARE
+  HAHA
+  WOW
+  SAD
+  ANGRY
+}
+
+enum SuggestionStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+enum MediaKind {
+  PHOTO
+  DOCUMENT
+}
+
 enum MediaStatus {
   ACTIVE
   HIDDEN
@@ -77,6 +103,13 @@ model Family {
   people                Person[]
   relationships         Relationship[]
   media                 Media[]
+  albums                Album[]
+  editSuggestions       EditSuggestion[]
+  feedPosts             FeedPost[]
+  feedImages            FeedImage[]
+  feedComments          FeedComment[]
+  feedReactions         FeedReaction[]
+  fundEntries           FundEntry[]
   posterBackground      PosterDecoration? @relation("FamilyPosterBackground", fields: [posterBackgroundId], references: [id], onDelete: SetNull)
 
   @@index([status])
@@ -114,36 +147,37 @@ model AuthSession {
 }
 
 model Person {
-  id                 String         @id @default(uuid()) @db.Char(36)
-  familyId           String         @db.Char(36)
-  fatherId           String?        @db.Char(36)
-  motherId           String?        @db.Char(36)
-  name               String         @db.VarChar(191)
-  honorific          String?        @db.VarChar(100)
-  nickname           String?        @db.VarChar(191)
-  courtesyName       String?        @db.VarChar(191)
-  gender             Gender         @default(UNKNOWN)
-  birthDate          DateTime?      @db.Date
-  deathDate          DateTime?      @db.Date
-  lunarDeathDay      Int?           @db.UnsignedTinyInt
-  lunarDeathMonth    Int?           @db.UnsignedTinyInt
-  isAlive            Boolean        @default(true)
-  burialPlace        String?        @db.VarChar(255)
-  phone              String?        @db.VarChar(30)
-  avatarUrl          String?        @db.VarChar(500)
-  biography          String?        @db.Text
+  id                 String           @id @default(uuid()) @db.Char(36)
+  familyId           String           @db.Char(36)
+  fatherId           String?          @db.Char(36)
+  motherId           String?          @db.Char(36)
+  name               String           @db.VarChar(191)
+  honorific          String?          @db.VarChar(100)
+  nickname           String?          @db.VarChar(191)
+  courtesyName       String?          @db.VarChar(191)
+  gender             Gender           @default(UNKNOWN)
+  birthDate          DateTime?        @db.Date
+  deathDate          DateTime?        @db.Date
+  lunarDeathDay      Int?             @db.UnsignedTinyInt
+  lunarDeathMonth    Int?             @db.UnsignedTinyInt
+  isAlive            Boolean          @default(true)
+  burialPlace        String?          @db.VarChar(255)
+  phone              String?          @db.VarChar(30)
+  avatarUrl          String?          @db.VarChar(500)
+  biography          String?          @db.Text
   generation         Int?
-  orderInFamily      Int?           @db.UnsignedSmallInt
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-  family             Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  father             Person?        @relation("FatherChildren", fields: [familyId, fatherId], references: [familyId, id], onDelete: Restrict, map: "Person_father_fkey")
-  mother             Person?        @relation("MotherChildren", fields: [familyId, motherId], references: [familyId, id], onDelete: Restrict, map: "Person_mother_fkey")
-  childrenAsFather   Person[]       @relation("FatherChildren")
-  childrenAsMother   Person[]       @relation("MotherChildren")
-  husbandInMarriages Relationship[] @relation("HusbandRelationships")
-  wifeInMarriages    Relationship[] @relation("WifeRelationships")
-  uploadedMedia      Media[]        @relation("MediaAuthor")
+  orderInFamily      Int?             @db.UnsignedSmallInt
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  family             Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  father             Person?          @relation("FatherChildren", fields: [familyId, fatherId], references: [familyId, id], onDelete: Restrict, map: "Person_father_fkey")
+  mother             Person?          @relation("MotherChildren", fields: [familyId, motherId], references: [familyId, id], onDelete: Restrict, map: "Person_mother_fkey")
+  childrenAsFather   Person[]         @relation("FatherChildren")
+  childrenAsMother   Person[]         @relation("MotherChildren")
+  husbandInMarriages Relationship[]   @relation("HusbandRelationships")
+  wifeInMarriages    Relationship[]   @relation("WifeRelationships")
+  uploadedMedia      Media[]          @relation("MediaAuthor")
+  editSuggestions    EditSuggestion[]
 
   @@unique([familyId, id])
   @@index([familyId, fatherId])
@@ -172,22 +206,56 @@ model Relationship {
   @@index([familyId, wifeId])
 }
 
+/// The family library (Album và tư liệu): a photo in an album, or a document such as a scanned
+/// genealogy, a royal decree or a PDF. Only the clan head adds, edits or removes items; every member
+/// views them. personId names the Person the item is about. Items are deleted outright together with
+/// their files; deletedAt is legacy and always null.
 model Media {
-  id        String      @id @default(uuid()) @db.Char(36)
-  familyId  String      @db.Char(36)
-  personId  String?     @db.Char(36)
-  fileUrl   String      @db.VarChar(500)
-  title     String?     @db.VarChar(191)
-  status    MediaStatus @default(ACTIVE)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  deletedAt DateTime?
-  family    Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  person    Person?     @relation("MediaAuthor", fields: [familyId, personId], references: [familyId, id], onDelete: Restrict, map: "Media_person_fkey")
+  id          String      @id @default(uuid()) @db.Char(36)
+  familyId    String      @db.Char(36)
+  personId    String?     @db.Char(36)
+  albumId     String?     @db.Char(36)
+  kind        MediaKind   @default(PHOTO)
+  fileUrl     String      @db.VarChar(500)
+  /// A small JPEG for grids and lists; null for PDFs.
+  thumbUrl    String?     @db.VarChar(500)
+  contentType String      @default("image/jpeg") @db.VarChar(100)
+  sizeBytes   Int         @default(0) @db.UnsignedInt
+  width       Int?        @db.UnsignedSmallInt
+  height      Int?        @db.UnsignedSmallInt
+  title       String?     @db.VarChar(191)
+  description String?     @db.Text
+  /// When the photo was taken or the document dated, if known.
+  takenOn     DateTime?   @db.Date
+  status      MediaStatus @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+  family      Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  person      Person?     @relation("MediaAuthor", fields: [familyId, personId], references: [familyId, id], onDelete: Restrict, map: "Media_person_fkey")
+  album       Album?      @relation(fields: [familyId, albumId], references: [familyId, id], onDelete: Cascade, map: "Media_album_fkey")
 
   @@index([familyId, status])
   @@index([familyId, personId])
+  @@index([familyId, albumId, createdAt])
+  @@index([familyId, kind, createdAt])
   @@index([deletedAt])
+}
+
+/// A photo album in the family library, e.g. "Giỗ tổ 2025". Its cover is its first photo.
+model Album {
+  id          String   @id @default(uuid()) @db.Char(36)
+  familyId    String   @db.Char(36)
+  title       String   @db.VarChar(191)
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  /// Moves when photos are added, so recently filled albums come first.
+  updatedAt   DateTime @updatedAt
+  family      Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  media       Media[]
+
+  @@unique([familyId, id])
+  @@index([familyId, updatedAt])
 }
 
 /// Platform-wide phả đồ decoration library, managed by the platform ADMIN. Not tenant-owned:
@@ -235,4 +303,120 @@ model PosterDecoration {
   backgroundsOf        Family[]              @relation("FamilyPosterBackground")
 
   @@index([kind, isActive, sortOrder])
+}
+
+/// A change to a Person proposed by a family member for the clan head to review. Members share one
+/// account, so the proposer types their own name. The head applies any change in the designer and
+/// then marks the suggestion resolved or dismissed.
+model EditSuggestion {
+  id           String           @id @default(uuid()) @db.Char(36)
+  familyId     String           @db.Char(36)
+  personId     String           @db.Char(36)
+  proposerName String           @db.VarChar(100)
+  content      String           @db.Text
+  status       SuggestionStatus @default(PENDING)
+  createdAt    DateTime         @default(now())
+  reviewedAt   DateTime?
+  family       Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  person       Person           @relation(fields: [familyId, personId], references: [familyId, id], onDelete: Cascade, map: "EditSuggestion_person_fkey")
+
+  @@index([familyId, status, createdAt])
+  @@index([familyId, personId])
+}
+
+/// A post on the family's news feed (Bảng tin). Everyone signs in with the family's shared account,
+/// so the author types a name, and authorKeyHash (SHA-256 of a random key the posting device keeps)
+/// is what lets that device edit or delete the post. The clan head may delete any post.
+model FeedPost {
+  id            String         @id @default(uuid()) @db.Char(36)
+  familyId      String         @db.Char(36)
+  authorName    String         @db.VarChar(100)
+  authorKeyHash String         @db.Char(64)
+  content       String         @db.Text
+  createdAt     DateTime       @default(now())
+  editedAt      DateTime?
+  family        Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  images        FeedImage[]
+  comments      FeedComment[]
+  reactions     FeedReaction[]
+
+  @@unique([familyId, id])
+  @@index([familyId, createdAt])
+}
+
+/// A photo in a post, stored under the family's media folder like avatars.
+model FeedImage {
+  id        String   @id @default(uuid()) @db.Char(36)
+  familyId  String   @db.Char(36)
+  postId    String   @db.Char(36)
+  url       String   @db.VarChar(500)
+  width     Int      @db.UnsignedSmallInt
+  height    Int      @db.UnsignedSmallInt
+  sortOrder Int      @db.UnsignedTinyInt
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  post      FeedPost @relation(fields: [familyId, postId], references: [familyId, id], onDelete: Cascade, map: "FeedImage_post_fkey")
+
+  @@index([familyId, postId])
+  @@index([familyId, url])
+}
+
+/// A comment on a post, or a reply when parentId names a top-level comment. Replies to replies stay
+/// one level deep, like Facebook, and keep the name they answer in replyToName.
+model FeedComment {
+  id            String         @id @default(uuid()) @db.Char(36)
+  familyId      String         @db.Char(36)
+  postId        String         @db.Char(36)
+  parentId      String?        @db.Char(36)
+  authorName    String         @db.VarChar(100)
+  authorKeyHash String         @db.Char(64)
+  replyToName   String?        @db.VarChar(100)
+  content       String         @db.Text
+  createdAt     DateTime       @default(now())
+  editedAt      DateTime?
+  family        Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  post          FeedPost       @relation(fields: [familyId, postId], references: [familyId, id], onDelete: Cascade, map: "FeedComment_post_fkey")
+  parent        FeedComment?   @relation("FeedCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       FeedComment[]  @relation("FeedCommentReplies")
+  reactions     FeedReaction[]
+
+  @@unique([familyId, id])
+  @@index([familyId, postId, createdAt])
+  @@index([parentId])
+}
+
+/// One device's reaction to a post or a comment (exactly one of postId and commentId is set).
+model FeedReaction {
+  id             String           @id @default(uuid()) @db.Char(36)
+  familyId       String           @db.Char(36)
+  postId         String?          @db.Char(36)
+  commentId      String?          @db.Char(36)
+  reactorKeyHash String           @db.Char(64)
+  reactorName    String           @db.VarChar(100)
+  type           FeedReactionType
+  createdAt      DateTime         @default(now())
+  family         Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  post           FeedPost?        @relation(fields: [familyId, postId], references: [familyId, id], onDelete: Cascade, map: "FeedReaction_post_fkey")
+  comment        FeedComment?     @relation(fields: [familyId, commentId], references: [familyId, id], onDelete: Cascade, map: "FeedReaction_comment_fkey")
+
+  @@unique([postId, reactorKeyHash])
+  @@unique([commentId, reactorKeyHash])
+  @@index([familyId])
+}
+
+/// One line of the family fund ledger (Quỹ họ). Only the clan head writes it; every member reads
+/// it. The balance is always computed from the whole ledger, never stored.
+model FundEntry {
+  id         String        @id @default(uuid()) @db.Char(36)
+  familyId   String        @db.Char(36)
+  content    String        @db.VarChar(500)
+  kind       FundEntryKind
+  /// Whole đồng, always positive; kind says which way it moved.
+  amount     BigInt        @db.UnsignedBigInt
+  /// The day the money moved, as the clan head records it; the ledger is ordered by it.
+  occurredOn DateTime      @db.Date
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  family     Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@index([familyId, occurredOn])
 }

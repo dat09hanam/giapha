@@ -1,4 +1,4 @@
-import { useSyncExternalStore, type CSSProperties } from 'react';
+import { createContext, useContext, useSyncExternalStore, type CSSProperties } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 
 import { FITTED_LINE_HEIGHT, fitTextSize } from '@/lib/fit-text';
@@ -71,9 +71,16 @@ function useIsBrowser(): boolean {
   );
 }
 
+/**
+ * The person the viewer searched for. Kept out of node data so highlighting
+ * does not hand React Flow new nodes, which would re-measure and re-fit them.
+ */
+export const HighlightedPersonContext = createContext<string | null>(null);
+
 const hiddenHandle = '!size-1 !min-h-0 !min-w-0 !border-0 !bg-transparent';
 
-export function PersonNode({ data }: NodeProps<PersonFlowNode>) {
+export function PersonNode({ id, data }: NodeProps<PersonFlowNode>) {
+  const highlighted = useContext(HighlightedPersonContext) === id;
   const isFounder = data.generation === 1;
   const frame = isFounder ? FRAMES.founder : FRAMES.descendant;
   const border = Math.round((frame.border * data.width) / VIEWER_NODE_WIDTH);
@@ -94,6 +101,12 @@ export function PersonNode({ data }: NodeProps<PersonFlowNode>) {
       style={{ width: data.width, height: data.height }}
       title="Xem thông tin"
     >
+      {highlighted ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -inset-3 animate-pulse rounded-2xl border-4 border-amber-400 bg-amber-300/25 shadow-[0_0_32px_8px_rgba(251,191,36,0.75)]"
+        />
+      ) : null}
       {isFounder ? (
         // The Đời 1 crest sits on the top edge of the frame.
         // eslint-disable-next-line @next/next/no-img-element

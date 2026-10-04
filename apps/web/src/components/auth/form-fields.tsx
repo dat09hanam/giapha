@@ -11,7 +11,7 @@ export function Field({ label, hint, id, ...props }: FieldProps) {
       <span className="text-sm font-medium text-emerald-950">{label}</span>
       <input
         id={id}
-        className="h-11 rounded-xl border bg-white px-3 text-sm outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+        className="h-11 rounded-xl border bg-white px-3 text-base outline-none transition placeholder:text-stone-400 sm:text-sm focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
         {...props}
       />
       {hint ? <span className="text-xs text-stone-500">{hint}</span> : null}

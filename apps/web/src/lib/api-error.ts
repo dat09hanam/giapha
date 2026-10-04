@@ -1,3 +1,5 @@
+import { redirectToLoginFromBrowser } from '@/lib/login-redirect';
+
 export type ApiErrorKind = 'http' | 'network' | 'invalid-response' | 'unknown';
 
 export class ApiRequestError extends Error {
@@ -134,6 +136,13 @@ export async function apiFetch<T>(url: string, init: RequestInit, action: string
       null,
       'network',
     );
+  }
+
+  // In the browser, a session the API no longer accepts sends the visitor to sign in
+  // again. The caller is left waiting, so no error flashes before the page changes.
+  // A wrong password also answers 401, so the sign-in request is left to its form.
+  if (response.status === 401 && !url.endsWith('/auth/login') && redirectToLoginFromBrowser()) {
+    return new Promise<T>(() => undefined);
   }
 
   const body = await responseBody(response);

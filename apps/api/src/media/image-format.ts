@@ -27,25 +27,40 @@ const IMAGE_FORMATS: Record<string, ImageFormat> = {
 
 export const IMAGE_CONTENT_TYPES = Object.keys(IMAGE_FORMATS);
 
+/** Library documents may also be PDFs, such as a scanned genealogy book. */
+export const DOCUMENT_FORMATS: Record<string, ImageFormat> = {
+  ...IMAGE_FORMATS,
+  'application/pdf': {
+    extension: 'pdf',
+    matches: (bytes) => bytes.subarray(0, 5).toString('ascii') === '%PDF-',
+  },
+};
+
 export const CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
   jpg: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
+  pdf: 'application/pdf',
 };
 
 /** Server-generated names only: `<uuid>.<extension>`, never anything from the client. */
 export const STORED_FILE_NAME =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/;
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp|pdf)$/;
 
-/** Decodes a base64 upload and checks its size and real format. */
+/** Decodes a base64 upload and checks its size and real format; images unless told otherwise. */
 export function decodeImage(
   contentType: string,
   data: string,
   maxBytes: number,
+  formats: Record<string, ImageFormat> = IMAGE_FORMATS,
 ): { bytes: Buffer; extension: string } {
-  const format = IMAGE_FORMATS[contentType];
+  const format = formats[contentType];
   if (!format) {
-    throw new BadRequestException('Định dạng ảnh không được hỗ trợ. Hãy dùng JPG, PNG hoặc WEBP.');
+    throw new BadRequestException(
+      formats === IMAGE_FORMATS
+        ? 'Định dạng ảnh không được hỗ trợ. Hãy dùng JPG, PNG hoặc WEBP.'
+        : 'Định dạng tệp không được hỗ trợ. Hãy dùng ảnh JPG, PNG, WEBP hoặc tệp PDF.',
+    );
   }
 
   const bytes = Buffer.from(data, 'base64');
@@ -58,7 +73,7 @@ export function decodeImage(
     );
   }
   if (!format.matches(bytes)) {
-    throw new BadRequestException('Nội dung tệp không khớp với định dạng ảnh đã khai báo.');
+    throw new BadRequestException('Nội dung tệp không khớp với định dạng đã khai báo.');
   }
 
   return { bytes, extension: format.extension };

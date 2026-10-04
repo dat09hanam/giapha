@@ -69,7 +69,7 @@ export function DeathAnniversaryPicker({
 
   const hintId = hint ? `${id}-hint` : undefined;
   const selectClassName =
-    'h-11 w-full appearance-none rounded-xl border bg-white px-3 pr-10 text-sm font-medium text-emerald-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500';
+    'h-11 w-full appearance-none rounded-xl border bg-white px-3 pr-10 text-base font-medium text-emerald-950 sm:text-sm outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500';
 
   return (
     <fieldset className="grid gap-1.5" aria-describedby={hintId}>

@@ -54,3 +54,138 @@ a {
 .react-flow__attribution {
   background: rgb(255 253 248 / 80%) !important;
 }
+
+/* "Xem ngang": the tree turns a quarter round into landscape and back. The
+   resting values (rotate: 90deg) come from the element's own classes. */
+@keyframes tree-turn-in {
+  from {
+    rotate: 0deg;
+    scale: 0.55;
+    opacity: 0;
+  }
+}
+
+@keyframes tree-turn-out {
+  to {
+    rotate: 0deg;
+    scale: 0.55;
+    opacity: 0;
+  }
+}
+
+@keyframes tree-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes tree-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/*
+ * Modals (see components/ui/presence.tsx). The backdrop fades; a dialog rises
+ * and fades in; a sheet slides up from the bottom; a sheet-dialog is a sheet on
+ * phones and a dialog from sm. data-presence="closed" plays them backwards.
+ */
+@keyframes ui-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ui-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ui-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.96);
+  }
+}
+
+@keyframes ui-pop-out {
+  to {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.96);
+  }
+}
+
+@keyframes ui-slide-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes ui-slide-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.ui-backdrop {
+  animation: ui-fade-in 200ms ease-out;
+}
+
+.ui-dialog {
+  animation: ui-pop-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ui-sheet,
+.ui-sheet-dialog {
+  animation: ui-slide-in 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-presence='closed'] .ui-backdrop,
+.ui-backdrop[data-presence='closed'] {
+  animation: ui-fade-out 200ms ease-in forwards;
+}
+
+[data-presence='closed'] .ui-dialog,
+.ui-dialog[data-presence='closed'] {
+  animation: ui-pop-out 180ms ease-in forwards;
+}
+
+[data-presence='closed'] .ui-sheet,
+.ui-sheet[data-presence='closed'],
+[data-presence='closed'] .ui-sheet-dialog,
+.ui-sheet-dialog[data-presence='closed'] {
+  animation: ui-slide-out 200ms ease-in forwards;
+}
+
+@media (min-width: 40rem) {
+  .ui-sheet-dialog {
+    animation: ui-pop-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  [data-presence='closed'] .ui-sheet-dialog,
+  .ui-sheet-dialog[data-presence='closed'] {
+    animation: ui-pop-out 180ms ease-in forwards;
+  }
+}
+
+/* A panel that is a sheet only below lg and sits in the page from lg up. */
+@media (max-width: 63.999rem) {
+  .ui-sheet-below-lg {
+    animation: ui-slide-in 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ui-sheet-below-lg[data-presence='closed'] {
+    animation: ui-slide-out 200ms ease-in forwards;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-backdrop,
+  .ui-dialog,
+  .ui-sheet,
+  .ui-sheet-dialog,
+  .ui-sheet-below-lg {
+    animation-duration: 1ms !important;
+  }
+}

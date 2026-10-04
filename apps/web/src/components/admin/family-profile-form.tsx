@@ -41,6 +41,48 @@ function familyToValues(family: FamilyDetails): FamilyProfileValues {
   };
 }
 
+/**
+ * A one-line address that wraps instead of scrolling sideways, so a long
+ * thôn – xã – huyện – tỉnh reads in full. It spans both columns from md and
+ * grows with its text; Enter does not add a line break.
+ */
+function AddressField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  autoComplete?: string;
+}) {
+  return (
+    <label className="grid gap-1.5 md:col-span-2" htmlFor={id}>
+      <span className="text-sm font-medium text-emerald-950">{label}</span>
+      <textarea
+        id={id}
+        // Browsers without field-sizing (older iOS, Firefox) show two lines.
+        rows={2}
+        value={value}
+        // A pasted line break becomes a space; the value stays one line.
+        onChange={(event) => onChange(event.currentTarget.value.replace(/\s*\n\s*/g, ' '))}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.preventDefault();
+        }}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        maxLength={255}
+        className="field-sizing-content min-h-11 resize-none rounded-xl border bg-white px-3 py-2.5 text-base leading-6 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 sm:text-sm"
+      />
+    </label>
+  );
+}
+
 export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
   const router = useRouter();
   const [values, setValues] = useState<FamilyProfileValues>(() => familyToValues(family));
@@ -94,7 +136,6 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
     <SectionCard
       icon={<Landmark aria-hidden="true" />}
       title="Thông tin dòng họ"
-      description="Thông tin giới thiệu hiển thị cho các thành viên của dòng họ."
       footer={
         <>
           {isDirty ? (
@@ -121,7 +162,7 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
       }
     >
       <form id="family-profile-form" className="grid gap-6" onSubmit={handleSubmit}>
-        <div className="grid gap-x-5 gap-y-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
           <Field
             id="family-profile-name"
             label="Tên dòng họ"
@@ -139,35 +180,29 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
               <Link2 className="size-4 shrink-0" aria-hidden="true" />
               <code className="min-w-0 truncate">/{family.slug}</code>
             </div>
-            <span className="text-xs text-stone-500">
-              Đường dẫn được khóa để các liên kết đã chia sẻ luôn hoạt động.
-            </span>
           </div>
 
-          <Field
+          <AddressField
             id="family-profile-origin"
             label="Quê quán / nguồn gốc"
             value={values.ancestryOrigin}
-            onChange={(event) => updateValue('ancestryOrigin', event.currentTarget.value)}
+            onChange={(value) => updateValue('ancestryOrigin', value)}
             placeholder="Ví dụ: Làng Đại Phùng, Hà Nội"
-            maxLength={255}
           />
 
-          <Field
+          <AddressField
             id="family-profile-address"
             label="Địa chỉ hiện nay"
             value={values.address}
-            onChange={(event) => updateValue('address', event.currentTarget.value)}
+            onChange={(value) => updateValue('address', value)}
             autoComplete="street-address"
             placeholder="Nơi sinh hoạt chính của dòng họ"
-            maxLength={255}
           />
 
           <DeathAnniversaryPicker
             id="family-profile-anniversary"
             value={values.deathAnniversary}
             onChange={(value) => updateValue('deathAnniversary', value)}
-            hint="Chọn ngày và tháng; để trống nếu chưa xác định."
           />
         </div>
 
@@ -177,7 +212,7 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
             id="family-profile-description"
             value={values.description}
             onChange={(event) => updateValue('description', event.currentTarget.value)}
-            className="min-h-44 resize-y rounded-xl border bg-white px-3 py-3 text-sm leading-6 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+            className="min-h-44 resize-y rounded-xl border bg-white px-3 py-3 text-base leading-6 outline-none sm:text-sm transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
             placeholder="Ghi lại lịch sử hình thành, truyền thống và những thông tin chung của dòng họ…"
             maxLength={5000}
           />

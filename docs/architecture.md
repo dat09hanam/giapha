@@ -45,6 +45,11 @@ Endpoints:
 - `GET /api/families/:slug` and authenticated `GET /api/families/:slug/tree`; the tree response includes tenant-scoped people and spousal relationships.
 - `PATCH /api/families/:slug` and Person mutations: `MEMBER_PLUS` only.
 - `POST /api/families/:slug/tree/design`: `MEMBER_PLUS` only. It saves the visible Person graph, parent links, spouse links and requested soft deletions atomically.
+- `POST /api/families/:slug/people/:personId/suggestions`: `MEMBER` and `MEMBER_PLUS`. Proposes a change to a Person for the clan head.
+- `GET /api/families/:slug/suggestions` and `PATCH /api/families/:slug/suggestions/:suggestionId`: `MEMBER_PLUS` only. Lists the newest suggestions and sets their status.
+- `/api/families/:slug/feed` (Bảng tin): `MEMBER` and `MEMBER_PLUS`. `GET` pages posts (with comments and reaction summaries); `POST posts`, `PATCH|DELETE posts/:postId`, `POST posts/:postId/comments`, `PATCH|DELETE comments/:commentId`, and `POST|DELETE posts/:postId/reaction` / `comments/:commentId/reaction`. Writes need the `X-Feed-Key` device header described below.
+- `GET /api/families/:slug/fund` (Quỹ họ): `MEMBER` and `MEMBER_PLUS`; the ledger with income, expense and balance totals. `POST fund/entries` and `PATCH|DELETE fund/entries/:entryId`: `MEMBER_PLUS` only.
+- `/api/families/:slug/library` (Album và tư liệu): `GET` (albums and documents) and `GET albums/:albumId` for `MEMBER` and `MEMBER_PLUS`; `POST albums`, `PATCH|DELETE albums/:albumId`, `POST albums/:albumId/photos`, `POST documents` and `PATCH|DELETE items/:itemId` for `MEMBER_PLUS` only.
 
 The old public clan-head registration and invitation endpoints are removed. Pending invitation
 accounts are migrated to `SUSPENDED` and their tokens are discarded.
@@ -114,13 +119,47 @@ wives, ordered by `wifeOrder`); no one is their own parent and parent links neve
 no two people in a design share the same normalized name, birth date, father and mother. The
 designer applies the same rules before saving.
 
-`Media` is the Family library: `fileUrl`, `title`, `status` and the optional `personId` of the
-Person credited with the item. It is Family-scoped with the same composite Person foreign key.
+`Media` is the Family library (Album và tư liệu): a `PHOTO` in an `Album`, or a `DOCUMENT` such as
+a scanned genealogy book, a royal decree or a PDF (`kind`). Each row holds its `fileUrl`, a small
+`thumbUrl` JPEG for grids (none for PDFs), `contentType`, `sizeBytes`, `width`/`height`, a `title`,
+`description`, `takenOn` day and the optional `personId` of the Person it is about. `Album` groups
+photos (`title`, `description`); its cover is its first photo and `updatedAt` moves when photos are
+added. Both are Family-scoped through composite `(familyId, …)` foreign keys; photos cascade from
+their album. Every member reads the library; only `MEMBER_PLUS` writes it. Photos are shrunk on the
+phone and sent one per request (2 MB, with the thumbnail); PDFs are capped at 4 MB to stay under the
+API's 6 MB body limit. PDFs are served with `Content-Security-Policy: sandbox` so script inside them
+cannot run with the API's origin.
+
+`EditSuggestion` is a change to one Person proposed by a family member: `proposerName`, free-text
+`content`, `status` (`PENDING`, `RESOLVED`, `DISMISSED`), `createdAt` and `reviewedAt`. The whole
+family shares one `MEMBER` account, so the proposer's name is typed in rather than taken from the
+session. Suggestions are never applied automatically: the clan head edits the tree in the designer
+and then marks the suggestion handled. It is Family-scoped with the composite Person foreign key and
+is deleted with its Person (`Cascade`). At most 200 suggestions may be pending per Family, which
+bounds what a shared account can queue.
+
+The family news feed (Bảng tin) is `FeedPost` (author name, text, `editedAt`), `FeedImage` (up to
+four photos per post, stored under the family's media folder with their size), `FeedComment` (a
+nullable `parentId` naming a top-level comment keeps replies one level deep; answering a reply
+records `replyToName`) and `FeedReaction` (one of seven types per device per post or comment). All
+four are Family-scoped through composite `(familyId, id)` foreign keys and cascade from their post,
+comment or Family; deleting a post also removes its photo files. Because members share one
+account, each browser keeps a random key and sends it as `X-Feed-Key`; only its SHA-256
+(`authorKeyHash`, `reactorKeyHash`) is stored. It decides which posts and comments a device may edit
+or delete and which reaction is its own. It identifies a device, not a person, and is not an
+authorization boundary between relatives; the clan head (`MEMBER_PLUS`) may delete anything.
+
+`FundEntry` is one line of the family fund ledger (Quỹ họ): `content`, `kind` (`INCOME` or
+`EXPENSE`), a positive whole-đồng `amount` (`BIGINT UNSIGNED`, capped at 10^13 so it stays exact
+as a JSON number) and `occurredOn`, the day the money moved (`DATE`, entered by the clan head; the
+ledger is ordered by it). The balance is never stored: the API sums the whole ledger on every read.
 
 React Flow positions and edges remain a web concern derived from domain responses. The designer keeps temporary client IDs for unsaved cards; the API maps them to tenant-owned Person IDs inside one serializable transaction and never accepts a client-supplied family ID as authorization.
 
-`Family`, `User` and `Media` are soft-deleted through a nullable `deletedAt`; every read path for
-those models filters `deletedAt: null`. `Person` and `Relationship` are deleted outright, so the
+`Family` and `User` are soft-deleted through a nullable `deletedAt`; every read path for those
+models filters `deletedAt: null`. Library `Media` rows and `Album`s are deleted outright together
+with their files, so a removed photo does not linger on disk; `Media.deletedAt` remains in the
+schema, is always null, and reads still filter on it. `Person` and `Relationship` are deleted outright, so the
 genealogy tables never accumulate hidden rows. Because both are referenced by `Restrict` foreign
 keys, removing a Person first clears the `fatherId`/`motherId` of its children, detaches `Media`,
 and deletes the marriages it belongs to, all inside the same serializable transaction. `AuthSession`

@@ -66,7 +66,7 @@ export function CreateFamilyForm() {
     <SectionCard
       icon={<Plus aria-hidden="true" />}
       title="Tạo gia phả mới"
-      description="Mỗi dòng họ có một đường dẫn riêng. Hệ thống tạo kèm một tài khoản Trưởng họ và một tài khoản Thành viên."
+      description="Mỗi dòng họ có một đường dẫn riêng."
     >
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-10">
         <form className="grid content-start gap-5" onSubmit={handleSubmit}>
@@ -188,9 +188,6 @@ export function CreateFamilyForm() {
                 </span>
               </li>
             </ul>
-            <p className="text-xs leading-5 text-stone-500">
-              Tên đăng nhập và mật khẩu sẽ hiện ở đây ngay sau khi tạo xong.
-            </p>
           </div>
         )}
       </div>

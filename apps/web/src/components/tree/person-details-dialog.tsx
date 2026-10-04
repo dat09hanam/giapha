@@ -1,8 +1,19 @@
 'use client';
 
-import { CalendarDays, Flower2, MapPin, Phone, ScrollText, UsersRound, X } from 'lucide-react';
-import { useEffect, useRef, type ReactNode } from 'react';
+import {
+  CalendarDays,
+  Flower2,
+  MapPin,
+  FilePenLine,
+  MessagesSquare,
+  Phone,
+  ScrollText,
+  UsersRound,
+  X,
+} from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { EditSuggestionForm } from '@/components/tree/edit-suggestion-form';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { familyMediaSrc } from '@/lib/media-api';
 import { displayPersonTitle } from '@/lib/person-name';
@@ -21,6 +32,9 @@ const MARRIAGE_STATUS_LABEL: Record<FamilyTreeRelationship['status'], string | n
   DIVORCED: 'đã ly hôn',
   WIDOWED: 'góa',
 };
+
+const HEADER_ACTION_CLASS =
+  'inline-flex items-center gap-1.5 rounded-full border border-amber-900/15 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 transition hover:border-amber-700/50 hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700';
 
 /** `YYYY-MM-DD…` as `DD/MM/YYYY`; anything else as given. */
 function formatDate(value: string | null): string | null {
@@ -110,6 +124,7 @@ export function PersonDetailsDialog({
   relationships,
   familySlug,
   onSelectPerson,
+  onFindKinship,
   onClose,
 }: {
   person: Person;
@@ -118,9 +133,14 @@ export function PersonDetailsDialog({
   relationships: readonly FamilyTreeRelationship[];
   familySlug: string;
   onSelectPerson: (id: string) => void;
+  /** Opens the kinship calculator starting from this person. */
+  onFindKinship: (id: string) => void;
   onClose: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  // Keyed by person so opening a relative from this popup starts without the form.
+  const [suggestingFor, setSuggestingFor] = useState<string | null>(null);
+  const suggesting = suggestingFor === person.id;
   const byId = new Map(people.map((entry) => [entry.id, entry]));
 
   useEffect(() => {
@@ -191,7 +211,7 @@ export function PersonDetailsDialog({
     <div className="fixed inset-0 z-[70] grid items-end p-0 sm:place-items-center sm:p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-stone-950/50 backdrop-blur-[2px]"
+        className="ui-backdrop absolute inset-0 bg-stone-950/50 backdrop-blur-[2px]"
         aria-label="Đóng thông tin"
         tabIndex={-1}
         onClick={onClose}
@@ -200,7 +220,7 @@ export function PersonDetailsDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="person-details-name"
-        className="relative flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-amber-900/15 bg-[#fffdf8] shadow-2xl sm:max-w-lg sm:rounded-3xl"
+        className="ui-sheet-dialog relative flex max-h-[88%] w-full flex-col overflow-hidden rounded-t-3xl border border-amber-900/15 bg-[#fffdf8] shadow-2xl sm:max-w-lg sm:rounded-3xl"
       >
         <header className="flex items-start gap-4 border-b border-amber-900/10 bg-gradient-to-b from-amber-50 to-[#fffdf8] px-5 pb-5 pt-6 sm:px-6">
           <div className="size-20 shrink-0 overflow-hidden rounded-2xl border-2 border-amber-700/30 bg-amber-100 shadow-sm">
@@ -256,6 +276,25 @@ export function PersonDetailsDialog({
               >
                 {person.isAlive ? 'Còn sống' : 'Đã mất'}
               </span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => onFindKinship(person.id)}
+                className={HEADER_ACTION_CLASS}
+              >
+                <MessagesSquare className="size-4" aria-hidden="true" />
+                Tính xưng hô
+              </button>
+              <button
+                type="button"
+                onClick={() => setSuggestingFor(person.id)}
+                aria-expanded={suggesting}
+                className={HEADER_ACTION_CLASS}
+              >
+                <FilePenLine className="size-4" aria-hidden="true" />
+                Đề xuất chỉnh sửa
+              </button>
             </div>
           </div>
           <button
@@ -349,6 +388,24 @@ export function PersonDetailsDialog({
             <p className="text-center text-sm text-stone-500">
               Chưa có thêm thông tin về người này.
             </p>
+          ) : null}
+
+          {suggesting ? (
+            <section className="grid gap-2" aria-labelledby="person-details-suggestion">
+              <h3
+                id="person-details-suggestion"
+                className="flex items-center gap-2 text-sm font-semibold text-emerald-950"
+              >
+                <FilePenLine className="size-4 text-amber-700" aria-hidden="true" />
+                Đề xuất chỉnh sửa
+              </h3>
+              <EditSuggestionForm
+                familySlug={familySlug}
+                personId={person.id}
+                personTitle={displayPersonTitle(person)}
+                onCancel={() => setSuggestingFor(null)}
+              />
+            </section>
           ) : null}
         </div>
       </section>

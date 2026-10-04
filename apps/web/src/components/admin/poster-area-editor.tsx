@@ -510,10 +510,6 @@ export function PosterAreaEditor({
           cùng phím mũi tên.
         </li>
       </ul>
-      <p className="text-xs leading-5 text-stone-500">
-        Cây gia phả tự co giãn vào vùng đặt cây. Tên dòng họ và hai câu chữ dọc lấy từ nội dung
-        trưởng họ nhập.
-      </p>
     </div>
   );
 }

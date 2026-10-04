@@ -2,12 +2,15 @@ import type { Metadata } from 'next';
 
 import { FamilyTreeDesigner } from '@/components/tree/family-tree-designer';
 import { ApiErrorState } from '@/components/ui/api-error-state';
-import { getFamilyTree } from '@/lib/api';
+import { getEditSuggestions, getFamilyTree } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { requireFamilyManager } from '@/lib/family-manager';
+import type { EditSuggestion } from '@/types/edit-suggestion';
 
 type FamilyDesignerPageProps = {
   params: Promise<{ slug: string }>;
+  /** `person` opens the designer on that member; `suggestion` shows the edit proposed for them. */
+  searchParams: Promise<{ person?: string | string[]; suggestion?: string | string[] }>;
 };
 
 export const metadata: Metadata = {
@@ -17,18 +20,38 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default async function FamilyDesignerPage({ params }: FamilyDesignerPageProps) {
+function single(value: string | string[] | undefined): string | null {
+  return typeof value === 'string' && value ? value : null;
+}
+
+export default async function FamilyDesignerPage({
+  params,
+  searchParams,
+}: FamilyDesignerPageProps) {
   const { slug } = await params;
+  const query = await searchParams;
+  const personId = single(query.person);
+  const suggestionId = single(query.suggestion);
 
   try {
     const profile = await requireFamilyManager(slug, 'designer');
-    const tree = await getFamilyTree(profile.family.slug, profile.sessionToken);
+    const [tree, suggestions] = await Promise.all([
+      getFamilyTree(profile.family.slug, profile.sessionToken),
+      // The suggestion is a reading aid; the designer still opens without it.
+      suggestionId
+        ? getEditSuggestions(profile.family.slug, profile.sessionToken).catch(() => null)
+        : null,
+    ]);
+    const suggestion: EditSuggestion | null =
+      suggestions?.find((entry) => entry.id === suggestionId) ?? null;
+    const focusPersonId = personId ?? suggestion?.person.id ?? null;
 
     return (
       <FamilyTreeDesigner
         familyName={profile.family.name}
         familySlug={profile.family.slug}
         initialTree={tree}
+        focus={focusPersonId ? { personId: focusPersonId, suggestion } : null}
       />
     );
   } catch (error: unknown) {

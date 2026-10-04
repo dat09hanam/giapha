@@ -54,6 +54,12 @@ export class MediaController {
       fileName,
     );
 
+    if (contentType === 'application/pdf') {
+      // Library PDFs open in the browser's viewer, sandboxed so any script inside cannot run
+      // with this origin's cookies.
+      reply.header('Content-Security-Policy', 'sandbox').header('Content-Disposition', 'inline');
+    }
+
     await reply
       // Helmet defaults every response to `same-origin`, which stops the web app
       // on another origin from rendering these in an <img>. Access is still

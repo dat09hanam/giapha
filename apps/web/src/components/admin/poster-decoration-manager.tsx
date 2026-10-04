@@ -110,7 +110,7 @@ function InsetFields({
                     : 0,
                 });
               }}
-              className="h-10 rounded-xl border bg-white px-3 text-sm text-stone-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+              className="h-10 rounded-xl border bg-white px-3 text-base text-stone-900 outline-none sm:text-sm focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
             />
           </label>
         ))}
@@ -141,7 +141,7 @@ function draftFor(decoration?: PosterDecoration): Draft {
 
 const checkboxClass = 'size-4 rounded border-stone-300 accent-emerald-800';
 const selectClass =
-  'h-11 rounded-xl border bg-white px-3 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15';
+  'h-11 rounded-xl border bg-white px-3 text-base outline-none sm:text-sm focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15';
 
 function BackgroundEditor({
   draft,
@@ -319,12 +319,7 @@ function BackgroundEditor({
               checked={draft.isActive}
               onChange={(event) => onChange({ ...draft, isActive: event.currentTarget.checked })}
             />
-            <span>
-              <span className="font-medium">Hiển thị cho trưởng họ</span>
-              <span className="block text-xs text-stone-500">
-                Bỏ chọn để ẩn khỏi danh sách lựa chọn.
-              </span>
-            </span>
+            <span className="font-medium">Hiển thị cho trưởng họ</span>
           </label>
 
           <details className="rounded-xl border bg-white px-3.5 py-3">
@@ -486,7 +481,7 @@ export function PosterDecorationManager({ initial }: { initial: AdminPosterDecor
     <SectionCard
       icon={<ImageIcon aria-hidden="true" />}
       title="Thư viện hình nền phả đồ"
-      description={`${shown.length} hình nền · ${activeCount} đang hiển thị cho trưởng họ. Tải ảnh lên để thêm hình nền mới.`}
+      description={`${shown.length} hình nền · ${activeCount} đang hiển thị cho trưởng họ.`}
       actions={
         <Button type="button" onClick={() => setDraft(draftFor())}>
           <Plus className="size-4" aria-hidden="true" />
