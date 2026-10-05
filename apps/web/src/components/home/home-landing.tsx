@@ -140,7 +140,7 @@ export function HomeLanding() {
               alt="Gia Phả Đại Việt Online"
               width={2172}
               height={724}
-              sizes="(max-width: 760px) 85vw, 440px"
+              sizes="(max-width: 760px) 220px, 340px"
               priority
               className={styles.logoImage}
             />
@@ -152,7 +152,7 @@ export function HomeLanding() {
           <div className={styles.copy}>
             <p className={styles.eyebrow}>Phần mềm gia phả trực tuyến</p>
             <h1 className={heroScript.className}>Gắn Kết Mọi Thế Hệ</h1>
-            <h2>Tạo một lần, lưu trữ trọn đời</h2>
+            <h2>Gìn giữ cội nguồn, viết tiếp mai sau</h2>
             <p className={styles.description}>
               Tạo phả đồ, lưu trữ gia phả và xây dựng website riêng cho dòng họ — tất cả trực
               tuyến, không cần cài đặt, truy cập mọi lúc mọi nơi.
@@ -236,6 +236,7 @@ export function HomeLanding() {
         </Link>
       </section>
       <section className={styles.guide} id="huong-dan">
+        <p className={styles.sectionLabel}>BA BƯỚC ĐỂ BẮT ĐẦU</p>
         <h2>Bắt đầu khám phá thật dễ dàng</h2>
         <ol>
           <li>
@@ -257,9 +258,35 @@ export function HomeLanding() {
           </li>
         </ol>
       </section>
+      <section className={styles.faq} id="cau-hoi" aria-labelledby="faq-heading">
+        <div className={styles.faqIntro}>
+          <p className={styles.sectionLabel}>CÙNG BẠN GÌN GIỮ GIA PHẢ</p>
+          <h2 id="faq-heading">Bạn hỏi, chúng tôi giải đáp</h2>
+          <p>Một vài điều hữu ích trước khi bắt đầu câu chuyện của dòng họ.</p>
+          <Link href="/demo" className={styles.secondary}>Khám phá gia phả mẫu <ArrowRight size={18} /></Link>
+        </div>
+        <div className={styles.faqList}>
+          <details>
+            <summary>Tôi có cần cài đặt phần mềm không?</summary>
+            <p>Không cần cài đặt. Bạn có thể mở gia phả bằng trình duyệt trên máy tính, máy tính bảng hoặc điện thoại.</p>
+          </details>
+          <details>
+            <summary>Tôi có thể xem thử trước khi đăng nhập không?</summary>
+            <p>Có. Chọn “Trải nghiệm gia phả” để khám phá dòng họ mẫu và làm quen với cây gia phả.</p>
+          </details>
+          <details>
+            <summary>Làm thế nào để xem các nhánh của dòng họ?</summary>
+            <p>Trong phả đồ, bạn có thể di chuyển và phóng to để theo dõi các thế hệ. Chọn thành viên để tìm hiểu thông tin được hiển thị.</p>
+          </details>
+          <details>
+            <summary>Tôi có thể chỉnh sửa gia phả không?</summary>
+            <p>Việc chỉnh sửa cần đăng nhập bằng tài khoản được cấp quyền quản lý dòng họ. Hãy liên hệ người quản lý gia phả của bạn để được cấp quyền phù hợp.</p>
+          </details>
+        </div>
+      </section>
       <footer className={styles.footer}>
         <Link href="/" className={styles.footerBrand}>
-          <Sprout size={20} /> Gia Phả Việt
+          <Sprout size={20} /> Gia Phả Đại Việt
         </Link>
         <p>Gìn giữ cội nguồn. Kết nối mai sau.</p>
         <a href="#top" aria-label="Về đầu trang">

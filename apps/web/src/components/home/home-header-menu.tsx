@@ -2,13 +2,14 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { Phone, UserRound, X } from 'lucide-react';
+import { Menu, Phone, UserRound, X } from 'lucide-react';
 
 import styles from './home.module.css';
 
 type Notice = 'Facebook' | 'Zalo' | 'Phone' | 'Bảng giá' | 'Tin tức' | 'Liên hệ';
 
 export function HomeHeaderMenu() {
+  const [menuOpen, setMenuOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [notice, setNotice] = useState<Notice>('Liên hệ');
 
@@ -18,7 +19,16 @@ export function HomeHeaderMenu() {
   }
 
   return (
-    <div className={styles.navigation}>
+    <div className={styles.navigation} data-open={menuOpen}>
+      <div className={styles.mobileToolbar}>
+        <Link href="/login" className={styles.loginAction}>Đăng nhập</Link>
+        <button type="button" className={styles.menuToggle} aria-expanded={menuOpen}
+          aria-controls="home-navigation" aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
+          onClick={() => setMenuOpen(!menuOpen)}>
+          {menuOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+      </div>
+      <div id="home-navigation" className={styles.menuContent}>
       <div className={styles.headerActions} aria-label="Liên hệ và tài khoản">
         <button
           type="button"
@@ -63,10 +73,12 @@ export function HomeHeaderMenu() {
           Tin tức
         </button>
         <a href="#huong-dan">Hướng dẫn</a>
+        <a href="#cau-hoi">Câu hỏi</a>
         <button type="button" onClick={() => showNotice('Liên hệ')}>
           Liên hệ
         </button>
       </nav>
+      </div>
       <dialog
         ref={dialogRef}
         className={styles.menuDialog}
