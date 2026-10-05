@@ -1,7 +1,6 @@
-/**
- * The drawings on the Giới thiệu cover: a tam quan gate, far mountains, lotus at the corners
- * and a blossoming branch. Plain SVG in the brand colours, decorative only.
- */
+import Image from 'next/image';
+
+/** Decorative SVG drawings and image artwork used on family pages. */
 
 /** Cổng tam quan: a tall middle gate between two lower ones, with upswept eaves. */
 export function TempleGate({ className }: { className?: string }) {
@@ -84,6 +83,21 @@ export function Lotus({ className }: { className?: string }) {
         <path d="M60 72 Q50 40 60 14 Q70 40 60 72 Z" fill="#fadbe0" />
       </g>
     </svg>
+  );
+}
+
+/** A soft botanical lotus illustration for the family's paper scenery. */
+export function LotusArtwork({ className }: { className?: string }) {
+  return (
+    <Image
+      src="/images/decorations/lotus-bloom.webp"
+      alt=""
+      aria-hidden="true"
+      width={512}
+      height={468}
+      draggable={false}
+      className={className}
+    />
   );
 }
 

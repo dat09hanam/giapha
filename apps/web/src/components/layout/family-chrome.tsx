@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 
-import { Lotus, Mountains } from '@/components/about/about-art';
+import { LotusArtwork, Mountains } from '@/components/about/about-art';
 import { FamilyHeader, type FamilyHeaderViewer } from '@/components/layout/family-header';
 import { SiteHeaderBar } from '@/components/layout/site-header';
 import { ViewerIdentityScope } from '@/components/layout/viewer-identity-scope';
@@ -59,8 +59,8 @@ function PaperScenery() {
       aria-hidden="true"
     >
       <Mountains className="absolute inset-x-0 bottom-0 h-40 w-full opacity-70" />
-      <Lotus className="absolute -bottom-2 left-4 w-40 opacity-40" />
-      <Lotus className="absolute -bottom-2 right-4 w-44 -scale-x-100 opacity-40" />
+      <LotusArtwork className="absolute -bottom-2 left-4 w-40 opacity-30" />
+      <LotusArtwork className="absolute -bottom-2 right-4 w-44 -scale-x-100 opacity-30" />
     </div>
   );
 }

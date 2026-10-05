@@ -6,6 +6,7 @@ import {
   GitBranch,
   HandHeart,
   Info,
+  Landmark,
   LogIn,
   Menu,
   Network,
@@ -18,12 +19,11 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { Lotus } from '@/components/about/about-art';
 import { LogoutButton } from '@/components/auth/logout-button';
-import { CloudMotif } from '@/components/layout/page-hero';
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
 import type { UserRole } from '@/lib/auth-api';
@@ -206,14 +206,25 @@ export function FamilyHeader({
         className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col overflow-hidden bg-gradient-to-b from-brand-700 via-brand-800 to-brand-900 text-white shadow-xl lg:flex print:hidden!"
         aria-label="Điều hướng dòng họ"
       >
-        <CloudMotif className="pointer-events-none absolute -right-10 top-24 w-48 text-white/[0.07]" />
-        <Lotus className="pointer-events-none absolute -bottom-3 -left-4 w-40 opacity-25" />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-20 top-20 size-72 rounded-full bg-brand-500/15 blur-3xl"
+        />
+        <Image
+          src="/images/decorations/sidebar-ancestral-hall.webp"
+          alt=""
+          aria-hidden="true"
+          width={900}
+          height={300}
+          draggable={false}
+          className="pointer-events-none absolute bottom-0 left-0 w-full opacity-20"
+        />
         <Link
           href={familyHref(family.slug, '')}
           className="relative flex items-center gap-3 px-5 pb-5 pt-6"
         >
           <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/10 ring-2 ring-amber-300/70">
-            <Lotus className="w-8" />
+            <Landmark className="size-6 text-amber-100" strokeWidth={1.7} aria-hidden="true" />
           </span>
           <span className="min-w-0 font-display leading-tight">
             <span className="block text-sm text-amber-100/90">Gia phả</span>
