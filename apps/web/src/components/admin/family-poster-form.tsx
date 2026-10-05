@@ -80,7 +80,7 @@ function BackgroundPicker({
   ];
   return (
     <fieldset className="grid gap-2">
-      <legend className="mb-2 text-sm font-medium text-emerald-950">Hình nền</legend>
+      <legend className="mb-2 text-sm font-medium text-brand-950">Hình nền</legend>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
         {choices.map((choice) => {
           const selected = choice.id === value;
@@ -91,10 +91,10 @@ function BackgroundPicker({
               onClick={() => onChange(choice.id)}
               aria-pressed={selected}
               className={
-                'grid justify-items-center gap-2 rounded-xl border bg-white p-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 ' +
+                'grid justify-items-center gap-2 rounded-xl border bg-white p-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 ' +
                 (selected
-                  ? 'border-emerald-700 text-emerald-950 ring-2 ring-emerald-700/20'
-                  : 'border-stone-200 text-stone-600 hover:border-emerald-700/40')
+                  ? 'border-brand-700 text-brand-950 ring-2 ring-brand-700/20'
+                  : 'border-stone-200 text-stone-600 hover:border-brand-700/40')
               }
             >
               <span className="grid h-[72px] w-full place-items-center overflow-hidden rounded-lg bg-[#fff6c9]">
@@ -214,7 +214,7 @@ export function FamilyPosterForm({
         onSubmit={handleSubmit}
       >
         <div className="grid gap-2 lg:sticky lg:top-6">
-          <p className="text-sm font-medium text-emerald-950">Xem trước</p>
+          <p className="text-sm font-medium text-brand-950">Xem trước</p>
           <PosterPreview poster={previewPoster} familyName={family.name} />
         </div>
 
@@ -226,9 +226,7 @@ export function FamilyPosterForm({
           />
 
           <fieldset className="grid gap-3">
-            <legend className="mb-2 text-sm font-medium text-emerald-950">
-              Câu chữ dọc hai bên
-            </legend>
+            <legend className="mb-2 text-sm font-medium text-brand-950">Câu chữ dọc hai bên</legend>
             <div className="grid gap-4">
               <Field
                 id="poster-left-text"

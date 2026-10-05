@@ -45,7 +45,7 @@ export default async function FamilyFundPage({ params }: FamilyFundPageProps) {
   }
 
   return (
-    <main className="min-h-[calc(100dvh-4rem)] bg-stone-100">
+    <main className="min-h-[calc(100dvh-4rem)]">
       <FamilyFund familySlug={slug} initial={ledger} />
     </main>
   );

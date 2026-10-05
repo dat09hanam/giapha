@@ -15,7 +15,7 @@ import {
 } from '@/lib/merit-api';
 
 export const meritInputClass =
-  'w-full rounded-xl border border-stone-200 bg-white px-3 text-base outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 sm:text-sm';
+  'w-full rounded-xl border border-stone-200 bg-white px-3 text-base outline-none transition placeholder:text-stone-400 focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 sm:text-sm';
 
 /** Creates a Công đức event, or edits `editing`; the clan head only. */
 export function MeritEventDialog({

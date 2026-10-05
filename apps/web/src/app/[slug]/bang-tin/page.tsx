@@ -39,7 +39,7 @@ export default async function FamilyFeedPage({ params }: FamilyFeedPageProps) {
   if (!feedOn) notFound();
 
   return (
-    <main className="min-h-[calc(100dvh-4rem)] bg-stone-100">
+    <main className="min-h-[calc(100dvh-4rem)]">
       <FamilyFeed familySlug={slug} />
     </main>
   );

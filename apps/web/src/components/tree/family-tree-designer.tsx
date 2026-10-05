@@ -214,9 +214,9 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
     <article
       aria-current={data.selected ? 'true' : undefined}
       className={cn(
-        'relative w-[214px] overflow-hidden rounded-2xl border bg-[#fffdf8] shadow-lg shadow-emerald-950/10 transition duration-200',
+        'relative w-[214px] overflow-hidden rounded-2xl border bg-[#fffdf8] shadow-lg shadow-brand-950/10 transition duration-200',
         data.selected
-          ? 'scale-[1.03] border-emerald-700 bg-emerald-50 shadow-2xl shadow-emerald-950/25 ring-4 ring-emerald-500/30'
+          ? 'scale-[1.03] border-brand-700 bg-brand-50 shadow-2xl shadow-brand-950/25 ring-4 ring-brand-500/30'
           : 'border-amber-900/20 hover:border-amber-700/45',
         !data.editable && !data.selected && 'opacity-60',
       )}
@@ -249,7 +249,7 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
           className={cn(
             'mx-auto grid size-16 place-items-center overflow-hidden rounded-full ring-1',
             genderStyles[data.member.gender],
-            data.selected && 'ring-4 ring-emerald-600/25',
+            data.selected && 'ring-4 ring-brand-600/25',
           )}
         >
           {data.avatarSrc ? (
@@ -275,7 +275,7 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
           {data.member.honorific || '\u00a0'}
         </span>
         <span
-          className="mt-1 block truncate text-center font-semibold text-emerald-950"
+          className="mt-1 block truncate text-center font-semibold text-brand-950"
           title={data.member.name}
         >
           {data.member.name}
@@ -290,7 +290,7 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
           type="button"
           className={cn(
             'flex w-full items-center justify-center gap-1.5 border-t border-amber-900/10 px-3 py-2.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-700',
-            data.selected ? 'bg-emerald-100/80 text-emerald-950' : 'bg-amber-50/70',
+            data.selected ? 'bg-brand-100/80 text-brand-950' : 'bg-amber-50/70',
           )}
           onClick={(event) => {
             // Not a tap on the card: that would also open the member form on phones.
@@ -724,7 +724,7 @@ function removeMembers(draft: DesignerDraft, removedIds: ReadonlySet<string>): D
 }
 
 const fieldClassName =
-  'h-11 min-w-0 rounded-xl border bg-white px-3 text-base sm:text-sm outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15';
+  'h-11 min-w-0 rounded-xl border bg-white px-3 text-base sm:text-sm outline-none transition focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15';
 
 function DesignerTextField({
   id,
@@ -747,7 +747,7 @@ function DesignerTextField({
     // Birth and death dates: the Vietnamese calendar, never later than today.
     return (
       <div className="grid gap-1.5">
-        <label className="text-sm font-medium text-emerald-950" htmlFor={id}>
+        <label className="text-sm font-medium text-brand-950" htmlFor={id}>
           {label}
         </label>
         <DatePicker
@@ -764,7 +764,7 @@ function DesignerTextField({
 
   return (
     <label className="grid gap-1.5" htmlFor={id}>
-      <span className="text-sm font-medium text-emerald-950">{label}</span>
+      <span className="text-sm font-medium text-brand-950">{label}</span>
       <input
         id={id}
         type={type}
@@ -1425,7 +1425,7 @@ export function FamilyTreeDesigner({
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-[#f4efe4]">
-      <header className="hidden border-b border-emerald-950/20 bg-emerald-950 text-emerald-50 shadow-sm lg:block">
+      <header className="hidden border-b border-brand-950/20 bg-brand-950 text-brand-50 shadow-sm lg:block">
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-200/15 text-amber-200 ring-1 ring-amber-100/20">
@@ -1435,7 +1435,7 @@ export function FamilyTreeDesigner({
               <h1 className="truncate font-serif text-xl font-semibold sm:text-2xl">
                 Thiết kế gia phả
               </h1>
-              <p className="truncate text-xs text-emerald-100/70">{familyName}</p>
+              <p className="truncate text-xs text-brand-100/70">{familyName}</p>
             </div>
           </div>
 
@@ -1445,7 +1445,7 @@ export function FamilyTreeDesigner({
             </span>
             <Button
               type="button"
-              className="bg-amber-200 text-emerald-950 hover:bg-amber-100"
+              className="bg-amber-200 text-brand-950 hover:bg-amber-100"
               disabled={savingAll || !hasUnsavedChanges}
               title={
                 hasUnsavedChanges ? 'Lưu toàn bộ bản thiết kế' : 'Không có thay đổi nào cần lưu'
@@ -1482,7 +1482,7 @@ export function FamilyTreeDesigner({
 
       <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section
-          className="relative h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] overflow-hidden bg-[#f8f3e8] lg:h-[calc(100vh-8rem)] lg:border-r lg:border-amber-900/15"
+          className="relative h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] overflow-hidden bg-[#f8f3e8] lg:h-[calc(100vh-4rem)] lg:border-r lg:border-amber-900/15"
           aria-label="Canvas thiết kế cây gia phả"
         >
           <ReactFlow
@@ -1533,7 +1533,7 @@ export function FamilyTreeDesigner({
           <button
             type="button"
             data-presence={editorSheet.state}
-            className="ui-backdrop fixed inset-0 z-[44] bg-emerald-950/40 data-[presence=closed]:pointer-events-none lg:hidden"
+            className="ui-backdrop fixed inset-0 z-[44] bg-brand-950/40 data-[presence=closed]:pointer-events-none lg:hidden"
             aria-label="Đóng thông tin thành viên"
             tabIndex={-1}
             onClick={() => setEditorOpen(false)}
@@ -1545,7 +1545,7 @@ export function FamilyTreeDesigner({
             editorSheet.mounted
               ? 'ui-sheet-below-lg fixed inset-x-0 bottom-0 z-[45] max-h-[85dvh] rounded-t-3xl pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl'
               : 'hidden',
-            'lg:static lg:z-auto lg:block lg:h-[calc(100vh-8rem)] lg:max-h-none lg:rounded-none lg:pb-5 lg:shadow-none',
+            'lg:static lg:z-auto lg:block lg:h-[calc(100vh-4rem)] lg:max-h-none lg:rounded-none lg:pb-5 lg:shadow-none',
           )}
           aria-label="Thông tin thành viên"
           data-presence={editorSheet.state}
@@ -1559,7 +1559,7 @@ export function FamilyTreeDesigner({
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
                 Đang chọn
               </p>
-              <h2 className="mt-1 text-lg font-semibold text-emerald-950">Thông tin thành viên</h2>
+              <h2 className="mt-1 text-lg font-semibold text-brand-950">Thông tin thành viên</h2>
             </div>
             <span
               className={cn(
@@ -1608,7 +1608,7 @@ export function FamilyTreeDesigner({
                 {suggestion.content}
               </p>
               {suggestionHandled ? (
-                <p className="flex items-center gap-2 text-sm font-medium text-emerald-800">
+                <p className="flex items-center gap-2 text-sm font-medium text-brand-800">
                   <CheckCircle2 className="size-4" aria-hidden="true" />
                   Đã đánh dấu đã xử lý.
                 </p>
@@ -1680,7 +1680,7 @@ export function FamilyTreeDesigner({
               />
 
               <fieldset className="grid gap-1.5">
-                <legend className="text-sm font-medium text-emerald-950">Giới tính</legend>
+                <legend className="text-sm font-medium text-brand-950">Giới tính</legend>
                 <div className="mt-1.5 grid grid-cols-2 gap-3">
                   {GENDER_CHOICES.map((choice) => {
                     const isChecked = selectedMember.gender === choice.value;
@@ -1690,8 +1690,8 @@ export function FamilyTreeDesigner({
                         className={cn(
                           'flex h-11 cursor-pointer items-center gap-2.5 rounded-xl border bg-white px-3 text-sm transition',
                           isChecked
-                            ? 'border-emerald-700 font-medium text-emerald-950 ring-2 ring-emerald-700/15'
-                            : 'text-stone-600 hover:border-emerald-800/35',
+                            ? 'border-brand-700 font-medium text-brand-950 ring-2 ring-brand-700/15'
+                            : 'text-stone-600 hover:border-brand-800/35',
                         )}
                       >
                         <input
@@ -1700,7 +1700,7 @@ export function FamilyTreeDesigner({
                           value={choice.value}
                           checked={isChecked}
                           onChange={() => patchSelectedMember({ gender: choice.value })}
-                          className="size-4 accent-emerald-700"
+                          className="size-4 accent-brand-700"
                         />
                         {choice.label}
                       </label>
@@ -1718,7 +1718,7 @@ export function FamilyTreeDesigner({
               />
 
               <label
-                className="flex h-11 cursor-pointer items-center gap-2.5 rounded-xl border bg-white px-3 text-sm text-emerald-950 transition hover:border-emerald-800/35"
+                className="flex h-11 cursor-pointer items-center gap-2.5 rounded-xl border bg-white px-3 text-sm text-brand-950 transition hover:border-brand-800/35"
                 htmlFor="designer-member-is-alive"
               >
                 <input
@@ -1726,7 +1726,7 @@ export function FamilyTreeDesigner({
                   type="checkbox"
                   checked={selectedMember.isAlive}
                   onChange={(event) => patchIsAlive(event.currentTarget.checked)}
-                  className="size-4 accent-emerald-700"
+                  className="size-4 accent-brand-700"
                 />
                 <span className="font-medium">Còn sống</span>
               </label>
@@ -1784,7 +1784,7 @@ export function FamilyTreeDesigner({
               />
 
               <div className="grid gap-1.5">
-                <span className="text-sm font-medium text-emerald-950">Ảnh đại diện</span>
+                <span className="text-sm font-medium text-brand-950">Ảnh đại diện</span>
                 <div className="flex items-center gap-3">
                   <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl border bg-white">
                     {selectedAvatarSrc ? (
@@ -1856,7 +1856,7 @@ export function FamilyTreeDesigner({
               </div>
 
               <label className="grid gap-1.5" htmlFor="designer-member-biography">
-                <span className="text-sm font-medium text-emerald-950">Tiểu sử</span>
+                <span className="text-sm font-medium text-brand-950">Tiểu sử</span>
                 <textarea
                   id="designer-member-biography"
                   value={selectedMember.biography}
@@ -1868,7 +1868,7 @@ export function FamilyTreeDesigner({
                   rows={4}
                   maxLength={10000}
                   placeholder="Tóm tắt cuộc đời, công trạng, ghi chú của dòng họ..."
-                  className="min-w-0 resize-y rounded-xl border bg-white px-3 py-2.5 text-base sm:text-sm leading-6 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+                  className="min-w-0 resize-y rounded-xl border bg-white px-3 py-2.5 text-base sm:text-sm leading-6 outline-none transition focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15"
                 />
               </label>
 
@@ -1889,7 +1889,7 @@ export function FamilyTreeDesigner({
                         </span>
                         <button
                           type="button"
-                          className="min-w-0 flex-1 truncate text-left text-sm font-medium text-emerald-950 underline-offset-2 hover:underline"
+                          className="min-w-0 flex-1 truncate text-left text-sm font-medium text-brand-950 underline-offset-2 hover:underline"
                           title={wife.member.name}
                           onClick={() => selectMember(wife.member.id)}
                         >
@@ -1898,7 +1898,7 @@ export function FamilyTreeDesigner({
                         <span className="flex shrink-0 items-center">
                           <button
                             type="button"
-                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-emerald-900 disabled:pointer-events-none disabled:opacity-30"
+                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-brand-900 disabled:pointer-events-none disabled:opacity-30"
                             disabled={index === 0}
                             aria-label={'Chuyển ' + wife.member.name + ' lên trên'}
                             onClick={() => moveWife(index, -1)}
@@ -1907,7 +1907,7 @@ export function FamilyTreeDesigner({
                           </button>
                           <button
                             type="button"
-                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-emerald-900 disabled:pointer-events-none disabled:opacity-30"
+                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-brand-900 disabled:pointer-events-none disabled:opacity-30"
                             disabled={index === selectedWives.length - 1}
                             aria-label={'Chuyển ' + wife.member.name + ' xuống dưới'}
                             onClick={() => moveWife(index, 1)}
@@ -1922,8 +1922,8 @@ export function FamilyTreeDesigner({
               ) : null}
 
               {selectedChildren.length > 0 ? (
-                <fieldset className="grid gap-3 rounded-2xl border border-emerald-900/20 bg-emerald-50/50 p-4">
-                  <legend className="px-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                <fieldset className="grid gap-3 rounded-2xl border border-brand-900/20 bg-brand-50/50 p-4">
+                  <legend className="px-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-brand-700">
                     Danh sách con ({selectedChildren.length})
                   </legend>
 
@@ -1931,14 +1931,14 @@ export function FamilyTreeDesigner({
                     {selectedChildren.map((child, index) => (
                       <li
                         key={child.id}
-                        className="flex items-center gap-2 rounded-xl border border-emerald-900/10 bg-white p-2"
+                        className="flex items-center gap-2 rounded-xl border border-brand-900/10 bg-white p-2"
                       >
-                        <span className="shrink-0 rounded-lg bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-900">
+                        <span className="shrink-0 rounded-lg bg-brand-100 px-2 py-1 text-xs font-semibold text-brand-900">
                           Thứ {index + 1}
                         </span>
                         <button
                           type="button"
-                          className="min-w-0 flex-1 truncate text-left text-sm font-medium text-emerald-950 underline-offset-2 hover:underline"
+                          className="min-w-0 flex-1 truncate text-left text-sm font-medium text-brand-950 underline-offset-2 hover:underline"
                           title={child.name}
                           onClick={() => selectMember(child.id)}
                         >
@@ -1947,7 +1947,7 @@ export function FamilyTreeDesigner({
                         <span className="flex shrink-0 items-center">
                           <button
                             type="button"
-                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-emerald-900 disabled:pointer-events-none disabled:opacity-30"
+                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-brand-900 disabled:pointer-events-none disabled:opacity-30"
                             disabled={index === 0}
                             aria-label={'Chuyển ' + child.name + ' lên trên'}
                             onClick={() => moveChild(index, -1)}
@@ -1956,7 +1956,7 @@ export function FamilyTreeDesigner({
                           </button>
                           <button
                             type="button"
-                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-emerald-900 disabled:pointer-events-none disabled:opacity-30"
+                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-brand-900 disabled:pointer-events-none disabled:opacity-30"
                             disabled={index === selectedChildren.length - 1}
                             aria-label={'Chuyển ' + child.name + ' xuống dưới'}
                             onClick={() => moveChild(index, 1)}
@@ -2012,7 +2012,7 @@ export function FamilyTreeDesigner({
       </div>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-emerald-950/10 bg-[#fffdf8]/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(30,41,35,0.06)] backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-950/10 bg-[#fffdf8]/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(30,41,35,0.06)] backdrop-blur lg:hidden"
         aria-label="Công cụ thiết kế"
       >
         <ul className="mx-auto grid h-16 max-w-xl grid-cols-5">
@@ -2092,7 +2092,7 @@ export function FamilyTreeDesigner({
           <div className="fixed inset-0 z-50 grid place-items-center p-4">
             <button
               type="button"
-              className="ui-backdrop absolute inset-0 bg-emerald-950/45 backdrop-blur-[2px]"
+              className="ui-backdrop absolute inset-0 bg-brand-950/45 backdrop-blur-[2px]"
               aria-label="Đóng hộp chọn quan hệ"
               onClick={closeRelationshipPicker}
             />
@@ -2116,7 +2116,7 @@ export function FamilyTreeDesigner({
               </p>
               <h2
                 id="relationship-dialog-title"
-                className="mt-2 pr-10 text-xl font-semibold text-emerald-950"
+                className="mt-2 pr-10 text-xl font-semibold text-brand-950"
               >
                 {addition.step === 'choose'
                   ? 'Thêm quan hệ cho ' + relationshipTarget.name
@@ -2150,10 +2150,10 @@ export function FamilyTreeDesigner({
                             aria-disabled={blockedReason ? true : undefined}
                             aria-describedby={blockedReason ? tooltipId : undefined}
                             className={cn(
-                              'flex min-h-[76px] w-full items-center gap-3 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700',
+                              'flex min-h-[76px] w-full items-center gap-3 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700',
                               blockedReason
                                 ? 'cursor-not-allowed border-stone-200 bg-stone-50'
-                                : 'border-amber-900/15 bg-white hover:border-emerald-800/35 hover:bg-emerald-50',
+                                : 'border-amber-900/15 bg-white hover:border-brand-800/35 hover:bg-brand-50',
                             )}
                             onClick={() => chooseRelationship(choice.kind)}
                           >
@@ -2162,7 +2162,7 @@ export function FamilyTreeDesigner({
                                 'grid size-10 shrink-0 place-items-center rounded-xl',
                                 blockedReason
                                   ? 'bg-stone-100 text-stone-400'
-                                  : 'bg-emerald-100 text-emerald-900',
+                                  : 'bg-brand-100 text-brand-900',
                               )}
                             >
                               <Icon className="size-5" aria-hidden="true" />
@@ -2171,7 +2171,7 @@ export function FamilyTreeDesigner({
                               <span
                                 className={cn(
                                   'block text-sm font-semibold',
-                                  blockedReason ? 'text-stone-400' : 'text-emerald-950',
+                                  blockedReason ? 'text-stone-400' : 'text-brand-950',
                                 )}
                               >
                                 {choice.label}
@@ -2190,12 +2190,12 @@ export function FamilyTreeDesigner({
                             <span
                               id={tooltipId}
                               role="tooltip"
-                              className="pointer-events-none invisible absolute bottom-full left-1/2 mb-2 w-max max-w-[16rem] -translate-x-1/2 rounded-lg bg-emerald-950 px-3 py-2 text-center text-xs font-medium leading-5 text-white shadow-xl group-focus-within:visible group-hover:visible"
+                              className="pointer-events-none invisible absolute bottom-full left-1/2 mb-2 w-max max-w-[16rem] -translate-x-1/2 rounded-lg bg-brand-950 px-3 py-2 text-center text-xs font-medium leading-5 text-white shadow-xl group-focus-within:visible group-hover:visible"
                             >
                               {blockedReason}
                               <span
                                 aria-hidden="true"
-                                className="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-emerald-950"
+                                className="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-brand-950"
                               />
                             </span>
                           ) : null}
@@ -2217,7 +2217,7 @@ export function FamilyTreeDesigner({
                       <button
                         key={wife.member.id}
                         type="button"
-                        className="rounded-2xl border border-amber-900/15 bg-white px-4 py-3 text-left text-sm font-medium text-emerald-950 transition hover:border-emerald-800/35 hover:bg-emerald-50"
+                        className="rounded-2xl border border-amber-900/15 bg-white px-4 py-3 text-left text-sm font-medium text-brand-950 transition hover:border-brand-800/35 hover:bg-brand-50"
                         onClick={() => chooseMother(addition.kind, wife.member.id)}
                       >
                         Vợ {index + 1} – {wife.member.name}
@@ -2277,7 +2277,7 @@ export function FamilyTreeDesigner({
           <div className="fixed inset-0 z-[60] grid place-items-center p-4">
             <button
               type="button"
-              className="ui-backdrop absolute inset-0 bg-emerald-950/45 backdrop-blur-[2px]"
+              className="ui-backdrop absolute inset-0 bg-brand-950/45 backdrop-blur-[2px]"
               aria-label="Đóng hộp xác nhận xóa thành viên"
               onClick={() => setDeleteTargetId(null)}
             />
@@ -2293,7 +2293,7 @@ export function FamilyTreeDesigner({
               </span>
               <h2
                 id="delete-member-dialog-title"
-                className="mt-4 text-xl font-semibold text-emerald-950"
+                className="mt-4 text-xl font-semibold text-brand-950"
               >
                 Xóa thành viên?
               </h2>

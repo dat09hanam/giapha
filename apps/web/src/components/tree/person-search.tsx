@@ -10,11 +10,11 @@ import { cn } from '@/lib/utils';
 const MAX_RESULTS = 8;
 
 const TONES = {
-  /** Over the dark tree page; the list floats over the poster. */
-  dark: {
+  /** On the tree page's toolbar; the list floats over the poster. */
+  page: {
     input:
-      'border-stone-600 bg-stone-800 text-stone-100 placeholder:text-stone-400 focus:border-amber-400 focus:ring-amber-400/40',
-    clear: 'text-stone-400 hover:bg-stone-700 hover:text-stone-100',
+      'border-transparent bg-white text-stone-900 shadow-sm placeholder:text-stone-400 focus:border-brand-400 focus:ring-brand-400/30 sm:border-line',
+    clear: 'text-stone-400 hover:bg-stone-100 hover:text-stone-800',
     list: 'absolute inset-x-0 top-full z-20 shadow-xl',
   },
   /** Inside a light dialog; the list stays in the flow so a scrolling dialog does not clip it. */
@@ -30,7 +30,7 @@ export function PersonSearch({
   entries,
   onSelect,
   onClear,
-  tone = 'dark',
+  tone = 'page',
   label = 'Tìm người trong gia phả',
   autoFocus = false,
 }: {

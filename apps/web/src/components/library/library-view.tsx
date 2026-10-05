@@ -25,8 +25,10 @@ import {
   LibraryLightbox,
   type ItemDetailsValue,
 } from '@/components/library/item-details';
+import { heroOverlapClass, PageHero } from '@/components/layout/page-hero';
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
+import { Segmented } from '@/components/ui/segmented';
 import { SheetDialog } from '@/components/ui/sheet-dialog';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -49,7 +51,7 @@ import type { Person } from '@/types/family-tree';
 type Tab = 'albums' | 'documents';
 
 const inputClass =
-  'w-full rounded-xl border border-stone-200 bg-white px-3 text-base outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 sm:text-sm';
+  'w-full rounded-xl border border-stone-200 bg-white px-3 text-base outline-none transition placeholder:text-stone-400 focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 sm:text-sm';
 
 function NewAlbumDialog({ familySlug, onClose }: { familySlug: string; onClose: () => void }) {
   const router = useRouter();
@@ -268,9 +270,9 @@ function NewDocumentDialog({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="grid place-items-center gap-2 rounded-2xl border-2 border-dashed border-stone-300 px-4 py-8 text-center text-sm text-stone-600 transition hover:border-emerald-600 hover:bg-emerald-50/50"
+          className="grid place-items-center gap-2 rounded-2xl border-2 border-dashed border-stone-300 px-4 py-8 text-center text-sm text-stone-600 transition hover:border-brand-600 hover:bg-brand-50/50"
         >
-          <Upload className="size-7 text-emerald-700" aria-hidden="true" />
+          <Upload className="size-7 text-brand-700" aria-hidden="true" />
           <span className="font-semibold text-stone-800">Chọn ảnh hoặc tệp PDF</span>
           <span className="text-xs text-stone-500">
             Ảnh chụp gia phả, sắc phong, giấy tờ… PDF tối đa 4 MB.
@@ -465,56 +467,47 @@ export function LibraryView({
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-4xl gap-2 pb-6 sm:gap-4 sm:px-4 sm:py-6">
-      <header className="grid gap-3 bg-white px-4 py-3 shadow-sm sm:rounded-2xl sm:border sm:border-stone-200">
-        <h1 className="flex items-center gap-2 text-xl font-bold text-emerald-950">
-          <Images className="size-5 text-emerald-700" aria-hidden="true" />
-          Album và tư liệu
-        </h1>
-        <div
-          className="grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1"
-          role="tablist"
-          aria-label="Thư viện"
-        >
-          {(
-            [
-              { id: 'albums', label: 'Album ảnh', count: initial.albums.length, icon: ImageIcon },
-              { id: 'documents', label: 'Tư liệu', count: documents.length, icon: ScrollText },
-            ] as const
-          ).map(({ id, label, count, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              onClick={() => switchTab(id)}
-              className={cn(
-                'flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition',
-                tab === id
-                  ? 'bg-white text-emerald-950 shadow-sm'
-                  : 'text-stone-600 hover:text-stone-900',
-              )}
-            >
-              <Icon className="size-4" aria-hidden="true" />
-              {label}
-              <span className="rounded-full bg-stone-200/70 px-1.5 text-xs text-stone-600">
-                {count}
-              </span>
-            </button>
-          ))}
-        </div>
-      </header>
+    <div className="mx-auto grid w-full max-w-4xl gap-3 pb-6 sm:gap-4 sm:px-4 sm:py-6 lg:max-w-5xl lg:px-8 lg:py-8">
+      <PageHero
+        title="Album và tư liệu"
+        icon={Images}
+        description="Ảnh họp họ, giỗ tổ và những tư liệu quý của dòng họ."
+        overlap
+      />
+      <div className={cn('surface p-1.5', heroOverlapClass)}>
+        <Segmented
+          asTabs
+          label="Thư viện"
+          value={tab}
+          onChange={switchTab}
+          className="bg-transparent p-0"
+          options={[
+            {
+              value: 'albums',
+              label: 'Album ảnh',
+              count: initial.albums.length,
+              icon: <ImageIcon className="size-4 shrink-0" aria-hidden="true" />,
+            },
+            {
+              value: 'documents',
+              label: 'Tư liệu',
+              count: documents.length,
+              icon: <ScrollText className="size-4 shrink-0" aria-hidden="true" />,
+            },
+          ]}
+        />
+      </div>
 
       {tab === 'albums' ? (
         <section
           aria-label="Album ảnh"
-          className="grid grid-cols-2 gap-2 px-2 sm:grid-cols-3 sm:gap-4 sm:px-0"
+          className="grid grid-cols-2 gap-3 px-3 sm:grid-cols-3 sm:gap-4 sm:px-0"
         >
           {canManage ? (
             <button
               type="button"
               onClick={() => setCreatingAlbum(true)}
-              className="grid aspect-[4/5] place-items-center content-center gap-2 rounded-2xl border-2 border-dashed border-emerald-700/30 bg-white text-emerald-800 transition hover:border-emerald-700 hover:bg-emerald-50"
+              className="grid aspect-[4/5] place-items-center content-center gap-2 rounded-2xl border-2 border-dashed border-brand-700/30 bg-white text-brand-800 transition hover:border-brand-700 hover:bg-brand-50"
             >
               <FolderPlus className="size-8" aria-hidden="true" />
               <span className="text-sm font-semibold">Tạo album</span>
@@ -524,7 +517,7 @@ export function LibraryView({
             <Link
               key={album.id}
               href={`/${encodeURIComponent(familySlug)}/tu-lieu/${album.id}`}
-              className="group grid overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-stone-200 transition hover:shadow-md"
+              className="surface group grid overflow-hidden transition hover:shadow-md"
             >
               <span className="relative block aspect-square overflow-hidden bg-stone-100">
                 {album.cover ? (
@@ -550,7 +543,7 @@ export function LibraryView({
             </Link>
           ))}
           {initial.albums.length === 0 && !canManage ? (
-            <p className="col-span-full rounded-2xl bg-white px-6 py-12 text-center text-sm text-stone-500 shadow-sm">
+            <p className="surface col-span-full px-6 py-12 text-center text-sm text-stone-500">
               Dòng họ chưa có album nào.
             </p>
           ) : null}
@@ -558,7 +551,7 @@ export function LibraryView({
       ) : (
         <section aria-label="Tư liệu" className="grid gap-2">
           {canManage ? (
-            <div className="px-2 sm:px-0">
+            <div className="px-3 sm:px-0">
               <Button
                 type="button"
                 className="w-full sm:w-auto"
@@ -570,8 +563,8 @@ export function LibraryView({
             </div>
           ) : null}
           {documents.length === 0 ? (
-            <div className="grid justify-items-center gap-2 bg-white px-6 py-12 text-center text-sm text-stone-500 shadow-sm sm:rounded-2xl">
-              <span className="grid size-12 place-items-center rounded-full bg-emerald-50 text-emerald-700">
+            <div className="surface mx-3 grid justify-items-center gap-2 px-6 py-12 text-center text-sm text-stone-500 sm:mx-0">
+              <span className="grid size-12 place-items-center rounded-full bg-brand-50 text-brand-700">
                 <ScrollText className="size-6" aria-hidden="true" />
               </span>
               {canManage
@@ -579,7 +572,7 @@ export function LibraryView({
                 : 'Dòng họ chưa có tư liệu nào.'}
             </div>
           ) : (
-            <ul className="divide-y divide-stone-100 bg-white shadow-sm sm:rounded-2xl sm:border sm:border-stone-200">
+            <ul className="surface mx-3 divide-y divide-line overflow-hidden sm:mx-0">
               {documents.map((item) => (
                 <DocumentRow
                   key={item.id}

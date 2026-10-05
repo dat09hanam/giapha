@@ -103,7 +103,14 @@ Platform Admin accounts are provisioned or rotated with `npm run admin:bootstrap
 
 `Family` stores the public locator and clan-level record: `slug`, `name`, `description`, `status`,
 the recurring death anniversary (`deathAnniversaryDay` and `deathAnniversaryMonth`), the ancestral
-hall `address` and the clan origin (`ancestryOrigin`). It also stores the phả đồ background the
+hall `address` and the clan origin (`ancestryOrigin`). `introduction` (JSON) is the clan head's formatted
+Giới thiệu: a structured document of blocks (paragraph, heading, subheading, quote, bulleted and
+numbered lists, optional alignment) holding styled text runs (bold, italic, underline, strike and a
+`#rrggbb` colour), never HTML. `PATCH /api/families/:slug` validates it strictly
+(`common/validation/rich-text.ts`) and derives `description` from it as plain text, which the
+printed book and page metadata keep using; a `description` sent alone clears the formatting. Clients
+render the document element by element, so typed text cannot become markup. It is returned by the
+public `GET /api/families/:slug`, like `description`, and shown on `/{slug}/gioi-thieu`. It also stores the phả đồ background the
 clan head chose: a nullable foreign key `posterBackgroundId` into the decoration library (null shows
 plain paper), plus the optional family-specific vertical inscriptions `posterLeftText` and
 `posterRightText`.

@@ -23,7 +23,7 @@ export type CommentActions = {
 };
 
 const textareaClass =
-  'field-sizing-content max-h-40 min-h-10 w-full resize-none rounded-2xl bg-stone-100 px-3.5 py-2 text-base leading-6 text-stone-900 outline-none placeholder:text-stone-500 focus:bg-stone-50 focus:ring-2 focus:ring-emerald-700/20 sm:text-[15px]';
+  'field-sizing-content max-h-40 min-h-10 w-full resize-none rounded-2xl bg-stone-100 px-3.5 py-2 text-base leading-6 text-stone-900 outline-none placeholder:text-stone-500 focus:bg-stone-50 focus:ring-2 focus:ring-brand-700/20 sm:text-[15px]';
 
 function CommentItem({
   comment,
@@ -72,7 +72,7 @@ function CommentItem({
               </button>
               <button
                 type="button"
-                className="text-emerald-800 hover:underline disabled:opacity-50"
+                className="text-brand-800 hover:underline disabled:opacity-50"
                 disabled={saving || !draft.trim()}
                 onClick={() => void saveEdit()}
               >
@@ -86,7 +86,7 @@ function CommentItem({
               <p className="text-[13px] font-semibold text-stone-900">{comment.authorName}</p>
               <p className="whitespace-pre-line break-words text-[15px] leading-snug text-stone-800">
                 {comment.replyToName ? (
-                  <span className="font-semibold text-emerald-800">{comment.replyToName} </span>
+                  <span className="font-semibold text-brand-800">{comment.replyToName} </span>
                 ) : null}
                 {comment.content}
               </p>
@@ -252,7 +252,7 @@ export const CommentComposer = forwardRef<
       ) : null}
       {savedName ? null : (
         <input
-          className="ml-10 h-9 rounded-full border border-stone-200 bg-white px-3.5 text-base outline-none placeholder:text-stone-400 focus:border-emerald-700 sm:text-sm"
+          className="ml-10 h-9 rounded-full border border-stone-200 bg-white px-3.5 text-base outline-none placeholder:text-stone-400 focus:border-brand-700 sm:text-sm"
           placeholder="Tên của bạn (để mọi người biết ai bình luận)"
           value={name}
           onChange={(event) => setName(event.target.value)}
@@ -276,7 +276,7 @@ export const CommentComposer = forwardRef<
           <button
             type="submit"
             disabled={!authorName || !content.trim() || sending}
-            className="absolute bottom-1 right-1 grid size-8 place-items-center rounded-full text-emerald-800 transition hover:bg-emerald-50 disabled:text-stone-300"
+            className="absolute bottom-1 right-1 grid size-8 place-items-center rounded-full text-brand-800 transition hover:bg-brand-50 disabled:text-stone-300"
             aria-label="Gửi bình luận"
           >
             {sending ? (

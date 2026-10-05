@@ -1,6 +1,6 @@
 'use client';
 
-import { Banknote, Gift } from 'lucide-react';
+import { Banknote, Gift, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { meritInputClass } from '@/components/merit/merit-event-dialog';
@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
 import {
   createMeritDonation,
+  deleteMeritDonation,
   MAX_MERIT_AMOUNT,
   updateMeritDonation,
   type MeritDonation,
@@ -80,12 +81,14 @@ export function MeritDonationDialog({
   editing,
   onClose,
   onSaved,
+  onDeleted,
 }: {
   familySlug: string;
   eventId: string;
   editing: MeritDonation | null;
   onClose: () => void;
   onSaved: (donation: MeritDonation, previous: MeritDonation | null) => void;
+  onDeleted: (donation: MeritDonation) => void;
 }) {
   const showToast = useToast();
   const [donorName, setDonorName] = useState(editing?.donorName ?? '');
@@ -103,6 +106,21 @@ export function MeritDonationDialog({
     donorName.trim().length > 0 &&
     /^\d{4}-\d{2}-\d{2}$/.test(donatedOn) &&
     (kind === 'CASH' ? amount > 0 && amount <= MAX_MERIT_AMOUNT : itemContent.trim().length > 0);
+
+  async function remove(donation: MeritDonation): Promise<void> {
+    const what = donation.amount !== null ? formatVnd(donation.amount) : donation.itemContent;
+    if (!window.confirm(`Xóa lượt công đức của ${donation.donorName} (${what})?`)) return;
+    setSaving(true);
+    try {
+      await deleteMeritDonation(familySlug, donation.id);
+      onDeleted(donation);
+      showToast({ kind: 'success', message: `Đã xóa lượt công đức của ${donation.donorName}.` });
+      onClose();
+    } catch (error) {
+      showToast({ kind: 'error', message: getApiErrorMessage(error, 'xóa lượt công đức') });
+      setSaving(false);
+    }
+  }
 
   async function save(keepOpen: boolean): Promise<void> {
     if (!valid || saving) return;
@@ -153,6 +171,19 @@ export function MeritDonationDialog({
       busy={saving}
       footer={
         <>
+          {editing ? (
+            // Deleting lives here, since the list has no room for a button per row.
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-red-700 hover:bg-red-50 sm:mr-auto"
+              onClick={() => void remove(editing)}
+              disabled={saving}
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+              Xóa
+            </Button>
+          ) : null}
           <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
             Hủy
           </Button>

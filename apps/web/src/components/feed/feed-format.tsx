@@ -38,7 +38,7 @@ export function timeAgo(iso: string, now = Date.now()): string {
 }
 
 const AVATAR_COLORS = [
-  'bg-emerald-600',
+  'bg-brand-600',
   'bg-amber-600',
   'bg-sky-600',
   'bg-rose-600',

@@ -200,7 +200,7 @@ export function PersonDetailsDialog({
           icon: <Phone />,
           label: 'Số điện thoại',
           value: (
-            <a href={`tel:${person.phone}`} className="text-emerald-800 hover:underline">
+            <a href={`tel:${person.phone}`} className="text-brand-800 hover:underline">
               {person.phone}
             </a>
           ),
@@ -272,9 +272,7 @@ export function PersonDetailsDialog({
               <span
                 className={
                   'rounded-full px-2.5 py-1 ' +
-                  (person.isAlive
-                    ? 'bg-emerald-100 text-emerald-900'
-                    : 'bg-stone-200 text-stone-700')
+                  (person.isAlive ? 'bg-brand-100 text-brand-900' : 'bg-stone-200 text-stone-700')
                 }
               >
                 {person.isAlive ? 'Còn sống' : 'Đã mất'}
@@ -326,7 +324,7 @@ export function PersonDetailsDialog({
             <section className="grid gap-3" aria-labelledby="person-details-relatives">
               <h3
                 id="person-details-relatives"
-                className="flex items-center gap-2 text-sm font-semibold text-emerald-950"
+                className="flex items-center gap-2 text-sm font-semibold text-brand-950"
               >
                 <UsersRound className="size-4 text-amber-700" aria-hidden="true" />
                 Quan hệ gia đình
@@ -378,7 +376,7 @@ export function PersonDetailsDialog({
             <section className="grid gap-2" aria-labelledby="person-details-biography">
               <h3
                 id="person-details-biography"
-                className="flex items-center gap-2 text-sm font-semibold text-emerald-950"
+                className="flex items-center gap-2 text-sm font-semibold text-brand-950"
               >
                 <ScrollText className="size-4 text-amber-700" aria-hidden="true" />
                 Tiểu sử
@@ -399,7 +397,7 @@ export function PersonDetailsDialog({
             <section className="grid gap-2" aria-labelledby="person-details-suggestion">
               <h3
                 id="person-details-suggestion"
-                className="flex items-center gap-2 text-sm font-semibold text-emerald-950"
+                className="flex items-center gap-2 text-sm font-semibold text-brand-950"
               >
                 <FilePenLine className="size-4 text-amber-700" aria-hidden="true" />
                 Đề xuất chỉnh sửa

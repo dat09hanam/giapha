@@ -122,7 +122,7 @@ export function CameraCapture({
     <div className="fixed inset-0 z-[70] grid place-items-center p-4">
       <button
         type="button"
-        className="ui-backdrop absolute inset-0 bg-emerald-950/55 backdrop-blur-[2px]"
+        className="ui-backdrop absolute inset-0 bg-brand-950/55 backdrop-blur-[2px]"
         aria-label="Đóng camera"
         tabIndex={-1}
         onClick={onCancel}
@@ -145,7 +145,7 @@ export function CameraCapture({
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
           Ảnh đại diện
         </p>
-        <h2 id="camera-capture-title" className="mt-2 pr-10 text-xl font-semibold text-emerald-950">
+        <h2 id="camera-capture-title" className="mt-2 pr-10 text-xl font-semibold text-brand-950">
           Chụp ảnh trực tiếp
         </h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">

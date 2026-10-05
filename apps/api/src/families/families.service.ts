@@ -8,6 +8,12 @@ import {
 import { FamilyStatus, PosterDecorationKind, Prisma, UserRole } from '@prisma/client';
 
 import { normalizeFamilySlug } from '../common/pipes/family-slug.pipe.js';
+import {
+  parseRichText,
+  readRichText,
+  richTextToPlain,
+  type RichTextDocument,
+} from '../common/validation/rich-text.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { generatePassword, hashPassword } from '../auth/password.js';
 import {
@@ -35,6 +41,8 @@ export type FamilySummary = {
   slug: string;
   name: string;
   description: string | null;
+  /** The formatted introduction; null when the clan head has not written one. */
+  introduction: RichTextDocument | null;
   deathAnniversaryDay: number | null;
   deathAnniversaryMonth: number | null;
   address: string | null;
@@ -47,6 +55,7 @@ const familySummarySelect = {
   slug: true,
   name: true,
   description: true,
+  introduction: true,
   deathAnniversaryDay: true,
   deathAnniversaryMonth: true,
   address: true,
@@ -59,9 +68,10 @@ const familySummarySelect = {
 type FamilySummaryRecord = Prisma.FamilyGetPayload<{ select: typeof familySummarySelect }>;
 
 function toFamilySummary(record: FamilySummaryRecord): FamilySummary {
-  const { posterBackground, posterLeftText, posterRightText, ...family } = record;
+  const { posterBackground, posterLeftText, posterRightText, introduction, ...family } = record;
   return {
     ...family,
+    introduction: readRichText(introduction),
     poster: {
       background: posterBackground ? toPosterDecorationResponse(posterBackground) : null,
       leftText: posterLeftText,
@@ -165,6 +175,29 @@ export class FamiliesService {
     }
   }
 
+  /**
+   * The introduction and its plain-text `description`. A formatted introduction wins; a plain
+   * `description` alone (older clients) clears the formatting so the two never disagree.
+   */
+  private introductionChange(
+    input: UpdateFamilyDto,
+  ): Pick<Prisma.FamilyUpdateManyMutationInput, 'introduction' | 'description'> {
+    if (input.introduction !== undefined) {
+      const document =
+        input.introduction === null
+          ? null
+          : parseRichText(input.introduction, 'Nội dung giới thiệu không hợp lệ.');
+      return {
+        introduction: document ?? Prisma.DbNull,
+        description: document ? richTextToPlain(document) || null : null,
+      };
+    }
+    if (input.description !== undefined) {
+      return { introduction: Prisma.DbNull, description: input.description.trim() || null };
+    }
+    return {};
+  }
+
   async updateFamily(familyId: string, input: UpdateFamilyDto): Promise<FamilySummary> {
     const name = input.name === undefined ? undefined : normalizeFamilyName(input.name);
     if (name !== undefined && name.length < 2) {
@@ -182,9 +215,7 @@ export class FamiliesService {
       where: { id: familyId, status: FamilyStatus.ACTIVE, deletedAt: null },
       data: {
         ...(name === undefined ? {} : { name }),
-        ...(input.description === undefined
-          ? {}
-          : { description: input.description.trim() || null }),
+        ...this.introductionChange(input),
         ...(input.address === undefined ? {} : { address: input.address.trim() || null }),
         ...(input.ancestryOrigin === undefined
           ? {}

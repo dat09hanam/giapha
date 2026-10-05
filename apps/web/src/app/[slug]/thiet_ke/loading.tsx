@@ -5,7 +5,7 @@ export default function FamilyDesignerLoading() {
       aria-label="Đang tải trang thiết kế gia phả"
       aria-busy="true"
     >
-      <div className="h-16 bg-emerald-950/90" />
+      <div className="h-16 bg-brand-950/90" />
       <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="h-[68vh] bg-white/40 lg:h-[calc(100vh-8rem)]" />
         <div className="border-l bg-[#fffdf8] p-5">

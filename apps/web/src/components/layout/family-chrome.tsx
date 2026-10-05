@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 
+import { Lotus, Mountains } from '@/components/about/about-art';
 import { FamilyHeader, type FamilyHeaderViewer } from '@/components/layout/family-header';
 import { SiteHeaderBar } from '@/components/layout/site-header';
 import { ViewerIdentityScope } from '@/components/layout/viewer-identity-scope';
@@ -50,9 +51,23 @@ async function loadFeatures(): Promise<FamilyFeatures | null> {
   }
 }
 
+/** Far mountains and lotus behind the desktop pages, as on the family's paper. */
+function PaperScenery() {
+  return (
+    <div
+      className="pointer-events-none fixed inset-y-0 left-60 right-0 -z-10 hidden lg:block print:hidden"
+      aria-hidden="true"
+    >
+      <Mountains className="absolute inset-x-0 bottom-0 h-40 w-full opacity-70" />
+      <Lotus className="absolute -bottom-2 left-4 w-40 opacity-40" />
+      <Lotus className="absolute -bottom-2 right-4 w-44 -scale-x-100 opacity-40" />
+    </div>
+  );
+}
+
 /**
  * The navigation around every page of a family, for members and the clan
- * head alike: a top bar on desktops, a bottom tab bar on phones and tablets.
+ * head alike: a sidebar on desktops, a bottom tab bar on phones and tablets.
  */
 export async function FamilyChrome({ slug, children }: { slug: string; children: ReactNode }) {
   const [name, features, viewer] = await Promise.all([
@@ -84,8 +99,12 @@ export async function FamilyChrome({ slug, children }: { slug: string; children:
         nav={familyNav(features)}
         viewer={viewer}
       />
-      {/* Below lg the navigation is a 4rem bar fixed to the bottom; keep content above it. */}
-      <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 print:pb-0">{children}</div>
+      {/* Below lg the navigation is a 4rem bar fixed to the bottom; keep content above it.
+          From lg it is a 15rem sidebar on the left. */}
+      <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 lg:pl-60 print:p-0">
+        <PaperScenery />
+        {children}
+      </div>
     </ViewerIdentityScope>
   );
 }

@@ -44,7 +44,7 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
   }
 
   return (
-    <main className="min-h-[calc(100dvh-4rem)] bg-stone-100">
+    <main className="min-h-[calc(100dvh-4rem)] bg-stone-950">
       <AlbumView familySlug={slug} initial={detail} people={people} />
     </main>
   );

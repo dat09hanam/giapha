@@ -2,6 +2,8 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Check, Sprout } from 'lucide-react';
 
+import { CloudMotif } from '@/components/layout/page-hero';
+
 type AuthShellProps = {
   eyebrow: string;
   title: string;
@@ -27,26 +29,28 @@ export function AuthShell({
     <main className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-6xl flex-col justify-center px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       <Link
         href="/"
-        className="mb-5 inline-block text-sm font-medium text-emerald-900 hover:underline"
+        className="mb-5 inline-block text-sm font-medium text-brand-900 hover:underline"
       >
         ← Về trang chủ
       </Link>
 
-      <div className="grid overflow-hidden rounded-3xl border border-emerald-950/10 shadow-2xl shadow-emerald-950/10 lg:grid-cols-[1.05fr_1fr]">
-        <aside className="flex flex-col justify-between gap-8 bg-emerald-900 bg-[radial-gradient(circle_at_18%_12%,rgb(255_255_255/12%),transparent_22rem)] p-8 text-emerald-50 lg:p-10">
+      <div className="grid overflow-hidden rounded-3xl border border-line shadow-2xl shadow-brand-950/10 lg:grid-cols-[1.05fr_1fr]">
+        <aside className="relative isolate flex flex-col justify-between gap-8 overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900 p-8 text-brand-50 lg:p-10">
+          <CloudMotif className="pointer-events-none absolute -right-10 -top-2 -z-10 w-72 text-white/10" />
+          <CloudMotif className="pointer-events-none absolute -bottom-3 -left-10 -z-10 w-64 rotate-180 text-white/[0.06]" />
           <div>
-            <span className="grid size-11 place-items-center rounded-2xl bg-emerald-50/15 text-emerald-50">
+            <span className="grid size-11 place-items-center rounded-2xl bg-brand-50/15 text-brand-50">
               <Sprout className="size-6" aria-hidden="true" />
             </span>
-            <h2 className="mt-5 text-2xl font-semibold tracking-tight lg:text-3xl">{brandTitle}</h2>
-            <p className="mt-2 max-w-sm text-sm leading-6 text-emerald-100/85">{brandTagline}</p>
+            <h2 className="mt-5 font-display text-2xl font-bold lg:text-3xl">{brandTitle}</h2>
+            <p className="mt-2 max-w-sm text-sm leading-6 text-brand-100/85">{brandTagline}</p>
           </div>
 
           {highlights.length > 0 ? (
-            <ul className="hidden gap-3 text-sm text-emerald-50/90 lg:grid">
+            <ul className="hidden gap-3 text-sm text-brand-50/90 lg:grid">
               {highlights.map((highlight) => (
                 <li key={highlight} className="flex items-start gap-2.5">
-                  <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-emerald-50/15">
+                  <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-brand-50/15">
                     <Check className="size-3" aria-hidden="true" />
                   </span>
                   <span className="leading-6">{highlight}</span>
@@ -57,10 +61,10 @@ export function AuthShell({
         </aside>
 
         <section className="bg-[#fffdf8] p-8 lg:p-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-700">
             {eyebrow}
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-emerald-950">{title}</h1>
+          <h1 className="mt-2 font-display text-3xl font-bold text-brand-800">{title}</h1>
           <p className="mt-2 text-sm leading-6 text-stone-600">{description}</p>
 
           <div className="mt-7">{children}</div>

@@ -43,7 +43,7 @@ export default async function MeritPage({ params }: MeritPageProps) {
   }
 
   return (
-    <main className="min-h-[calc(100dvh-4rem)] bg-stone-100">
+    <main className="min-h-[calc(100dvh-4rem)]">
       <MeritEvents familySlug={slug} initial={overview} />
     </main>
   );

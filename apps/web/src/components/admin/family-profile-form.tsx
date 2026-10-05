@@ -8,17 +8,19 @@ import { Field } from '@/components/auth/form-fields';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/admin/admin-layout';
+import { RichTextEditor } from '@/components/rich-text/rich-text-editor';
 import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { updateFamily } from '@/lib/family-api';
+import { plainToRichText, richTextIsEmpty } from '@/lib/rich-text';
 import type { FamilyDetails } from '@/types/family-tree';
+import type { RichTextDocument } from '@/types/rich-text';
 
 type FamilyProfileValues = {
   name: string;
   ancestryOrigin: string;
   address: string;
   deathAnniversary: string;
-  description: string;
 };
 
 function formatDeathAnniversary(family: FamilyDetails): string {
@@ -37,8 +39,12 @@ function familyToValues(family: FamilyDetails): FamilyProfileValues {
     ancestryOrigin: family.ancestryOrigin ?? '',
     address: family.address ?? '',
     deathAnniversary: formatDeathAnniversary(family),
-    description: family.description ?? '',
   };
+}
+
+/** The saved introduction, or an older plain-text one turned into paragraphs. */
+function introductionOf(family: FamilyDetails): RichTextDocument {
+  return family.introduction ?? plainToRichText(family.description);
 }
 
 /**
@@ -63,7 +69,7 @@ function AddressField({
 }) {
   return (
     <label className="grid gap-1.5 md:col-span-2" htmlFor={id}>
-      <span className="text-sm font-medium text-emerald-950">{label}</span>
+      <span className="text-sm font-medium text-brand-950">{label}</span>
       <textarea
         id={id}
         // Browsers without field-sizing (older iOS, Firefox) show two lines.
@@ -77,7 +83,7 @@ function AddressField({
         placeholder={placeholder}
         autoComplete={autoComplete}
         maxLength={255}
-        className="field-sizing-content min-h-11 resize-none rounded-xl border bg-white px-3 py-2.5 text-base leading-6 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 sm:text-sm"
+        className="field-sizing-content min-h-11 resize-none rounded-xl border bg-white px-3 py-2.5 text-base leading-6 outline-none transition placeholder:text-stone-400 focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 sm:text-sm"
       />
     </label>
   );
@@ -88,6 +94,10 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
   const [values, setValues] = useState<FamilyProfileValues>(() => familyToValues(family));
   const [savedValues, setSavedValues] = useState<FamilyProfileValues>(() => familyToValues(family));
   const [submitting, setSubmitting] = useState(false);
+  const [introduction, setIntroduction] = useState(() => introductionOf(family));
+  const [savedIntroduction, setSavedIntroduction] = useState(() => introductionOf(family));
+  // Remounts the editor with the saved document after a reset or a save.
+  const [editorKey, setEditorKey] = useState(0);
   const showToast = useToast();
 
   const isDirty =
@@ -95,7 +105,7 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
     values.ancestryOrigin !== savedValues.ancestryOrigin ||
     values.address !== savedValues.address ||
     values.deathAnniversary !== savedValues.deathAnniversary ||
-    values.description !== savedValues.description;
+    JSON.stringify(introduction) !== JSON.stringify(savedIntroduction);
 
   function updateValue(field: keyof FamilyProfileValues, value: string): void {
     setValues((current) => ({ ...current, [field]: value }));
@@ -111,11 +121,15 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
         ancestryOrigin: values.ancestryOrigin,
         address: values.address,
         deathAnniversary: values.deathAnniversary.trim() || null,
-        description: values.description,
+        introduction: richTextIsEmpty(introduction) ? null : introduction,
       });
       const nextValues = familyToValues(updated);
       setValues(nextValues);
       setSavedValues(nextValues);
+      const nextIntroduction = introductionOf(updated);
+      setIntroduction(nextIntroduction);
+      setSavedIntroduction(nextIntroduction);
+      setEditorKey((key) => key + 1);
       showToast({ kind: 'success', message: 'Đã lưu thông tin dòng họ.' });
       router.refresh();
     } catch (submissionError: unknown) {
@@ -130,6 +144,8 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
 
   function resetForm(): void {
     setValues(savedValues);
+    setIntroduction(savedIntroduction);
+    setEditorKey((key) => key + 1);
   }
 
   return (
@@ -175,7 +191,7 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
           />
 
           <div className="grid gap-1.5">
-            <span className="text-sm font-medium text-emerald-950">Đường dẫn công khai</span>
+            <span className="text-sm font-medium text-brand-950">Đường dẫn công khai</span>
             <div className="flex h-11 items-center gap-2 rounded-xl border bg-stone-50 px-3 text-sm text-stone-600">
               <Link2 className="size-4 shrink-0" aria-hidden="true" />
               <code className="min-w-0 truncate">/{family.slug}</code>
@@ -206,20 +222,26 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
           />
         </div>
 
-        <label className="grid gap-1.5" htmlFor="family-profile-description">
-          <span className="text-sm font-medium text-emerald-950">Giới thiệu dòng họ</span>
-          <textarea
-            id="family-profile-description"
-            value={values.description}
-            onChange={(event) => updateValue('description', event.currentTarget.value)}
-            className="min-h-44 resize-y rounded-xl border bg-white px-3 py-3 text-base leading-6 outline-none sm:text-sm transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+        <div className="grid gap-1.5">
+          <span
+            id="family-profile-introduction-label"
+            className="text-sm font-medium text-brand-950"
+          >
+            Giới thiệu dòng họ
+          </span>
+          <RichTextEditor
+            key={editorKey}
+            id="family-profile-introduction"
+            labelledBy="family-profile-introduction-label"
+            initial={introduction}
+            onChange={setIntroduction}
             placeholder="Ghi lại lịch sử hình thành, truyền thống và những thông tin chung của dòng họ…"
-            maxLength={5000}
           />
           <span className="text-xs text-stone-500">
-            Tối đa 5.000 ký tự. Không nhập thông tin riêng tư của từng thành viên tại đây.
+            Hiện ở trang Giới thiệu của dòng họ. Không nhập thông tin riêng tư của từng thành viên
+            tại đây.
           </span>
-        </label>
+        </div>
       </form>
     </SectionCard>
   );

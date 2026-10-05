@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  ArrowLeft,
   Banknote,
   CalendarDays,
   Gift,
@@ -11,10 +10,10 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { heroIconButtonClass, heroOverlapClass, PageHero } from '@/components/layout/page-hero';
 import { MeritDonationDialog } from '@/components/merit/merit-donation-dialog';
 import { MeritEventDialog } from '@/components/merit/merit-event-dialog';
 import { Button } from '@/components/ui/button';
@@ -22,12 +21,12 @@ import { Presence } from '@/components/ui/presence';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
 import {
-  deleteMeritDonation,
   deleteMeritEvent,
   type MeritDonation,
   type MeritEventDetail,
   type MeritTotals,
 } from '@/lib/merit-api';
+import { cn } from '@/lib/utils';
 import { formatVnd, vndInWords } from '@/lib/vietnamese-number';
 import { formatDay } from '@/lib/vietnam-date';
 
@@ -76,7 +75,6 @@ export function MeritEventView({
   const [donationDialog, setDonationDialog] = useState<{ editing: MeritDonation | null } | null>(
     null,
   );
-  const [busyId, setBusyId] = useState<string | null>(null);
   const [deletingEvent, setDeletingEvent] = useState(false);
   const canManage = initial.canManage;
   const listHref = `/${encodeURIComponent(familySlug)}/cong-duc`;
@@ -96,19 +94,9 @@ export function MeritEventView({
     }));
   }
 
-  async function removeDonation(donation: MeritDonation): Promise<void> {
-    const what = donation.amount !== null ? formatVnd(donation.amount) : donation.itemContent;
-    if (!window.confirm(`Xóa lượt công đức của ${donation.donorName} (${what})?`)) return;
-    setBusyId(donation.id);
-    try {
-      await deleteMeritDonation(familySlug, donation.id);
-      setDonations((current) => current.filter((item) => item.id !== donation.id));
-      setEvent((current) => ({ ...current, totals: totalsAfter(current.totals, donation, null) }));
-    } catch (error) {
-      showToast({ kind: 'error', message: getApiErrorMessage(error, 'xóa lượt công đức') });
-    } finally {
-      setBusyId(null);
-    }
+  function removed(donation: MeritDonation): void {
+    setDonations((current) => current.filter((item) => item.id !== donation.id));
+    setEvent((current) => ({ ...current, totals: totalsAfter(current.totals, donation, null) }));
   }
 
   async function removeEvent(): Promise<void> {
@@ -127,110 +115,110 @@ export function MeritEventView({
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-2 pb-6 sm:gap-4 sm:px-4 sm:py-6">
-      <section className="relative overflow-hidden bg-gradient-to-br from-amber-800 to-red-900 px-5 pb-6 pt-4 text-white shadow-sm sm:rounded-2xl">
-        <HandHeart
-          className="pointer-events-none absolute -right-4 -top-4 size-32 text-white/10"
-          aria-hidden="true"
-        />
-        <Link
-          href={listHref}
-          className="inline-flex items-center gap-1 text-sm text-amber-50/80 hover:text-white"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Công đức
-        </Link>
-        <h1 className="mt-2 break-words text-2xl font-bold leading-tight tracking-tight">
-          {event.title}
-        </h1>
-        {event.heldOn ? (
-          <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-amber-50/90">
-            <CalendarDays className="size-4" aria-hidden="true" />
-            <time dateTime={event.heldOn}>{formatDay(event.heldOn)}</time>
-          </p>
-        ) : null}
-        {event.description ? (
-          <p className="mt-2 whitespace-pre-line text-sm leading-6 text-amber-50/90">
-            {event.description}
-          </p>
-        ) : null}
+    <div className="mx-auto grid w-full max-w-2xl gap-3 pb-6 sm:gap-4 sm:px-4 sm:py-6 lg:max-w-5xl lg:px-8 lg:py-8">
+      <PageHero
+        title={event.title}
+        icon={HandHeart}
+        back={{ href: listHref, label: 'Công đức' }}
+        description={
+          event.heldOn || event.description ? (
+            <>
+              {event.heldOn ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarDays className="size-4" aria-hidden="true" />
+                  <time dateTime={event.heldOn}>{formatDay(event.heldOn)}</time>
+                </span>
+              ) : null}
+              {event.description ? (
+                <span className="mt-1 block whitespace-pre-line">{event.description}</span>
+              ) : null}
+            </>
+          ) : null
+        }
+        actions={
+          canManage ? (
+            <>
+              <button
+                type="button"
+                className={heroIconButtonClass}
+                aria-label="Sửa sự kiện"
+                onClick={() => setEditingEvent(true)}
+              >
+                <PencilLine className="size-4" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className={heroIconButtonClass}
+                aria-label="Xóa sự kiện"
+                disabled={deletingEvent}
+                onClick={() => void removeEvent()}
+              >
+                {deletingEvent ? (
+                  <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Trash2 className="size-4" aria-hidden="true" />
+                )}
+              </button>
+            </>
+          ) : null
+        }
+        overlap
+      />
 
-        <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-white/15 pt-4 text-sm">
-          <div className="min-w-0">
-            <dt className="flex items-center gap-1.5 text-amber-50/75">
-              <Banknote className="size-4" aria-hidden="true" />
+      <section aria-label="Tổng công đức" className={cn('surface p-4 sm:p-5', heroOverlapClass)}>
+        <dl className="grid grid-cols-2 gap-3 text-sm">
+          <div className="min-w-0 rounded-xl bg-brand-50/70 px-3 py-2.5">
+            <dt className="flex items-center gap-1.5 text-stone-600">
+              <Banknote className="size-4 text-brand-700" aria-hidden="true" />
               Tiền mặt · {totals.cashCount} lượt
             </dt>
-            <dd className="mt-0.5 break-words text-xl font-bold tabular-nums">
+            <dd className="mt-0.5 break-words text-lg font-bold tabular-nums text-brand-800">
               {formatVnd(totals.cashAmount)}
             </dd>
           </div>
-          <div className="min-w-0">
-            <dt className="flex items-center gap-1.5 text-amber-50/75">
-              <Gift className="size-4" aria-hidden="true" />
+          <div className="min-w-0 rounded-xl bg-amber-50/80 px-3 py-2.5">
+            <dt className="flex items-center gap-1.5 text-stone-600">
+              <Gift className="size-4 text-amber-700" aria-hidden="true" />
               Hiện vật
             </dt>
-            <dd className="mt-0.5 text-xl font-bold tabular-nums">{totals.itemCount} lượt</dd>
+            <dd className="mt-0.5 text-lg font-bold tabular-nums text-amber-900">
+              {totals.itemCount} lượt
+            </dd>
           </div>
         </dl>
         {totals.cashAmount > 0 ? (
-          <p className="mt-3 text-xs italic leading-5 text-amber-50/80">
+          <p className="mt-2.5 text-xs italic leading-5 text-stone-500">
             Tiền mặt bằng chữ: {vndInWords(totals.cashAmount)}
           </p>
         ) : null}
-
         {canManage ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="border-white/20 bg-white text-red-900 hover:bg-amber-50"
-              onClick={() => setDonationDialog({ editing: null })}
-            >
-              <Plus className="size-4" aria-hidden="true" />
-              Ghi công đức
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-white hover:bg-white/10"
-              onClick={() => setEditingEvent(true)}
-            >
-              <PencilLine className="size-4" aria-hidden="true" />
-              Sửa
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-white hover:bg-white/10"
-              disabled={deletingEvent}
-              onClick={() => void removeEvent()}
-            >
-              {deletingEvent ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <Trash2 className="size-4" aria-hidden="true" />
-              )}
-              Xóa
-            </Button>
-          </div>
+          <Button
+            type="button"
+            className="mt-4 w-full"
+            onClick={() => setDonationDialog({ editing: null })}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Ghi công đức
+          </Button>
         ) : null}
       </section>
 
       <section
         aria-labelledby="merit-donors-title"
-        className="bg-white shadow-sm sm:rounded-2xl sm:border sm:border-stone-200"
+        className="surface mx-3 overflow-hidden sm:mx-0"
       >
-        <h2
-          id="merit-donors-title"
-          className="border-b border-stone-100 px-4 py-3 font-semibold text-red-950 sm:px-5"
-        >
-          Danh sách công đức
-        </h2>
+        <div className="border-b border-line px-4 py-3 sm:px-5">
+          <h2 id="merit-donors-title" className="font-semibold text-stone-900">
+            Danh sách công đức
+          </h2>
+          {canManage && rows.length > 0 ? (
+            <p className="mt-0.5 text-xs text-stone-500">Bấm vào một dòng để sửa hoặc xóa.</p>
+          ) : null}
+        </div>
 
         {rows.length === 0 ? (
           <div className="grid justify-items-center gap-2 px-6 py-12 text-center text-sm text-stone-500">
-            <span className="grid size-12 place-items-center rounded-full bg-amber-50 text-amber-700">
+            <span className="grid size-12 place-items-center rounded-full bg-brand-50 text-brand-700">
               <HandHeart className="size-6" aria-hidden="true" />
             </span>
             {canManage
@@ -239,79 +227,63 @@ export function MeritEventView({
           </div>
         ) : (
           <table className="w-full table-fixed border-collapse text-sm">
-            <thead className="bg-stone-50 text-left text-[11px] font-semibold uppercase leading-4 tracking-wide text-stone-500 sm:text-xs">
+            <thead className="bg-paper text-left text-[11px] font-semibold uppercase tracking-wide text-stone-500 sm:text-xs">
               <tr>
-                <th scope="col" className="w-9 py-2 pl-3 pr-1 text-center sm:w-14 sm:pl-5">
+                <th scope="col" className="w-8 py-2 pl-3 pr-1 text-center sm:w-14 sm:pl-5">
                   STT
                 </th>
-                <th scope="col" className="px-2 py-2 sm:px-3">
+                <th scope="col" className="w-[38%] px-2 py-2 sm:px-3">
                   Tên
                 </th>
-                <th scope="col" className="w-[5.75rem] px-2 py-2 sm:w-32 sm:px-3">
-                  Ngày công đức
-                </th>
-                <th scope="col" className="px-2 py-2 sm:px-3">
+                <th scope="col" className="py-2 pl-2 pr-3 sm:px-3 sm:pr-5">
                   Nội dung
                 </th>
-                {canManage ? (
-                  <th scope="col" className="w-10 py-2 pl-1 pr-2 sm:w-20 sm:pr-5">
-                    <span className="sr-only">Thao tác</span>
-                  </th>
-                ) : null}
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
-              {rows.map((donation, index) => (
-                <tr key={donation.id} className="align-top">
-                  <td className="py-3 pl-3 pr-1 text-center tabular-nums text-stone-500 sm:pl-5">
-                    {index + 1}
-                  </td>
-                  <td className="break-words px-2 py-3 font-medium text-stone-900 sm:px-3">
-                    {donation.donorName}
-                  </td>
-                  <td className="px-2 py-3 tabular-nums text-stone-600 sm:px-3">
-                    <time dateTime={donation.donatedOn}>{formatDay(donation.donatedOn)}</time>
-                  </td>
-                  <td className="break-words px-2 py-3 sm:px-3">
-                    <span className="font-semibold text-red-900">
-                      {donation.kind === 'CASH'
-                        ? formatVnd(donation.amount ?? 0)
-                        : donation.itemContent}
-                    </span>
-                    {donation.note ? (
-                      <span className="mt-0.5 block text-xs text-stone-500">{donation.note}</span>
-                    ) : null}
-                  </td>
-                  {canManage ? (
-                    <td className="py-2 pl-1 pr-2 sm:pr-5">
-                      {/* Stacked on phones, so the column stays narrow. */}
-                      <span className="flex flex-col items-end gap-1 sm:flex-row sm:justify-end">
-                        <button
-                          type="button"
-                          className="grid size-8 place-items-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800"
-                          aria-label={`Sửa lượt công đức của ${donation.donorName}`}
-                          onClick={() => setDonationDialog({ editing: donation })}
-                        >
-                          <PencilLine className="size-4" aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
-                          className="grid size-8 place-items-center rounded-full text-stone-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-                          aria-label={`Xóa lượt công đức của ${donation.donorName}`}
-                          disabled={busyId === donation.id}
-                          onClick={() => void removeDonation(donation)}
-                        >
-                          {busyId === donation.id ? (
-                            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                          ) : (
-                            <Trash2 className="size-4" aria-hidden="true" />
-                          )}
-                        </button>
-                      </span>
+            <tbody className="divide-y divide-line">
+              {rows.map((donation, index) => {
+                // The clan head taps a row to edit or delete it, so no column goes to buttons.
+                const edit = canManage
+                  ? (): void => setDonationDialog({ editing: donation })
+                  : undefined;
+                return (
+                  <tr
+                    key={donation.id}
+                    className={cn(
+                      'align-top',
+                      edit && 'cursor-pointer transition hover:bg-paper/60 active:bg-paper',
+                    )}
+                    onClick={edit}
+                  >
+                    <td className="py-3 pl-3 pr-1 text-center tabular-nums text-stone-500 sm:pl-5">
+                      {index + 1}
                     </td>
-                  ) : null}
-                </tr>
-              ))}
+                    <td className="break-words px-2 py-3 font-medium text-stone-900 sm:px-3">
+                      {edit ? (
+                        <button
+                          type="button"
+                          className="text-left focus-visible:underline focus-visible:outline-none"
+                          aria-label={`Sửa lượt công đức của ${donation.donorName}`}
+                        >
+                          {donation.donorName}
+                        </button>
+                      ) : (
+                        donation.donorName
+                      )}
+                    </td>
+                    <td className="break-words py-3 pl-2 pr-3 sm:px-3 sm:pr-5">
+                      <span className="font-semibold text-brand-800">
+                        {donation.kind === 'CASH'
+                          ? formatVnd(donation.amount ?? 0)
+                          : donation.itemContent}
+                      </span>
+                      {donation.note ? (
+                        <span className="mt-0.5 block text-xs text-stone-500">{donation.note}</span>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -340,6 +312,7 @@ export function MeritEventView({
             editing={donationDialog.editing}
             onClose={() => setDonationDialog(null)}
             onSaved={saved}
+            onDeleted={removed}
           />
         ) : null}
       </Presence>

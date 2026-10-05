@@ -173,12 +173,12 @@ export function PrintBookView({ tree, family, familySlug }: PrintBookViewProps) 
             <div className="flex items-center gap-3">
               <Link
                 href={`/${encodeURIComponent(familySlug)}`}
-                className="inline-flex items-center gap-1 text-sm text-stone-600 hover:text-emerald-900"
+                className="inline-flex items-center gap-1 text-sm text-stone-600 hover:text-brand-900"
               >
                 <ArrowLeft className="size-4" aria-hidden="true" />
                 Phả đồ
               </Link>
-              <h1 className="text-lg font-semibold text-emerald-950">In gia phả thành quyển</h1>
+              <h1 className="text-lg font-semibold text-brand-950">In gia phả thành quyển</h1>
             </div>
 
             <fieldset>
@@ -195,8 +195,8 @@ export function PrintBookView({ tree, family, familySlug }: PrintBookViewProps) 
                     className={cn(
                       'rounded-xl border px-3 py-1.5 text-left transition',
                       size === choice.size
-                        ? 'border-emerald-800 bg-emerald-900 text-white'
-                        : 'border-stone-300 bg-white text-stone-800 hover:border-emerald-700',
+                        ? 'border-brand-800 bg-brand-900 text-white'
+                        : 'border-stone-300 bg-white text-stone-800 hover:border-brand-700',
                     )}
                   >
                     <span className="block text-sm font-semibold">
@@ -225,8 +225,8 @@ export function PrintBookView({ tree, family, familySlug }: PrintBookViewProps) 
                     className={cn(
                       'rounded-xl border-2 p-1.5 text-left transition',
                       template === choice.id
-                        ? 'border-emerald-800 bg-emerald-50'
-                        : 'border-transparent hover:border-emerald-700/50',
+                        ? 'border-brand-800 bg-brand-50'
+                        : 'border-transparent hover:border-brand-700/50',
                     )}
                   >
                     <span
@@ -266,8 +266,8 @@ export function PrintBookView({ tree, family, familySlug }: PrintBookViewProps) 
                   className={cn(
                     'rounded-lg border px-3 py-1 text-sm transition',
                     orientation === choice.value
-                      ? 'border-emerald-800 bg-emerald-50 font-semibold text-emerald-950'
-                      : 'border-stone-300 bg-white text-stone-700 hover:border-emerald-700',
+                      ? 'border-brand-800 bg-brand-50 font-semibold text-brand-950'
+                      : 'border-stone-300 bg-white text-stone-700 hover:border-brand-700',
                   )}
                 >
                   {choice.label}

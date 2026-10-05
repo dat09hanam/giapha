@@ -50,7 +50,7 @@ export function detailsPayload(value: ItemDetailsValue) {
 }
 
 const inputClass =
-  'w-full rounded-xl border border-stone-200 bg-white px-3 text-base outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 sm:text-sm';
+  'w-full rounded-xl border border-stone-200 bg-white px-3 text-base outline-none transition placeholder:text-stone-400 focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 sm:text-sm';
 
 /** Title, description, date and the person on the tree the item is about. */
 export function ItemDetailsFields({
@@ -120,7 +120,7 @@ export function ItemDetailsFields({
         </span>
         {value.person ? (
           <div className="flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-3 py-2">
-            <UserRound className="size-4 shrink-0 text-emerald-700" aria-hidden="true" />
+            <UserRound className="size-4 shrink-0 text-brand-700" aria-hidden="true" />
             <span className="min-w-0 flex-1 truncate text-sm font-semibold text-stone-800">
               {displayPersonTitle(value.person)}
             </span>

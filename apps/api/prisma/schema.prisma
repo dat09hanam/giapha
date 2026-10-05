@@ -92,6 +92,9 @@ model Family {
   slug                  String            @unique @db.VarChar(100)
   name                  String            @db.VarChar(191)
   description           String?           @db.Text
+  /// The clan head's formatted introduction (Giới thiệu), as the structured document the API
+  /// validates (see common/validation/rich-text.ts); `description` keeps its plain text.
+  introduction          Json?
   status                FamilyStatus      @default(ACTIVE)
   deathAnniversaryDay   Int?              @db.UnsignedTinyInt
   deathAnniversaryMonth Int?              @db.UnsignedTinyInt

@@ -77,7 +77,7 @@ function RoundButton({
   return (
     <button
       type="button"
-      className="grid size-9 shrink-0 place-items-center rounded-lg border bg-white text-stone-600 transition hover:text-emerald-900 disabled:opacity-40"
+      className="grid size-9 shrink-0 place-items-center rounded-lg border bg-white text-stone-600 transition hover:text-brand-900 disabled:opacity-40"
       aria-label={label}
       title={label}
       disabled={disabled}
@@ -253,7 +253,7 @@ export function ImageCropper({
     <div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto p-4">
       <button
         type="button"
-        className="ui-backdrop absolute inset-0 bg-emerald-950/45 backdrop-blur-[2px]"
+        className="ui-backdrop absolute inset-0 bg-brand-950/45 backdrop-blur-[2px]"
         aria-label="Đóng hộp cắt ảnh"
         onClick={onCancel}
       />
@@ -275,7 +275,7 @@ export function ImageCropper({
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
           Ảnh đại diện
         </p>
-        <h2 id="image-cropper-title" className="mt-2 pr-10 text-xl font-semibold text-emerald-950">
+        <h2 id="image-cropper-title" className="mt-2 pr-10 text-xl font-semibold text-brand-950">
           Chọn vùng hiển thị
         </h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">
@@ -346,7 +346,7 @@ export function ImageCropper({
               value={zoom}
               disabled={!source}
               aria-label="Mức phóng to ảnh"
-              className="h-1.5 min-w-0 flex-1 accent-emerald-700"
+              className="h-1.5 min-w-0 flex-1 accent-brand-700"
               onChange={(event) => changeZoom(Number(event.currentTarget.value))}
             />
             <RoundButton
@@ -377,7 +377,7 @@ export function ImageCropper({
                   {tilt !== 0 ? (
                     <button
                       type="button"
-                      className="font-medium text-emerald-800 hover:underline"
+                      className="font-medium text-brand-800 hover:underline"
                       onClick={() => changeRotation(quarterTurns, 0)}
                     >
                       Đặt lại
@@ -393,7 +393,7 @@ export function ImageCropper({
                 value={tilt}
                 disabled={!source}
                 aria-label="Góc xoay thẳng ảnh"
-                className="h-1.5 min-w-0 accent-emerald-700"
+                className="h-1.5 min-w-0 accent-brand-700"
                 onChange={(event) =>
                   changeRotation(quarterTurns, Number(event.currentTarget.value))
                 }

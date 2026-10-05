@@ -1,9 +1,25 @@
 import type { Metadata } from 'next';
+import { Be_Vietnam_Pro, Noto_Serif } from 'next/font/google';
 
 import { SiteHeader } from '@/components/layout/site-header';
 import { ToastProvider } from '@/components/ui/toast';
 
 import './globals.css';
+
+// Self-hosted by Next at build time; the CSS reads them through these variables (globals.css).
+const sans = Be_Vietnam_Pro({
+  subsets: ['vietnamese', 'latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-be-vietnam',
+  display: 'swap',
+});
+
+const serif = Noto_Serif({
+  subsets: ['vietnamese', 'latin'],
+  weight: ['600', '700'],
+  variable: '--font-noto-serif',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -15,7 +31,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" className={`${sans.variable} ${serif.variable}`}>
       <body>
         <ToastProvider>
           <SiteHeader />

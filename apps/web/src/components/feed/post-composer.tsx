@@ -160,7 +160,7 @@ function ComposerDialog({
               <p className="min-w-0 flex-1 truncate font-semibold text-stone-900">{name}</p>
             ) : (
               <input
-                className="h-10 min-w-0 flex-1 rounded-xl border border-transparent bg-stone-100 px-3 text-base font-semibold text-stone-900 outline-none placeholder:font-normal placeholder:text-stone-500 focus:border-emerald-700 focus:bg-white sm:text-sm"
+                className="h-10 min-w-0 flex-1 rounded-xl border border-transparent bg-stone-100 px-3 text-base font-semibold text-stone-900 outline-none placeholder:font-normal placeholder:text-stone-500 focus:border-brand-700 focus:bg-white sm:text-sm"
                 placeholder="Tên của bạn"
                 aria-label="Tên của bạn"
                 value={name}
@@ -221,7 +221,7 @@ function ComposerDialog({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={images.length + preparing >= MAX_POST_IMAGES}
-              className="grid size-9 place-items-center rounded-full text-emerald-700 hover:bg-emerald-50 disabled:text-stone-300"
+              className="grid size-9 place-items-center rounded-full text-brand-700 hover:bg-brand-50 disabled:text-stone-300"
               aria-label="Thêm ảnh"
             >
               <ImagePlus className="size-6" aria-hidden="true" />
@@ -259,9 +259,11 @@ function ComposerDialog({
 export function PostComposer({
   familySlug,
   onCreated,
+  className,
 }: {
   familySlug: string;
   onCreated: (post: FeedPost) => void;
+  className?: string;
 }) {
   const viewerName = useViewerName();
   // The open dialog and the photos it starts with.
@@ -270,20 +272,20 @@ export function PostComposer({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="bg-white px-4 py-3 shadow-sm sm:rounded-2xl sm:border sm:border-stone-200">
+    <div className={cn('surface px-4 py-3', className)}>
       <div className="flex items-center gap-2.5">
         <NameAvatar name={viewerName || '?'} />
         <button
           type="button"
           onClick={() => setOpen([])}
-          className="h-10 min-w-0 flex-1 truncate rounded-full bg-stone-100 px-4 text-left text-[15px] text-stone-500 transition hover:bg-stone-200"
+          className="h-10 min-w-0 flex-1 truncate rounded-full bg-paper px-4 text-left text-[15px] text-stone-500 ring-1 ring-inset ring-line transition hover:bg-paper-deep"
         >
           Bạn đang nghĩ gì?
         </button>
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="grid size-10 shrink-0 place-items-center rounded-full text-emerald-700 hover:bg-emerald-50"
+          className="grid size-10 shrink-0 place-items-center rounded-full text-brand-700 hover:bg-brand-50"
           aria-label="Đăng ảnh"
         >
           <ImagePlus className="size-6" aria-hidden="true" />

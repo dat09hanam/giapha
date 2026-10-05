@@ -205,7 +205,7 @@ export function PostCard({
   const showComments = commentsOpen || commentCount > 0;
 
   return (
-    <article className="ui-dialog bg-white shadow-sm sm:rounded-2xl sm:border sm:border-stone-200">
+    <article className="ui-dialog surface mx-3 sm:mx-0">
       <header className="flex items-center gap-2.5 px-4 pt-3">
         <NameAvatar name={post.authorName} />
         <div className="min-w-0 flex-1">
@@ -266,7 +266,7 @@ export function PostCard({
       {editing ? (
         <div className="grid gap-2 px-4 pt-3">
           <textarea
-            className="field-sizing-content min-h-24 w-full resize-none rounded-xl border border-stone-200 px-3 py-2 text-base leading-6 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+            className="field-sizing-content min-h-24 w-full resize-none rounded-xl border border-stone-200 px-3 py-2 text-base leading-6 outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             maxLength={5000}

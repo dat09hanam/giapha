@@ -21,7 +21,17 @@ import {
   type Viewport,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Minimize2, Printer, RotateCw, UsersRound } from 'lucide-react';
+import {
+  HandHeart,
+  Images,
+  Maximize2,
+  Minimize2,
+  Newspaper,
+  Printer,
+  RotateCw,
+  UsersRound,
+  Wallet,
+} from 'lucide-react';
 import Link from 'next/link';
 
 import { familyEdgeTypes } from '@/components/tree/family-link-edge';
@@ -45,6 +55,10 @@ const nodeTypes = {
 } satisfies NodeTypes;
 
 /** Zooms to a searched person with room around the card to see their parents and children. */
+/** White on the red strip on phones; a white button with red text over the paper from sm. */
+const toolbarButtonClass =
+  'inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-white/15 px-3 text-sm font-medium text-white ring-1 ring-inset ring-white/25 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:bg-white sm:text-brand-800 sm:ring-line sm:hover:bg-brand-50 sm:focus-visible:ring-brand-400/40';
+
 const FOCUS_PERSON_OPTIONS = { padding: 1.5, maxZoom: 1.2, duration: 700 };
 const MIN_ZOOM = 0.02;
 const MAX_ZOOM = 2;
@@ -107,6 +121,92 @@ export function FamilyTree(props: FamilyTreeProps) {
     <ReactFlowProvider>
       <FamilyTreeView {...props} />
     </ReactFlowProvider>
+  );
+}
+
+const QUICK_SECTIONS = [
+  { feature: 'feed', label: 'Bảng tin', path: 'bang-tin', icon: Newspaper },
+  { feature: 'fund', label: 'Quỹ họ', path: 'quy-ho', icon: Wallet },
+  { feature: 'merit', label: 'Công đức', path: 'cong-duc', icon: HandHeart },
+  { feature: 'library', label: 'Album', path: 'tu-lieu', icon: Images },
+] as const;
+
+/** One wide shortcut card under the poster: an icon badge, a title and a line under it. */
+function ShortcutCard({
+  icon: Icon,
+  title,
+  hint,
+}: {
+  icon: typeof Maximize2;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <>
+      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-100">
+        <Icon className="size-5" aria-hidden="true" />
+      </span>
+      <span className="min-w-0 text-left">
+        <span className="block font-semibold text-brand-800">{title}</span>
+        <span className="block truncate text-xs text-stone-500">{hint}</span>
+      </span>
+    </>
+  );
+}
+
+/**
+ * Desktops show the home page's shortcuts under the poster: full screen, printing, and the
+ * family's other sections. Phones reach these from the toolbar and the bottom bar instead.
+ */
+function DesktopShortcuts({
+  familySlug,
+  features,
+  onFullScreen,
+}: {
+  familySlug: string;
+  features: FamilyFeatures;
+  onFullScreen: () => void;
+}) {
+  const base = `/${encodeURIComponent(familySlug)}`;
+  const cardClass =
+    'surface flex items-center gap-3 px-4 py-3.5 transition hover:border-brand-200 hover:shadow-md';
+  const sections = QUICK_SECTIONS.filter((section) => features[section.feature]);
+  return (
+    <div className="hidden w-full max-w-[var(--poster-width)] gap-4 pb-4 lg:grid">
+      <div className="grid grid-cols-2 gap-4">
+        <button type="button" onClick={onFullScreen} className={cardClass}>
+          <ShortcutCard
+            icon={Maximize2}
+            title="Xem toàn màn hình"
+            hint="Xem gia phả đầy đủ, chi tiết"
+          />
+        </button>
+        {features.printBook ? (
+          <Link href={`${base}/in-gia-pha`} className={cardClass}>
+            <ShortcutCard icon={Printer} title="In gia phả" hint="Tải file hoặc in trực tiếp" />
+          </Link>
+        ) : null}
+      </div>
+      {sections.length > 0 ? (
+        <section aria-labelledby="quick-sections-title" className="grid gap-3">
+          <h2 id="quick-sections-title" className="font-display text-lg font-bold text-brand-800">
+            Tính năng nhanh
+          </h2>
+          <div className="grid grid-cols-4 gap-4">
+            {sections.map(({ label, path, icon: Icon }) => (
+              <Link
+                key={path}
+                href={`${base}/${path}`}
+                className="surface grid justify-items-center gap-2 px-3 py-5 text-sm font-semibold text-brand-800 transition hover:border-brand-200 hover:shadow-md"
+              >
+                <Icon className="size-7 text-brand-700" aria-hidden="true" />
+                {label}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
   );
 }
 
@@ -232,16 +332,16 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
     // bottom tab bar (4rem), the sheet fitted edge to edge; dvh follows the
     // collapsing address bar.
     <div
-      className="box-border flex h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] flex-col items-center gap-2 bg-stone-900 sm:h-auto sm:min-h-[calc(100vh-4rem)] sm:justify-center sm:gap-3 sm:p-4"
+      className="box-border flex h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] flex-col items-center bg-paper sm:h-auto sm:min-h-[calc(100vh-4rem)] sm:justify-center sm:gap-3 sm:p-4"
       style={layoutVars}
     >
-      <div className="flex w-full shrink-0 justify-center gap-2 px-3 pt-2 sm:max-w-[var(--poster-width)] sm:px-0 sm:pt-0">
+      {/* A red strip on phones, as every family section opens; a plain toolbar over the paper from sm. */}
+      <div className="flex w-full shrink-0 items-center justify-center gap-2 bg-gradient-to-br from-brand-600 to-brand-800 px-3 py-2.5 sm:max-w-[var(--poster-width)] sm:bg-none sm:p-0">
+        <h1 className="sr-only shrink-0 font-display text-2xl font-bold text-brand-800 sm:not-sr-only sm:mr-auto">
+          Gia phả
+        </h1>
         <PersonSearch entries={searchEntries} onSelect={focusPerson} onClear={clearFocus} />
-        <button
-          type="button"
-          onClick={() => setKinshipFromId(null)}
-          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-stone-600 bg-stone-800 px-3 text-sm font-medium text-stone-100 hover:border-amber-400 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40"
-        >
+        <button type="button" onClick={() => setKinshipFromId(null)} className={toolbarButtonClass}>
           <UsersRound className="size-4" aria-hidden="true" />
           Xưng hô
         </button>
@@ -249,7 +349,7 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
           <Link
             href={`/${encodeURIComponent(familySlug)}/in-gia-pha`}
             aria-label="In gia phả"
-            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-stone-600 bg-stone-800 px-3 text-sm font-medium text-stone-100 hover:border-amber-400 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40"
+            className={toolbarButtonClass}
           >
             <Printer className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">In gia phả</span>
@@ -260,7 +360,7 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
         <div
           aria-hidden="true"
           className={cn(
-            'fixed inset-0 z-[60] bg-stone-950 motion-reduce:animate-none',
+            'fixed inset-0 z-[60] bg-paper motion-reduce:animate-none',
             leaving
               ? 'animate-[tree-fade-out_350ms_ease-in_forwards]'
               : 'animate-[tree-fade-in_350ms_ease-out]',
@@ -273,9 +373,9 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
           'overflow-hidden',
           turned
             ? // Centred and turned a quarter round, so it swings about the middle of the screen.
-              'fixed left-1/2 top-1/2 z-[60] h-[100dvw] w-[100dvh] -translate-x-1/2 -translate-y-1/2 rotate-90 bg-stone-900'
+              'fixed left-1/2 top-1/2 z-[60] h-[100dvw] w-[100dvh] -translate-x-1/2 -translate-y-1/2 rotate-90 bg-paper'
             : landscape
-              ? 'fixed inset-0 z-[60] bg-stone-900'
+              ? 'fixed inset-0 z-[60] bg-paper'
               : 'relative min-h-0 w-full flex-1 sm:aspect-video sm:w-[var(--poster-width)] sm:flex-none sm:rounded-lg sm:shadow-2xl',
           landscape &&
             (leaving
@@ -318,7 +418,7 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
               nodesConnectable={false}
               elementsSelectable={false}
               proOptions={{ hideAttribution: true }}
-              style={{ background: '#2a1d0e' }}
+              style={{ background: 'var(--color-paper)' }}
             ></ReactFlow>
           </HighlightedPersonContext.Provider>
         </div>
@@ -328,7 +428,7 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
             onClick={exitLandscape}
             disabled={leaving}
             aria-label="Thoát xem ngang"
-            className="absolute right-3 top-3 z-10 grid size-11 place-items-center rounded-full bg-stone-900/80 text-white shadow-lg backdrop-blur hover:bg-stone-900"
+            className="absolute right-3 top-3 z-10 grid size-11 place-items-center rounded-full bg-white/90 text-brand-800 shadow-lg ring-1 ring-line backdrop-blur hover:bg-white"
           >
             <Minimize2 className="size-5" aria-hidden="true" />
           </button>
@@ -338,7 +438,7 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
             type="button"
             onClick={() => setLandscapeMode('on')}
             aria-label="Xoay ngang gia phả"
-            className="absolute right-3 top-3 z-10 hidden size-11 place-items-center rounded-full bg-stone-900/80 text-white shadow-lg backdrop-blur hover:bg-stone-900 portrait:grid"
+            className="absolute right-3 top-3 z-10 hidden size-11 place-items-center rounded-full bg-white/90 text-brand-800 shadow-lg ring-1 ring-line backdrop-blur hover:bg-white portrait:grid"
           >
             <RotateCw className="size-5" aria-hidden="true" />
           </button>
@@ -369,6 +469,13 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
           ) : null}
         </Presence>
       </div>
+      {landscape ? null : (
+        <DesktopShortcuts
+          familySlug={familySlug}
+          features={family.features}
+          onFullScreen={() => setLandscapeMode('on')}
+        />
+      )}
     </div>
   );
 }

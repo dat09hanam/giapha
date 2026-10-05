@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { CloudMotif } from '@/components/layout/page-hero';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -16,15 +17,17 @@ export function AdminPageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
+    // The same red banner the family sections open with (see PageHero).
+    <header className="relative isolate flex min-w-0 flex-col gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900 px-5 py-6 text-white shadow-sm sm:flex-row sm:items-end sm:justify-between sm:gap-5 sm:px-8 sm:py-8">
+      <CloudMotif className="pointer-events-none absolute -right-8 -top-3 -z-10 w-72 text-white/10" />
       <div className="min-w-0">
-        <p className="flex items-center gap-1.5 text-sm font-medium text-emerald-800 [&_svg]:size-4">
+        <p className="flex items-center gap-1.5 text-sm font-medium text-brand-50/85 [&_svg]:size-4">
           {eyebrow}
         </p>
-        <h1 className="mt-2 text-balance text-2xl font-semibold tracking-tight text-emerald-950 sm:truncate sm:text-4xl">
+        <h1 className="mt-2 text-balance font-display text-2xl font-bold sm:truncate sm:text-4xl">
           {title}
         </h1>
-        <p className="mt-2 max-w-2xl text-pretty text-sm leading-6 text-stone-600 sm:text-base sm:leading-7">
+        <p className="mt-2 max-w-2xl text-pretty text-sm leading-6 text-brand-50/85 sm:text-base sm:leading-7">
           {description}
         </p>
       </div>
@@ -62,14 +65,14 @@ export function SectionCard({
   className?: string;
 }) {
   return (
-    <Card className={cn('bg-white/85 shadow-sm', className)}>
-      <div className="flex flex-col gap-4 border-b border-emerald-950/10 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-7 sm:py-5">
+    <Card className={cn('border-line bg-white shadow-sm', className)}>
+      <div className="flex flex-col gap-4 border-b border-line px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-7 sm:py-5">
         <div className="flex min-w-0 gap-3.5">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-900 [&_svg]:size-5">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-100 [&_svg]:size-5">
             {icon}
           </span>
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold leading-7 text-emerald-950">{title}</h2>
+            <h2 className="text-lg font-semibold leading-7 text-stone-900">{title}</h2>
             {description ? (
               <p className="mt-0.5 max-w-2xl text-sm leading-6 text-stone-600">{description}</p>
             ) : null}
@@ -79,7 +82,7 @@ export function SectionCard({
       </div>
       <div className="px-4 py-5 sm:px-7 sm:py-6">{children}</div>
       {footer ? (
-        <div className="flex flex-col-reverse gap-3 rounded-b-2xl border-t border-emerald-950/10 bg-stone-50/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-7">
+        <div className="flex flex-col-reverse gap-3 rounded-b-2xl border-t border-line bg-paper/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-7">
           {footer}
         </div>
       ) : null}

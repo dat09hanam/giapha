@@ -41,14 +41,14 @@ export function PlatformFeaturesForm({ initial }: { initial: FamilyFeatures }) {
       title="Chức năng"
       description="Bật hoặc tắt từng chức năng cho tất cả dòng họ. Chức năng đã tắt được ẩn khỏi menu và không dùng được; dữ liệu đã có vẫn được giữ nguyên."
     >
-      <ul className="divide-y divide-emerald-950/10">
+      <ul className="divide-y divide-brand-950/10">
         {FAMILY_FEATURE_CHOICES.map((choice) => {
           const on = features[choice.feature];
           const id = `feature-${choice.feature}`;
           return (
             <li key={choice.feature} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
               <div className="min-w-0 flex-1">
-                <label htmlFor={id} className="font-medium text-emerald-950">
+                <label htmlFor={id} className="font-medium text-brand-950">
                   {choice.label}
                 </label>
                 <p className="mt-0.5 text-sm leading-6 text-stone-600">{choice.description}</p>
@@ -64,8 +64,8 @@ export function PlatformFeaturesForm({ initial }: { initial: FamilyFeatures }) {
                 disabled={saving !== null}
                 onClick={() => void toggle(choice.feature, choice.label)}
                 className={cn(
-                  'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700/40 disabled:opacity-60',
-                  on ? 'bg-emerald-700' : 'bg-stone-300',
+                  'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/40 disabled:opacity-60',
+                  on ? 'bg-brand-700' : 'bg-stone-300',
                 )}
               >
                 <span

@@ -40,7 +40,7 @@ export function SiteHeaderContent() {
       <nav className="flex items-center gap-2 sm:gap-3" aria-label="Điều hướng quản trị">
         {displayName ? (
           <span
-            className="hidden max-w-20 truncate text-sm font-medium text-emerald-950 min-[420px]:inline sm:max-w-40"
+            className="hidden max-w-20 truncate text-sm font-medium text-brand-950 min-[420px]:inline sm:max-w-40"
             title={displayName}
           >
             {displayName}

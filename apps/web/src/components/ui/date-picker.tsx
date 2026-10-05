@@ -12,7 +12,7 @@ const WEEKDAY_NAMES = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Th�
 const MONTHS = Array.from({ length: 12 }, (_, index) => `Tháng ${index + 1}`);
 
 const selectClass =
-  'h-9 rounded-lg border border-stone-200 bg-white px-2 text-sm font-semibold text-stone-800 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15';
+  'h-9 rounded-lg border border-stone-200 bg-white px-2 text-sm font-semibold text-stone-800 outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15';
 
 function Calendar({
   value,
@@ -152,9 +152,9 @@ function Calendar({
                 className={cn(
                   'grid h-10 place-items-center rounded-full text-sm tabular-nums transition',
                   selected
-                    ? 'bg-emerald-800 font-semibold text-white'
+                    ? 'bg-brand-800 font-semibold text-white'
                     : isToday
-                      ? 'font-semibold text-emerald-800 ring-1 ring-emerald-700'
+                      ? 'font-semibold text-brand-800 ring-1 ring-brand-700'
                       : inMonth
                         ? index % 7 === 6
                           ? 'text-red-600 hover:bg-stone-100'
@@ -191,7 +191,7 @@ function Calendar({
             type="button"
             disabled={!todayAllowed}
             onClick={() => onPick(today)}
-            className="rounded-lg px-3 py-2 text-emerald-800 hover:bg-emerald-50 disabled:opacity-40"
+            className="rounded-lg px-3 py-2 text-brand-800 hover:bg-brand-50 disabled:opacity-40"
           >
             Hôm nay
           </button>
@@ -247,7 +247,7 @@ export function DatePicker({
           aria-expanded={open}
           onClick={() => setOpen(true)}
           className={cn(
-            'flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-stone-200 bg-white px-3 text-left text-base tabular-nums outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 sm:text-sm',
+            'flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-stone-200 bg-white px-3 text-left text-base tabular-nums outline-none transition focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 sm:text-sm',
             allowClear && value && 'pr-10',
             className,
           )}

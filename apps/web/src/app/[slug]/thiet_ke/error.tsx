@@ -16,7 +16,9 @@ export default function FamilyDesignerError({
         <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-red-100 text-red-700">
           <AlertTriangle className="size-6" aria-hidden="true" />
         </span>
-        <h1 className="mt-5 text-2xl font-semibold text-emerald-950">Chưa thể mở trang thiết kế</h1>
+        <h1 className="mt-5 font-display text-2xl font-bold text-brand-800">
+          Chưa thể mở trang thiết kế
+        </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-stone-600">
           Có lỗi khi chuẩn bị bản thiết kế gia phả. Hãy kiểm tra kết nối rồi thử lại.
         </p>

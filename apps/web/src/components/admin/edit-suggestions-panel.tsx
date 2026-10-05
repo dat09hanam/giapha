@@ -81,13 +81,13 @@ function SuggestionCard({
     >
       <div className="flex items-start gap-3 px-4 pt-4 sm:px-5">
         <span
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-900"
+          className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-900"
           aria-hidden="true"
         >
           <UserRound className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold text-emerald-950">
+          <p className="truncate font-semibold text-brand-950">
             {displayPersonTitle(suggestion.person)}
           </p>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-stone-500">
@@ -225,13 +225,13 @@ export function EditSuggestionsPanel({
   return (
     <section className="grid min-w-0 gap-4" aria-labelledby="edit-suggestions-title">
       <header className="grid gap-1">
-        <h2 id="edit-suggestions-title" className="text-lg font-semibold text-emerald-950">
+        <h2 id="edit-suggestions-title" className="text-lg font-semibold text-brand-950">
           Đề xuất chỉnh sửa
         </h2>
       </header>
 
       <div
-        className="grid grid-cols-3 gap-1 rounded-2xl border border-emerald-950/10 bg-white/70 p-1 shadow-sm sm:w-fit sm:min-w-96"
+        className="grid grid-cols-3 gap-1 rounded-2xl border border-brand-950/10 bg-white/70 p-1 shadow-sm sm:w-fit sm:min-w-96"
         role="group"
         aria-label="Lọc đề xuất theo trạng thái"
       >
@@ -246,8 +246,8 @@ export function EditSuggestionsPanel({
               className={cn(
                 'inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-sm font-medium transition',
                 selected
-                  ? 'bg-emerald-900 text-white shadow-sm'
-                  : 'text-stone-600 hover:bg-emerald-50 hover:text-emerald-950',
+                  ? 'bg-brand-900 text-white shadow-sm'
+                  : 'text-stone-600 hover:bg-brand-50 hover:text-brand-950',
               )}
             >
               <span className="truncate">{label}</span>
@@ -269,8 +269,8 @@ export function EditSuggestionsPanel({
       </div>
 
       {visible.length === 0 ? (
-        <div className="grid place-items-center gap-3 rounded-2xl border border-dashed border-emerald-950/15 bg-white/50 px-4 py-14 text-center text-sm text-stone-500">
-          <span className="grid size-12 place-items-center rounded-full bg-emerald-50 text-emerald-700">
+        <div className="grid place-items-center gap-3 rounded-2xl border border-dashed border-brand-950/15 bg-white/50 px-4 py-14 text-center text-sm text-stone-500">
+          <span className="grid size-12 place-items-center rounded-full bg-brand-50 text-brand-700">
             <Inbox className="size-6" aria-hidden="true" />
           </span>
           {activeFilter.empty}

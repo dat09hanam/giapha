@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api-error';
 import type { FamilyDetails } from '@/types/family-tree';
+import type { RichTextDocument } from '@/types/rich-text';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
@@ -26,6 +27,8 @@ export type CreateFamilyInput = {
 export type UpdateFamilyInput = Partial<{
   name: string;
   description: string;
+  /** Replaces `description`, which the API derives from it; null clears both. */
+  introduction: RichTextDocument | null;
   address: string;
   ancestryOrigin: string;
   deathAnniversary: string | null;

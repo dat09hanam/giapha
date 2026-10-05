@@ -215,11 +215,11 @@ export function FamilyAccountsPanel({
           {credential ? (
             <div
               ref={credentialRef}
-              className="grid content-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5"
+              className="grid content-start gap-3 rounded-2xl border border-brand-200 bg-brand-50/70 p-5"
               role="status"
             >
               <div className="flex items-center justify-between gap-3">
-                <p className="font-semibold text-emerald-950">{credential.displayName}</p>
+                <p className="font-semibold text-brand-950">{credential.displayName}</p>
                 <Button type="button" size="sm" variant="outline" onClick={copyCredential}>
                   {copied ? (
                     <Check className="size-3.5" aria-hidden="true" />
@@ -246,8 +246,8 @@ export function FamilyAccountsPanel({
               </p>
             </div>
           ) : (
-            <div className="grid content-start gap-3 rounded-2xl border border-dashed border-emerald-900/20 bg-stone-50/60 p-5 text-sm leading-6 text-stone-600">
-              <p className="font-medium text-emerald-950">Một chi gồm những ai?</p>
+            <div className="grid content-start gap-3 rounded-2xl border border-dashed border-brand-900/20 bg-stone-50/60 p-5 text-sm leading-6 text-stone-600">
+              <p className="font-medium text-brand-950">Một chi gồm những ai?</p>
               <p>
                 Người được chọn làm gốc chi, toàn bộ con cháu của người đó và vợ/chồng của họ. Mỗi
                 chi chỉ giao cho một người; không thể giao một chi nằm trong chi đã giao cho người
@@ -278,7 +278,7 @@ export function FamilyAccountsPanel({
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="flex flex-wrap items-center gap-2 font-medium text-emerald-950">
+                    <p className="flex flex-wrap items-center gap-2 font-medium text-brand-950">
                       {account.displayName}
                       {isHead ? (
                         <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
@@ -353,13 +353,13 @@ export function FamilyAccountsPanel({
                       {account.branches.map((branch) => (
                         <span
                           key={branch.rootPersonId}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 py-1 pl-3 pr-1 text-sm text-emerald-950"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 py-1 pl-3 pr-1 text-sm text-brand-950"
                         >
                           <GitBranch className="size-3.5" aria-hidden="true" />
                           Chi {displayPersonName(branch.rootName)}
                           <button
                             type="button"
-                            className="grid size-6 place-items-center rounded-full text-emerald-800 transition hover:bg-emerald-200 disabled:opacity-40"
+                            className="grid size-6 place-items-center rounded-full text-brand-800 transition hover:bg-brand-200 disabled:opacity-40"
                             disabled={busy}
                             aria-label={`Bỏ giao chi ${branch.rootName}`}
                             onClick={() =>

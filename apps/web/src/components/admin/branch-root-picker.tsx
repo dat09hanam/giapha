@@ -72,14 +72,14 @@ function PickerPersonNode({ data }: NodeProps<PickerFlowNode>) {
         aria-pressed={selected}
         onClick={() => data.onPick(person.id)}
         className={cn(
-          'block w-full rounded-2xl border px-3 py-3 text-left shadow-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700',
+          'block w-full rounded-2xl border px-3 py-3 text-left shadow-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700',
           selected
-            ? 'scale-[1.04] border-emerald-700 bg-emerald-50 ring-4 ring-emerald-500/30'
+            ? 'scale-[1.04] border-brand-700 bg-brand-50 ring-4 ring-brand-500/30'
             : current
-              ? 'border-emerald-600 bg-emerald-100'
+              ? 'border-brand-600 bg-brand-100'
               : blocked
                 ? 'cursor-not-allowed border-stone-200 bg-stone-100 opacity-70'
-                : 'border-amber-900/20 bg-[#fffdf8] hover:border-emerald-700 hover:bg-emerald-50/60',
+                : 'border-amber-900/20 bg-[#fffdf8] hover:border-brand-700 hover:bg-brand-50/60',
         )}
       >
         {person.honorific ? (
@@ -88,7 +88,7 @@ function PickerPersonNode({ data }: NodeProps<PickerFlowNode>) {
           </span>
         ) : null}
         <span
-          className="block truncate font-semibold text-emerald-950"
+          className="block truncate font-semibold text-brand-950"
           title={displayPersonName(person.name)}
         >
           {displayPersonName(person.name)}
@@ -98,7 +98,7 @@ function PickerPersonNode({ data }: NodeProps<PickerFlowNode>) {
           <span
             className={cn(
               'mt-1.5 block truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium',
-              current ? 'bg-emerald-600 text-white' : 'bg-stone-200 text-stone-600',
+              current ? 'bg-brand-600 text-white' : 'bg-stone-200 text-stone-600',
             )}
           >
             {current ? 'Đang quản lý' : blockedLabel(blocked!)}
@@ -336,7 +336,7 @@ function BranchRootPickerDialog({
             {selected ? (
               <>
                 Người đứng đầu chi:{' '}
-                <strong className="text-emerald-950">{displayPersonName(selected.name)}</strong>
+                <strong className="text-brand-950">{displayPersonName(selected.name)}</strong>
               </>
             ) : (
               'Chưa chọn người nào.'

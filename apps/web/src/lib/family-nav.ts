@@ -28,6 +28,8 @@ export type FamilyNavItem = {
   path: string | null;
   /** The switch the platform admin turns this section off with; none for sections always shown. */
   feature?: FamilyFeature;
+  /** Listed in the phone's Menu sheet rather than given a tab of its own in the bottom bar. */
+  menuOnly?: true;
 };
 
 /** The family sections, in menu order. Give a section its `path` once its page exists. */
@@ -38,7 +40,7 @@ export const FAMILY_NAV: readonly FamilyNavItem[] = [
   { key: 'merit', label: 'Công đức', path: 'cong-duc', feature: 'merit' },
   { key: 'library', label: 'Album', path: 'tu-lieu', feature: 'library' },
   { key: 'announcements', label: 'Thông báo', path: null },
-  { key: 'about', label: 'Giới thiệu', path: null },
+  { key: 'about', label: 'Giới thiệu', path: 'gioi-thieu', menuOnly: true },
 ];
 
 /** The sections a family shows: those the platform admin has not switched off. */

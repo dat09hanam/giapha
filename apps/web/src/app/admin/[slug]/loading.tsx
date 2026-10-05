@@ -6,8 +6,8 @@ export default function FamilyAdminLoading() {
       aria-busy="true"
     >
       <div>
-        <div className="h-5 w-36 rounded-full bg-emerald-900/10" />
-        <div className="mt-3 h-10 w-72 max-w-full rounded-xl bg-emerald-900/10" />
+        <div className="h-5 w-36 rounded-full bg-brand-900/10" />
+        <div className="mt-3 h-10 w-72 max-w-full rounded-xl bg-brand-900/10" />
         <div className="mt-3 h-5 w-md max-w-full rounded-lg bg-stone-300/60" />
       </div>
       <div className="h-13 w-full rounded-2xl border bg-white/70 sm:w-96" />

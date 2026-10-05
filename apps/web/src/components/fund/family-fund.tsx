@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 import { Fragment, useRef, useState, type FormEvent } from 'react';
 
+import { heroOverlapClass, PageHero } from '@/components/layout/page-hero';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Segmented } from '@/components/ui/segmented';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
 import {
@@ -107,14 +109,14 @@ function EntryForm({
   return (
     <form
       onSubmit={(event) => void submit(event)}
-      className="grid gap-4 bg-white px-4 py-4 shadow-sm sm:rounded-2xl sm:border sm:border-stone-200 sm:px-5"
+      className="surface grid gap-4 px-4 py-4 sm:px-5"
       aria-label={editing ? 'Sửa khoản thu chi' : 'Ghi khoản thu chi mới'}
     >
-      <h2 className="flex items-center gap-2 font-semibold text-emerald-950">
+      <h2 className="flex items-center gap-2 font-semibold text-stone-900">
         {editing ? (
           <PencilLine className="size-4 text-amber-700" aria-hidden="true" />
         ) : (
-          <Plus className="size-4 text-emerald-700" aria-hidden="true" />
+          <Plus className="size-4 text-brand-700" aria-hidden="true" />
         )}
         {editing ? 'Sửa khoản thu chi' : 'Ghi khoản mới'}
       </h2>
@@ -130,7 +132,7 @@ function EntryForm({
         <span className="text-sm font-medium text-stone-700">Nội dung</span>
         <input
           id="fund-content"
-          className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-base outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 sm:text-sm"
+          className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-base outline-none transition placeholder:text-stone-400 focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 sm:text-sm"
           placeholder="Ví dụ: Đóng góp giỗ tổ của chi trưởng"
           value={content}
           onChange={(event) => setContent(event.target.value)}
@@ -179,7 +181,7 @@ function EntryForm({
             id="fund-amount"
             inputMode="numeric"
             autoComplete="off"
-            className="h-11 w-full rounded-xl border border-stone-200 bg-white pl-3 pr-9 text-right text-base font-semibold tabular-nums outline-none transition placeholder:font-normal placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+            className="h-11 w-full rounded-xl border border-stone-200 bg-white pl-3 pr-9 text-right text-base font-semibold tabular-nums outline-none transition placeholder:font-normal placeholder:text-stone-400 focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15"
             placeholder="0"
             value={amountText}
             onChange={(event) => setAmountText(formatAmountInput(event.target.value))}
@@ -278,49 +280,57 @@ export function FamilyFund({ familySlug, initial }: { familySlug: string; initia
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-2 pb-6 sm:gap-4 sm:px-4 sm:py-6">
-      <section
-        aria-labelledby="fund-balance-title"
-        className="relative overflow-hidden bg-gradient-to-br from-emerald-900 to-emerald-950 px-5 py-6 text-white shadow-sm sm:rounded-2xl"
-      >
+    <div className="mx-auto grid w-full max-w-2xl gap-3 pb-6 sm:gap-4 sm:px-4 sm:py-6 lg:max-w-5xl lg:px-8 lg:py-8">
+      <PageHero
+        title="Quỹ họ"
+        icon={Wallet}
+        description="Sổ thu chi chung của dòng họ, minh bạch cho mọi thành viên."
+        overlap
+      />
+
+      <section aria-labelledby="fund-balance-title" className={cn('surface p-5', heroOverlapClass)}>
         <Wallet
-          className="pointer-events-none absolute -right-4 -top-4 size-32 text-white/5"
+          className="pointer-events-none absolute right-4 top-4 size-14 text-brand-100"
           aria-hidden="true"
         />
-        <h1 id="fund-balance-title" className="text-sm font-medium text-emerald-100/80">
+        <h2 id="fund-balance-title" className="text-sm font-semibold text-stone-600">
           Số dư quỹ họ
-        </h1>
+        </h2>
         <p
           className={cn(
-            'mt-1 break-words text-4xl font-bold tabular-nums tracking-tight sm:text-5xl',
-            negative && 'text-red-200',
+            'mt-1 break-words font-display text-4xl font-bold tabular-nums sm:text-5xl',
+            negative ? 'text-red-700' : 'text-brand-800',
           )}
         >
           {formatVnd(totals.balance)}
         </p>
-        <p className="mt-2 text-sm italic leading-6 text-emerald-50/90">
+        <p className="mt-1.5 text-sm italic leading-6 text-stone-500">
           Bằng chữ: {vndInWords(totals.balance)}
         </p>
-        <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 text-sm">
-          <div>
-            <dt className="flex items-center gap-1.5 text-emerald-100/70">
-              <ArrowDownLeft className="size-4 text-emerald-300" aria-hidden="true" />
+        <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded-xl bg-emerald-50/70 px-3 py-2.5">
+            <dt className="flex items-center gap-1.5 text-stone-600">
+              <ArrowDownLeft className="size-4 text-emerald-700" aria-hidden="true" />
               Tổng thu
             </dt>
-            <dd className="mt-0.5 font-semibold tabular-nums">{formatVnd(totals.income)}</dd>
+            <dd className="mt-0.5 font-semibold tabular-nums text-emerald-800">
+              {formatVnd(totals.income)}
+            </dd>
           </div>
-          <div>
-            <dt className="flex items-center gap-1.5 text-emerald-100/70">
-              <ArrowUpRight className="size-4 text-red-300" aria-hidden="true" />
+          <div className="rounded-xl bg-red-50/70 px-3 py-2.5">
+            <dt className="flex items-center gap-1.5 text-stone-600">
+              <ArrowUpRight className="size-4 text-red-700" aria-hidden="true" />
               Tổng chi
             </dt>
-            <dd className="mt-0.5 font-semibold tabular-nums">{formatVnd(totals.expense)}</dd>
+            <dd className="mt-0.5 font-semibold tabular-nums text-red-800">
+              {formatVnd(totals.expense)}
+            </dd>
           </div>
         </dl>
       </section>
 
       {canManage ? (
-        <div ref={formRef}>
+        <div ref={formRef} className="mx-3 sm:mx-0">
           <EntryForm
             // A fresh form for each line being edited, and an empty one after.
             key={editing?.id ?? 'new'}
@@ -332,45 +342,21 @@ export function FamilyFund({ familySlug, initial }: { familySlug: string; initia
         </div>
       ) : null}
 
-      <section
-        aria-labelledby="fund-ledger-title"
-        className="bg-white shadow-sm sm:rounded-2xl sm:border sm:border-stone-200"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-4 py-3 sm:px-5">
+      <section aria-labelledby="fund-ledger-title" className="surface mx-3 overflow-hidden sm:mx-0">
+        <div className="grid gap-3 border-b border-line px-4 py-3 sm:px-5">
           <h2
             id="fund-ledger-title"
-            className="flex items-center gap-2 font-semibold text-emerald-950"
+            className="flex items-center gap-2 font-semibold text-stone-900"
           >
-            <ReceiptText className="size-4 text-emerald-700" aria-hidden="true" />
+            <ReceiptText className="size-4 text-brand-700" aria-hidden="true" />
             Sổ thu chi
           </h2>
-          <div
-            className="grid grid-cols-3 gap-1 rounded-xl bg-stone-100 p-1"
-            role="group"
-            aria-label="Lọc theo loại"
-          >
-            {FILTERS.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={filter === value}
-                onClick={() => setFilter(value)}
-                className={cn(
-                  'h-8 rounded-lg px-3 text-sm font-medium transition',
-                  filter === value
-                    ? 'bg-white text-emerald-950 shadow-sm'
-                    : 'text-stone-600 hover:text-stone-900',
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <Segmented options={FILTERS} value={filter} onChange={setFilter} label="Lọc theo loại" />
         </div>
 
         {visible.length === 0 ? (
           <div className="grid justify-items-center gap-2 px-6 py-12 text-center text-sm text-stone-500">
-            <span className="grid size-12 place-items-center rounded-full bg-emerald-50 text-emerald-700">
+            <span className="grid size-12 place-items-center rounded-full bg-brand-50 text-brand-700">
               <ReceiptText className="size-6" aria-hidden="true" />
             </span>
             {entries.length === 0
@@ -380,93 +366,187 @@ export function FamilyFund({ familySlug, initial }: { familySlug: string; initia
               : 'Không có khoản nào thuộc loại này.'}
           </div>
         ) : (
-          <ul className="divide-y divide-stone-100">
-            {visible.map((entry, index) => {
-              const income = entry.kind === 'INCOME';
-              const month = monthLabel(entry.occurredOn);
-              const newMonth = index === 0 || monthLabel(visible[index - 1]!.occurredOn) !== month;
-              return (
-                <Fragment key={entry.id}>
-                  {newMonth ? (
-                    <li className="bg-stone-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-stone-500 sm:px-5">
-                      {month}
-                    </li>
-                  ) : null}
-                  <li
-                    className={cn(
-                      'flex items-center gap-3 px-4 py-3 sm:px-5',
-                      editing?.id === entry.id && 'bg-amber-50',
-                    )}
-                  >
-                    <span
+          <>
+            <ul className="divide-y divide-stone-100 lg:hidden">
+              {visible.map((entry, index) => {
+                const income = entry.kind === 'INCOME';
+                const month = monthLabel(entry.occurredOn);
+                const newMonth =
+                  index === 0 || monthLabel(visible[index - 1]!.occurredOn) !== month;
+                return (
+                  <Fragment key={entry.id}>
+                    {newMonth ? (
+                      <li className="bg-paper px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-stone-500 sm:px-5">
+                        {month}
+                      </li>
+                    ) : null}
+                    <li
                       className={cn(
-                        'grid size-10 shrink-0 place-items-center rounded-full',
-                        income ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700',
+                        'flex items-center gap-3 px-4 py-3 sm:px-5',
+                        editing?.id === entry.id && 'bg-amber-50',
                       )}
-                      aria-hidden="true"
                     >
-                      {income ? (
-                        <ArrowDownLeft className="size-5" />
-                      ) : (
-                        <ArrowUpRight className="size-5" />
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="break-words text-[15px] font-medium leading-snug text-stone-900">
-                        {entry.content}
-                      </p>
-                      <p className="mt-0.5 text-xs text-stone-500">
-                        <time dateTime={entry.occurredOn}>{formatDay(entry.occurredOn)}</time> ·{' '}
-                        {income ? 'Thu' : 'Chi'}
-                      </p>
-                    </div>
-                    <div className="grid shrink-0 justify-items-end gap-1">
                       <span
                         className={cn(
-                          'font-semibold tabular-nums',
+                          'grid size-10 shrink-0 place-items-center rounded-full',
+                          income ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700',
+                        )}
+                        aria-hidden="true"
+                      >
+                        {income ? (
+                          <ArrowDownLeft className="size-5" />
+                        ) : (
+                          <ArrowUpRight className="size-5" />
+                        )}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-[15px] font-medium leading-snug text-stone-900">
+                          {entry.content}
+                        </p>
+                        <p className="mt-0.5 text-xs text-stone-500">
+                          <time dateTime={entry.occurredOn}>{formatDay(entry.occurredOn)}</time> ·{' '}
+                          {income ? 'Thu' : 'Chi'}
+                        </p>
+                      </div>
+                      <div className="grid shrink-0 justify-items-end gap-1">
+                        <span
+                          className={cn(
+                            'font-semibold tabular-nums',
+                            income ? 'text-emerald-700' : 'text-red-700',
+                          )}
+                        >
+                          {income ? '+' : '−'}
+                          {formatVnd(Math.abs(signed(entry)))}
+                        </span>
+                        {canManage ? (
+                          <span className="flex gap-1">
+                            <button
+                              type="button"
+                              className="grid size-8 place-items-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800"
+                              aria-label={`Sửa khoản ${entry.content}`}
+                              onClick={() => {
+                                setEditing(entry);
+                                formRef.current?.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'start',
+                                });
+                              }}
+                            >
+                              <PencilLine className="size-4" aria-hidden="true" />
+                            </button>
+                            <button
+                              type="button"
+                              className="grid size-8 place-items-center rounded-full text-stone-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                              aria-label={`Xóa khoản ${entry.content}`}
+                              disabled={busyId === entry.id}
+                              onClick={() => void remove(entry)}
+                            >
+                              {busyId === entry.id ? (
+                                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                              ) : (
+                                <Trash2 className="size-4" aria-hidden="true" />
+                              )}
+                            </button>
+                          </span>
+                        ) : null}
+                      </div>
+                    </li>
+                  </Fragment>
+                );
+              })}
+            </ul>
+            {/* Desktops have room for the ledger as a table. */}
+            <table className="hidden w-full text-sm lg:table">
+              <thead className="bg-paper text-left text-xs font-semibold uppercase tracking-wide text-stone-500">
+                <tr>
+                  <th scope="col" className="w-32 px-5 py-2.5">
+                    Ngày
+                  </th>
+                  <th scope="col" className="px-3 py-2.5">
+                    Nội dung
+                  </th>
+                  <th scope="col" className="w-24 px-3 py-2.5 text-center">
+                    Loại
+                  </th>
+                  <th scope="col" className="w-44 px-3 py-2.5 text-right">
+                    Số tiền
+                  </th>
+                  {canManage ? (
+                    <th scope="col" className="w-24 px-5 py-2.5">
+                      <span className="sr-only">Thao tác</span>
+                    </th>
+                  ) : null}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {visible.map((entry) => {
+                  const income = entry.kind === 'INCOME';
+                  return (
+                    <tr key={entry.id} className={cn(editing?.id === entry.id && 'bg-amber-50')}>
+                      <td className="px-5 py-3 tabular-nums text-stone-600">
+                        <time dateTime={entry.occurredOn}>{formatDay(entry.occurredOn)}</time>
+                      </td>
+                      <td className="break-words px-3 py-3 font-medium text-stone-900">
+                        {entry.content}
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <span
+                          className={cn(
+                            'inline-block rounded-md px-2 py-0.5 text-xs font-semibold',
+                            income ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700',
+                          )}
+                        >
+                          {income ? 'Thu' : 'Chi'}
+                        </span>
+                      </td>
+                      <td
+                        className={cn(
+                          'px-3 py-3 text-right font-semibold tabular-nums',
                           income ? 'text-emerald-700' : 'text-red-700',
                         )}
                       >
                         {income ? '+' : '−'}
-                        {formatVnd(Math.abs(signed(entry)))}
-                      </span>
+                        {formatVnd(entry.amount)}
+                      </td>
                       {canManage ? (
-                        <span className="flex gap-1">
-                          <button
-                            type="button"
-                            className="grid size-8 place-items-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800"
-                            aria-label={`Sửa khoản ${entry.content}`}
-                            onClick={() => {
-                              setEditing(entry);
-                              formRef.current?.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'start',
-                              });
-                            }}
-                          >
-                            <PencilLine className="size-4" aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
-                            className="grid size-8 place-items-center rounded-full text-stone-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-                            aria-label={`Xóa khoản ${entry.content}`}
-                            disabled={busyId === entry.id}
-                            onClick={() => void remove(entry)}
-                          >
-                            {busyId === entry.id ? (
-                              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                            ) : (
-                              <Trash2 className="size-4" aria-hidden="true" />
-                            )}
-                          </button>
-                        </span>
+                        <td className="px-5 py-2">
+                          <span className="flex justify-end gap-1">
+                            <button
+                              type="button"
+                              className="grid size-8 place-items-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800"
+                              aria-label={`Sửa khoản ${entry.content}`}
+                              onClick={() => {
+                                setEditing(entry);
+                                formRef.current?.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'start',
+                                });
+                              }}
+                            >
+                              <PencilLine className="size-4" aria-hidden="true" />
+                            </button>
+                            <button
+                              type="button"
+                              className="grid size-8 place-items-center rounded-full text-stone-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                              aria-label={`Xóa khoản ${entry.content}`}
+                              disabled={busyId === entry.id}
+                              onClick={() => void remove(entry)}
+                            >
+                              {busyId === entry.id ? (
+                                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                              ) : (
+                                <Trash2 className="size-4" aria-hidden="true" />
+                              )}
+                            </button>
+                          </span>
+                        </td>
                       ) : null}
-                    </div>
-                  </li>
-                </Fragment>
-              );
-            })}
-          </ul>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </>
         )}
       </section>
     </div>

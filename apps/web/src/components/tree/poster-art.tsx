@@ -321,7 +321,7 @@ export function PosterSheet({
 export function PosterSafeAreaOutline({
   insets,
   label,
-  className = 'border-emerald-700 bg-emerald-600/10 text-emerald-900',
+  className = 'border-brand-700 bg-brand-600/10 text-brand-900',
 }: {
   insets: PosterInsets;
   label: string;

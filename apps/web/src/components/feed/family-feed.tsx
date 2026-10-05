@@ -5,13 +5,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { PostCard } from '@/components/feed/post-card';
 import { PostComposer } from '@/components/feed/post-composer';
+import { heroIconButtonClass, heroOverlapClass, PageHero } from '@/components/layout/page-hero';
 import { Button } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { getFeedPage, type FeedPost } from '@/lib/feed-api';
 
 function PostSkeleton() {
   return (
-    <div className="animate-pulse bg-white px-4 py-4 shadow-sm sm:rounded-2xl sm:border sm:border-stone-200">
+    <div className="surface mx-3 animate-pulse px-4 py-4 sm:mx-0">
       <div className="flex items-center gap-2.5">
         <div className="size-10 rounded-full bg-stone-200" />
         <div className="grid gap-1.5">
@@ -105,30 +106,35 @@ export function FamilyFeed({ familySlug }: { familySlug: string }) {
   }, []);
 
   return (
-    <div className="mx-auto grid w-full max-w-xl gap-2 pb-6 sm:gap-4 sm:px-4 sm:py-6">
-      <div className="flex items-center justify-between bg-white px-4 py-2.5 shadow-sm sm:rounded-2xl sm:border sm:border-stone-200">
-        <h1 className="flex items-center gap-2 text-xl font-bold text-emerald-950">
-          <Newspaper className="size-5 text-emerald-700" aria-hidden="true" />
-          Bảng tin
-        </h1>
-        <button
-          type="button"
-          onClick={() => void refresh()}
-          disabled={refreshing || posts === null}
-          className="grid size-9 place-items-center rounded-full text-stone-600 hover:bg-stone-100 disabled:opacity-50"
-          aria-label="Làm mới bảng tin"
-        >
-          <RefreshCw className={refreshing ? 'size-5 animate-spin' : 'size-5'} aria-hidden="true" />
-        </button>
-      </div>
+    <div className="mx-auto grid w-full max-w-xl gap-3 pb-6 sm:gap-4 sm:px-4 sm:py-6 lg:max-w-2xl lg:px-8 lg:py-8">
+      <PageHero
+        title="Bảng tin"
+        icon={Newspaper}
+        actions={
+          <button
+            type="button"
+            onClick={() => void refresh()}
+            disabled={refreshing || posts === null}
+            className={heroIconButtonClass}
+            aria-label="Làm mới bảng tin"
+          >
+            <RefreshCw
+              className={refreshing ? 'size-4 animate-spin' : 'size-4'}
+              aria-hidden="true"
+            />
+          </button>
+        }
+        overlap
+      />
 
       <PostComposer
+        className={heroOverlapClass}
         familySlug={familySlug}
         onCreated={(post) => setPosts((current) => [post, ...(current ?? [])])}
       />
 
       {error && posts === null ? (
-        <div className="grid justify-items-center gap-3 bg-white px-4 py-10 text-center shadow-sm sm:rounded-2xl">
+        <div className="surface mx-3 grid justify-items-center gap-3 px-4 py-10 text-center sm:mx-0">
           <p className="text-sm text-red-700" role="alert">
             {error}
           </p>
@@ -143,8 +149,8 @@ export function FamilyFeed({ familySlug }: { familySlug: string }) {
           <PostSkeleton />
         </>
       ) : posts.length === 0 ? (
-        <div className="grid justify-items-center gap-2 bg-white px-6 py-12 text-center shadow-sm sm:rounded-2xl">
-          <span className="grid size-14 place-items-center rounded-full bg-emerald-50 text-emerald-700">
+        <div className="surface mx-3 grid justify-items-center gap-2 px-6 py-12 text-center sm:mx-0">
+          <span className="grid size-14 place-items-center rounded-full bg-brand-50 text-brand-700">
             <Newspaper className="size-7" aria-hidden="true" />
           </span>
           <p className="font-semibold text-stone-800">Chưa có bài viết nào</p>

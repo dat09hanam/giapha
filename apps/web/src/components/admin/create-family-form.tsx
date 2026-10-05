@@ -114,17 +114,17 @@ export function CreateFamilyForm() {
 
         {created ? (
           <div
-            className="grid content-start gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5"
+            className="grid content-start gap-4 rounded-2xl border border-brand-200 bg-brand-50/70 p-5"
             role="status"
           >
             <div className="flex items-start gap-3">
               <CheckCircle2
-                className="mt-0.5 size-5 shrink-0 text-emerald-700"
+                className="mt-0.5 size-5 shrink-0 text-brand-700"
                 aria-hidden="true"
               />
               <div>
-                <p className="font-semibold text-emerald-950">Đã tạo {created.family.name}</p>
-                <p className="text-sm text-emerald-800">
+                <p className="font-semibold text-brand-950">Đã tạo {created.family.name}</p>
+                <p className="text-sm text-brand-800">
                   Đường dẫn /{created.family.slug} · Ngày giỗ {created.family.deathAnniversary}
                 </p>
               </div>
@@ -137,7 +137,7 @@ export function CreateFamilyForm() {
             ).map(([label, account]) => (
               <div key={label} className="rounded-xl border bg-white p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium text-emerald-950">{label}</p>
+                  <p className="font-medium text-brand-950">{label}</p>
                   <Button
                     type="button"
                     size="sm"
@@ -170,21 +170,21 @@ export function CreateFamilyForm() {
             </p>
           </div>
         ) : (
-          <div className="grid content-start gap-4 rounded-2xl border border-dashed border-emerald-900/20 bg-stone-50/60 p-5">
-            <p className="font-medium text-emerald-950">Sau khi tạo, hệ thống sẽ cấp</p>
+          <div className="grid content-start gap-4 rounded-2xl border border-dashed border-brand-900/20 bg-stone-50/60 p-5">
+            <p className="font-medium text-brand-950">Sau khi tạo, hệ thống sẽ cấp</p>
             <ul className="grid gap-3 text-sm leading-6 text-stone-600">
               <li className="flex gap-3">
-                <KeyRound className="mt-1 size-4 shrink-0 text-emerald-700" aria-hidden="true" />
+                <KeyRound className="mt-1 size-4 shrink-0 text-brand-700" aria-hidden="true" />
                 <span>
-                  <strong className="font-medium text-emerald-950">Tài khoản Trưởng họ</strong> để
+                  <strong className="font-medium text-brand-950">Tài khoản Trưởng họ</strong> để
                   quản lý thông tin, thành viên và trang trí phả đồ. Mật khẩu do hệ thống tự sinh
                   và phải được đổi ở lần đăng nhập đầu tiên.
                 </span>
               </li>
               <li className="flex gap-3">
-                <UsersRound className="mt-1 size-4 shrink-0 text-emerald-700" aria-hidden="true" />
+                <UsersRound className="mt-1 size-4 shrink-0 text-brand-700" aria-hidden="true" />
                 <span>
-                  <strong className="font-medium text-emerald-950">Tài khoản Thành viên</strong> để
+                  <strong className="font-medium text-brand-950">Tài khoản Thành viên</strong> để
                   con cháu xem cây gia phả.
                 </span>
               </li>

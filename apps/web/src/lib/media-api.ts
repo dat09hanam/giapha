@@ -24,6 +24,45 @@ export function familyMediaSrc(slug: string, avatarUrl: string): string {
   return `${API_URL}/families/${encodeURIComponent(slug)}/media/${encodeURIComponent(fileName)}`;
 }
 
+const EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'application/pdf': 'pdf',
+};
+
+/**
+ * Saves a family media file to the device as `<baseName>.<ext>`. The API serves media from
+ * another origin behind the session cookie, where `<a download>` is ignored, so the file is
+ * fetched first and saved from a local object URL.
+ */
+export async function downloadFamilyMedia(
+  slug: string,
+  url: string,
+  baseName: string,
+): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(familyMediaSrc(slug, url), { credentials: 'include' });
+  } catch {
+    throw new Error('Không kết nối được máy chủ để tải ảnh. Hãy kiểm tra mạng và thử lại.');
+  }
+  if (!response.ok) throw new Error('Không tải được ảnh này. Hãy thử lại sau.');
+  const blob = await response.blob();
+  const extension = EXTENSIONS[blob.type] ?? url.split('.').pop() ?? 'jpg';
+  // Characters that file systems refuse become dashes; Vietnamese letters stay.
+  const safeName = baseName.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'anh';
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = objectUrl;
+  link.download = `${safeName}.${extension}`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  // Give the browser a moment to start the download before the URL goes.
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
 export function readAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

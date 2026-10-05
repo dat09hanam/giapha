@@ -62,9 +62,9 @@ const AREA_STYLE: Record<AreaKey, { label: string; dot: string; outline: string;
   {
     tree: {
       label: 'Cây gia phả',
-      dot: 'bg-emerald-500',
-      outline: 'border-emerald-700 bg-emerald-600/10 text-emerald-900',
-      handle: 'border-emerald-700 group-hover:bg-emerald-100',
+      dot: 'bg-brand-500',
+      outline: 'border-brand-700 bg-brand-600/10 text-brand-900',
+      handle: 'border-brand-700 group-hover:bg-brand-100',
     },
     name: {
       label: '',
@@ -357,7 +357,7 @@ export function PosterAreaEditor({
 
       {active === 'name' && nameArea ? (
         <div className="grid gap-4 rounded-xl border bg-white p-4 sm:grid-cols-[1fr_auto]">
-          <label className="grid gap-1.5 text-sm text-emerald-950" htmlFor="name-area-curve">
+          <label className="grid gap-1.5 text-sm text-brand-950" htmlFor="name-area-curve">
             <span className="font-medium">Độ cong của chữ: {nameArea.curve}%</span>
             <input
               id="name-area-curve"
@@ -376,7 +376,7 @@ export function PosterAreaEditor({
               để chữ thẳng.
             </span>
           </label>
-          <label className="flex items-center gap-2 self-start text-sm text-emerald-950">
+          <label className="flex items-center gap-2 self-start text-sm text-brand-950">
             <input
               type="color"
               value={nameArea.color}
@@ -409,7 +409,7 @@ export function PosterAreaEditor({
       <div
         ref={boxRef}
         tabIndex={0}
-        className="relative aspect-video w-full cursor-crosshair touch-none select-none overflow-hidden rounded-xl border bg-[#fff6c9] outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+        className="relative aspect-video w-full cursor-crosshair touch-none select-none overflow-hidden rounded-xl border bg-[#fff6c9] outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
         onPointerDown={(event) => startDrag(event, active, { kind: 'draw' })}
         onKeyDown={handleKeyDown}
         onPointerMove={handlePointerMove}
@@ -495,18 +495,18 @@ export function PosterAreaEditor({
 
       <ul className="grid gap-x-6 gap-y-2 text-xs leading-5 text-stone-600 sm:grid-cols-2">
         <li>
-          <strong className="font-medium text-emerald-950">Vẽ khung:</strong> kéo chuột trên ảnh.
+          <strong className="font-medium text-brand-950">Vẽ khung:</strong> kéo chuột trên ảnh.
         </li>
         <li>
-          <strong className="font-medium text-emerald-950">Đổi kích thước:</strong> kéo cạnh hoặc
-          góc khung.
+          <strong className="font-medium text-brand-950">Đổi kích thước:</strong> kéo cạnh hoặc góc
+          khung.
         </li>
         <li>
-          <strong className="font-medium text-emerald-950">Di chuyển:</strong> kéo phần giữa khung,
+          <strong className="font-medium text-brand-950">Di chuyển:</strong> kéo phần giữa khung,
           hoặc bấm vào khung rồi dùng <Kbd>←</Kbd> <Kbd>↑</Kbd> <Kbd>→</Kbd> <Kbd>↓</Kbd>.
         </li>
         <li>
-          <strong className="font-medium text-emerald-950">Nới / thu:</strong> giữ <Kbd>Shift</Kbd>{' '}
+          <strong className="font-medium text-brand-950">Nới / thu:</strong> giữ <Kbd>Shift</Kbd>{' '}
           cùng phím mũi tên.
         </li>
       </ul>
@@ -532,7 +532,7 @@ function TextColorControl({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="flex items-center gap-3 rounded-xl border bg-white p-3 text-sm font-medium text-emerald-950 sm:justify-self-start sm:pr-5">
+    <label className="flex items-center gap-3 rounded-xl border bg-white p-3 text-sm font-medium text-brand-950 sm:justify-self-start sm:pr-5">
       <input
         id={id}
         type="color"

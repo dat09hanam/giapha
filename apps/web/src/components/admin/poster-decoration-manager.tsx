@@ -90,7 +90,7 @@ function InsetFields({
 }) {
   return (
     <fieldset className="grid gap-2">
-      <legend className="text-sm font-medium text-emerald-950">{legend}</legend>
+      <legend className="text-sm font-medium text-brand-950">{legend}</legend>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {INSET_EDGES.map(({ edge, label }) => (
           <label key={edge} className="grid gap-1 text-xs text-stone-600">
@@ -110,7 +110,7 @@ function InsetFields({
                     : 0,
                 });
               }}
-              className="h-10 rounded-xl border bg-white px-3 text-base text-stone-900 outline-none sm:text-sm focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+              className="h-10 rounded-xl border bg-white px-3 text-base text-stone-900 outline-none sm:text-sm focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15"
             />
           </label>
         ))}
@@ -139,9 +139,9 @@ function draftFor(decoration?: PosterDecoration): Draft {
   };
 }
 
-const checkboxClass = 'size-4 rounded border-stone-300 accent-emerald-800';
+const checkboxClass = 'size-4 rounded border-stone-300 accent-brand-800';
 const selectClass =
-  'h-11 rounded-xl border bg-white px-3 text-base outline-none sm:text-sm focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15';
+  'h-11 rounded-xl border bg-white px-3 text-base outline-none sm:text-sm focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15';
 
 function BackgroundEditor({
   draft,
@@ -244,7 +244,7 @@ function BackgroundEditor({
               onRightTextAreaChange={(rightTextArea) => onChange({ ...draft, rightTextArea })}
             />
           ) : (
-            <div className="grid aspect-video place-items-center rounded-xl border border-dashed border-emerald-900/25 bg-[#fff6c9]/60 p-6 text-center">
+            <div className="grid aspect-video place-items-center rounded-xl border border-dashed border-brand-900/25 bg-[#fff6c9]/60 p-6 text-center">
               <span className="grid justify-items-center gap-2 text-sm text-stone-500">
                 <ImagePlus className="size-8 text-stone-400" aria-hidden="true" />
                 Chọn ảnh nền để bắt đầu đánh dấu các vùng
@@ -264,7 +264,7 @@ function BackgroundEditor({
           />
 
           <label className="grid gap-1.5" htmlFor="decoration-image">
-            <span className="text-sm font-medium text-emerald-950">
+            <span className="text-sm font-medium text-brand-950">
               Ảnh nền {draft.id ? '(để trống nếu giữ ảnh cũ)' : ''}
             </span>
             <input
@@ -275,7 +275,7 @@ function BackgroundEditor({
               onChange={(event) =>
                 onChange({ ...draft, file: event.currentTarget.files?.[0] ?? null })
               }
-              className="rounded-xl border bg-white px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-900 file:px-3 file:py-1.5 file:text-white"
+              className="rounded-xl border bg-white px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-brand-900 file:px-3 file:py-1.5 file:text-white"
             />
             <span className="text-xs leading-5 text-stone-500">
               PNG, JPG hoặc WEBP, tối đa 4 MB, tỉ lệ 16:9 với hoa văn vẽ sẵn.
@@ -283,7 +283,7 @@ function BackgroundEditor({
           </label>
 
           <label className="grid gap-1.5" htmlFor="decoration-mode">
-            <span className="text-sm font-medium text-emerald-950">Cách trải ảnh nền</span>
+            <span className="text-sm font-medium text-brand-950">Cách trải ảnh nền</span>
             <select
               id="decoration-mode"
               className={selectClass}
@@ -312,7 +312,7 @@ function BackgroundEditor({
             hint="Số nhỏ hiện trước. Để trống khi thêm mới để xếp cuối."
           />
 
-          <label className="flex items-start gap-3 rounded-xl border bg-white px-3.5 py-3 text-sm text-emerald-950">
+          <label className="flex items-start gap-3 rounded-xl border bg-white px-3.5 py-3 text-sm text-brand-950">
             <input
               type="checkbox"
               className={checkboxClass + ' mt-0.5'}
@@ -323,7 +323,7 @@ function BackgroundEditor({
           </label>
 
           <details className="rounded-xl border bg-white px-3.5 py-3">
-            <summary className="cursor-pointer text-sm font-medium text-emerald-950">
+            <summary className="cursor-pointer text-sm font-medium text-brand-950">
               Nhập số chính xác cho vùng đặt cây
             </summary>
             <div className="mt-3">
@@ -508,7 +508,7 @@ export function PosterDecorationManager({ initial }: { initial: AdminPosterDecor
               <button
                 type="button"
                 onClick={() => setDraft(draftFor(decoration))}
-                className="relative block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-700"
+                className="relative block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-700"
                 aria-label={`Sửa hình nền ${decoration.name}`}
               >
                 <FittedSwatch
@@ -523,7 +523,7 @@ export function PosterDecorationManager({ initial }: { initial: AdminPosterDecor
                 )}
               </button>
               <div className="grid gap-3 p-4">
-                <p className="truncate font-medium text-emerald-950" title={decoration.name}>
+                <p className="truncate font-medium text-brand-950" title={decoration.name}>
                   {decoration.name}
                 </p>
                 <p className="text-xs text-stone-500">
