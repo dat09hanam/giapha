@@ -1,6 +1,6 @@
 # Gia Phả Việt
 
-Base source cho ứng dụng web gia phả đa dòng họ. Mỗi tenant được truy cập bằng URL `/{slug}`, ví dụ `http://localhost:3000/demo`.
+Base source cho ứng dụng web gia phả đa dòng họ. Mỗi tenant được truy cập bằng URL `/{slug}`, ví dụ `http://localhost:3005/demo`.
 
 ## Stack
 
@@ -32,9 +32,12 @@ docker compose up -d
 Tạo file môi trường từ các bản mẫu:
 
 ```powershell
+Copy-Item .env.example .env
 Copy-Item apps/api/.env.example apps/api/.env
 Copy-Item apps/web/.env.example apps/web/.env.local
 ```
+
+Nếu đổi `MYSQL_PORT` trong `.env` ở thư mục gốc, hãy cập nhật cổng tương ứng trong `DATABASE_URL` tại `apps/api/.env`.
 
 Khởi tạo database và dữ liệu mẫu:
 
@@ -49,8 +52,8 @@ Chạy cả web và API:
 npm run dev
 ```
 
-- Trang chủ: `http://localhost:3000`
-- Tenant mẫu: `http://localhost:3000/demo`
+- Trang chủ: `http://localhost:3005`
+- Tenant mẫu: `http://localhost:3005/demo`
 - Health check: `http://localhost:4000/api/health`
 
 ## Lệnh kiểm tra
