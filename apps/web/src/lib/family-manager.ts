@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 
 import { ApiUnauthorizedError, getAuthProfile } from "@/lib/api";
 import { profileDestination, type AuthProfile } from "@/lib/auth-api";
+import { requirePasswordChanged } from "@/lib/session";
 
 export type FamilyManagerProfile = AuthProfile & {
-  role: "MEMBER_PLUS";
+  /** MEMBER only in the designer, for an account that manages a chi/nhánh. */
+  role: "MEMBER_PLUS" | "MEMBER";
   family: NonNullable<AuthProfile["family"]>;
   sessionToken: string;
 };
@@ -37,15 +39,19 @@ export async function requireFamilyManager(
     }
     throw error;
   }
+  requirePasswordChanged(profile, requestedPath);
 
-  if (profile.role !== "MEMBER_PLUS") redirect(profileDestination(profile));
+  const branchManager =
+    area === "designer" && profile.role === "MEMBER" && profile.managesBranches;
+  if (profile.role !== "MEMBER_PLUS" && !branchManager)
+    redirect(profileDestination(profile));
   if (!profile.family) redirect("/");
   if (slug !== profile.family.slug)
     redirect(familyManagerPath(area, profile.family.slug));
 
   return {
     ...profile,
-    role: profile.role,
+    role: profile.role === "MEMBER_PLUS" ? "MEMBER_PLUS" : "MEMBER",
     family: profile.family,
     sessionToken,
   };

@@ -1,16 +1,28 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { FamilyStatus, Prisma, RelationshipStatus } from "@prisma/client";
+import {
+  FamilyStatus,
+  Prisma,
+  RelationshipStatus,
+  UserRole,
+} from "@prisma/client";
 
+import {
+  computeBranchScope,
+  type BranchScope,
+} from "../branches/branch-scope.js";
+import type { FamilyAccess } from "../common/auth/auth.types.js";
 import { PrismaService } from "../database/prisma.service.js";
 import type { CreatePersonDto } from "./dto/create-person.dto.js";
 import type { SaveFamilyTreeDesignDto } from "./dto/save-family-tree-design.dto.js";
 import type { UpdatePersonDto } from "./dto/update-person.dto.js";
 import type {
+  FamilyTreeEditScope,
   FamilyTreeResponse,
   PersonResponse,
   SaveFamilyTreeDesignResponse,
@@ -146,21 +158,30 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
     }
   }
 
-  // Same name, birth date and parents means the same person entered twice.
-  const identityKeys = new Set<string>();
+  // Full siblings may not share a name; people without parents in the tree
+  // (such as in-laws) and a husband and wife may.
+  const coupleKey = (leftId: string, rightId: string): string =>
+    leftId < rightId ? leftId + "|" + rightId : rightId + "|" + leftId;
+  const couples = new Set(
+    input.relationships.map((relationship) =>
+      coupleKey(relationship.husbandClientId, relationship.wifeClientId),
+    ),
+  );
+  const namesakesByKey = new Map<string, string[]>();
   for (const person of input.people) {
+    if (!person.fatherClientId && !person.motherClientId) continue;
     const key = [
       person.name.trim().replace(/\s+/g, " ").toLocaleLowerCase("vi"),
-      person.birthDate ?? "",
       person.fatherClientId ?? "",
       person.motherClientId ?? "",
     ].join("|");
-    if (identityKeys.has(key)) {
+    const namesakes = namesakesByKey.get(key) ?? [];
+    if (namesakes.some((otherId) => !couples.has(coupleKey(otherId, person.clientId)))) {
       throw new BadRequestException(
-        "Bản thiết kế có hai thành viên trùng họ tên, ngày sinh và bố mẹ.",
+        "Bản thiết kế có hai anh chị em ruột trùng họ tên.",
       );
     }
-    identityKeys.add(key);
+    namesakesByKey.set(key, [...namesakes, person.clientId]);
   }
 
   const relationshipKeys = new Set<string>();
@@ -219,6 +240,30 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
   }
 
   for (const clientId of peopleByClientId.keys()) visit(clientId);
+}
+
+/** What a chi/nhánh manager may touch, taken before the save changes anything. */
+type BranchRestriction = { rootIds: Set<string>; before: BranchScope };
+
+const OUTSIDE_BRANCH_MESSAGE =
+  "Bạn chỉ được chỉnh sửa thành viên thuộc chi/nhánh được giao quản lý.";
+
+async function loadBranchScope(
+  transaction: Prisma.TransactionClient,
+  familyId: string,
+  rootIds: Iterable<string>,
+): Promise<BranchScope> {
+  const [people, relationships] = await Promise.all([
+    transaction.person.findMany({
+      where: { familyId },
+      select: { id: true, fatherId: true, motherId: true },
+    }),
+    transaction.relationship.findMany({
+      where: { familyId },
+      select: { husbandId: true, wifeId: true },
+    }),
+  ]);
+  return computeBranchScope(people, relationships, rootIds);
 }
 
 @Injectable()
@@ -300,11 +345,35 @@ export class FamilyTreeService {
     };
   }
 
+  /** The chi/nhánh roots this account manages; empty for the family head, who edits everything. */
+  async getEditScope(
+    access: FamilyAccess,
+  ): Promise<FamilyTreeEditScope> {
+    if (access.role === UserRole.MEMBER_PLUS) {
+      return { fullAccess: true, rootPersonIds: [] };
+    }
+    const branches = await this.prisma.branchManager.findMany({
+      where: { familyId: access.familyId, userId: access.userId },
+      select: { rootPersonId: true },
+    });
+    return {
+      fullAccess: false,
+      rootPersonIds: branches.map((branch) => branch.rootPersonId),
+    };
+  }
+
+  /**
+   * The family head saves the whole design. A branch manager's save is held to their branch:
+   * changes to anyone outside it are dropped, a branch root and spouses who married in keep their
+   * parents, and the save is refused if it deletes outside the branch or leaves someone added or
+   * edited outside it.
+   */
   async saveDesign(
-    familyId: string,
+    access: FamilyAccess,
     input: SaveFamilyTreeDesignDto,
   ): Promise<SaveFamilyTreeDesignResponse> {
     validateDesignInput(input);
+    const { familyId } = access;
 
     return this.prisma.$transaction(
       async (transaction) => {
@@ -315,6 +384,28 @@ export class FamilyTreeService {
         if (!family) {
           throw new NotFoundException(
             "Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.",
+          );
+        }
+
+        const restriction = await this.loadBranchRestriction(
+          transaction,
+          access,
+        );
+        const mayEdit = (databaseId: string): boolean =>
+          !restriction || restriction.before.editable.has(databaseId);
+        /** Roots and spouses who married in stay attached to the people above them. */
+        const mayMove = (databaseId: string): boolean =>
+          !restriction ||
+          (restriction.before.lineage.has(databaseId) &&
+            !restriction.rootIds.has(databaseId));
+        if (
+          restriction &&
+          (input.deletedPersonIds ?? []).some(
+            (id) => !mayEdit(id) || restriction.rootIds.has(id),
+          )
+        ) {
+          throw new ForbiddenException(
+            "Bạn chỉ được xóa thành viên trong chi/nhánh được giao, không gồm người đứng đầu chi.",
           );
         }
 
@@ -339,6 +430,7 @@ export class FamilyTreeService {
         }
 
         const databaseIdByClientId = new Map<string, string>();
+        const createdIds = new Set<string>();
         for (const person of input.people) {
           const data = {
             name: person.name.trim(),
@@ -359,7 +451,9 @@ export class FamilyTreeService {
             orderInFamily: person.orderInFamily,
           };
 
-          if (person.databaseId) {
+          if (person.databaseId && !mayEdit(person.databaseId)) {
+            databaseIdByClientId.set(person.clientId, person.databaseId);
+          } else if (person.databaseId) {
             const updated = await transaction.person.updateMany({
               where: { id: person.databaseId, familyId },
               data,
@@ -380,6 +474,7 @@ export class FamilyTreeService {
               },
               select: { id: true },
             });
+            createdIds.add(created.id);
             databaseIdByClientId.set(person.clientId, created.id);
           }
         }
@@ -408,6 +503,7 @@ export class FamilyTreeService {
             );
           }
 
+          if (person.databaseId && !mayMove(person.databaseId)) continue;
           await transaction.person.updateMany({
             where: { id: databaseId, familyId },
             data: { fatherId, motherId },
@@ -427,7 +523,12 @@ export class FamilyTreeService {
           deletedPersonCount = deleted.count;
         }
 
-        const savedDatabaseIds = [...databaseIdByClientId.values()];
+        /** Marriages are rewritten only where at least one partner is someone this save may edit. */
+        const touchesEditable = (id: string): boolean =>
+          createdIds.has(id) || mayEdit(id);
+        const savedDatabaseIds = [...databaseIdByClientId.values()].filter(
+          touchesEditable,
+        );
         await transaction.relationship.deleteMany({
           where: {
             familyId,
@@ -448,6 +549,7 @@ export class FamilyTreeService {
               "Không thể ánh xạ quan hệ vợ chồng trong bản thiết kế.",
             );
           }
+          if (!touchesEditable(husbandId) && !touchesEditable(wifeId)) continue;
 
           await transaction.relationship.upsert({
             where: {
@@ -465,6 +567,27 @@ export class FamilyTreeService {
               wifeOrder: relationship.wifeOrder,
             },
           });
+        }
+
+        if (restriction) {
+          // Everyone added, and everyone who was in the branch, must still be in it afterwards.
+          const after = await loadBranchScope(
+            transaction,
+            familyId,
+            restriction.rootIds,
+          );
+          const deletedIds = new Set(deletedPersonIds);
+          const strayed = [
+            ...createdIds,
+            ...[...restriction.before.editable].filter(
+              (id) => !deletedIds.has(id),
+            ),
+          ].some((id) => !after.editable.has(id));
+          if (strayed) {
+            throw new ForbiddenException(
+              "Thay đổi này đưa thành viên ra ngoài chi/nhánh bạn quản lý. Thành viên mới phải là con cháu hoặc vợ/chồng của người trong chi.",
+            );
+          }
         }
 
         return {
@@ -647,6 +770,24 @@ export class FamilyTreeService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+  }
+
+  /** Null for the family head; a member account must manage at least one branch to save. */
+  private async loadBranchRestriction(
+    transaction: Prisma.TransactionClient,
+    access: FamilyAccess,
+  ): Promise<BranchRestriction | null> {
+    if (access.role === UserRole.MEMBER_PLUS) return null;
+    const branches = await transaction.branchManager.findMany({
+      where: { familyId: access.familyId, userId: access.userId },
+      select: { rootPersonId: true },
+    });
+    if (!branches.length) throw new ForbiddenException(OUTSIDE_BRANCH_MESSAGE);
+    const rootIds = new Set(branches.map((branch) => branch.rootPersonId));
+    return {
+      rootIds,
+      before: await loadBranchScope(transaction, access.familyId, rootIds),
+    };
   }
 
   /**

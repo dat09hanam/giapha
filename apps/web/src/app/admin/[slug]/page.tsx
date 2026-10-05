@@ -1,17 +1,28 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { Network, Palette, ShieldCheck, UsersRound } from 'lucide-react';
+import { FilePenLine, Frame, Landmark, Palette, UsersRound } from 'lucide-react';
 
+import { EditSuggestionsPanel } from '@/components/admin/edit-suggestions-panel';
+import { FamilyAccountsPanel } from '@/components/admin/family-accounts-panel';
+import { FamilyPosterForm } from '@/components/admin/family-poster-form';
 import { FamilyProfileForm } from '@/components/admin/family-profile-form';
-import { LogoutButton } from '@/components/auth/logout-button';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ApiErrorState } from '@/components/ui/api-error-state';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getFamily } from '@/lib/api';
+import { Tabs } from '@/components/ui/tabs';
+import {
+  getEditSuggestions,
+  getFamily,
+  getFamilyAccounts,
+  getFamilyTree,
+  getPosterDecorations,
+} from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
+import type { FamilyAccount } from '@/lib/family-accounts-api';
 import { requireFamilyManager, type FamilyManagerProfile } from '@/lib/family-manager';
-import type { FamilyDetails } from '@/types/family-tree';
+import type { PosterDecoration } from '@/lib/poster-decorations';
+import type { EditSuggestion } from '@/types/edit-suggestion';
+import type { FamilyDetails, FamilyTreeResponse } from '@/types/family-tree';
 
 type FamilyAdminPageProps = {
   params: Promise<{ slug: string }>;
@@ -28,9 +39,25 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
   const { slug } = await params;
   let profile: FamilyManagerProfile;
   let family: FamilyDetails;
+  let decorations: PosterDecoration[];
+  // The other tabs still work if only the suggestions fail to load.
+  let suggestions: EditSuggestion[] | ApiRequestError;
+  let accounts: FamilyAccount[];
+  let tree: FamilyTreeResponse;
   try {
     profile = await requireFamilyManager(slug, 'admin');
-    family = await getFamily(profile.family.slug);
+    const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
+    [family, decorations, suggestions, accounts, tree] = await Promise.all([
+      getFamily(profile.family.slug),
+      getPosterDecorations(sessionToken),
+      getEditSuggestions(profile.family.slug, sessionToken).catch((error: unknown) => {
+        if (error instanceof ApiRequestError) return error;
+        throw error;
+      }),
+      getFamilyAccounts(profile.family.slug, sessionToken),
+      // The clan head picks a branch root on the tree.
+      getFamilyTree(profile.family.slug, sessionToken),
+    ]);
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
       return (
@@ -44,76 +71,74 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
     throw error;
   }
 
+  const pendingCount = Array.isArray(suggestions)
+    ? suggestions.filter((suggestion) => suggestion.status === 'PENDING').length
+    : 0;
+  const familyPath = `/${encodeURIComponent(profile.family.slug)}`;
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-      <section className="rounded-3xl border border-emerald-950/10 bg-[#fffdf8]/85 p-6 shadow-xl shadow-emerald-950/5 sm:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <Badge className="gap-1.5 bg-emerald-900 text-white">
-              <ShieldCheck className="size-3.5" aria-hidden="true" />
-              Quản trị dòng họ
-            </Badge>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-emerald-950 sm:text-4xl">
-              {family.name}
-            </h1>
-            <p className="mt-3 leading-7 text-stone-600">
-              Xin chào, {profile.displayName}. Đây là không gian quản trị dành riêng cho trưởng họ.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild>
-              <Link href={`/${encodeURIComponent(profile.family.slug)}`}>
-                <Network className="size-4" aria-hidden="true" />
-                Xem cây gia phả
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/${encodeURIComponent(profile.family.slug)}/thiet_ke`}>
-                <Palette className="size-4" aria-hidden="true" />
-                Thiết kế gia phả
-              </Link>
-            </Button>
-            <LogoutButton />
-          </div>
-        </div>
-      </section>
-
-      <section
-        className="mt-7 grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)]"
-        aria-label="Khu vực quản trị dòng họ"
-      >
-        <FamilyProfileForm family={family} />
-
-        <div className="grid gap-5">
-          <Card className="bg-white/75 shadow-sm">
-            <CardHeader>
-              <span className="grid size-11 place-items-center rounded-2xl bg-emerald-100 text-emerald-900">
-                <UsersRound className="size-5" aria-hidden="true" />
-              </span>
-              <CardTitle className="mt-4">Thành viên và quan hệ</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-6 text-stone-600">
-                Quản lý thông tin thành viên và các mối quan hệ trong cây gia phả.
+    <main className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:gap-8 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
+      {/* The family's name is on the bottom bar's menu and the tree; this page keeps only its one shortcut. */}
+      <h1 className="sr-only">Quản trị {family.name}</h1>
+      <Tabs
+        label="Khu vực quản trị dòng họ"
+        actions={
+          <Button asChild className="w-full lg:w-auto">
+            <Link href={`${familyPath}/thiet_ke`}>
+              <Palette className="size-4" aria-hidden="true" />
+              Thiết kế gia phả
+            </Link>
+          </Button>
+        }
+        tabs={[
+          {
+            id: 'thong-tin',
+            label: 'Thông tin dòng họ',
+            shortLabel: 'Thông tin',
+            icon: <Landmark aria-hidden="true" />,
+            content: <FamilyProfileForm family={family} />,
+          },
+          {
+            id: 'trang-tri',
+            label: 'Trang trí phả đồ',
+            shortLabel: 'Trang trí',
+            icon: <Frame aria-hidden="true" />,
+            content: <FamilyPosterForm family={family} decorations={decorations} />,
+          },
+          {
+            id: 'tai-khoan',
+            label: 'Tài khoản & phân chi',
+            shortLabel: 'Tài khoản',
+            icon: <UsersRound aria-hidden="true" />,
+            content: (
+              <FamilyAccountsPanel
+                familySlug={profile.family.slug}
+                initialAccounts={accounts}
+                tree={tree}
+              />
+            ),
+          },
+          {
+            id: 'de-xuat',
+            label: 'Đề xuất chỉnh sửa',
+            shortLabel: 'Đề xuất',
+            badge: pendingCount,
+            icon: <FilePenLine aria-hidden="true" />,
+            content: Array.isArray(suggestions) ? (
+              <EditSuggestionsPanel
+                familySlug={profile.family.slug}
+                initialSuggestions={suggestions}
+              />
+            ) : (
+              <p
+                role="alert"
+                className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800"
+              >
+                Chưa thể tải đề xuất chỉnh sửa: {suggestions.message} Hãy tải lại trang để thử lại.
               </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/75 shadow-sm">
-            <CardHeader>
-              <span className="grid size-11 place-items-center rounded-2xl bg-amber-100 text-amber-900">
-                <Network className="size-5" aria-hidden="true" />
-              </span>
-              <CardTitle className="mt-4">Cây gia phả</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-6 text-stone-600">
-                Xem lại cách các thế hệ đang được sắp xếp trên sơ đồ của dòng họ.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+            ),
+          },
+        ]}
+      />
     </main>
   );
 }

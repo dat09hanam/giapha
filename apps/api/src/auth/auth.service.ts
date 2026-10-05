@@ -1,12 +1,18 @@
 import { randomBytes } from 'node:crypto';
 
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UserStatus, type Prisma } from '@prisma/client';
 
 import { hashSessionToken } from '../common/auth/session-token.js';
 import { PrismaService } from '../database/prisma.service.js';
+import type { ChangePasswordDto } from './dto/change-password.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
-import { verifyPassword } from './password.js';
+import { hashPassword, validateOwnPassword, verifyPassword } from './password.js';
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const DUMMY_PASSWORD_HASH =
@@ -17,7 +23,9 @@ const profileSelect = {
   username: true,
   displayName: true,
   role: true,
+  mustChangePassword: true,
   family: { select: { id: true, slug: true, name: true } },
+  _count: { select: { branches: true } },
 } satisfies Prisma.UserSelect;
 
 type ProfileRecord = Prisma.UserGetPayload<{ select: typeof profileSelect }>;
@@ -28,6 +36,10 @@ export type AuthProfile = {
   displayName: string;
   role: ProfileRecord['role'];
   family: { id: string; slug: string; name: string } | null;
+  /** True for a member account the family head put in charge of at least one chi/nhánh. */
+  managesBranches: boolean;
+  /** The password was given by someone else; nothing but changing it works until it is. */
+  mustChangePassword: boolean;
 };
 
 export type AuthResult = {
@@ -46,6 +58,8 @@ function mapProfile(user: ProfileRecord): AuthProfile {
     displayName: user.displayName,
     role: user.role,
     family: user.family,
+    managesBranches: user._count.branches > 0,
+    mustChangePassword: user.mustChangePassword,
   };
 }
 
@@ -79,6 +93,38 @@ export class AuthService {
     await this.prisma.authSession.deleteMany({
       where: { tokenHash: hashSessionToken(rawToken) },
     });
+  }
+
+  /**
+   * Replaces the signed-in account's password. Every other session is signed out, so a password
+   * someone else knew stops working everywhere; the session making the change stays.
+   */
+  async changePassword(
+    userId: string,
+    sessionId: string,
+    input: ChangePasswordDto,
+  ): Promise<AuthProfile> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+    if (!(await verifyPassword(input.currentPassword, user.passwordHash))) {
+      throw new BadRequestException('Mật khẩu hiện tại không đúng.');
+    }
+    const password = validateOwnPassword(input.newPassword);
+    if (password === input.currentPassword) {
+      throw new BadRequestException('Mật khẩu mới phải khác mật khẩu hiện tại.');
+    }
+
+    const passwordHash = await hashPassword(password);
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash, mustChangePassword: false },
+      }),
+      this.prisma.authSession.deleteMany({ where: { userId, id: { not: sessionId } } }),
+    ]);
+    return this.getProfile(userId);
   }
 
   async getProfile(userId: string): Promise<AuthProfile> {

@@ -24,10 +24,14 @@ export type LayoutInput = {
 
 export type LayoutDimensions = {
   nodeWidth: number;
+  /** Optional card width and gaps per generation row; defaults to the above. */
+  rowForGeneration?: (generation: number) => RowDimensions;
   spouseGap: number;
   siblingGap: number;
   generationGap: number;
 };
+
+export type RowDimensions = Pick<LayoutDimensions, "nodeWidth" | "spouseGap" | "siblingGap">;
 
 /** Horizontal inset of a marriage bracket drawn below non-adjacent spouses. */
 export const BRACKET_INSET = 36;
@@ -75,7 +79,8 @@ type Couple = {
 type DesignerMember = LayoutPerson;
 type DesignerDraft = LayoutInput;
 
-function sortMembers(left: LayoutPerson, right: LayoutPerson): number {
+/** Birth order within a row: generation, then order in the family, then name. */
+export function sortMembers(left: LayoutPerson, right: LayoutPerson): number {
   return (
     left.generation - right.generation ||
     left.orderInFamily - right.orderInFamily ||
@@ -142,7 +147,13 @@ export function layoutFamily(
     spouseGap: SPOUSE_GAP,
     siblingGap: SIBLING_GAP,
     generationGap: GENERATION_GAP,
+    rowForGeneration,
   } = dimensions;
+  const defaultRow: RowDimensions = {
+    nodeWidth: NODE_WIDTH,
+    spouseGap: SPOUSE_GAP,
+    siblingGap: SIBLING_GAP,
+  };
   const membersById = new Map(draft.people.map((member) => [member.id, member]));
   const unitParents = new Map(draft.people.map((member) => [member.id, member.id]));
 
@@ -255,8 +266,15 @@ export function layoutFamily(
     members.forEach((member, index) => memberIndex.set(member.id, index)),
   );
 
+  /** Spouses share a row, so a whole unit uses its first member's row sizes. */
+  function unitRow(unitId: string): RowDimensions {
+    const generation = arrangedUnits.get(unitId)?.[0]?.generation ?? 1;
+    return rowForGeneration?.(generation) ?? defaultRow;
+  }
+
   function centerOffset(memberId: string): number {
-    return (memberIndex.get(memberId) ?? 0) * (NODE_WIDTH + SPOUSE_GAP) + NODE_WIDTH / 2;
+    const row = unitRow(findUnit(memberId));
+    return (memberIndex.get(memberId) ?? 0) * (row.nodeWidth + row.spouseGap) + row.nodeWidth / 2;
   }
 
   const coupleDrops = new Map<string, number>();
@@ -318,16 +336,22 @@ export function layoutFamily(
 
   function ownWidth(unitId: string): number {
     const count = arrangedUnits.get(unitId)?.length ?? 1;
-    return count * NODE_WIDTH + Math.max(0, count - 1) * SPOUSE_GAP;
+    const row = unitRow(unitId);
+    return count * row.nodeWidth + Math.max(0, count - 1) * row.spouseGap;
   }
 
   const claimedUnitIds = new Set<string>();
   const unitLayouts = new Map<string, UnitLayout>();
 
+  /** Gap between sibling units, taken from the row they stand in. */
+  function siblingGapOf(children: readonly string[]): number {
+    return children[0] ? unitRow(children[0]).siblingGap : SIBLING_GAP;
+  }
+
   function spanWidth(children: string[]): number {
     return (
       children.reduce((total, childId) => total + unitLayouts.get(childId)!.width, 0) +
-      Math.max(0, children.length - 1) * SIBLING_GAP
+      Math.max(0, children.length - 1) * siblingGapOf(children)
     );
   }
 
@@ -360,7 +384,7 @@ export function layoutFamily(
     groups.forEach((group) => {
       const width = spanWidth(group.children);
       const desired = group.junction - width / 2;
-      group.left = Math.max(desired, previousRight + SIBLING_GAP);
+      group.left = Math.max(desired, previousRight + siblingGapOf(group.children));
       displacement += group.left - desired;
       previousRight = group.left + width;
     });
@@ -396,9 +420,10 @@ export function layoutFamily(
   function place(unitId: string, left: number): void {
     const layout = unitLayouts.get(unitId)!;
     const origin = left - layout.minX;
+    const row = unitRow(unitId);
     arrangedUnits.get(unitId)!.forEach((member, index) => {
       positions.set(member.id, {
-        x: origin + index * (NODE_WIDTH + SPOUSE_GAP),
+        x: origin + index * (row.nodeWidth + row.spouseGap),
         y: (member.generation - 1) * GENERATION_GAP,
       });
     });
@@ -407,7 +432,7 @@ export function layoutFamily(
       let childLeft = origin + group.left;
       group.children.forEach((childId) => {
         place(childId, childLeft);
-        childLeft += unitLayouts.get(childId)!.width + SIBLING_GAP;
+        childLeft += unitLayouts.get(childId)!.width + siblingGapOf(group.children);
       });
     });
   }
@@ -470,7 +495,7 @@ export function layoutFamily(
           childId: child.id,
           sourceId: leftId,
           sourceHandle: "spouse-source" as const,
-          offsetX: SPOUSE_GAP / 2,
+          offsetX: unitRow(findUnit(leftId)).spouseGap / 2,
           offsetY: 0,
           busOffset,
         }

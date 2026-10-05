@@ -1,18 +1,50 @@
 @import 'tailwindcss';
 
+/*
+ * Brand: đỏ son (cinnabar red) on giấy dó (warm paper), the palette of an ancestral altar.
+ * `brand-*` is the one accent every screen uses; destructive actions keep Tailwind's `red-*`.
+ */
+@theme {
+  --color-brand-50: #fdf4f1;
+  --color-brand-100: #fae3dc;
+  --color-brand-200: #f3c4b8;
+  --color-brand-300: #e99c8a;
+  --color-brand-400: #d96a52;
+  --color-brand-500: #c4432c;
+  --color-brand-600: #a92e1f;
+  --color-brand-700: #92241a;
+  --color-brand-800: #7c1f18;
+  --color-brand-900: #661c16;
+  --color-brand-950: #3a0c08;
+
+  --color-paper: #f8f1e4;
+  --color-paper-deep: #efe3cc;
+  --color-line: #eadcc4;
+
+  --font-display: var(--font-noto-serif), 'Noto Serif', Georgia, 'Times New Roman', serif;
+}
+
+/* A white card on the paper background; cards inset from the screen edge on phones too. */
+@utility surface {
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(58 12 8 / 5%);
+}
+
 :root {
-  --background: #f7f5ef;
-  --foreground: #1e2923;
+  --background: #f8f1e4;
+  --foreground: #2b1d16;
   --card: #fffdf8;
-  --card-foreground: #1e2923;
-  --primary: #285943;
-  --primary-foreground: #f9fff9;
-  --secondary: #e7ede5;
-  --secondary-foreground: #244436;
-  --muted: #efede6;
-  --muted-foreground: #657069;
-  --border: #d9ddd5;
-  --ring: #5f9076;
+  --card-foreground: #2b1d16;
+  --primary: #7c1f18;
+  --primary-foreground: #fffaf5;
+  --secondary: #fae3dc;
+  --secondary-foreground: #661c16;
+  --muted: #efe3cc;
+  --muted-foreground: #78665a;
+  --border: #eadcc4;
+  --ring: #c4432c;
   --radius: 0.875rem;
 }
 
@@ -20,19 +52,20 @@
   border-color: var(--border);
 }
 
+/* The paper lives on <html>, so scenery drawn behind the page (z-index below 0) still shows. */
 html {
-  background: var(--background);
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 10% 0%, rgb(243 196 184 / 35%), transparent 26rem),
+    radial-gradient(circle at 95% 4%, rgb(236 210 160 / 35%), transparent 24rem), var(--background);
   color: var(--foreground);
 }
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 12% 8%, rgb(209 226 211 / 55%), transparent 28rem),
-    radial-gradient(circle at 92% 0%, rgb(236 218 181 / 45%), transparent 24rem), var(--background);
   color: var(--foreground);
   font-family:
-    Inter,
+    var(--font-be-vietnam),
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -47,10 +80,145 @@ a {
 }
 
 ::selection {
-  background: #bcd5c5;
-  color: #14251c;
+  background: #f3c4b8;
+  color: #3a0c08;
 }
 
 .react-flow__attribution {
   background: rgb(255 253 248 / 80%) !important;
+}
+
+/* "Xem ngang": the tree turns a quarter round into landscape and back. The
+   resting values (rotate: 90deg) come from the element's own classes. */
+@keyframes tree-turn-in {
+  from {
+    rotate: 0deg;
+    scale: 0.55;
+    opacity: 0;
+  }
+}
+
+@keyframes tree-turn-out {
+  to {
+    rotate: 0deg;
+    scale: 0.55;
+    opacity: 0;
+  }
+}
+
+@keyframes tree-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes tree-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/*
+ * Modals (see components/ui/presence.tsx). The backdrop fades; a dialog rises
+ * and fades in; a sheet slides up from the bottom; a sheet-dialog is a sheet on
+ * phones and a dialog from sm. data-presence="closed" plays them backwards.
+ */
+@keyframes ui-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ui-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ui-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.96);
+  }
+}
+
+@keyframes ui-pop-out {
+  to {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.96);
+  }
+}
+
+@keyframes ui-slide-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes ui-slide-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.ui-backdrop {
+  animation: ui-fade-in 200ms ease-out;
+}
+
+.ui-dialog {
+  animation: ui-pop-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ui-sheet,
+.ui-sheet-dialog {
+  animation: ui-slide-in 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-presence='closed'] .ui-backdrop,
+.ui-backdrop[data-presence='closed'] {
+  animation: ui-fade-out 200ms ease-in forwards;
+}
+
+[data-presence='closed'] .ui-dialog,
+.ui-dialog[data-presence='closed'] {
+  animation: ui-pop-out 180ms ease-in forwards;
+}
+
+[data-presence='closed'] .ui-sheet,
+.ui-sheet[data-presence='closed'],
+[data-presence='closed'] .ui-sheet-dialog,
+.ui-sheet-dialog[data-presence='closed'] {
+  animation: ui-slide-out 200ms ease-in forwards;
+}
+
+@media (min-width: 40rem) {
+  .ui-sheet-dialog {
+    animation: ui-pop-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  [data-presence='closed'] .ui-sheet-dialog,
+  .ui-sheet-dialog[data-presence='closed'] {
+    animation: ui-pop-out 180ms ease-in forwards;
+  }
+}
+
+/* A panel that is a sheet only below lg and sits in the page from lg up. */
+@media (max-width: 63.999rem) {
+  .ui-sheet-below-lg {
+    animation: ui-slide-in 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ui-sheet-below-lg[data-presence='closed'] {
+    animation: ui-slide-out 200ms ease-in forwards;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-backdrop,
+  .ui-dialog,
+  .ui-sheet,
+  .ui-sheet-dialog,
+  .ui-sheet-below-lg {
+    animation-duration: 1ms !important;
+  }
 }

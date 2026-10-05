@@ -1,19 +1,29 @@
 import {
+  ForbiddenException,
   Inject,
   Injectable,
   UnauthorizedException,
   type CanActivate,
   type ExecutionContext,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { UserStatus } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma.service.js';
 import type { AuthRequest } from './auth.types.js';
+import { ALLOW_PENDING_PASSWORD_CHANGE_KEY } from './password-change.decorator.js';
 import { extractSessionToken, hashSessionToken } from './session-token.js';
+
+/** Sent with 403 so the web app can tell this refusal apart and open the change-password page. */
+export const PASSWORD_CHANGE_REQUIRED_MESSAGE =
+  'Bạn cần đổi mật khẩu được cấp trước khi tiếp tục sử dụng.';
 
 @Injectable()
 export class SessionAuthGuard implements CanActivate {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(Reflector) private readonly reflector: Reflector,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthRequest>();
@@ -37,6 +47,7 @@ export class SessionAuthGuard implements CanActivate {
             familyId: true,
             status: true,
             deletedAt: true,
+            mustChangePassword: true,
           },
         },
       },
@@ -51,6 +62,16 @@ export class SessionAuthGuard implements CanActivate {
       throw new UnauthorizedException(
         'Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.',
       );
+    }
+
+    if (
+      session.user.mustChangePassword &&
+      !this.reflector.getAllAndOverride<boolean>(ALLOW_PENDING_PASSWORD_CHANGE_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ])
+    ) {
+      throw new ForbiddenException(PASSWORD_CHANGE_REQUIRED_MESSAGE);
     }
 
     request.auth = {

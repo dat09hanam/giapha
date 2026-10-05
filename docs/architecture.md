@@ -23,7 +23,22 @@ The three roles are stored directly on `User`:
 - `ADMIN`: platform operator, always has `familyId = NULL`. It may create a Family but does not
   inherit access to private genealogy data.
 - `MEMBER_PLUS`: the clan head, attached to one Family and allowed to mutate that Family.
-- `MEMBER`: attached to one Family and read-only.
+- `MEMBER`: attached to one Family and read-only, except as a branch manager (below).
+
+### Chi/nhánh managers
+
+The clan head creates `MEMBER` accounts and puts each in charge of one or more chi/nhánh through
+`BranchManager` rows (`familyId`, `userId`, `rootPersonId`). A branch is the root Person, every
+descendant through either parent, and the spouses married into that lineage; spouses do not extend
+the branch. A root belongs to at most one account, and an assignment is refused when its branch
+contains, or sits inside, a branch already given out (including the same account's other roots).
+Assignments go away with the account, the root Person or the Family.
+
+The rule lives in `apps/api/src/branches/branch-scope.ts` and is mirrored for display in
+`apps/web/src/lib/branch-scope.ts`. The API is the authority: on `tree/design` a branch manager's
+changes to people outside the branch are dropped, roots and married-in spouses keep their parents,
+deletions must be inside the branch and exclude roots, and the save rolls back if anyone added, or
+anyone who was in the branch, ends up outside it.
 
 Every Family-owned query must use the server-trusted `familyId`. Client-supplied IDs and slugs are
 never sufficient authorization.
@@ -40,11 +55,26 @@ Endpoints:
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
+- `POST /api/auth/password`: the signed-in account replaces its own password (current password
+  required); its other sessions are signed out and `mustChangePassword` is cleared.
 - `POST /api/families`: `ADMIN` only. It atomically creates one Family, one `MEMBER_PLUS` account and
   one `MEMBER` account.
+- `/api/families/:slug/accounts`: `MEMBER_PLUS` only. `GET` lists the Family's accounts with their
+  branches; `POST` creates a `MEMBER` account; `PATCH :userId` renames or suspends/reactivates it;
+  `POST :userId/password` resets it to a generated password and signs it out; `PUT :userId/branches` replaces its
+  branch roots; `DELETE :userId` removes it so the username can be reused. The clan head's own
+  account is never changed here. Password responses are `Cache-Control: no-store`.
+- `GET /api/families/:slug/tree/scope`: `MEMBER` and `MEMBER_PLUS`; `fullAccess` for the clan head,
+  otherwise the account's branch root IDs.
 - `GET /api/families/:slug` and authenticated `GET /api/families/:slug/tree`; the tree response includes tenant-scoped people and spousal relationships.
 - `PATCH /api/families/:slug` and Person mutations: `MEMBER_PLUS` only.
-- `POST /api/families/:slug/tree/design`: `MEMBER_PLUS` only. It saves the visible Person graph, parent links, spouse links and requested soft deletions atomically.
+- `POST /api/families/:slug/tree/design`: `MEMBER_PLUS`, and `MEMBER` accounts that manage a branch (held to it as described above). It saves the visible Person graph, parent links, spouse links and requested soft deletions atomically.
+- `POST /api/families/:slug/people/:personId/suggestions`: `MEMBER` and `MEMBER_PLUS`. Proposes a change to a Person for the clan head.
+- `GET /api/families/:slug/suggestions` and `PATCH /api/families/:slug/suggestions/:suggestionId`: `MEMBER_PLUS` only. Lists the newest suggestions and sets their status.
+- `/api/families/:slug/feed` (Bảng tin): `MEMBER` and `MEMBER_PLUS`. `GET` pages posts (with comments and reaction summaries); `POST posts`, `PATCH|DELETE posts/:postId`, `POST posts/:postId/comments`, `PATCH|DELETE comments/:commentId`, and `POST|DELETE posts/:postId/reaction` / `comments/:commentId/reaction`. Writes need the `X-Feed-Key` device header described below.
+- `GET /api/families/:slug/fund` (Quỹ họ): `MEMBER` and `MEMBER_PLUS`; the ledger with income, expense and balance totals. `POST fund/entries` and `PATCH|DELETE fund/entries/:entryId`: `MEMBER_PLUS` only.
+- `/api/families/:slug/merit` (Công đức): `GET` (events with totals) and `GET events/:eventId` (one event with its donations) for `MEMBER` and `MEMBER_PLUS`; `POST events`, `PATCH|DELETE events/:eventId`, `POST events/:eventId/donations` and `PATCH|DELETE donations/:donationId` for `MEMBER_PLUS` only.
+- `/api/families/:slug/library` (Album và tư liệu): `GET` (albums and documents) and `GET albums/:albumId` for `MEMBER` and `MEMBER_PLUS`; `POST albums`, `PATCH|DELETE albums/:albumId`, `POST albums/:albumId/photos`, `POST documents` and `PATCH|DELETE items/:itemId` for `MEMBER_PLUS` only.
 
 The old public clan-head registration and invitation endpoints are removed. Pending invitation
 accounts are migrated to `SUSPENDED` and their tokens are discarded.
@@ -54,14 +84,17 @@ Family creation accepts a display name, a safe URL slug and a recurring death-an
 month lengths and permits `29/02`.
 
 The two initial usernames are deterministically derived from the accent-free PascalCase Family name
-and `DDMM`, for example `TruongHoHoNguyen1003` and `ThanhVienHoNguyen1003`. Their requested initial
-passwords are identical to their usernames. The response is `Cache-Control: no-store`, returns the
-plaintext credentials once to the authenticated Admin, and the database stores only scrypt hashes.
-If the slug or either username already exists, the entire transaction rolls back with a conflict.
+and `DDMM`, for example `TruongHoHoNguyen1003` and `ThanhVienHoNguyen1003`. The clan head's password is
+always a generated 10-character one; nobody types another person's password. The shared `MEMBER`
+account (`User.isShared`) keeps a password identical to its username; its password cannot be reset. The response is `Cache-Control: no-store`, returns the plaintext credentials once to
+the authenticated Admin, and the database stores only scrypt hashes. If the slug or either username
+already exists, the entire transaction rolls back with a conflict.
 
-This deterministic password rule is intentionally retained from the current product requirement,
-but it is not suitable for production because the values are guessable. A forced first-login
-password change with random temporary passwords is required before handling real private data.
+`User.mustChangePassword` marks a password someone else saw: it is set for the new clan head, every
+account the clan head creates, and every reset. While it is set, `SessionAuthGuard` answers 403 to
+every route except those marked `@AllowPendingPasswordChange()` (`auth/me`, `auth/logout`,
+`auth/password`), and the web app sends the account to `/doi-mat-khau` from every page. The shared
+member account is never marked, since its password is meant to be shared and stays guessable.
 
 Platform Admin accounts are provisioned or rotated with `npm run admin:bootstrap --workspace
 @giapha/api` using `ADMIN_NICKNAME`, `ADMIN_PASSWORD` and `DATABASE_URL`.
@@ -70,7 +103,45 @@ Platform Admin accounts are provisioned or rotated with `npm run admin:bootstrap
 
 `Family` stores the public locator and clan-level record: `slug`, `name`, `description`, `status`,
 the recurring death anniversary (`deathAnniversaryDay` and `deathAnniversaryMonth`), the ancestral
-hall `address` and the clan origin (`ancestryOrigin`).
+hall `address` and the clan origin (`ancestryOrigin`). `introduction` (JSON) is the clan head's formatted
+Giới thiệu: a structured document of blocks (paragraph, heading, subheading, quote, bulleted and
+numbered lists, optional alignment) holding styled text runs (bold, italic, underline, strike and a
+`#rrggbb` colour), never HTML. `PATCH /api/families/:slug` validates it strictly
+(`common/validation/rich-text.ts`) and derives `description` from it as plain text, which the
+printed book and page metadata keep using; a `description` sent alone clears the formatting. Clients
+render the document element by element, so typed text cannot become markup. It is returned by the
+public `GET /api/families/:slug`, like `description`, and shown on `/{slug}/gioi-thieu`. It also stores the phả đồ background the
+clan head chose: a nullable foreign key `posterBackgroundId` into the decoration library (null shows
+plain paper), plus the optional family-specific vertical inscriptions `posterLeftText` and
+`posterRightText`.
+
+The platform `ADMIN` switches Family sections on or off for every Family at once. `PlatformFeature`
+is a platform-level table (not tenant-owned) keyed by feature: `feed`, `fund`, `merit`, `library`,
+`editSuggestions` and `printBook`; a feature without a row is on. `GET /api/platform-features` is
+public, because every Family page reads it to build its menu; `PATCH` is `ADMIN` only and accepts a
+partial map. A controller or route marked `@RequiresFamilyFeature(...)` is refused by
+`FamilyAccessGuard` with 404 while its switch is off; the web app hides the section from the menu
+and answers its pages with not found. Switching a section off keeps its data.
+
+`PosterDecoration` is the platform-wide background library and is deliberately **not**
+tenant-owned: every Family chooses from the same rows. Every row has `kind` `BACKGROUND` and is an
+uploaded raster image (`imageFile` under `MEDIA_ROOT/poster-decorations/`) with a `backgroundMode`;
+there are no built-in, code-drawn backgrounds. Only the platform `ADMIN` creates, edits, hides or deletes rows
+(`/api/poster-decorations`); signed-in users list active rows; images are served publicly because
+they are shared artwork, not family data. Deleting a row sets the families using it to null. A
+family head may only pick an active row.
+
+An uploaded background may carry `insetTop/Right/Bottom/Left` (percent, all four or none): the tree
+area the `ADMIN` drew over the art. The web app's `poster-geometry.ts` sizes the 16:9 sheet so the
+tree fills exactly that area at any tree size; without one the tree sits inside the frame band.
+
+It may also carry a name area (`nameInsetTop/Right/Bottom/Left`, all four or none) with `nameCurve`
+(how far the middle of the text rises, in percent of the area's height; negative bends it down) and
+`nameColor`. The web app writes the family's `name` there along that arc, sized to the area, so the
+clan head only edits the name in the family profile. Two further optional areas
+(`leftTextInsetTop/Right/Bottom/Left` and `rightTextInsetTop/Right/Bottom/Left`, each all four or
+none) and their colors place the family's left and right inscriptions vertically. The platform
+`ADMIN` defines these areas on uploaded backgrounds; the clan head supplies only the two texts.
 
 `Person` belongs to one Family and stores optional `fatherId` and `motherId` self-references. Both
 foreign keys include `familyId`, preventing cross-Family parent links at the database boundary. A
@@ -91,13 +162,59 @@ wives, ordered by `wifeOrder`); no one is their own parent and parent links neve
 no two people in a design share the same normalized name, birth date, father and mother. The
 designer applies the same rules before saving.
 
-`Media` is the Family library: `fileUrl`, `title`, `status` and the optional `personId` of the
-Person credited with the item. It is Family-scoped with the same composite Person foreign key.
+`Media` is the Family library (Album và tư liệu): a `PHOTO` in an `Album`, or a `DOCUMENT` such as
+a scanned genealogy book, a royal decree or a PDF (`kind`). Each row holds its `fileUrl`, a small
+`thumbUrl` JPEG for grids (none for PDFs), `contentType`, `sizeBytes`, `width`/`height`, a `title`,
+`description`, `takenOn` day and the optional `personId` of the Person it is about. `Album` groups
+photos (`title`, `description`); its cover is its first photo and `updatedAt` moves when photos are
+added. Both are Family-scoped through composite `(familyId, …)` foreign keys; photos cascade from
+their album. Every member reads the library; only `MEMBER_PLUS` writes it. Photos are shrunk on the
+phone and sent one per request (2 MB, with the thumbnail); PDFs are capped at 4 MB to stay under the
+API's 6 MB body limit. PDFs are served with `Content-Security-Policy: sandbox` so script inside them
+cannot run with the API's origin.
+
+`EditSuggestion` is a change to one Person proposed by a family member: `proposerName`, free-text
+`content`, `status` (`PENDING`, `RESOLVED`, `DISMISSED`), `createdAt` and `reviewedAt`. The whole
+family shares one `MEMBER` account, so the proposer's name is typed in rather than taken from the
+session. Suggestions are never applied automatically: the clan head edits the tree in the designer
+and then marks the suggestion handled. It is Family-scoped with the composite Person foreign key and
+is deleted with its Person (`Cascade`). At most 200 suggestions may be pending per Family, which
+bounds what a shared account can queue.
+
+The family news feed (Bảng tin) is `FeedPost` (author name, text, `editedAt`), `FeedImage` (up to
+four photos per post, stored under the family's media folder with their size), `FeedComment` (a
+nullable `parentId` naming a top-level comment keeps replies one level deep; answering a reply
+records `replyToName`) and `FeedReaction` (one of seven types per device per post or comment). All
+four are Family-scoped through composite `(familyId, id)` foreign keys and cascade from their post,
+comment or Family; deleting a post also removes its photo files. Because members share one
+account, each browser keeps a random key and sends it as `X-Feed-Key`; only its SHA-256
+(`authorKeyHash`, `reactorKeyHash`) is stored. It decides which posts and comments a device may edit
+or delete and which reaction is its own. It identifies a device, not a person, and is not an
+authorization boundary between relatives; the clan head (`MEMBER_PLUS`) may delete anything.
+Personal accounts (the clan head and branch managers) always post, comment and react under their
+account's `displayName`: the API replaces any typed author or reactor name, and the web does not ask.
+
+`FundEntry` is one line of the family fund ledger (Quỹ họ): `content`, `kind` (`INCOME` or
+`EXPENSE`), a positive whole-đồng `amount` (`BIGINT UNSIGNED`, capped at 10^13 so it stays exact
+as a JSON number) and `occurredOn`, the day the money moved (`DATE`, entered by the clan head; the
+ledger is ordered by it). The balance is never stored: the API sums the whole ledger on every read.
+
+`MeritEvent` is an occasion the family collects merit donations for (Công đức): `title`, an
+optional `description` and an optional `heldOn` day. `MeritDonation` is one donation to an event,
+Family-scoped through a composite `(familyId, eventId)` foreign key and removed with its event or
+Family. `donorName` is typed, since donors are often outside the tree. `kind` is `CASH`, which sets
+a positive whole-đồng `amount`, or `ITEM`, which sets `itemContent`, a free-text description of
+the goods; either may carry an optional `note`. A database CHECK constraint keeps the two shapes
+apart. Totals
+(cash sum and count, goods count) are summed on every read.
+Công đức is separate from Quỹ họ: recording a cash donation does not write a fund ledger line.
 
 React Flow positions and edges remain a web concern derived from domain responses. The designer keeps temporary client IDs for unsaved cards; the API maps them to tenant-owned Person IDs inside one serializable transaction and never accepts a client-supplied family ID as authorization.
 
-`Family`, `User` and `Media` are soft-deleted through a nullable `deletedAt`; every read path for
-those models filters `deletedAt: null`. `Person` and `Relationship` are deleted outright, so the
+`Family` and `User` are soft-deleted through a nullable `deletedAt`; every read path for those
+models filters `deletedAt: null`. Library `Media` rows and `Album`s are deleted outright together
+with their files, so a removed photo does not linger on disk; `Media.deletedAt` remains in the
+schema, is always null, and reads still filter on it. `Person` and `Relationship` are deleted outright, so the
 genealogy tables never accumulate hidden rows. Because both are referenced by `Restrict` foreign
 keys, removing a Person first clears the `fatherId`/`motherId` of its children, detaches `Media`,
 and deletes the marriages it belongs to, all inside the same serializable transaction. `AuthSession`

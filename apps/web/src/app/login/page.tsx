@@ -28,7 +28,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       ]}
       eyebrow="Tài khoản Gia Phả"
       title="Chào mừng trở lại"
-      description="Đăng nhập bằng tài khoản Admin, Trưởng họ hoặc Thành viên. Quyền truy cập được kiểm tra lại theo từng dòng họ."
+      description="Đăng nhập bằng tài khoản Admin, Trưởng họ hoặc Thành viên."
       footer="Tài khoản dòng họ được cấp khi Admin tạo gia phả."
     >
       <LoginForm initialError={initialError} />

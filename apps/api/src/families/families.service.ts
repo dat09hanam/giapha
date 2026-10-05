@@ -5,11 +5,22 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { FamilyStatus, Prisma, UserRole } from '@prisma/client';
+import { FamilyStatus, PosterDecorationKind, Prisma, UserRole } from '@prisma/client';
 
 import { normalizeFamilySlug } from '../common/pipes/family-slug.pipe.js';
+import {
+  parseRichText,
+  readRichText,
+  richTextToPlain,
+  type RichTextDocument,
+} from '../common/validation/rich-text.js';
 import { PrismaService } from '../database/prisma.service.js';
-import { hashPassword } from '../auth/password.js';
+import { generatePassword, hashPassword } from '../auth/password.js';
+import {
+  posterDecorationSelect,
+  toPosterDecorationResponse,
+  type PosterDecorationResponse,
+} from '../poster-decorations/poster-decoration.types.js';
 import type { CreateFamilyDto } from './dto/create-family.dto.js';
 import type { UpdateFamilyDto } from './dto/update-family.dto.js';
 import {
@@ -18,16 +29,56 @@ import {
   parseDeathAnniversary,
 } from './family-credentials.js';
 
+/** The phả đồ sheet: the chosen library background (null shows plain paper) carries all decoration. */
+export type FamilyPoster = {
+  background: PosterDecorationResponse | null;
+  leftText: string | null;
+  rightText: string | null;
+};
+
 export type FamilySummary = {
   id: string;
   slug: string;
   name: string;
   description: string | null;
+  /** The formatted introduction; null when the clan head has not written one. */
+  introduction: RichTextDocument | null;
   deathAnniversaryDay: number | null;
   deathAnniversaryMonth: number | null;
   address: string | null;
   ancestryOrigin: string | null;
+  poster: FamilyPoster;
 };
+
+const familySummarySelect = {
+  id: true,
+  slug: true,
+  name: true,
+  description: true,
+  introduction: true,
+  deathAnniversaryDay: true,
+  deathAnniversaryMonth: true,
+  address: true,
+  ancestryOrigin: true,
+  posterLeftText: true,
+  posterRightText: true,
+  posterBackground: { select: posterDecorationSelect },
+} satisfies Prisma.FamilySelect;
+
+type FamilySummaryRecord = Prisma.FamilyGetPayload<{ select: typeof familySummarySelect }>;
+
+function toFamilySummary(record: FamilySummaryRecord): FamilySummary {
+  const { posterBackground, posterLeftText, posterRightText, introduction, ...family } = record;
+  return {
+    ...family,
+    introduction: readRichText(introduction),
+    poster: {
+      background: posterBackground ? toPosterDecorationResponse(posterBackground) : null,
+      leftText: posterLeftText,
+      rightText: posterRightText,
+    },
+  };
+}
 
 export type CreatedFamilyResult = {
   family: FamilySummary & { deathAnniversary: string };
@@ -44,20 +95,11 @@ export class FamiliesService {
   async getPublicFamily(slug: string): Promise<FamilySummary> {
     const family = await this.prisma.family.findFirst({
       where: { slug, status: FamilyStatus.ACTIVE, deletedAt: null },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        description: true,
-        deathAnniversaryDay: true,
-        deathAnniversaryMonth: true,
-        address: true,
-        ancestryOrigin: true,
-      },
+      select: familySummarySelect,
     });
     if (!family)
       throw new NotFoundException('Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.');
-    return family;
+    return toFamilySummary(family);
   }
 
   async createFamily(input: CreateFamilyDto): Promise<CreatedFamilyResult> {
@@ -65,10 +107,13 @@ export class FamiliesService {
     const slug = normalizeFamilySlug(input.slug);
     const anniversary = parseDeathAnniversary(input.deathAnniversary);
     const usernames = generateFamilyUsernames(name, anniversary);
+    const memberPlusPassword = generatePassword();
     const [memberPlusPasswordHash, memberPasswordHash] = await Promise.all([
-      hashPassword(usernames.memberPlus),
+      hashPassword(memberPlusPassword),
       hashPassword(usernames.member),
     ]);
+
+    const posterDefaults = await this.defaultPosterDecorations();
 
     try {
       const family = await this.prisma.$transaction(async (transaction) => {
@@ -78,23 +123,16 @@ export class FamiliesService {
             slug,
             deathAnniversaryDay: anniversary.day,
             deathAnniversaryMonth: anniversary.month,
+            ...posterDefaults,
           },
-          select: {
-            id: true,
-            slug: true,
-            name: true,
-            description: true,
-            deathAnniversaryDay: true,
-            deathAnniversaryMonth: true,
-            address: true,
-            ancestryOrigin: true,
-          },
+          select: familySummarySelect,
         });
         await transaction.user.createMany({
           data: [
             {
               username: usernames.memberPlus,
               passwordHash: memberPlusPasswordHash,
+              mustChangePassword: true,
               displayName: `Trưởng họ - ${name}`,
               role: UserRole.MEMBER_PLUS,
               familyId: created.id,
@@ -102,6 +140,7 @@ export class FamiliesService {
             {
               username: usernames.member,
               passwordHash: memberPasswordHash,
+              isShared: true,
               displayName: `Thành viên - ${name}`,
               role: UserRole.MEMBER,
               familyId: created.id,
@@ -112,12 +151,12 @@ export class FamiliesService {
       });
 
       return {
-        family: { ...family, deathAnniversary: anniversary.display },
+        family: { ...toFamilySummary(family), deathAnniversary: anniversary.display },
         accounts: {
           memberPlus: {
             role: UserRole.MEMBER_PLUS,
             username: usernames.memberPlus,
-            password: usernames.memberPlus,
+            password: memberPlusPassword,
           },
           member: {
             role: UserRole.MEMBER,
@@ -134,6 +173,29 @@ export class FamiliesService {
       }
       throw error;
     }
+  }
+
+  /**
+   * The introduction and its plain-text `description`. A formatted introduction wins; a plain
+   * `description` alone (older clients) clears the formatting so the two never disagree.
+   */
+  private introductionChange(
+    input: UpdateFamilyDto,
+  ): Pick<Prisma.FamilyUpdateManyMutationInput, 'introduction' | 'description'> {
+    if (input.introduction !== undefined) {
+      const document =
+        input.introduction === null
+          ? null
+          : parseRichText(input.introduction, 'Nội dung giới thiệu không hợp lệ.');
+      return {
+        introduction: document ?? Prisma.DbNull,
+        description: document ? richTextToPlain(document) || null : null,
+      };
+    }
+    if (input.description !== undefined) {
+      return { introduction: Prisma.DbNull, description: input.description.trim() || null };
+    }
+    return {};
   }
 
   async updateFamily(familyId: string, input: UpdateFamilyDto): Promise<FamilySummary> {
@@ -153,13 +215,17 @@ export class FamiliesService {
       where: { id: familyId, status: FamilyStatus.ACTIVE, deletedAt: null },
       data: {
         ...(name === undefined ? {} : { name }),
-        ...(input.description === undefined
-          ? {}
-          : { description: input.description.trim() || null }),
+        ...this.introductionChange(input),
         ...(input.address === undefined ? {} : { address: input.address.trim() || null }),
         ...(input.ancestryOrigin === undefined
           ? {}
           : { ancestryOrigin: input.ancestryOrigin.trim() || null }),
+        ...(input.posterLeftText === undefined
+          ? {}
+          : { posterLeftText: input.posterLeftText?.trim() || null }),
+        ...(input.posterRightText === undefined
+          ? {}
+          : { posterRightText: input.posterRightText?.trim() || null }),
         ...(anniversary === undefined
           ? {}
           : anniversary === null
@@ -168,22 +234,43 @@ export class FamiliesService {
                 deathAnniversaryDay: anniversary.day,
                 deathAnniversaryMonth: anniversary.month,
               }),
+        ...(await this.posterBackgroundChange(input)),
       },
     });
     if (updated.count !== 1)
       throw new NotFoundException('Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.');
-    return this.prisma.family.findUniqueOrThrow({
-      where: { id: familyId },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        description: true,
-        deathAnniversaryDay: true,
-        deathAnniversaryMonth: true,
-        address: true,
-        ancestryOrigin: true,
-      },
+    return toFamilySummary(
+      await this.prisma.family.findUniqueOrThrow({
+        where: { id: familyId },
+        select: familySummarySelect,
+      }),
+    );
+  }
+
+  /** A new family starts with the first active background. */
+  private async defaultPosterDecorations(): Promise<{ posterBackgroundId?: string }> {
+    const first = await this.prisma.posterDecoration.findFirst({
+      where: { kind: PosterDecorationKind.BACKGROUND, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true },
     });
+    return first ? { posterBackgroundId: first.id } : {};
+  }
+
+  /** The background the family head sent, checked to be an active library background. */
+  private async posterBackgroundChange(
+    input: UpdateFamilyDto,
+  ): Promise<{ posterBackgroundId?: string | null }> {
+    if (input.posterBackgroundId === undefined) return {};
+    const id = input.posterBackgroundId;
+    if (id === null) return { posterBackgroundId: null };
+    const found = await this.prisma.posterDecoration.findFirst({
+      where: { id, kind: PosterDecorationKind.BACKGROUND, isActive: true },
+      select: { id: true },
+    });
+    if (!found) {
+      throw new BadRequestException('Hình nền đã chọn không tồn tại hoặc đã bị ẩn.');
+    }
+    return { posterBackgroundId: id };
   }
 }

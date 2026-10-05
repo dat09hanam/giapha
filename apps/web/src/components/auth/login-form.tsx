@@ -5,6 +5,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import { getApiErrorMessage } from '@/lib/api-error';
 import { login, profileDestination } from '@/lib/auth-api';
+import { changePasswordHref } from '@/lib/login-redirect';
+import { safeReturnPath } from '@/lib/return-path';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { Field } from './form-fields';
@@ -29,7 +31,16 @@ export function LoginForm({ initialError = null }: { initialError?: string | nul
         username: String(form.get('username') ?? ''),
         password: String(form.get('password') ?? ''),
       });
-      router.replace(profileDestination(profile));
+      // A page the visitor was sent here from; anything else lands on the account's usual page.
+      const next = safeReturnPath(
+        profile,
+        new URLSearchParams(window.location.search).get('next'),
+      );
+      router.replace(
+        profile.mustChangePassword && next
+          ? changePasswordHref(next)
+          : (next ?? profileDestination(profile)),
+      );
       router.refresh();
     } catch (submissionError: unknown) {
       showToast({

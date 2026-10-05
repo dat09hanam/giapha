@@ -1,3 +1,6 @@
+import type { FamilyPoster } from "@/lib/poster-decorations";
+import type { RichTextDocument } from "@/types/rich-text";
+
 export type Gender = "MALE" | "FEMALE" | "OTHER" | "UNKNOWN";
 
 export type FamilySummary = {
@@ -5,13 +8,21 @@ export type FamilySummary = {
   slug: string;
   name: string;
   description: string | null;
+  /** The clan head's formatted introduction; null until one is written. */
+  introduction: RichTextDocument | null;
   address: string | null;
   ancestryOrigin: string | null;
 };
 
+/** Family sections the platform admin can switch on or off for the whole platform. */
+export type FamilyFeature = "feed" | "fund" | "merit" | "library" | "editSuggestions" | "printBook";
+
+export type FamilyFeatures = Record<FamilyFeature, boolean>;
+
 export type FamilyDetails = FamilySummary & {
   deathAnniversaryDay: number | null;
   deathAnniversaryMonth: number | null;
+  poster: FamilyPoster;
 };
 
 export type Person = {

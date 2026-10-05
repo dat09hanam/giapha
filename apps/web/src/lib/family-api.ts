@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api-error';
 import type { FamilyDetails } from '@/types/family-tree';
+import type { RichTextDocument } from '@/types/rich-text';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
@@ -22,13 +23,20 @@ export type CreateFamilyInput = {
   deathAnniversary: string;
 };
 
-export type UpdateFamilyInput = {
+/** Fields left out are not changed, so each admin form sends only its own. */
+export type UpdateFamilyInput = Partial<{
   name: string;
   description: string;
+  /** Replaces `description`, which the API derives from it; null clears both. */
+  introduction: RichTextDocument | null;
   address: string;
   ancestryOrigin: string;
   deathAnniversary: string | null;
-};
+  /** Library background ID; null shows plain paper. */
+  posterBackgroundId: string | null;
+  posterLeftText: string | null;
+  posterRightText: string | null;
+}>;
 
 export function createFamily(input: CreateFamilyInput): Promise<CreatedFamilyResult> {
   return apiFetch<CreatedFamilyResult>(
