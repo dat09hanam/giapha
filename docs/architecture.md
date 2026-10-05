@@ -73,6 +73,7 @@ Endpoints:
 - `GET /api/families/:slug/suggestions` and `PATCH /api/families/:slug/suggestions/:suggestionId`: `MEMBER_PLUS` only. Lists the newest suggestions and sets their status.
 - `/api/families/:slug/feed` (Bảng tin): `MEMBER` and `MEMBER_PLUS`. `GET` pages posts (with comments and reaction summaries); `POST posts`, `PATCH|DELETE posts/:postId`, `POST posts/:postId/comments`, `PATCH|DELETE comments/:commentId`, and `POST|DELETE posts/:postId/reaction` / `comments/:commentId/reaction`. Writes need the `X-Feed-Key` device header described below.
 - `GET /api/families/:slug/fund` (Quỹ họ): `MEMBER` and `MEMBER_PLUS`; the ledger with income, expense and balance totals. `POST fund/entries` and `PATCH|DELETE fund/entries/:entryId`: `MEMBER_PLUS` only.
+- `/api/families/:slug/merit` (Công đức): `GET` (events with totals) and `GET events/:eventId` (one event with its donations) for `MEMBER` and `MEMBER_PLUS`; `POST events`, `PATCH|DELETE events/:eventId`, `POST events/:eventId/donations` and `PATCH|DELETE donations/:donationId` for `MEMBER_PLUS` only.
 - `/api/families/:slug/library` (Album và tư liệu): `GET` (albums and documents) and `GET albums/:albumId` for `MEMBER` and `MEMBER_PLUS`; `POST albums`, `PATCH|DELETE albums/:albumId`, `POST albums/:albumId/photos`, `POST documents` and `PATCH|DELETE items/:itemId` for `MEMBER_PLUS` only.
 
 The old public clan-head registration and invitation endpoints are removed. Pending invitation
@@ -108,7 +109,7 @@ plain paper), plus the optional family-specific vertical inscriptions `posterLef
 `posterRightText`.
 
 The platform `ADMIN` switches Family sections on or off for every Family at once. `PlatformFeature`
-is a platform-level table (not tenant-owned) keyed by feature: `feed`, `fund`, `library`,
+is a platform-level table (not tenant-owned) keyed by feature: `feed`, `fund`, `merit`, `library`,
 `editSuggestions` and `printBook`; a feature without a row is on. `GET /api/platform-features` is
 public, because every Family page reads it to build its menu; `PATCH` is `ADMIN` only and accepts a
 partial map. A controller or route marked `@RequiresFamilyFeature(...)` is refused by
@@ -190,6 +191,16 @@ account's `displayName`: the API replaces any typed author or reactor name, and 
 `EXPENSE`), a positive whole-đồng `amount` (`BIGINT UNSIGNED`, capped at 10^13 so it stays exact
 as a JSON number) and `occurredOn`, the day the money moved (`DATE`, entered by the clan head; the
 ledger is ordered by it). The balance is never stored: the API sums the whole ledger on every read.
+
+`MeritEvent` is an occasion the family collects merit donations for (Công đức): `title`, an
+optional `description` and an optional `heldOn` day. `MeritDonation` is one donation to an event,
+Family-scoped through a composite `(familyId, eventId)` foreign key and removed with its event or
+Family. `donorName` is typed, since donors are often outside the tree. `kind` is `CASH`, which sets
+a positive whole-đồng `amount`, or `ITEM`, which sets `itemContent`, a free-text description of
+the goods; either may carry an optional `note`. A database CHECK constraint keeps the two shapes
+apart. Totals
+(cash sum and count, goods count) are summed on every read.
+Công đức is separate from Quỹ họ: recording a cash donation does not write a fund ledger line.
 
 React Flow positions and edges remain a web concern derived from domain responses. The designer keeps temporary client IDs for unsaved cards; the API maps them to tenant-owned Person IDs inside one serializable transaction and never accepts a client-supplied family ID as authorization.
 

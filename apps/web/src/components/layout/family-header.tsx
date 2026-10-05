@@ -3,6 +3,7 @@
 import {
   Bell,
   GitBranch,
+  HandHeart,
   Info,
   LogIn,
   Menu,
@@ -43,6 +44,7 @@ const NAV_ICONS: Record<FamilyNavKey, LucideIcon> = {
   tree: Network,
   feed: Newspaper,
   fund: Wallet,
+  merit: HandHeart,
   library: Images,
   announcements: Bell,
   about: Info,

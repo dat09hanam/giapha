@@ -55,6 +55,12 @@ enum FundEntryKind {
   EXPENSE
 }
 
+/// How a merit donation was given: money, or goods such as incense, fruit or a bell.
+enum MeritDonationKind {
+  CASH
+  ITEM
+}
+
 enum FeedReactionType {
   LIKE
   LOVE
@@ -110,6 +116,8 @@ model Family {
   feedComments          FeedComment[]
   feedReactions         FeedReaction[]
   fundEntries           FundEntry[]
+  meritEvents           MeritEvent[]
+  meritDonations        MeritDonation[]
   branchManagers        BranchManager[]
   posterBackground      PosterDecoration? @relation("FamilyPosterBackground", fields: [posterBackgroundId], references: [id], onDelete: SetNull)
 
@@ -443,6 +451,48 @@ model FundEntry {
   family     Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
 
   @@index([familyId, occurredOn])
+}
+
+/// An occasion the family collects merit donations for (Công đức), e.g. rebuilding the ancestral
+/// hall or a death anniversary. Only the clan head writes it; every member reads it.
+model MeritEvent {
+  id          String          @id @default(uuid()) @db.Char(36)
+  familyId    String          @db.Char(36)
+  title       String          @db.VarChar(191)
+  description String?         @db.VarChar(1000)
+  /// The day the occasion is held; optional, since a collection can run without a fixed day.
+  heldOn      DateTime?       @db.Date
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  family      Family          @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  donations   MeritDonation[]
+
+  @@unique([familyId, id])
+  @@index([familyId, createdAt])
+}
+
+/// One person's merit donation to an event. CASH sets amount; ITEM describes the goods in
+/// itemContent. Either may carry a note. A CHECK constraint in the migrations enforces the pairing.
+/// The donor is a typed name, since donors are often in-laws or friends outside the tree.
+model MeritDonation {
+  id          String            @id @default(uuid()) @db.Char(36)
+  familyId    String            @db.Char(36)
+  eventId     String            @db.Char(36)
+  donorName   String            @db.VarChar(100)
+  kind        MeritDonationKind
+  /// CASH only: whole đồng, positive.
+  amount      BigInt?           @db.UnsignedBigInt
+  /// ITEM only: what was given, in the clan head's words, e.g. "1 chuông đồng, 2 mâm ngũ quả".
+  itemContent String?           @db.VarChar(500)
+  /// Where the donor is from, their branch, or anything else the clan head notes.
+  note        String?           @db.VarChar(500)
+  donatedOn   DateTime          @db.Date
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  family      Family            @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  event       MeritEvent        @relation(fields: [familyId, eventId], references: [familyId, id], onDelete: Cascade, map: "MeritDonation_event_fkey")
+
+  @@index([familyId, eventId, donatedOn])
 }
 
 /// A section of every family's space that the platform admin switches on or off for the whole

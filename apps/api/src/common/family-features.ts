@@ -1,7 +1,14 @@
 import type { PrismaService } from '../database/prisma.service.js';
 
 /** Family sections the platform admin can switch on or off for the whole platform. */
-export const FAMILY_FEATURES = ['feed', 'fund', 'library', 'editSuggestions', 'printBook'] as const;
+export const FAMILY_FEATURES = [
+  'feed',
+  'fund',
+  'merit',
+  'library',
+  'editSuggestions',
+  'printBook',
+] as const;
 
 export type FamilyFeature = (typeof FAMILY_FEATURES)[number];
 

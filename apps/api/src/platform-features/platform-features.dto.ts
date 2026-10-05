@@ -12,6 +12,10 @@ export class UpdatePlatformFeaturesDto {
 
   @IsOptional()
   @IsBoolean()
+  merit?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   library?: boolean;
 
   @IsOptional()

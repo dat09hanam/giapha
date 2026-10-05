@@ -12,7 +12,7 @@ export type FamilySummary = {
 };
 
 /** Family sections the platform admin can switch on or off for the whole platform. */
-export type FamilyFeature = "feed" | "fund" | "library" | "editSuggestions" | "printBook";
+export type FamilyFeature = "feed" | "fund" | "merit" | "library" | "editSuggestions" | "printBook";
 
 export type FamilyFeatures = Record<FamilyFeature, boolean>;
 

@@ -7,6 +7,7 @@ import type { FamilyAccount } from '@/lib/family-accounts-api';
 import type { PosterDecoration } from '@/lib/poster-decorations';
 import type { FundLedger } from '@/lib/fund-api';
 import type { AlbumDetail, LibraryOverview } from '@/lib/library-api';
+import type { MeritEventDetail, MeritOverview } from '@/lib/merit-api';
 import type { EditSuggestion } from '@/types/edit-suggestion';
 import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
 
@@ -113,6 +114,24 @@ export const getAlbum = cache((slug: string, albumId: string, sessionToken: stri
 /** Quỹ họ: the ledger with totals; every member may read it. */
 export const getFundLedger = cache((slug: string, sessionToken: string) =>
   getJson<FundLedger>(`/families/${encodeURIComponent(slug)}/fund`, 'tải quỹ họ', sessionToken),
+);
+
+/** Công đức: the events with their totals; every member may read them. */
+export const getMeritOverview = cache((slug: string, sessionToken: string) =>
+  getJson<MeritOverview>(
+    `/families/${encodeURIComponent(slug)}/merit`,
+    'tải danh sách công đức',
+    sessionToken,
+  ),
+);
+
+/** One Công đức event with its donors. */
+export const getMeritEvent = cache((slug: string, eventId: string, sessionToken: string) =>
+  getJson<MeritEventDetail>(
+    `/families/${encodeURIComponent(slug)}/merit/events/${encodeURIComponent(eventId)}`,
+    'tải sự kiện công đức',
+    sessionToken,
+  ),
 );
 
 /** The family's edit suggestions, newest first; clan head (MEMBER_PLUS) only. */

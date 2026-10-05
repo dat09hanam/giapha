@@ -18,7 +18,8 @@ export function isFamilyAdminRoute(pathname: string): boolean {
   return first === 'admin' && Boolean(second);
 }
 
-export type FamilyNavKey = 'tree' | 'feed' | 'fund' | 'library' | 'announcements' | 'about';
+export type FamilyNavKey =
+  'tree' | 'feed' | 'fund' | 'merit' | 'library' | 'announcements' | 'about';
 
 export type FamilyNavItem = {
   key: FamilyNavKey;
@@ -34,6 +35,7 @@ export const FAMILY_NAV: readonly FamilyNavItem[] = [
   { key: 'tree', label: 'Gia phả', path: '' },
   { key: 'feed', label: 'Bảng tin', path: 'bang-tin', feature: 'feed' },
   { key: 'fund', label: 'Quỹ họ', path: 'quy-ho', feature: 'fund' },
+  { key: 'merit', label: 'Công đức', path: 'cong-duc', feature: 'merit' },
   { key: 'library', label: 'Album', path: 'tu-lieu', feature: 'library' },
   { key: 'announcements', label: 'Thông báo', path: null },
   { key: 'about', label: 'Giới thiệu', path: null },
@@ -60,6 +62,11 @@ export const FAMILY_FEATURE_CHOICES: readonly {
     feature: 'fund',
     label: 'Quỹ họ',
     description: 'Sổ thu chi của dòng họ.',
+  },
+  {
+    feature: 'merit',
+    label: 'Công đức',
+    description: 'Ghi nhận người công đức tiền mặt hoặc hiện vật cho từng sự kiện của dòng họ.',
   },
   {
     feature: 'library',
