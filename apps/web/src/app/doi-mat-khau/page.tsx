@@ -10,7 +10,6 @@ import { CHANGE_PASSWORD_PATH, type AuthProfile } from '@/lib/auth-api';
 import { loginHref } from '@/lib/login-redirect';
 
 export const metadata: Metadata = {
-  title: 'Đổi mật khẩu | Gia Phả',
   description: 'Đặt mật khẩu riêng cho tài khoản Gia Phả của bạn.',
 };
 

@@ -1,9 +1,8 @@
-import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { LibraryView } from '@/components/library/library-view';
 import { ApiErrorState } from '@/components/ui/api-error-state';
-import { ApiNotFoundError, getFamily, getFamilyTree, getLibrary } from '@/lib/api';
+import { ApiNotFoundError, getFamilyTree, getLibrary } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import type { LibraryOverview } from '@/lib/library-api';
 import { requireSession } from '@/lib/session';
@@ -14,16 +13,6 @@ type FamilyLibraryPageProps = {
 };
 
 export const dynamic = 'force-dynamic';
-
-export async function generateMetadata({ params }: FamilyLibraryPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  try {
-    const family = await getFamily(slug);
-    return { title: `Album và tư liệu · ${family.name}` };
-  } catch {
-    return { title: 'Album và tư liệu' };
-  }
-}
 
 export default async function FamilyLibraryPage({ params }: FamilyLibraryPageProps) {
   const { slug } = await params;

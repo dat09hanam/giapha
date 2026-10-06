@@ -1,4 +1,3 @@
-import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 
@@ -20,9 +19,9 @@ type PrintPageProps = {
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'In gia phả' };
-
-async function loadBook(slug: string): Promise<{ tree: FamilyTreeResponse; family: FamilyDetails }> {
+async function loadBook(
+  slug: string,
+): Promise<{ tree: FamilyTreeResponse; family: FamilyDetails }> {
   const here = `/${slug}/in-gia-pha`;
   const sessionToken = (await cookies()).get('giapha_session')?.value;
   if (!sessionToken) {

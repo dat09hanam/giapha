@@ -21,17 +21,19 @@ const serif = Noto_Serif({
   display: 'swap',
 });
 
+// Every page's tab shows the brand alone, so the title lives in the root layout's <head>
+// below rather than in metadata: Next streams metadata and drops the old <title> on each
+// navigation, which flashed the URL in the tab. Pages must not set a title of their own.
 export const metadata: Metadata = {
-  title: {
-    default: 'Gia Phả Việt',
-    template: '%s | Gia Phả Việt',
-  },
   description: 'Không gian lưu giữ và kết nối câu chuyện của mỗi dòng họ.',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi" className={`${sans.variable} ${serif.variable}`}>
+      <head>
+        <title>Gia Phả Việt</title>
+      </head>
       <body>
         <ToastProvider>
           <SiteHeader />

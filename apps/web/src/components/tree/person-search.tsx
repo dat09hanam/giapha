@@ -159,7 +159,7 @@ export function PersonSearch({
                   <span className="truncate font-semibold text-stone-900">
                     {displayPersonName(result.person.name)}
                   </span>
-                  <span className="shrink-0 text-xs font-medium text-[#8b1a1a]">
+                  <span className="shrink-0 text-xs font-medium text-brand-700">
                     Đời {result.generation}
                   </span>
                 </div>

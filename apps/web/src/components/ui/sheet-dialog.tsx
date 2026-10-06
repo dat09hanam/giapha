@@ -49,19 +49,19 @@ export function SheetDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          'ui-sheet-dialog relative flex max-h-[92%] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-w-lg sm:rounded-2xl',
+          'ui-sheet-dialog heritage-panel relative flex max-h-[92%] w-full flex-col overflow-hidden rounded-t-3xl shadow-2xl sm:max-w-lg sm:rounded-2xl',
           className,
         )}
       >
-        <header className="relative flex h-14 shrink-0 items-center justify-center border-b border-stone-200 px-12">
-          <h2 id={titleId} className="truncate text-lg font-bold text-stone-900">
+        <header className="relative flex h-14 shrink-0 items-center justify-center border-b border-gold-500/30 bg-paper-deep/55 px-12">
+          <h2 id={titleId} className="truncate font-display text-lg font-bold text-wood-800">
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="absolute right-3 grid size-9 place-items-center rounded-full bg-stone-100 text-stone-600 hover:bg-stone-200 disabled:opacity-50"
+            className="absolute right-3 grid size-9 place-items-center rounded-full bg-gold-50 text-wood-600 ring-1 ring-gold-500/25 hover:bg-gold-100 disabled:opacity-50"
             aria-label="Đóng"
           >
             <X className="size-5" aria-hidden="true" />
@@ -69,7 +69,7 @@ export function SheetDialog({
         </header>
         <div className="grid min-h-0 gap-4 overflow-y-auto px-4 py-4">{children}</div>
         {footer ? (
-          <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-stone-200 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 sm:flex-row sm:justify-end sm:pb-3">
+          <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-gold-500/30 bg-paper-deep/35 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 sm:flex-row sm:justify-end sm:pb-3">
             {footer}
           </footer>
         ) : null}

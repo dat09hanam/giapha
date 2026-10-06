@@ -1,4 +1,3 @@
-import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { MeritEventView } from '@/components/merit/merit-event-view';
@@ -13,8 +12,6 @@ type MeritEventPageProps = {
 };
 
 export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = { title: 'Sự kiện công đức' };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

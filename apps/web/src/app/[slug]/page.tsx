@@ -1,96 +1,73 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
-import { FamilyTree } from '@/components/tree/family-tree';
+import { FamilyHome, type HomeSection } from '@/components/family-home/family-home';
 import { ApiErrorState } from '@/components/ui/api-error-state';
 import {
   ApiNotFoundError,
-  ApiUnauthorizedError,
-  getFamilyTree,
   getFamily,
+  getFeedFirstPage,
+  getFundLedger,
   getPlatformFeatures,
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
-import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
+import { requireSession } from '@/lib/session';
+import type { FamilyDetails, FamilyFeatures } from '@/types/family-tree';
 
-type FamilyPageProps = {
+type FamilyHomePageProps = {
   params: Promise<{ slug: string }>;
 };
 
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata({ params }: FamilyPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: FamilyHomePageProps): Promise<Metadata> {
   const { slug } = await params;
-
   try {
     const family = await getFamily(slug);
-    return {
-      title: family.name,
-      description: family.description ?? `Gia phả của ${family.name}`,
-    };
+    return { description: family.description ?? `Gia phả của ${family.name}` };
   } catch {
-    return { title: 'Không tìm thấy gia phả' };
+    return {};
   }
 }
 
-async function loadFamilyTree(slug: string) {
-  const sessionToken = (await cookies()).get('giapha_session')?.value;
-  if (!sessionToken) {
-    redirect(`/login?next=${encodeURIComponent(`/${slug}`)}`);
-  }
-
+/** One block of the home page; a block that fails to load does not take the page down. */
+async function section<T>(on: boolean, load: () => Promise<T>): Promise<HomeSection<T>> {
+  if (!on) return { state: 'off' };
   try {
-    return await getFamilyTree(slug, sessionToken);
-  } catch (error) {
-    if (error instanceof ApiNotFoundError) {
-      notFound();
-    }
-
-    if (error instanceof ApiUnauthorizedError) {
-      redirect('/login?next=' + encodeURIComponent('/' + slug) + '&reason=session-expired');
-    }
-
-    throw error;
+    return { state: 'ok', data: await load() };
+  } catch {
+    return { state: 'error' };
   }
 }
 
-export default async function FamilyPage({ params }: FamilyPageProps) {
+export default async function FamilyHomePage({ params }: FamilyHomePageProps) {
   const { slug } = await params;
-  let tree: FamilyTreeResponse;
+  const path = `/${encodeURIComponent(slug)}`;
+  const { sessionToken } = await requireSession(path);
+
   let family: FamilyDetails;
-  let features: FamilyFeatures;
   try {
-    tree = await loadFamilyTree(slug);
-    [family, features] = await Promise.all([getFamily(slug), getPlatformFeatures()]);
+    family = await getFamily(slug);
   } catch (error: unknown) {
+    if (error instanceof ApiNotFoundError) notFound();
     if (error instanceof ApiRequestError) {
       return (
         <ApiErrorState
-          title="Chưa thể tải cây gia phả"
+          title="Chưa thể tải trang dòng họ"
           message={error.message}
-          retryHref={'/' + encodeURIComponent(slug)}
+          retryHref={path}
         />
       );
     }
     throw error;
   }
 
-  if (tree.people.length === 0) {
-    return (
-      <main className="grid min-h-[calc(100vh-4rem)] place-items-center px-6 text-center">
-        <p className="text-lg font-medium text-stone-700">Cây gia phả đang được thiết kế</p>
-      </main>
-    );
-  }
+  // Null shows every section, as the navigation does; the API still refuses one switched off.
+  const features: FamilyFeatures | null = await getPlatformFeatures().catch(() => null);
+  const [fund, posts] = await Promise.all([
+    section(features?.fund ?? true, async () => (await getFundLedger(slug, sessionToken)).totals),
+    section(features?.feed ?? true, async () => (await getFeedFirstPage(slug, sessionToken)).posts),
+  ]);
 
-  return (
-    <main className="overflow-hidden">
-      <FamilyTree
-        tree={tree}
-        family={{ name: family.name, poster: family.poster, features }}
-        familySlug={slug}
-      />
-    </main>
-  );
+  return <FamilyHome slug={slug} family={family} features={features} fund={fund} posts={posts} />;
 }

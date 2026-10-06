@@ -106,11 +106,11 @@ export function KinshipDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="kinship-title"
-        className="ui-sheet-dialog relative flex max-h-[88%] w-full flex-col overflow-hidden rounded-t-3xl border border-amber-900/15 bg-[#fffdf8] shadow-2xl sm:max-w-lg sm:rounded-3xl"
+        className="ui-sheet-dialog heritage-panel relative flex max-h-[88%] w-full flex-col overflow-hidden rounded-t-3xl shadow-2xl sm:max-w-lg sm:rounded-2xl"
       >
-        <header className="flex items-center gap-2 border-b border-amber-900/10 bg-gradient-to-b from-amber-50 to-[#fffdf8] px-5 py-4 sm:px-6">
+        <header className="flex items-center gap-2 border-b border-gold-500/25 bg-gradient-to-b from-gold-50 to-[var(--card)] px-5 py-4 sm:px-6">
           <UsersRound className="size-5 text-amber-700" aria-hidden="true" />
-          <h2 id="kinship-title" className="flex-1 text-lg font-bold text-[#3b2a0c]">
+          <h2 id="kinship-title" className="flex-1 font-display text-lg font-bold text-wood-800">
             Tính xưng hô
           </h2>
           <button
@@ -164,7 +164,7 @@ export function KinshipDialog({
               <section className="grid gap-4" aria-live="polite">
                 <p className="text-base leading-7 text-stone-700">
                   <strong className="text-stone-900">{name(to.person.id)}</strong> là{' '}
-                  <strong className="text-[#8b1a1a]">{forward.relation}</strong> của{' '}
+                  <strong className="text-brand-700">{forward.relation}</strong> của{' '}
                   <strong className="text-stone-900">{name(from.person.id)}</strong>.
                 </p>
 
@@ -191,8 +191,8 @@ export function KinshipDialog({
                         {name(row.speaker)} nói với {name(row.listener)}
                       </dt>
                       <dd className="mt-0.5 text-stone-800">
-                        Gọi là <strong className="text-[#8b1a1a]">{row.call}</strong>, xưng{' '}
-                        <strong className="text-[#8b1a1a]">{row.self}</strong>
+                        Gọi là <strong className="text-brand-700">{row.call}</strong>, xưng{' '}
+                        <strong className="text-brand-700">{row.self}</strong>
                       </dd>
                     </div>
                   ))}

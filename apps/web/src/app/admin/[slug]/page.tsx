@@ -29,7 +29,6 @@ type FamilyAdminPageProps = {
 };
 
 export const metadata: Metadata = {
-  title: 'Quản trị dòng họ',
   description: 'Không gian quản trị cây gia phả của dòng họ.',
 };
 

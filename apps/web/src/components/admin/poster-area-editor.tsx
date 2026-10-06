@@ -409,7 +409,7 @@ export function PosterAreaEditor({
       <div
         ref={boxRef}
         tabIndex={0}
-        className="relative aspect-video w-full cursor-crosshair touch-none select-none overflow-hidden rounded-xl border bg-[#fff6c9] outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+        className="relative aspect-video w-full cursor-crosshair touch-none select-none overflow-hidden rounded-xl border border-gold-500/35 bg-paper-deep outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
         onPointerDown={(event) => startDrag(event, active, { kind: 'draw' })}
         onKeyDown={handleKeyDown}
         onPointerMove={handlePointerMove}

@@ -1,10 +1,9 @@
-import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 
 import { FamilyFund } from '@/components/fund/family-fund';
 import { ApiErrorState } from '@/components/ui/api-error-state';
-import { ApiNotFoundError, ApiUnauthorizedError, getFamily, getFundLedger } from '@/lib/api';
+import { ApiNotFoundError, ApiUnauthorizedError, getFundLedger } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import type { FundLedger } from '@/lib/fund-api';
 
@@ -13,16 +12,6 @@ type FamilyFundPageProps = {
 };
 
 export const dynamic = 'force-dynamic';
-
-export async function generateMetadata({ params }: FamilyFundPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  try {
-    const family = await getFamily(slug);
-    return { title: `Quỹ họ · ${family.name}` };
-  } catch {
-    return { title: 'Quỹ họ' };
-  }
-}
 
 export default async function FamilyFundPage({ params }: FamilyFundPageProps) {
   const { slug } = await params;

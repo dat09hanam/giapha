@@ -37,7 +37,7 @@ function PosterPreview({ poster, familyName }: { poster: FamilyPoster; familyNam
   return (
     <div
       ref={containerRef}
-      className="relative aspect-video w-full overflow-hidden rounded-xl border border-amber-900/15"
+      className="relative aspect-video w-full overflow-hidden rounded-xl border border-gold-500/35"
       aria-label="Xem trước phả đồ"
       role="img"
     >
@@ -54,7 +54,7 @@ function PosterPreview({ poster, familyName }: { poster: FamilyPoster; familyNam
             familyName={familyName}
           />
           <p
-            className="absolute grid place-items-center border-4 border-dashed border-[#c8102e]/35 text-[44px] font-semibold text-[#c8102e]/45"
+            className="absolute grid place-items-center border-4 border-dashed border-brand-700/35 text-[44px] font-semibold text-brand-700/45"
             style={treeRegion}
           >
             Vùng đặt cây gia phả
@@ -91,13 +91,13 @@ function BackgroundPicker({
               onClick={() => onChange(choice.id)}
               aria-pressed={selected}
               className={
-                'grid justify-items-center gap-2 rounded-xl border bg-white p-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 ' +
+                'grid justify-items-center gap-2 rounded-xl border bg-[var(--card)] p-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 ' +
                 (selected
                   ? 'border-brand-700 text-brand-950 ring-2 ring-brand-700/20'
                   : 'border-stone-200 text-stone-600 hover:border-brand-700/40')
               }
             >
-              <span className="grid h-[72px] w-full place-items-center overflow-hidden rounded-lg bg-[#fff6c9]">
+              <span className="grid h-[72px] w-full place-items-center overflow-hidden rounded-lg bg-paper-deep">
                 {choice.decoration ? (
                   <PosterBackgroundSwatch decoration={choice.decoration} width={128} height={72} />
                 ) : (

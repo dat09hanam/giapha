@@ -70,17 +70,17 @@ export function Mountains({ className }: { className?: string }) {
 export function Lotus({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 120 100" className={className} aria-hidden="true">
-      <g fill="#a7b89a" stroke="#6f8a63" strokeWidth={1.5}>
+      <g fill="#e8d7a8" stroke="#9f7c37" strokeWidth={1.5}>
         <path d="M8 92 Q20 70 52 78 Q36 96 8 92 Z" />
         <path d="M112 90 Q100 68 70 78 Q86 96 112 90 Z" />
       </g>
-      <path d="M60 96 V70" stroke="#6f8a63" strokeWidth={2} />
-      <g fill="#f6c3cc" stroke="#d9677b" strokeWidth={1.5} strokeLinejoin="round">
+      <path d="M60 96 V70" stroke="#9f7c37" strokeWidth={2} />
+      <g fill="#e8c4c0" stroke="#a83a34" strokeWidth={1.5} strokeLinejoin="round">
         <path d="M60 72 Q34 64 28 40 Q48 44 60 72 Z" />
         <path d="M60 72 Q86 64 92 40 Q72 44 60 72 Z" />
         <path d="M60 72 Q40 52 46 24 Q60 38 60 72 Z" />
         <path d="M60 72 Q80 52 74 24 Q60 38 60 72 Z" />
-        <path d="M60 72 Q50 40 60 14 Q70 40 60 72 Z" fill="#fadbe0" />
+        <path d="M60 72 Q50 40 60 14 Q70 40 60 72 Z" fill="#f4e3e1" />
       </g>
     </svg>
   );
@@ -108,11 +108,11 @@ export function BlossomBranch({ className }: { className?: string }) {
       <path
         d="M0 8 Q40 14 64 34 T120 70 M46 22 Q58 8 76 6 M78 46 Q96 40 104 26"
         fill="none"
-        stroke="#7a5a43"
+        stroke="#65431f"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
-      <g fill="#f6c3cc" stroke="#d9677b" strokeWidth={1}>
+      <g fill="#e8c4c0" stroke="#a83a34" strokeWidth={1}>
         {[
           [62, 32],
           [76, 6],
@@ -123,7 +123,7 @@ export function BlossomBranch({ className }: { className?: string }) {
         ].map(([cx, cy]) => (
           <g key={`${cx}-${cy}`}>
             <circle cx={cx} cy={cy} r={5.5} />
-            <circle cx={cx} cy={cy} r={1.6} fill="#c4432c" stroke="none" />
+            <circle cx={cx} cy={cy} r={1.6} fill="#d4af37" stroke="none" />
           </g>
         ))}
       </g>

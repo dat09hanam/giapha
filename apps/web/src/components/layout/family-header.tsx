@@ -5,7 +5,7 @@ import {
   ChevronRight,
   GitBranch,
   HandHeart,
-  Info,
+  House,
   Landmark,
   LogIn,
   Menu,
@@ -18,7 +18,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
-import Link from 'next/link';
+import Link, { useLinkStatus } from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -27,12 +27,7 @@ import { LogoutButton } from '@/components/auth/logout-button';
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
 import type { UserRole } from '@/lib/auth-api';
-import {
-  familyHref,
-  isInSection,
-  type FamilyNavItem,
-  type FamilyNavKey,
-} from '@/lib/family-nav';
+import { familyHref, isInSection, type FamilyNavItem, type FamilyNavKey } from '@/lib/family-nav';
 import { cn } from '@/lib/utils';
 
 export type FamilyHeaderViewer = {
@@ -44,14 +39,32 @@ export type FamilyHeaderViewer = {
 } | null;
 
 const NAV_ICONS: Record<FamilyNavKey, LucideIcon> = {
+  home: House,
   tree: Network,
   feed: Newspaper,
   fund: Wallet,
   merit: HandHeart,
   library: Images,
   announcements: Bell,
-  about: Info,
 };
+
+/**
+ * Lights a link the moment it is tapped, while the next page is still on its way.
+ * Render it inside a positioned Link.
+ */
+function PendingGlow({ className }: { className: string }) {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200',
+        pending && 'animate-pulse opacity-100',
+        className,
+      )}
+    />
+  );
+}
 
 function SideNavEntry({
   item,
@@ -64,7 +77,7 @@ function SideNavEntry({
 }) {
   const Icon = NAV_ICONS[item.key];
   const base =
-    'flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition [&_svg]:size-5 [&_svg]:shrink-0';
+    'relative flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition duration-200 [&_svg]:size-5 [&_svg]:shrink-0';
 
   if (item.path === null) {
     return (
@@ -91,10 +104,11 @@ function SideNavEntry({
       className={cn(
         base,
         active
-          ? 'bg-amber-50 text-brand-800 shadow-sm'
-          : 'text-white/85 hover:bg-white/10 hover:text-white',
+          ? 'bg-paper text-brand-800 shadow-sm ring-1 ring-inset ring-gold-400/40'
+          : 'text-gold-50/85 hover:bg-white/10 hover:text-white',
       )}
     >
+      <PendingGlow className="rounded-xl bg-white/15" />
       <Icon aria-hidden="true" />
       <span className="truncate">{item.label}</span>
     </Link>
@@ -116,7 +130,7 @@ export function BottomTab({
   return (
     <span
       className={cn(
-        'relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium',
+        'relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors duration-200',
         active ? 'text-brand-700' : disabled ? 'text-stone-300' : 'text-stone-500',
       )}
     >
@@ -141,7 +155,7 @@ export function BottomTab({
 }
 
 /**
- * A family's navigation. Desktops get a red sidebar with the family's name;
+ * A family's navigation. Desktops get a dark-wood sidebar with the family's name;
  * phones and tablets get a bottom tab bar, where the thumb is. The page leaves
  * room for either (see the family chrome).
  */
@@ -165,7 +179,7 @@ export function FamilyHeader({
   const inDesigner = pathname.endsWith('/thiet_ke');
   // The clan head's admin area, or a branch manager's way into the designer.
   const managerLink = isManager
-    ? { href: adminHref, label: 'Quản trị', icon: Settings, active: adminActive }
+    ? { href: adminHref, label: 'Quản lý dòng họ', icon: Settings, active: adminActive }
     : viewer?.managesBranches
       ? {
           href: familyHref(family.slug, 'thiet_ke'),
@@ -180,7 +194,8 @@ export function FamilyHeader({
   );
   // The Menu sheet: working sections without a tab, then those still being built.
   const inMenu = nav.filter(
-    (item): item is FamilyNavItem & { path: string } => item.path !== null && Boolean(item.menuOnly),
+    (item): item is FamilyNavItem & { path: string } =>
+      item.path !== null && Boolean(item.menuOnly),
   );
   const comingSoon = nav.filter((item) => item.path === null);
   const inMenuSection = inMenu.some((item) =>
@@ -201,17 +216,17 @@ export function FamilyHeader({
 
   return (
     <>
-      {/* From lg: a red sidebar down the left; the page leaves room for it (family chrome). */}
+      {/* From lg: a dark-wood sidebar down the left; the page leaves room for it. */}
       <aside
-        className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col overflow-hidden bg-gradient-to-b from-brand-700 via-brand-800 to-brand-900 text-white shadow-xl lg:flex print:hidden!"
+        className="heritage-hero fixed inset-y-0 left-0 z-40 hidden w-60 flex-col overflow-hidden rounded-none border-y-0 border-l-0 border-r border-gold-500/30 text-white shadow-xl lg:flex print:hidden!"
         aria-label="Điều hướng dòng họ"
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-20 top-20 size-72 rounded-full bg-brand-500/15 blur-3xl"
+          className="pointer-events-none absolute -right-20 top-20 size-72 rounded-full bg-gold-400/10 blur-3xl"
         />
         <Image
-          src="/images/decorations/sidebar-ancestral-hall.webp"
+          src="/images/decorations/sidebar-ancestral-hall.png"
           alt=""
           aria-hidden="true"
           width={900}
@@ -223,11 +238,11 @@ export function FamilyHeader({
           href={familyHref(family.slug, '')}
           className="relative flex items-center gap-3 px-5 pb-5 pt-6"
         >
-          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/10 ring-2 ring-amber-300/70">
-            <Landmark className="size-6 text-amber-100" strokeWidth={1.7} aria-hidden="true" />
+          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/10 ring-2 ring-gold-300/70">
+            <Landmark className="size-6 text-gold-100" strokeWidth={1.7} aria-hidden="true" />
           </span>
           <span className="min-w-0 font-display leading-tight">
-            <span className="block text-sm text-amber-100/90">Gia phả</span>
+            <span className="block text-sm text-gold-100/90">Gia phả</span>
             <span className="block truncate text-lg font-bold" title={family.name}>
               {family.name.replace(/^gia\s+phả\s+/i, '') || family.name}
             </span>
@@ -243,12 +258,13 @@ export function FamilyHeader({
               href={managerLink.href}
               aria-current={managerLink.active ? 'page' : undefined}
               className={cn(
-                'mt-2 flex h-11 items-center gap-3 rounded-xl border-t border-white/10 px-3 text-[15px] font-medium transition',
+                'relative mt-2 flex h-11 items-center gap-3 rounded-xl border-t border-white/10 px-3 text-[15px] font-medium transition duration-200',
                 managerLink.active
-                  ? 'bg-amber-50 text-brand-800 shadow-sm'
-                  : 'text-white/85 hover:bg-white/10 hover:text-white',
+                  ? 'bg-paper text-brand-800 shadow-sm ring-1 ring-inset ring-gold-400/40'
+                  : 'text-gold-50/85 hover:bg-white/10 hover:text-white',
               )}
             >
+              <PendingGlow className="rounded-xl bg-white/15" />
               <managerLink.icon className="size-5 shrink-0" aria-hidden="true" />
               {managerLink.label}
             </Link>
@@ -259,7 +275,7 @@ export function FamilyHeader({
           {viewer ? (
             <>
               <div className="flex items-center gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-amber-50 text-brand-700">
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-gold-50 text-brand-700 ring-1 ring-gold-300/50">
                   <UserRound className="size-5" aria-hidden="true" />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -284,7 +300,7 @@ export function FamilyHeader({
           ) : (
             <Link
               href={loginHref}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl bg-amber-50 text-sm font-semibold text-brand-800 hover:bg-white"
+              className="flex h-10 items-center justify-center gap-2 rounded-lg border border-gold-300/50 bg-paper text-sm font-semibold text-brand-800 hover:bg-white"
             >
               <LogIn className="size-4" aria-hidden="true" />
               Đăng nhập
@@ -306,12 +322,28 @@ export function FamilyHeader({
             <section
               id="family-menu"
               aria-label="Menu"
-              className="ui-sheet absolute inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] grid gap-1 rounded-t-3xl border-t border-line bg-[#fffdf8] px-4 pb-4 pt-3 shadow-2xl"
+              className="ui-sheet heritage-panel absolute inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] grid gap-1 rounded-t-3xl border-x-0 border-b-0 px-4 pb-4 pt-3 shadow-2xl"
             >
               <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-stone-300" aria-hidden="true" />
               <p className="truncate px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-stone-500">
                 {family.name}
               </p>
+              {managerLink ? (
+                // The clan head's or a branch manager's own page; other members never see it.
+                <Link
+                  href={managerLink.href}
+                  aria-current={managerLink.active ? 'page' : undefined}
+                  onClick={() => setMenuOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium transition hover:bg-paper',
+                    managerLink.active ? 'bg-brand-50 text-brand-800' : 'text-wood-800',
+                  )}
+                >
+                  <managerLink.icon className="size-5 text-brand-700" aria-hidden="true" />
+                  {managerLink.label}
+                  <ChevronRight className="ml-auto size-4 text-stone-400" aria-hidden="true" />
+                </Link>
+              ) : null}
               {inMenu.length > 0 ? (
                 <ul className="grid">
                   {inMenu.map((item) => {
@@ -326,7 +358,7 @@ export function FamilyHeader({
                           onClick={() => setMenuOpen(false)}
                           className={cn(
                             'flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium transition hover:bg-paper',
-                            current ? 'bg-brand-50 text-brand-800' : 'text-stone-800',
+                            current ? 'bg-brand-50 text-brand-800' : 'text-wood-800',
                           )}
                         >
                           <Icon className="size-5 text-brand-700" aria-hidden="true" />
@@ -353,7 +385,7 @@ export function FamilyHeader({
                       >
                         <Icon className="size-5 text-brand-700" aria-hidden="true" />
                         <span className="font-medium">{item.label}</span>
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                        <span className="rounded-full bg-gold-100 px-2 py-0.5 text-[11px] font-medium text-gold-800">
                           Sắp có
                         </span>
                         <ChevronRight
@@ -394,7 +426,7 @@ export function FamilyHeader({
 
       {inDesigner ? null : (
         <nav
-          className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-[#fffdf8]/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(30,41,35,0.06)] backdrop-blur lg:hidden print:hidden"
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-gold-500/30 bg-paper/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_20px_rgba(74,46,18,0.08)] backdrop-blur lg:hidden print:hidden"
           aria-label="Mục của dòng họ"
         >
           <ul className="mx-auto grid h-16 max-w-xl auto-cols-fr grid-flow-col">
@@ -407,31 +439,15 @@ export function FamilyHeader({
                   <Link
                     href={href}
                     aria-current={active ? 'page' : undefined}
-                    className="block h-full"
+                    className="relative block h-full"
                     onClick={() => setMenuOpen(false)}
                   >
+                    <PendingGlow className="bg-brand-50" />
                     <BottomTab icon={icon} label={item.label} active={active} />
                   </Link>
                 </li>
               );
             })}
-            {managerLink ? (
-              // The clan head's or a branch manager's own tab; other members never see it.
-              <li>
-                <Link
-                  href={managerLink.href}
-                  aria-current={managerLink.active && !menuOpen ? 'page' : undefined}
-                  className="block h-full"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <BottomTab
-                    icon={managerLink.icon}
-                    label={managerLink.label}
-                    active={managerLink.active && !menuOpen}
-                  />
-                </Link>
-              </li>
-            ) : null}
             <li>
               <button
                 type="button"
@@ -443,8 +459,8 @@ export function FamilyHeader({
                 <BottomTab
                   icon={menuOpen ? X : Menu}
                   label="Menu"
-                  // A section reached from the menu keeps the Menu tab lit.
-                  active={menuOpen || inMenuSection}
+                  // A page reached from the menu keeps the Menu tab lit.
+                  active={menuOpen || inMenuSection || Boolean(managerLink?.active)}
                 />
               </button>
             </li>

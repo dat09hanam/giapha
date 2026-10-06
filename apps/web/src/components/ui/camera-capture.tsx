@@ -131,7 +131,7 @@ export function CameraCapture({
         role="dialog"
         aria-modal="true"
         aria-labelledby="camera-capture-title"
-        className="ui-dialog relative w-full max-w-lg rounded-3xl border border-amber-900/15 bg-[#fffdf8] p-5 shadow-2xl sm:p-6"
+        className="ui-dialog heritage-panel relative w-full max-w-lg rounded-2xl p-5 shadow-2xl sm:p-6"
       >
         <button
           type="button"

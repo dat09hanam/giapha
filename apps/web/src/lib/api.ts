@@ -5,6 +5,7 @@ import type { AuthProfile } from '@/lib/auth-api';
 import type { TreeEditScope } from '@/lib/branch-scope';
 import type { FamilyAccount } from '@/lib/family-accounts-api';
 import type { PosterDecoration } from '@/lib/poster-decorations';
+import type { FeedPage } from '@/lib/feed-api';
 import type { FundLedger } from '@/lib/fund-api';
 import type { AlbumDetail, LibraryOverview } from '@/lib/library-api';
 import type { MeritEventDetail, MeritOverview } from '@/lib/merit-api';
@@ -114,6 +115,11 @@ export const getAlbum = cache((slug: string, albumId: string, sessionToken: stri
 /** Quỹ họ: the ledger with totals; every member may read it. */
 export const getFundLedger = cache((slug: string, sessionToken: string) =>
   getJson<FundLedger>(`/families/${encodeURIComponent(slug)}/fund`, 'tải quỹ họ', sessionToken),
+);
+
+/** The first page of Bảng tin, newest first; read-only, so no device key is sent. */
+export const getFeedFirstPage = cache((slug: string, sessionToken: string) =>
+  getJson<FeedPage>(`/families/${encodeURIComponent(slug)}/feed`, 'tải bảng tin', sessionToken),
 );
 
 /** Công đức: the events with their totals; every member may read them. */

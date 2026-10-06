@@ -4,17 +4,17 @@ import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 
-/** A hero's main action: white on the red banner, a filled red button on the desktop's paper. */
+/** A hero's main action: red lacquer against the dark wood banner. */
 export const heroButtonClass =
-  'inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-white/15 px-3.5 text-sm font-medium text-white ring-1 ring-inset ring-white/25 transition hover:bg-white/25 disabled:opacity-60 lg:h-10 lg:rounded-xl lg:bg-brand-700 lg:px-4 lg:font-semibold lg:shadow-sm lg:ring-0 lg:hover:bg-brand-800';
+  'inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-gold-300/25 bg-brand-700 px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-800 disabled:opacity-60 lg:h-10 lg:px-4';
 
-/** A round icon button for a hero's actions: white on red, white with red ink on paper. */
+/** A compact icon action on the wood banner. */
 export const heroIconButtonClass =
-  'grid size-9 place-items-center rounded-full bg-white/15 text-white ring-1 ring-inset ring-white/25 transition hover:bg-white/25 disabled:opacity-60 lg:size-10 lg:bg-white lg:text-brand-800 lg:shadow-sm lg:ring-line lg:hover:bg-brand-50';
+  'grid size-9 place-items-center rounded-full border border-gold-300/30 bg-white/10 text-gold-50 transition hover:bg-white/20 disabled:opacity-60 lg:size-10';
 
 /**
  * Pulls the first card up over an `overlap` hero, inset from the screen edge, as in the
- * family sections' phone design. From lg the hero is a plain title, so nothing overlaps.
+ * family sections' phone design. From lg the first card returns to the normal document flow.
  */
 export const heroOverlapClass = 'relative -mt-10 mx-3 sm:mx-5 lg:mx-0 lg:mt-0';
 
@@ -40,10 +40,9 @@ export function CloudMotif({ className }: { className?: string }) {
 }
 
 /**
- * The top of every family section. On phones and tablets a red banner: a serif title, an
- * optional line under it, actions on the right, and anything else the section shows on red. With
- * `overlap`, it leaves room for the first card to rise over it (`heroOverlapClass`). From lg,
- * beside the red sidebar, it is a red title with its icon on the page's paper instead.
+ * The top of every family section. A dark-wood banner carries a serif title, an optional line,
+ * actions on the right, and the section's own controls. With `overlap`, it leaves room for the
+ * first card to rise over it (`heroOverlapClass`) on compact screens.
  */
 export function PageHero({
   title,
@@ -67,9 +66,9 @@ export function PageHero({
   return (
     <header
       className={cn(
-        'relative isolate overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900 px-5 pt-5 text-white shadow-sm sm:rounded-2xl sm:px-6',
+        'heritage-hero relative isolate overflow-hidden px-5 pt-5 text-white sm:rounded-2xl sm:px-6',
         overlap ? 'pb-14' : 'pb-6',
-        'lg:overflow-visible lg:rounded-none lg:bg-none lg:px-0 lg:pb-1 lg:pt-2 lg:text-brand-800 lg:shadow-none',
+        'lg:px-8 lg:pb-7 lg:pt-7',
       )}
     >
       <CloudMotif className="pointer-events-none absolute -right-8 -top-3 -z-10 w-64 text-white/10 lg:hidden" />
@@ -77,7 +76,7 @@ export function PageHero({
       {back ? (
         <Link
           href={back.href}
-          className="mb-2 inline-flex items-center gap-1 text-sm text-brand-50/80 transition hover:text-white lg:text-brand-700 lg:hover:text-brand-900"
+          className="mb-2 inline-flex items-center gap-1 text-sm text-gold-100/85 transition hover:text-white"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           {back.label}
@@ -86,14 +85,14 @@ export function PageHero({
       <div className="flex items-start justify-between gap-3">
         <h1 className="flex min-w-0 items-center gap-2.5 break-words font-display text-[1.75rem] font-bold leading-tight sm:text-3xl">
           {Icon ? (
-            <Icon className="hidden size-7 shrink-0 text-brand-700 lg:block" aria-hidden="true" />
+            <Icon className="hidden size-7 shrink-0 text-gold-300 lg:block" aria-hidden="true" />
           ) : null}
           <span className="min-w-0">{title}</span>
         </h1>
         {actions ? <div className="flex shrink-0 items-center gap-2 pt-0.5">{actions}</div> : null}
       </div>
       {description ? (
-        <div className="mt-1.5 max-w-lg text-sm leading-6 text-brand-50/85 lg:max-w-2xl lg:text-stone-600">
+        <div className="mt-1.5 max-w-lg text-sm leading-6 text-gold-50/80 lg:max-w-2xl">
           {description}
         </div>
       ) : null}

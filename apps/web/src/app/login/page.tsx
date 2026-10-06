@@ -3,7 +3,6 @@ import { AuthShell } from '@/components/auth/auth-shell';
 import { LoginForm } from '@/components/auth/login-form';
 
 export const metadata: Metadata = {
-  title: 'Đăng nhập | Gia Phả',
   description: 'Đăng nhập để truy cập không gian dòng họ của bạn.',
 };
 

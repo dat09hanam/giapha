@@ -79,7 +79,7 @@ function PickerPersonNode({ data }: NodeProps<PickerFlowNode>) {
               ? 'border-brand-600 bg-brand-100'
               : blocked
                 ? 'cursor-not-allowed border-stone-200 bg-stone-100 opacity-70'
-                : 'border-amber-900/20 bg-[#fffdf8] hover:border-brand-700 hover:bg-brand-50/60',
+                : 'border-gold-700/30 bg-[var(--card)] hover:border-brand-700 hover:bg-brand-50/60',
         )}
       >
         {person.honorific ? (
@@ -281,12 +281,15 @@ function BranchRootPickerDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="branch-root-picker-title"
-        className="relative flex h-full w-full flex-col overflow-hidden border border-amber-900/15 bg-[#fffdf8] shadow-2xl sm:rounded-3xl"
+        className="heritage-panel relative flex h-full w-full flex-col overflow-hidden shadow-2xl sm:rounded-2xl"
       >
-        <header className="flex items-start gap-3 border-b border-amber-900/10 bg-gradient-to-b from-amber-50 to-[#fffdf8] px-5 py-4 sm:px-6">
-          <GitBranch className="mt-1 size-5 shrink-0 text-amber-700" aria-hidden="true" />
+        <header className="flex items-start gap-3 border-b border-gold-500/25 bg-gradient-to-b from-gold-50 to-[var(--card)] px-5 py-4 sm:px-6">
+          <GitBranch className="mt-1 size-5 shrink-0 text-brand-700" aria-hidden="true" />
           <div className="min-w-0 flex-1">
-            <h2 id="branch-root-picker-title" className="text-lg font-bold text-[#3b2a0c]">
+            <h2
+              id="branch-root-picker-title"
+              className="font-display text-lg font-bold text-wood-800"
+            >
               Giao chi cho {accountName}
             </h2>
             <p className="text-sm text-stone-600">
@@ -303,7 +306,7 @@ function BranchRootPickerDialog({
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 bg-[#f7f1e3]">
+        <div className="min-h-0 flex-1 bg-paper-deep">
           {tree.people.length === 0 ? (
             <p className="grid h-full place-items-center px-6 text-center text-sm text-stone-600">
               Cây gia phả chưa có thành viên nào. Hãy thêm thành viên trong trang thiết kế trước.
@@ -331,7 +334,7 @@ function BranchRootPickerDialog({
           )}
         </div>
 
-        <footer className="flex flex-col gap-3 border-t border-amber-900/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <footer className="flex flex-col gap-3 border-t border-gold-500/25 bg-paper/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="text-sm text-stone-700">
             {selected ? (
               <>

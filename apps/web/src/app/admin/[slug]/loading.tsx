@@ -10,8 +10,8 @@ export default function FamilyAdminLoading() {
         <div className="mt-3 h-10 w-72 max-w-full rounded-xl bg-brand-900/10" />
         <div className="mt-3 h-5 w-md max-w-full rounded-lg bg-stone-300/60" />
       </div>
-      <div className="h-13 w-full rounded-2xl border bg-white/70 sm:w-96" />
-      <div className="h-136 rounded-2xl border bg-white/70" />
+      <div className="h-13 w-full rounded-xl border border-gold-500/25 bg-[var(--card)]/70 sm:w-96" />
+      <div className="h-136 rounded-xl border border-gold-500/25 bg-[var(--card)]/70" />
       <span className="sr-only">Đang tải thông tin dòng họ…</span>
     </main>
   );

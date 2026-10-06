@@ -1,7 +1,6 @@
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 
-import { LotusArtwork, Mountains } from '@/components/about/about-art';
 import { FamilyHeader, type FamilyHeaderViewer } from '@/components/layout/family-header';
 import { SiteHeaderBar } from '@/components/layout/site-header';
 import { ViewerIdentityScope } from '@/components/layout/viewer-identity-scope';
@@ -51,17 +50,19 @@ async function loadFeatures(): Promise<FamilyFeatures | null> {
   }
 }
 
-/** Far mountains and lotus behind the desktop pages, as on the family's paper. */
-function PaperScenery() {
+/**
+ * The background picture behind every family page, fixed while the page scrolls. Until the
+ * file exists the paper on <html> shows through (globals.css).
+ */
+const FAMILY_BACKGROUND = '/images/decorations/family-background.png';
+
+function PageBackground() {
   return (
     <div
-      className="pointer-events-none fixed inset-y-0 left-60 right-0 -z-10 hidden lg:block print:hidden"
+      className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat lg:left-60 print:hidden"
+      style={{ backgroundImage: `url("${FAMILY_BACKGROUND}")` }}
       aria-hidden="true"
-    >
-      <Mountains className="absolute inset-x-0 bottom-0 h-40 w-full opacity-70" />
-      <LotusArtwork className="absolute -bottom-2 left-4 w-40 opacity-30" />
-      <LotusArtwork className="absolute -bottom-2 right-4 w-44 -scale-x-100 opacity-30" />
-    </div>
+    />
   );
 }
 
@@ -94,15 +95,11 @@ export async function FamilyChrome({ slug, children }: { slug: string; children:
         viewer?.role === 'MEMBER_PLUS' || viewer?.managesBranches ? viewer.displayName : null
       }
     >
-      <FamilyHeader
-        family={{ slug, name }}
-        nav={familyNav(features)}
-        viewer={viewer}
-      />
+      <FamilyHeader family={{ slug, name }} nav={familyNav(features)} viewer={viewer} />
       {/* Below lg the navigation is a 4rem bar fixed to the bottom; keep content above it.
           From lg it is a 15rem sidebar on the left. */}
       <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 lg:pl-60 print:p-0">
-        <PaperScenery />
+        <PageBackground />
         {children}
       </div>
     </ViewerIdentityScope>

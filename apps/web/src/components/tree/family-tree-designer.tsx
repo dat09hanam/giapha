@@ -214,7 +214,7 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
     <article
       aria-current={data.selected ? 'true' : undefined}
       className={cn(
-        'relative w-[214px] overflow-hidden rounded-2xl border bg-[#fffdf8] shadow-lg shadow-brand-950/10 transition duration-200',
+        'relative w-[214px] overflow-hidden rounded-xl border border-gold-500/30 bg-[var(--card)] shadow-lg shadow-wood-950/10 transition duration-200',
         data.selected
           ? 'scale-[1.03] border-brand-700 bg-brand-50 shadow-2xl shadow-brand-950/25 ring-4 ring-brand-500/30'
           : 'border-amber-900/20 hover:border-amber-700/45',
@@ -1424,28 +1424,28 @@ export function FamilyTreeDesigner({
   }
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-[#f4efe4]">
-      <header className="hidden border-b border-brand-950/20 bg-brand-950 text-brand-50 shadow-sm lg:block">
+    <main className="min-h-[calc(100vh-4rem)] bg-paper-deep">
+      <header className="heritage-hero hidden rounded-none border-x-0 border-t-0 text-gold-50 lg:block">
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-200/15 text-amber-200 ring-1 ring-amber-100/20">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-gold-200/10 text-gold-200 ring-1 ring-gold-200/25">
               <Network className="size-5" aria-hidden="true" />
             </span>
             <div className="min-w-0">
               <h1 className="truncate font-serif text-xl font-semibold sm:text-2xl">
                 Thiết kế gia phả
               </h1>
-              <p className="truncate text-xs text-brand-100/70">{familyName}</p>
+              <p className="truncate text-xs text-gold-100/70">{familyName}</p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <span className="rounded-full border border-amber-200/20 bg-amber-100/10 px-3 py-1.5 text-xs text-amber-100">
+            <span className="rounded-full border border-gold-200/25 bg-gold-100/10 px-3 py-1.5 text-xs text-gold-100">
               Bản nháp · {memberCount} khung
             </span>
             <Button
               type="button"
-              className="bg-amber-200 text-brand-950 hover:bg-amber-100"
+              className="border-gold-300/40 bg-gold-200 text-wood-900 hover:bg-gold-100"
               disabled={savingAll || !hasUnsavedChanges}
               title={
                 hasUnsavedChanges ? 'Lưu toàn bộ bản thiết kế' : 'Không có thay đổi nào cần lưu'
@@ -1482,7 +1482,7 @@ export function FamilyTreeDesigner({
 
       <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section
-          className="relative h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] overflow-hidden bg-[#f8f3e8] lg:h-[calc(100vh-4rem)] lg:border-r lg:border-amber-900/15"
+          className="relative h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] overflow-hidden bg-paper lg:h-[calc(100vh-4rem)] lg:border-r lg:border-gold-500/30"
           aria-label="Canvas thiết kế cây gia phả"
         >
           <ReactFlow
@@ -1511,18 +1511,18 @@ export function FamilyTreeDesigner({
             deleteKeyCode={null}
             proOptions={{ hideAttribution: true }}
           >
-            <Background variant={BackgroundVariant.Lines} gap={32} size={0.7} color="#d8cdb8" />
+            <Background variant={BackgroundVariant.Lines} gap={32} size={0.7} color="#dfcda7" />
             {/* Phones pinch to zoom and have "Toàn cây" in the bottom bar. */}
             <Controls position="bottom-left" showInteractive={false} className="max-lg:!hidden" />
             <Panel
               position="top-left"
-              className="hidden max-w-xs rounded-xl border border-amber-900/15 bg-[#fffdf8]/90 px-3 py-2 text-xs leading-5 text-stone-600 shadow-sm backdrop-blur lg:block"
+              className="hidden max-w-xs rounded-xl border border-gold-500/30 bg-paper/90 px-3 py-2 text-xs leading-5 text-stone-600 shadow-sm backdrop-blur lg:block"
             >
               Chọn một khung để chỉnh sửa hoặc bấm “Thêm quan hệ” để mở rộng cây.
             </Panel>
             <Panel
               position="top-left"
-              className="rounded-full border border-amber-900/15 bg-[#fffdf8]/90 px-3 py-1.5 text-xs text-stone-600 shadow-sm backdrop-blur lg:hidden"
+              className="rounded-full border border-gold-500/30 bg-paper/90 px-3 py-1.5 text-xs text-stone-600 shadow-sm backdrop-blur lg:hidden"
             >
               {memberCount} khung · Chạm vào khung để sửa
             </Panel>
@@ -1541,7 +1541,7 @@ export function FamilyTreeDesigner({
         ) : null}
         <aside
           className={cn(
-            'overflow-y-auto bg-[#fffdf8] p-5',
+            'overflow-y-auto bg-[var(--card)] p-5',
             editorSheet.mounted
               ? 'ui-sheet-below-lg fixed inset-x-0 bottom-0 z-[45] max-h-[85dvh] rounded-t-3xl pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl'
               : 'hidden',
@@ -2012,7 +2012,7 @@ export function FamilyTreeDesigner({
       </div>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-950/10 bg-[#fffdf8]/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(30,41,35,0.06)] backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-gold-500/30 bg-paper/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(74,46,18,0.08)] backdrop-blur lg:hidden"
         aria-label="Công cụ thiết kế"
       >
         <ul className="mx-auto grid h-16 max-w-xl grid-cols-5">
@@ -2100,7 +2100,7 @@ export function FamilyTreeDesigner({
               role="dialog"
               aria-modal="true"
               aria-labelledby="relationship-dialog-title"
-              className="ui-dialog relative max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-amber-900/15 bg-[#fffdf8] p-5 shadow-2xl sm:p-6"
+              className="ui-dialog heritage-panel relative max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl p-5 shadow-2xl sm:p-6"
             >
               <button
                 type="button"
@@ -2132,10 +2132,7 @@ export function FamilyTreeDesigner({
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
                     {RELATIONSHIP_CHOICES.map((choice) => {
                       const Icon = choice.icon;
-                      const blockedReason = choiceBlockedReason(
-                        choice.kind,
-                        relationshipTarget,
-                      );
+                      const blockedReason = choiceBlockedReason(choice.kind, relationshipTarget);
                       const tooltipId = 'relationship-choice-tip-' + choice.kind;
                       return (
                         <div
@@ -2286,7 +2283,7 @@ export function FamilyTreeDesigner({
               aria-modal="true"
               aria-labelledby="delete-member-dialog-title"
               aria-describedby="delete-member-dialog-description"
-              className="ui-dialog relative w-full max-w-md rounded-3xl border border-red-900/15 bg-[#fffdf8] p-5 shadow-2xl sm:p-6"
+              className="ui-dialog heritage-panel relative w-full max-w-md rounded-2xl border-red-900/15 p-5 shadow-2xl sm:p-6"
             >
               <span className="grid size-12 place-items-center rounded-2xl bg-red-100 text-red-700">
                 <Trash2 className="size-6" aria-hidden="true" />

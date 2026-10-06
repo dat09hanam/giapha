@@ -172,7 +172,7 @@ export function PrintBookView({ tree, family, familySlug }: PrintBookViewProps) 
           <div className="min-w-0 flex-1 space-y-3">
             <div className="flex items-center gap-3">
               <Link
-                href={`/${encodeURIComponent(familySlug)}`}
+                href={`/${encodeURIComponent(familySlug)}/gia-pha`}
                 className="inline-flex items-center gap-1 text-sm text-stone-600 hover:text-brand-900"
               >
                 <ArrowLeft className="size-4" aria-hidden="true" />

@@ -19,7 +19,7 @@ export function isFamilyAdminRoute(pathname: string): boolean {
 }
 
 export type FamilyNavKey =
-  'tree' | 'feed' | 'fund' | 'merit' | 'library' | 'announcements' | 'about';
+  'home' | 'tree' | 'feed' | 'fund' | 'merit' | 'library' | 'announcements';
 
 export type FamilyNavItem = {
   key: FamilyNavKey;
@@ -34,13 +34,13 @@ export type FamilyNavItem = {
 
 /** The family sections, in menu order. Give a section its `path` once its page exists. */
 export const FAMILY_NAV: readonly FamilyNavItem[] = [
-  { key: 'tree', label: 'Gia phả', path: '' },
+  { key: 'home', label: 'Trang chủ', path: '' },
+  { key: 'tree', label: 'Gia phả', path: 'gia-pha' },
   { key: 'feed', label: 'Bảng tin', path: 'bang-tin', feature: 'feed' },
   { key: 'fund', label: 'Quỹ họ', path: 'quy-ho', feature: 'fund' },
   { key: 'merit', label: 'Công đức', path: 'cong-duc', feature: 'merit' },
   { key: 'library', label: 'Album', path: 'tu-lieu', feature: 'library' },
   { key: 'announcements', label: 'Thông báo', path: null },
-  { key: 'about', label: 'Giới thiệu', path: 'gioi-thieu', menuOnly: true },
 ];
 
 /** The sections a family shows: those the platform admin has not switched off. */

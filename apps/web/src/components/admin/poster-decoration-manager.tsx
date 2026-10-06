@@ -244,7 +244,7 @@ function BackgroundEditor({
               onRightTextAreaChange={(rightTextArea) => onChange({ ...draft, rightTextArea })}
             />
           ) : (
-            <div className="grid aspect-video place-items-center rounded-xl border border-dashed border-brand-900/25 bg-[#fff6c9]/60 p-6 text-center">
+            <div className="grid aspect-video place-items-center rounded-xl border border-dashed border-gold-700/35 bg-paper-deep/70 p-6 text-center">
               <span className="grid justify-items-center gap-2 text-sm text-stone-500">
                 <ImagePlus className="size-8 text-stone-400" aria-hidden="true" />
                 Chọn ảnh nền để bắt đầu đánh dấu các vùng
@@ -365,7 +365,7 @@ function FittedSwatch({
   return (
     <div
       ref={ref}
-      className={'aspect-video w-full overflow-hidden bg-[#fff6c9] ' + (className ?? '')}
+      className={'aspect-video w-full overflow-hidden bg-paper-deep ' + (className ?? '')}
     >
       {width > 0 ? (
         <PosterBackgroundSwatch decoration={decoration} width={width} height={(width * 9) / 16} />

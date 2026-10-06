@@ -14,7 +14,6 @@ type FamilyDesignerPageProps = {
 };
 
 export const metadata: Metadata = {
-  title: 'Thiết kế gia phả',
   description: 'Không gian thiết kế cấu trúc cây gia phả theo từng thế hệ.',
 };
 

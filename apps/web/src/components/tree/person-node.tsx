@@ -16,8 +16,8 @@ import { VIEWER_NODE_WIDTH, type PersonFlowNode } from '@/lib/tree-layout';
  * border widths are for a full-size card and scale with it.
  */
 const FRAMES = {
-  founder: { src: '/images/frames/frame-doi-1.png', slice: 80, border: 30 },
-  descendant: { src: '/images/frames/frame-doi-2.png', slice: 90, border: 33 },
+  founder: { src: '/images/decorations/frame-doi-1.png', slice: 80, border: 30 },
+  descendant: { src: '/images/decorations/frame-doi-2.png', slice: 90, border: 33 },
 };
 
 function frameStyle(frame: (typeof FRAMES)[keyof typeof FRAMES], border: number): CSSProperties {
@@ -128,7 +128,7 @@ export function PersonCard({
         // The Đời 1 crest sits on the top edge of the frame.
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src="/images/frames/crest-doi-1.png"
+          src="/images/decorations/crest-doi-1.png"
           alt=""
           aria-hidden="true"
           draggable={false}
@@ -142,7 +142,7 @@ export function PersonCard({
       >
         {data.honorific ? (
           <p
-            className="max-w-full truncate font-semibold uppercase tracking-wider text-[#8b1a1a]/75"
+            className="max-w-full truncate font-semibold uppercase tracking-wider text-brand-700/75"
             style={{ fontSize: HONORIFIC_SIZE * data.textScale }}
             title={data.honorific}
           >
@@ -150,7 +150,7 @@ export function PersonCard({
           </p>
         ) : null}
         <h2
-          className="line-clamp-4 max-w-full text-balance font-bold text-[#8b1a1a]"
+          className="line-clamp-4 max-w-full text-balance font-bold text-brand-700"
           style={{
             fontFamily: NAME_FONT_FAMILY,
             fontSize: nameSize,

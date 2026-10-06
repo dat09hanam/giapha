@@ -4,7 +4,7 @@ export default function TenantLoading() {
       <div className="h-5 w-36 rounded bg-stone-200" />
       <div className="mt-4 h-10 w-80 max-w-full rounded bg-stone-200" />
       <div className="mt-3 h-5 w-96 max-w-full rounded bg-stone-200" />
-      <div className="mt-8 h-[620px] rounded-3xl border bg-white/55" />
+      <div className="mt-8 h-[620px] rounded-2xl border border-gold-500/25 bg-[var(--card)]/55" />
     </main>
   );
 }

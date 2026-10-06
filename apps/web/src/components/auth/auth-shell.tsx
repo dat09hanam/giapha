@@ -34,20 +34,20 @@ export function AuthShell({
         ← Về trang chủ
       </Link>
 
-      <div className="grid overflow-hidden rounded-3xl border border-line shadow-2xl shadow-brand-950/10 lg:grid-cols-[1.05fr_1fr]">
-        <aside className="relative isolate flex flex-col justify-between gap-8 overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900 p-8 text-brand-50 lg:p-10">
+      <div className="grid overflow-hidden rounded-2xl border border-gold-500/35 shadow-2xl shadow-wood-950/10 lg:grid-cols-[1.05fr_1fr]">
+        <aside className="heritage-hero relative isolate flex flex-col justify-between gap-8 overflow-hidden border-0 p-8 text-gold-50 lg:p-10">
           <CloudMotif className="pointer-events-none absolute -right-10 -top-2 -z-10 w-72 text-white/10" />
           <CloudMotif className="pointer-events-none absolute -bottom-3 -left-10 -z-10 w-64 rotate-180 text-white/[0.06]" />
           <div>
-            <span className="grid size-11 place-items-center rounded-2xl bg-brand-50/15 text-brand-50">
+            <span className="grid size-11 place-items-center rounded-full border border-gold-300/45 bg-white/10 text-gold-100">
               <Sprout className="size-6" aria-hidden="true" />
             </span>
             <h2 className="mt-5 font-display text-2xl font-bold lg:text-3xl">{brandTitle}</h2>
-            <p className="mt-2 max-w-sm text-sm leading-6 text-brand-100/85">{brandTagline}</p>
+            <p className="mt-2 max-w-sm text-sm leading-6 text-gold-50/75">{brandTagline}</p>
           </div>
 
           {highlights.length > 0 ? (
-            <ul className="hidden gap-3 text-sm text-brand-50/90 lg:grid">
+            <ul className="hidden gap-3 text-sm text-gold-50/85 lg:grid">
               {highlights.map((highlight) => (
                 <li key={highlight} className="flex items-start gap-2.5">
                   <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-brand-50/15">
@@ -60,7 +60,7 @@ export function AuthShell({
           ) : null}
         </aside>
 
-        <section className="bg-[#fffdf8] p-8 lg:p-10">
+        <section className="bg-[var(--card)] p-8 lg:p-10">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-700">
             {eyebrow}
           </p>

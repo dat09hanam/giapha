@@ -63,7 +63,7 @@ export function Tabs({
           role="tablist"
           aria-label={label}
           onKeyDown={handleKeyDown}
-          className="grid w-full auto-cols-fr grid-flow-col gap-1 rounded-2xl border border-brand-950/10 bg-white/70 p-1.5 shadow-sm sm:flex sm:w-fit"
+          className="grid w-full auto-cols-fr grid-flow-col gap-1 rounded-xl border border-gold-500/30 bg-paper/85 p-1.5 shadow-sm sm:flex sm:w-fit"
         >
           {tabs.map((tab) => {
             const selected = tab.id === activeId;
@@ -84,8 +84,8 @@ export function Tabs({
                 className={cn(
                   'relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] sm:h-10 sm:flex-row sm:gap-2 sm:whitespace-nowrap sm:px-4 sm:py-0 sm:text-sm [&_svg]:size-5 [&_svg]:shrink-0 sm:[&_svg]:size-4',
                   selected
-                    ? 'bg-brand-900 text-white shadow-sm'
-                    : 'text-stone-600 hover:bg-brand-50 hover:text-brand-950',
+                    ? 'bg-brand-700 text-white shadow-sm ring-1 ring-brand-900/20'
+                    : 'text-stone-600 hover:bg-gold-50 hover:text-wood-800',
                 )}
               >
                 {tab.icon}

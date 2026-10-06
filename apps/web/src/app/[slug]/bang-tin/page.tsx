@@ -1,4 +1,3 @@
-import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { FamilyFeed } from '@/components/feed/family-feed';
@@ -10,16 +9,6 @@ type FamilyFeedPageProps = {
 };
 
 export const dynamic = 'force-dynamic';
-
-export async function generateMetadata({ params }: FamilyFeedPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  try {
-    const family = await getFamily(slug);
-    return { title: `Bảng tin · ${family.name}` };
-  } catch {
-    return { title: 'Bảng tin' };
-  }
-}
 
 export default async function FamilyFeedPage({ params }: FamilyFeedPageProps) {
   const { slug } = await params;

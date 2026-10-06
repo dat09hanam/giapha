@@ -1,4 +1,3 @@
-import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { AlbumView } from '@/components/library/album-view';
@@ -14,8 +13,6 @@ type AlbumPageProps = {
 };
 
 export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = { title: 'Album ảnh' };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

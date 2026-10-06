@@ -1,25 +1,50 @@
 @import 'tailwindcss';
 
 /*
- * Brand: đỏ son (cinnabar red) on giấy dó (warm paper), the palette of an ancestral altar.
- * `brand-*` is the one accent every screen uses; destructive actions keep Tailwind's `red-*`.
+ * Classic & Heritage system: gỗ trầm carries the large architectural surfaces,
+ * đỏ son marks actions and important states, and vàng đồng draws the fine details.
+ * `brand-*` stays the red interaction scale so existing feature screens inherit
+ * the new palette without coupling their behaviour to a particular visual shell.
  */
 @theme {
-  --color-brand-50: #fdf4f1;
-  --color-brand-100: #fae3dc;
-  --color-brand-200: #f3c4b8;
-  --color-brand-300: #e99c8a;
-  --color-brand-400: #d96a52;
-  --color-brand-500: #c4432c;
-  --color-brand-600: #a92e1f;
-  --color-brand-700: #92241a;
-  --color-brand-800: #7c1f18;
-  --color-brand-900: #661c16;
-  --color-brand-950: #3a0c08;
+  --color-brand-50: #faf3f2;
+  --color-brand-100: #f4e3e1;
+  --color-brand-200: #e8c4c0;
+  --color-brand-300: #d89b95;
+  --color-brand-400: #c66c63;
+  --color-brand-500: #ad4037;
+  --color-brand-600: #8b2825;
+  --color-brand-700: #7a1c1c;
+  --color-brand-800: #641717;
+  --color-brand-900: #4c1313;
+  --color-brand-950: #2b0b0b;
 
-  --color-paper: #f8f1e4;
-  --color-paper-deep: #efe3cc;
-  --color-line: #eadcc4;
+  --color-wood-50: #f8f5f1;
+  --color-wood-100: #efe8e0;
+  --color-wood-200: #ddccb8;
+  --color-wood-300: #c5aa89;
+  --color-wood-400: #a47f58;
+  --color-wood-500: #805a34;
+  --color-wood-600: #65431f;
+  --color-wood-700: #4a2e12;
+  --color-wood-800: #3a240f;
+  --color-wood-900: #2b1a0c;
+  --color-wood-950: #1b0f06;
+
+  --color-gold-50: #fbf8ee;
+  --color-gold-100: #f4ecd4;
+  --color-gold-200: #e8d7a8;
+  --color-gold-300: #dcc47c;
+  --color-gold-400: #d4af37;
+  --color-gold-500: #c5a059;
+  --color-gold-600: #9f7c37;
+  --color-gold-700: #795b28;
+  --color-gold-800: #5d451f;
+  --color-gold-900: #49371d;
+
+  --color-paper: #fdfbf7;
+  --color-paper-deep: #f3eadc;
+  --color-line: #dfcda7;
 
   --font-display: var(--font-noto-serif), 'Noto Serif', Georgia, 'Times New Roman', serif;
 }
@@ -27,25 +52,48 @@
 /* A white card on the paper background; cards inset from the screen edge on phones too. */
 @utility surface {
   border: 1px solid var(--color-line);
-  border-radius: 1rem;
-  background: #fff;
-  box-shadow: 0 1px 2px rgb(58 12 8 / 5%);
+  border-radius: 0.875rem;
+  background: var(--card);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 82%),
+    0 14px 34px -28px rgb(74 46 18 / 55%);
+}
+
+@utility heritage-hero {
+  border: 1px solid rgb(212 175 55 / 28%);
+  background:
+    radial-gradient(circle at 88% 8%, rgb(212 175 55 / 15%), transparent 16rem),
+    linear-gradient(135deg, #65431f 0%, #4a2e12 52%, #2b1a0c 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 8%),
+    0 18px 42px -30px rgb(43 26 12 / 75%);
+}
+
+@utility heritage-panel {
+  border: 1px solid var(--color-line);
+  background:
+    linear-gradient(rgb(255 254 250 / 94%), rgb(255 254 250 / 94%)),
+    repeating-linear-gradient(0deg, rgb(74 46 18 / 3%) 0 1px, transparent 1px 4px);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 90%),
+    0 16px 38px -30px rgb(74 46 18 / 55%);
 }
 
 :root {
-  --background: #f8f1e4;
-  --foreground: #2b1d16;
-  --card: #fffdf8;
-  --card-foreground: #2b1d16;
-  --primary: #7c1f18;
-  --primary-foreground: #fffaf5;
-  --secondary: #fae3dc;
-  --secondary-foreground: #661c16;
-  --muted: #efe3cc;
-  --muted-foreground: #78665a;
-  --border: #eadcc4;
-  --ring: #c4432c;
-  --radius: 0.875rem;
+  --background: #fdfbf7;
+  --foreground: #2c221e;
+  --card: #fffefa;
+  --card-foreground: #2c221e;
+  --primary: #7a1c1c;
+  --primary-foreground: #fffdf9;
+  --secondary: #f4ecd4;
+  --secondary-foreground: #4a2e12;
+  --muted: #f3eadc;
+  --muted-foreground: #76665c;
+  --border: #dfcda7;
+  /* Gold stays decorative; the darker lacquer red keeps focus indicators visible on paper. */
+  --ring: #7a1c1c;
+  --radius: 0.75rem;
 }
 
 * {
@@ -56,14 +104,17 @@
 html {
   min-height: 100%;
   background:
-    radial-gradient(circle at 10% 0%, rgb(243 196 184 / 35%), transparent 26rem),
-    radial-gradient(circle at 95% 4%, rgb(236 210 160 / 35%), transparent 24rem), var(--background);
+    radial-gradient(circle at 8% -4%, rgb(197 160 89 / 14%), transparent 28rem),
+    radial-gradient(circle at 96% 2%, rgb(122 28 28 / 7%), transparent 25rem),
+    repeating-linear-gradient(0deg, rgb(74 46 18 / 1.4%) 0 1px, transparent 1px 5px),
+    var(--background);
   color: var(--foreground);
 }
 
 body {
   min-height: 100vh;
   color: var(--foreground);
+  background: transparent;
   font-family:
     var(--font-be-vietnam),
     ui-sans-serif,
@@ -80,12 +131,12 @@ a {
 }
 
 ::selection {
-  background: #f3c4b8;
-  color: #3a0c08;
+  background: #e8d7a8;
+  color: #4a2e12;
 }
 
 .react-flow__attribution {
-  background: rgb(255 253 248 / 80%) !important;
+  background: rgb(253 251 247 / 88%) !important;
 }
 
 /* "Xem ngang": the tree turns a quarter round into landscape and back. The
@@ -213,7 +264,23 @@ a {
   }
 }
 
+/*
+ * Moving between a family's sections (app/[slug]/template.tsx): the new page rises a
+ * little and fades in. No fill mode, so no transform is left behind to trap fixed children.
+ */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+.page-enter {
+  animation: page-enter 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .page-enter,
   .ui-backdrop,
   .ui-dialog,
   .ui-sheet,

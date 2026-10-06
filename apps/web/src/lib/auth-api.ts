@@ -86,6 +86,7 @@ export function profileDestination(profile: AuthProfile): string {
     return '/';
   }
 
-  const familySlug = encodeURIComponent(profile.family.slug);
-  return profile.role === 'MEMBER_PLUS' ? `/admin/${familySlug}` : `/${familySlug}`;
+  // Members and the clan head alike start on the family's home page; the clan head reaches
+  // their admin pages from its navigation.
+  return `/${encodeURIComponent(profile.family.slug)}`;
 }

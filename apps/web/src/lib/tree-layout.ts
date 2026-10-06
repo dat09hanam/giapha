@@ -154,7 +154,7 @@ function viewerDimensions(
   };
 }
 
-const VIEWER_LINK_STYLE: CSSProperties = { stroke: '#c8102e', strokeWidth: 2 };
+const VIEWER_LINK_STYLE: CSSProperties = { stroke: '#7a1c1c', strokeWidth: 2 };
 
 function year(value: string | null): string {
   return value ? new Date(value).getUTCFullYear().toString() : '?';
@@ -325,7 +325,7 @@ const MAX_ROW_SPACING = 420;
 /** Trees wider than this get proportionally larger decoration. */
 const DECORATION_BASE_WIDTH = 1600;
 
-const POSTER_LINK_STYLE: CSSProperties = { stroke: '#c8102e', strokeWidth: 2.5 };
+const POSTER_LINK_STYLE: CSSProperties = { stroke: '#7a1c1c', strokeWidth: 2.5 };
 
 /**
  * The tree drawn as a traditional phả đồ on the family's background, inside

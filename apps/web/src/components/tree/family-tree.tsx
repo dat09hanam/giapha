@@ -55,9 +55,9 @@ const nodeTypes = {
 } satisfies NodeTypes;
 
 /** Zooms to a searched person with room around the card to see their parents and children. */
-/** White on the red strip on phones; a white button with red text over the paper from sm. */
+/** Light controls on the wood strip on phones; paper controls from sm. */
 const toolbarButtonClass =
-  'inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-white/15 px-3 text-sm font-medium text-white ring-1 ring-inset ring-white/25 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:bg-white sm:text-brand-800 sm:ring-line sm:hover:bg-brand-50 sm:focus-visible:ring-brand-400/40';
+  'inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-white/10 px-3 text-sm font-medium text-white ring-1 ring-inset ring-gold-300/35 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:bg-[var(--card)] sm:text-brand-800 sm:ring-gold-700/45 sm:hover:bg-gold-50 sm:focus-visible:ring-brand-700';
 
 const FOCUS_PERSON_OPTIONS = { padding: 1.5, maxZoom: 1.2, duration: 700 };
 const MIN_ZOOM = 0.02;
@@ -143,7 +143,7 @@ function ShortcutCard({
 }) {
   return (
     <>
-      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-100">
+      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gold-100 text-brand-700 ring-1 ring-inset ring-gold-500/30">
         <Icon className="size-5" aria-hidden="true" />
       </span>
       <span className="min-w-0 text-left">
@@ -335,8 +335,8 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
       className="box-border flex h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] flex-col items-center bg-paper sm:h-auto sm:min-h-[calc(100vh-4rem)] sm:justify-center sm:gap-3 sm:p-4"
       style={layoutVars}
     >
-      {/* A red strip on phones, as every family section opens; a plain toolbar over the paper from sm. */}
-      <div className="flex w-full shrink-0 items-center justify-center gap-2 bg-gradient-to-br from-brand-600 to-brand-800 px-3 py-2.5 sm:max-w-[var(--poster-width)] sm:bg-none sm:p-0">
+      {/* A wood strip on phones, as every family section opens; a plain toolbar from sm. */}
+      <div className="heritage-hero flex w-full shrink-0 items-center justify-center gap-2 rounded-none border-x-0 px-3 py-2.5 sm:max-w-[var(--poster-width)] sm:border-0 sm:bg-none sm:p-0 sm:shadow-none">
         <h1 className="sr-only shrink-0 font-display text-2xl font-bold text-brand-800 sm:not-sr-only sm:mr-auto">
           Gia phả
         </h1>
@@ -428,7 +428,7 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
             onClick={exitLandscape}
             disabled={leaving}
             aria-label="Thoát xem ngang"
-            className="absolute right-3 top-3 z-10 grid size-11 place-items-center rounded-full bg-white/90 text-brand-800 shadow-lg ring-1 ring-line backdrop-blur hover:bg-white"
+            className="absolute right-3 top-3 z-10 grid size-11 place-items-center rounded-full bg-paper/90 text-brand-800 shadow-lg ring-1 ring-gold-500/40 backdrop-blur hover:bg-white"
           >
             <Minimize2 className="size-5" aria-hidden="true" />
           </button>
@@ -438,7 +438,7 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
             type="button"
             onClick={() => setLandscapeMode('on')}
             aria-label="Xoay ngang gia phả"
-            className="absolute right-3 top-3 z-10 hidden size-11 place-items-center rounded-full bg-white/90 text-brand-800 shadow-lg ring-1 ring-line backdrop-blur hover:bg-white portrait:grid"
+            className="absolute right-3 top-3 z-10 hidden size-11 place-items-center rounded-full bg-paper/90 text-brand-800 shadow-lg ring-1 ring-gold-500/40 backdrop-blur hover:bg-white portrait:grid"
           >
             <RotateCw className="size-5" aria-hidden="true" />
           </button>

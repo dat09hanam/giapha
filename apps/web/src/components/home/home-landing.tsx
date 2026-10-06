@@ -1,297 +1,305 @@
 import Image from 'next/image';
-import localFont from 'next/font/local';
 import Link from 'next/link';
 import {
   ArrowRight,
   BookOpen,
-  Check,
   ChevronUp,
   GitFork,
-  Leaf,
+  Globe,
+  GraduationCap,
+  Heart,
   MonitorSmartphone,
   Sprout,
+  UsersRound,
 } from 'lucide-react';
 
 import { HomeHeaderMenu } from './home-header-menu';
 import styles from './home.module.css';
 
-const heroScript = localFont({
-  src: '../../../public/fonts/home/Pacifico-Regular.ttf',
-  weight: '400',
-  display: 'swap',
-});
-
-function PeachBlossoms() {
-  const flowers = [
-    [28, 40, 1.1], [54, 93, 0.7], [89, 120, 1], [46, 161, 0.65],
-    [116, 188, 0.85], [149, 216, 1.05], [182, 201, 0.65], [212, 239, 0.85],
-    [162, 282, 0.6], [227, 308, 1], [262, 326, 0.7], [283, 376, 0.9],
-    [320, 389, 0.65], [110, 95, 0.6], [65, 236, 0.65], [337, 440, 0.75],
-  ];
-
+/** The brand mark: an old tree inside a cloud-scroll frame. */
+function LogoMark() {
   return (
-    <svg className={styles.blossoms} viewBox="0 0 420 560" aria-hidden="true">
-      <g fill="none" stroke="#77745d" strokeLinecap="round" strokeLinejoin="round">
-        <path strokeWidth="6" d="M-12 0Q75 60 59 154T157 273Q224 320 275 369T362 469" />
-        <path strokeWidth="3" d="M59 148 112 91M64 179 24 244M112 236 202 216 250 242M164 283 151 333M239 341 303 324M284 379 330 399 378 398" />
-      </g>
-      <g fill="#df8a80" opacity=".85">
-        {flowers.map(([x, y, scale], index) => (
-          <g key={index} transform={`translate(${x} ${y}) rotate(${index * 31}) scale(${scale})`}>
-            {[0, 72, 144, 216, 288].map((angle) => (
-              <path key={angle} transform={`rotate(${angle})`} d="M0 2C-17-5-17-20-7-22Q0-26 5-20C17-21 18-7 0 2Z" />
-            ))}
-            <circle r="5" fill="#f9e6b7" />
-            <circle r="2" fill="#bf9260" />
-          </g>
-        ))}
-      </g>
-      <g fill="#e9988c" opacity=".7">
-        <path d="M33 325q20-12 15 8q-12 12-15-8M103 375q-17-14-19 4q12 14 19-4M365 284q21-20 15 4q-7 14-15-4M204 441q-19-7-12 10q13 6 12-10M56 490q15-19 13 1q-7 13-13-1" />
-      </g>
-    </svg>
-  );
-}
-
-function Landscape() {
-  return (
-    <svg
-      className={styles.landscape}
-      viewBox="0 0 1600 850"
-      preserveAspectRatio="xMidYMax slice"
-      aria-hidden="true"
-    >
-      <defs>
-        <filter id="paper">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency=".65"
-            numOctaves="3"
-            stitchTiles="stitch"
-          />
-          <feColorMatrix type="saturate" values="0" />
-          <feComponentTransfer>
-            <feFuncA type="linear" slope=".09" />
-          </feComponentTransfer>
-          <feBlend in="SourceGraphic" mode="multiply" />
-        </filter>
-        <linearGradient id="mountain" x2="0" y2="1">
-          <stop stopColor="#a4b5af" stopOpacity=".32" />
-          <stop offset="1" stopColor="#b7cbc4" stopOpacity=".05" />
-        </linearGradient>
-        <linearGradient id="water" x2="0" y2="1">
-          <stop stopColor="#a4c9c4" stopOpacity=".45" />
-          <stop offset="1" stopColor="#f8efdc" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path
-        fill="url(#mountain)"
-        d="M0 650 95 535 130 567 232 405 300 500 370 474 450 628 680 710 965 565 1070 615 1190 378 1230 425 1330 214 1420 380 1480 312 1600 500V850H0Z"
-      />
-      <path fill="url(#water)" d="M0 600Q190 540 380 629T800 606T1200 583T1600 574V850H0Z" />
+    <svg className={styles.logoMark} viewBox="0 0 48 48" aria-hidden="true">
       <path
         fill="none"
-        stroke="#fcfaf1"
-        strokeWidth="35"
-        opacity=".8"
-        d="M-50 780Q230 701 580 793T1200 786T1660 752"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+        d="M24 4c5 0 7 3 8 5 4-1 8 2 8 6 3 1 5 4 4 8 2 3 1 8-3 9 0 5-4 8-9 7-2 3-5 4-8 4s-6-1-8-4c-5 1-9-2-9-7-4-1-5-6-3-9-1-4 1-7 4-8 0-4 4-7 8-6 1-2 3-5 8-5Z"
       />
-      <g fill="none" stroke="#65755a" strokeLinecap="round" opacity=".38">
-        <path strokeWidth="5" d="M1560 850Q1480 732 1494 665M1510 775 1405 728M1494 703 1545 653" />
+      <g fill="currentColor">
+        <path d="M22.6 39V28.5c-2.8-.4-5.2-2-6.4-4.4 2.6.7 5 .5 6.4-.6v-3.4c-2 .8-4.6.6-6.5-.8 2.2-.6 4.4-1.6 5.6-3.3-1.5-.7-2.6-2-3-3.6 2 .8 4 .8 5.3.1 1.3.7 3.3.7 5.3-.1-.4 1.6-1.5 2.9-3 3.6 1.2 1.7 3.4 2.7 5.6 3.3-1.9 1.4-4.5 1.6-6.5.8v3.4c1.4 1.1 3.8 1.3 6.4.6-1.2 2.4-3.6 4-6.4 4.4V39Z" />
+        <path d="M15 39.5h18v1.6H15Z" />
       </g>
-      <g stroke="#6c8077" fill="none" strokeWidth="2" opacity=".5">
-        {Array.from({ length: 9 }, (_, i) => (
-          <path key={i} d={`M${720 + i * 39} ${286 + ((i * 23) % 70)}q5 -7 10 0q5 -7 10 0`} />
-        ))}
-      </g>
-      <path d="M950 760q70 30 130 0l-22 24h-84Z" fill="#6b8072" opacity=".35" />
-      <rect width="1600" height="850" fill="transparent" filter="url(#paper)" />
     </svg>
   );
 }
 
-const features = [
+/** Misty mountains along the bottom of a section. */
+function Mountains({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 1440 160" preserveAspectRatio="none" aria-hidden="true">
+      <path
+        fill="#cdbf9f"
+        opacity=".35"
+        d="M0 160V96l70-40 60 30 90-62 80 52 70-20 90 48 120-30 100 36 90-58 110 56 80-26 110 44 90-50 110 44 90-28 80 30v106Z"
+      />
+      <path
+        fill="#b9a982"
+        opacity=".3"
+        d="M0 160v-34l110-34 120 40 140-30 160 36 150-24 170 30 140-36 170 30 150-22 130 24v50Z"
+      />
+    </svg>
+  );
+}
+
+const values = [
   {
-    icon: GitFork,
-    title: 'Phả đồ trực quan',
-    text: 'Theo dấu từng thế hệ, khám phá những nhánh nối dài của dòng họ trên cây gia phả tương tác.',
+    icon: Sprout,
+    title: 'Lưu giữ cội nguồn',
+    text: 'Ghi chép, bảo tồn thông tin các thế hệ trong dòng họ.',
+  },
+  {
+    icon: UsersRound,
+    title: 'Kết nối con cháu',
+    text: 'Tạo cầu nối gắn kết giữa các thế hệ, dù ở bất cứ nơi đâu.',
   },
   {
     icon: BookOpen,
-    title: 'Lưu giữ chuyện gia đình',
-    text: 'Một không gian để ghi lại tiểu sử, những dấu mốc và ký ức quý giá của mỗi thành viên.',
+    title: 'Lan tỏa giá trị truyền thống',
+    text: 'Giáo dục con cháu về lịch sử, văn hóa và đạo lý gia đình.',
   },
   {
-    icon: MonitorSmartphone,
-    title: 'Kết nối mọi lúc, mọi nơi',
-    text: 'Truy cập gia phả ngay trên trình duyệt, từ máy tính, máy tính bảng đến điện thoại.',
+    icon: Heart,
+    title: 'Xây dựng tương lai',
+    text: 'Cùng nhau gìn giữ và phát triển dòng họ ngày càng vững mạnh.',
   },
 ];
+
+const highlights = [
+  { icon: GitFork, title: 'Phả đồ trực quan', text: 'Theo dõi từng thế hệ' },
+  { icon: MonitorSmartphone, title: 'Mọi thiết bị', text: 'Không cần cài đặt' },
+  { icon: Globe, title: 'Phục vụ', text: 'Cộng đồng người Việt' },
+];
+
+const reasons = [
+  {
+    icon: BookOpen,
+    title: 'Bảo tồn lịch sử',
+    text: 'Giữ gìn những câu chuyện, sự kiện và dấu ấn của dòng họ.',
+  },
+  {
+    icon: GraduationCap,
+    title: 'Giáo dục thế hệ trẻ',
+    text: 'Nuôi dưỡng lòng tự hào, biết ơn và ý thức gìn giữ cội nguồn.',
+  },
+  {
+    icon: Heart,
+    title: 'Gắn kết gia đình',
+    text: 'Tăng cường sự kết nối, đoàn kết giữa các thành viên trong dòng họ.',
+  },
+  {
+    icon: Sprout,
+    title: 'Truyền lại giá trị văn hóa',
+    text: 'Giữ gìn phong tục, nét đẹp truyền thống cho các thế hệ mai sau.',
+  },
+];
+
+const questions = [
+  {
+    q: 'Tôi có cần cài đặt phần mềm không?',
+    a: 'Không cần cài đặt. Bạn có thể mở gia phả bằng trình duyệt trên máy tính, máy tính bảng hoặc điện thoại.',
+  },
+  {
+    q: 'Tôi có thể xem thử trước khi đăng nhập không?',
+    a: 'Có. Chọn “Xem gia phả mẫu” để khám phá dòng họ mẫu và làm quen với cây gia phả.',
+  },
+  {
+    q: 'Tôi có thể chỉnh sửa gia phả không?',
+    a: 'Việc chỉnh sửa cần đăng nhập bằng tài khoản được cấp quyền quản lý dòng họ. Hãy liên hệ người quản lý gia phả của bạn để được cấp quyền phù hợp.',
+  },
+];
+
+function Eyebrow({ children }: { children: string }) {
+  return (
+    <p className={styles.eyebrow}>
+      <span aria-hidden="true" />
+      {children}
+      <span aria-hidden="true" />
+    </p>
+  );
+}
 
 export function HomeLanding() {
   return (
     <main className={styles.home} id="top">
-      <section className={styles.hero}>
-        <Landscape />
-        <header className={styles.header}>
-          <Link href="/" className={styles.logo} aria-label="Gia Phả Đại Việt Online — Trang chủ">
-            <Image
-              src="/images/home/logo-dai-viet.png"
-              alt="Gia Phả Đại Việt Online"
-              width={2172}
-              height={724}
-              sizes="(max-width: 760px) 220px, 340px"
-              priority
-              className={styles.logoImage}
-            />
-          </Link>
-          <HomeHeaderMenu />
-        </header>
-        <div className={styles.heroContent}>
-          <PeachBlossoms />
-          <div className={styles.copy}>
-            <p className={styles.eyebrow}>Phần mềm gia phả trực tuyến</p>
-            <h1 className={heroScript.className}>Gắn Kết Mọi Thế Hệ</h1>
-            <h2>Gìn giữ cội nguồn, viết tiếp mai sau</h2>
-            <p className={styles.description}>
-              Tạo phả đồ, lưu trữ gia phả và xây dựng website riêng cho dòng họ — tất cả trực
-              tuyến, không cần cài đặt, truy cập mọi lúc mọi nơi.
-            </p>
-            <div className={styles.actions}>
-              <Link className={styles.primary} href="/demo">
-                Trải nghiệm gia phả <ArrowRight size={18} />
-              </Link>
-              <a className={styles.secondary} href="#tinh-nang">
-                Khám phá tính năng
-              </a>
-            </div>
-            <div className={styles.reassurance}>
-              <span>
-                <Check size={15} /> Không cần cài đặt
-              </span>
-              <span>
-                <Check size={15} /> Dễ dàng sử dụng
-              </span>
-            </div>
-          </div>
-          <div
-            className={styles.devices}
-            role="group"
-            aria-label="Minh họa cây gia phả trên máy tính, máy tính bảng và điện thoại"
-          >
-            <Image
-              className={styles.deviceImage}
-              src="/images/home/devices-reference.png"
-              alt="Laptop viền bạc có bàn phím, iPad nằm ngang phía trước và hai điện thoại nghiêng hiển thị gia phả"
-              width={1774}
-              height={887}
-              sizes="(max-width: 760px) 100vw, 55vw"
-              priority
-            />
-            <p>Mỗi dòng họ, một không gian lưu giữ yêu thương</p>
-            <label className={styles.motionControl}>
-              <input type="checkbox" />
-              <span>Tạm dừng chuyển động</span>
-            </label>
+      <header className={styles.header}>
+        <Link href="/" className={styles.logo} aria-label="Gia phả Việt — Trang chủ">
+          <LogoMark />
+          <span>Gia phả Việt</span>
+        </Link>
+        <HomeHeaderMenu />
+      </header>
+
+      <section className={styles.hero} aria-labelledby="hero-title">
+        <Image
+          className={styles.heroArt}
+          src="/images/decorations/family-about-hero.webp"
+          alt=""
+          aria-hidden="true"
+          width={1920}
+          height={1080}
+          sizes="(max-width: 760px) 100vw, 65vw"
+          priority
+        />
+        <span className={styles.sun} aria-hidden="true" />
+        <div className={styles.heroCopy}>
+          <Eyebrow>Gìn giữ cội nguồn</Eyebrow>
+          <h1 id="hero-title">
+            <span>Gia phả</span>
+            <span>Kết nối muôn đời</span>
+          </h1>
+          <p>
+            Nơi lưu giữ, xây dựng và lan tỏa giá trị truyền thống gia đình, dòng họ Việt Nam bằng
+            công nghệ hiện đại.
+          </p>
+          <div className={styles.heroActions}>
+            <Link className={styles.primary} href="/demo">
+              Xem gia phả mẫu <ArrowRight size={18} aria-hidden="true" />
+            </Link>
+            <a className={styles.secondary} href="#gioi-thieu">
+              Tìm hiểu thêm
+            </a>
           </div>
         </div>
-        <div className={styles.cloudScene}>
-          <div className={styles.cloudSky} aria-hidden="true">
-            {[0, 1, 2, 3].map((cloud) => (
-              <span key={cloud} className={styles.cloud} />
-            ))}
-          </div>
-          <label className={styles.cloudControl}>
-            <input type="checkbox" />
-            <span>Tạm dừng mây</span>
-          </label>
-        </div>
-        <a className={styles.scrollHint} href="#tinh-nang">
-          <Leaf size={17} /> Cùng viết tiếp câu chuyện dòng họ <span>↓</span>
-        </a>
       </section>
-      <section className={styles.features} id="tinh-nang">
-        <p className={styles.sectionLabel}>TRÂN TRỌNG QUÁ KHỨ · GẮN KẾT TƯƠNG LAI</p>
-        <h2>Một nơi lưu giữ, muôn đời nhớ thương</h2>
-        <div className={styles.featureGrid}>
-          {features.map(({ icon: Icon, title, text }) => (
-            <article key={title}>
-              <span className={styles.featureIcon}>
-                <Icon size={25} />
-              </span>
-              <h3>{title}</h3>
+
+      <section className={styles.values} id="tinh-nang" aria-label="Giá trị cốt lõi">
+        {values.map(({ icon: Icon, title, text }) => (
+          <article key={title}>
+            <span className={styles.roundIcon}>
+              <Icon size={26} aria-hidden="true" />
+            </span>
+            <div>
+              <h2>{title}</h2>
               <p>{text}</p>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section className={styles.intro} id="gioi-thieu" aria-labelledby="intro-title">
+        <Image
+          className={styles.bamboo}
+          src="/images/decorations/bamboo-grove.png"
+          alt=""
+          aria-hidden="true"
+          width={480}
+          height={1383}
+          sizes="210px"
+        />
+        <div className={styles.introCopy}>
+          <Eyebrow>Giới thiệu</Eyebrow>
+          <h2 id="intro-title">
+            Gia phả online
+            <br />
+            cho mọi dòng họ Việt
+          </h2>
+          <p>
+            Chúng tôi cung cấp nền tảng gia phả trực tuyến giúp các dòng họ lưu giữ, quản lý và
+            truyền lại giá trị lịch sử, văn hóa, gắn kết tình thân giữa các thế hệ một cách dễ dàng
+            và tiện lợi.
+          </p>
+          <ul className={styles.highlights}>
+            {highlights.map(({ icon: Icon, title, text }) => (
+              <li key={title}>
+                <Icon size={24} aria-hidden="true" />
+                <span>
+                  <strong>{title}</strong>
+                  <small>{text}</small>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <figure className={styles.devices} id="hinh-anh">
+          <Image
+            src="/images/decorations/devices-reference.png"
+            alt="Cây gia phả hiển thị trên máy tính xách tay, máy tính bảng và điện thoại"
+            width={1774}
+            height={887}
+            sizes="(max-width: 900px) 100vw, 55vw"
+          />
+        </figure>
+      </section>
+
+      <section className={styles.reasons} id="y-nghia" aria-labelledby="reasons-title">
+        <Mountains className={styles.mountains} />
+        <Eyebrow>Vì sao nên lưu giữ gia phả?</Eyebrow>
+        <h2 id="reasons-title">Những giá trị bền vững cho hôm nay và mai sau</h2>
+        <div className={styles.reasonGrid}>
+          {reasons.map(({ icon: Icon, title, text }) => (
+            <article key={title}>
+              <span className={styles.roundIcon}>
+                <Icon size={24} aria-hidden="true" />
+              </span>
+              <div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </div>
             </article>
           ))}
         </div>
       </section>
-      <section className={styles.demoSection} id="gia-pha">
+
+      <section className={styles.faq} aria-labelledby="faq-title">
         <div>
-          <p className={styles.sectionLabel}>CÂU CHUYỆN BẮT ĐẦU TỪ CỘI NGUỒN</p>
-          <h2>Hình dung gia phả của dòng họ bạn</h2>
-          <p>Khám phá cây gia phả mẫu để tìm hiểu cách các thế hệ được kết nối.</p>
-        </div>
-        <Link href="/demo" className={styles.primary}>
-          Xem gia phả mẫu <ArrowRight size={18} />
-        </Link>
-      </section>
-      <section className={styles.guide} id="huong-dan">
-        <p className={styles.sectionLabel}>BA BƯỚC ĐỂ BẮT ĐẦU</p>
-        <h2>Bắt đầu khám phá thật dễ dàng</h2>
-        <ol>
-          <li>
-            <span>01</span>
-            <h3>Mở gia phả mẫu</h3>
-            <p>Chọn “Trải nghiệm gia phả” để bước vào không gian dòng họ mẫu.</p>
-          </li>
-          <li>
-            <span>02</span>
-            <h3>Khám phá các thế hệ</h3>
-            <p>Di chuyển và phóng to cây gia phả để theo dõi các nhánh trong gia đình.</p>
-          </li>
-          <li>
-            <span>03</span>
-            <h3>Tìm hiểu thành viên</h3>
-            <p>
-              Đọc thông tin hiển thị trên từng thẻ thành viên và theo dõi các đường nối quan hệ.
-            </p>
-          </li>
-        </ol>
-      </section>
-      <section className={styles.faq} id="cau-hoi" aria-labelledby="faq-heading">
-        <div className={styles.faqIntro}>
-          <p className={styles.sectionLabel}>CÙNG BẠN GÌN GIỮ GIA PHẢ</p>
-          <h2 id="faq-heading">Bạn hỏi, chúng tôi giải đáp</h2>
-          <p>Một vài điều hữu ích trước khi bắt đầu câu chuyện của dòng họ.</p>
-          <Link href="/demo" className={styles.secondary}>Khám phá gia phả mẫu <ArrowRight size={18} /></Link>
+          <Eyebrow>Câu hỏi thường gặp</Eyebrow>
+          <h2 id="faq-title">Bạn hỏi, chúng tôi giải đáp</h2>
         </div>
         <div className={styles.faqList}>
-          <details>
-            <summary>Tôi có cần cài đặt phần mềm không?</summary>
-            <p>Không cần cài đặt. Bạn có thể mở gia phả bằng trình duyệt trên máy tính, máy tính bảng hoặc điện thoại.</p>
-          </details>
-          <details>
-            <summary>Tôi có thể xem thử trước khi đăng nhập không?</summary>
-            <p>Có. Chọn “Trải nghiệm gia phả” để khám phá dòng họ mẫu và làm quen với cây gia phả.</p>
-          </details>
-          <details>
-            <summary>Làm thế nào để xem các nhánh của dòng họ?</summary>
-            <p>Trong phả đồ, bạn có thể di chuyển và phóng to để theo dõi các thế hệ. Chọn thành viên để tìm hiểu thông tin được hiển thị.</p>
-          </details>
-          <details>
-            <summary>Tôi có thể chỉnh sửa gia phả không?</summary>
-            <p>Việc chỉnh sửa cần đăng nhập bằng tài khoản được cấp quyền quản lý dòng họ. Hãy liên hệ người quản lý gia phả của bạn để được cấp quyền phù hợp.</p>
-          </details>
+          {questions.map(({ q, a }) => (
+            <details key={q}>
+              <summary>{q}</summary>
+              <p>{a}</p>
+            </details>
+          ))}
         </div>
       </section>
-      <footer className={styles.footer}>
-        <Link href="/" className={styles.footerBrand}>
-          <Sprout size={20} /> Gia Phả Đại Việt
-        </Link>
-        <p>Gìn giữ cội nguồn. Kết nối mai sau.</p>
-        <a href="#top" aria-label="Về đầu trang">
-          <ChevronUp size={20} />
-        </a>
+
+      <footer className={styles.footer} id="lien-he">
+        <div className={styles.footerCta}>
+          <h2>Bắt đầu hành trình gìn giữ cội nguồn</h2>
+          <p>Khám phá gia phả mẫu hoặc đăng nhập để vào không gian của dòng họ bạn.</p>
+          <div className={styles.heroActions}>
+            <Link className={styles.primary} href="/demo">
+              Xem gia phả mẫu <ArrowRight size={18} aria-hidden="true" />
+            </Link>
+            <Link className={styles.secondary} href="/login">
+              Đăng nhập
+            </Link>
+          </div>
+        </div>
+        <div className={styles.footerBar}>
+          <Link href="/" className={styles.logo}>
+            <LogoMark />
+            <span>Gia phả Việt</span>
+          </Link>
+          <p>Gìn giữ cội nguồn. Kết nối muôn đời.</p>
+          <p className={styles.credit}>
+            Ảnh rừng tre:{' '}
+            <a href="https://commons.wikimedia.org/wiki/File:Arashiyama_Bamboo_Grove.jpg">
+              Mitchwandrew
+            </a>
+            ,{' '}
+            <a href="https://creativecommons.org/licenses/by/4.0/" rel="license">
+              CC BY 4.0
+            </a>
+          </p>
+          <a href="#top" aria-label="Về đầu trang" className={styles.toTop}>
+            <ChevronUp size={20} />
+          </a>
+        </div>
       </footer>
     </main>
   );

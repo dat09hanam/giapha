@@ -223,9 +223,9 @@ export function PersonDetailsDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="person-details-name"
-        className="ui-sheet-dialog relative flex max-h-[88%] w-full flex-col overflow-hidden rounded-t-3xl border border-amber-900/15 bg-[#fffdf8] shadow-2xl sm:max-w-lg sm:rounded-3xl"
+        className="ui-sheet-dialog heritage-panel relative flex max-h-[88%] w-full flex-col overflow-hidden rounded-t-3xl shadow-2xl sm:max-w-lg sm:rounded-2xl"
       >
-        <header className="flex items-start gap-4 border-b border-amber-900/10 bg-gradient-to-b from-amber-50 to-[#fffdf8] px-5 pb-5 pt-6 sm:px-6">
+        <header className="flex items-start gap-4 border-b border-gold-500/25 bg-gradient-to-b from-gold-50 to-[var(--card)] px-5 pb-5 pt-6 sm:px-6">
           <div className="size-20 shrink-0 overflow-hidden rounded-2xl border-2 border-amber-700/30 bg-amber-100 shadow-sm">
             {person.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -246,7 +246,7 @@ export function PersonDetailsDialog({
           <div className="min-w-0 flex-1 pr-8">
             <h2
               id="person-details-name"
-              className="text-xl font-bold leading-tight text-[#3b2a0c] sm:text-2xl"
+              className="font-display text-xl font-bold leading-tight text-wood-800 sm:text-2xl"
             >
               {displayPersonTitle(person)}
             </h2>

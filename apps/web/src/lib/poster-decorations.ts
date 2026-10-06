@@ -56,7 +56,7 @@ export const MAX_OPPOSITE_INSETS_PERCENT = 80;
 export const MAX_NAME_INSET_PERCENT = 95;
 /** The name area may be a thin band, but must still be this wide and tall. */
 export const MIN_NAME_AREA_PERCENT = 5;
-export const DEFAULT_NAME_COLOR = '#ffd83a';
+export const DEFAULT_NAME_COLOR = '#d4af37';
 /** Matches the API's limit on decoration uploads. */
 export const MAX_DECORATION_IMAGE_BYTES = 4 * 1024 * 1024;
 

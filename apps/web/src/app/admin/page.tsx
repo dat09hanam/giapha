@@ -22,7 +22,6 @@ import { requirePasswordChanged } from '@/lib/session';
 import type { FamilyFeatures } from '@/types/family-tree';
 
 export const metadata: Metadata = {
-  title: 'Quản trị hệ thống',
   description: 'Khu vực quản trị nền tảng Gia Phả Việt.',
 };
 
@@ -42,6 +41,10 @@ async function requireAdmin(): Promise<AuthProfile> {
     throw error;
   }
   requirePasswordChanged(profile, '/admin');
+  // A clan head who opens /admin wants their own family's admin pages, not its home page.
+  if (profile.role === 'MEMBER_PLUS' && profile.family && !profile.mustChangePassword) {
+    redirect(`/admin/${encodeURIComponent(profile.family.slug)}`);
+  }
   if (profile.role !== 'ADMIN') redirect(profileDestination(profile));
   return profile;
 }

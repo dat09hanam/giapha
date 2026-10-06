@@ -16,7 +16,7 @@ import {
  * can preview the same sheet.
  */
 
-const PAPER = 'radial-gradient(ellipse at 50% 45%, #fffbd6 0%, #fff2a3 55%, #fde27a 100%)';
+const PAPER = 'radial-gradient(ellipse at 50% 42%, #fffefa 0%, #fdfbf7 56%, #eadcbd 100%)';
 
 function imageSheetStyle(
   src: string,
