@@ -105,6 +105,9 @@ model Family {
   /// Family-specific couplet text written vertically in the background's left and right text areas.
   posterLeftText        String?           @db.VarChar(191)
   posterRightText       String?           @db.VarChar(191)
+  /// The sample family the public home page shows to visitors (Xem gia phả mẫu). The platform
+  /// admin sets it when creating a family; at most one family carries it at a time.
+  isDemo                Boolean           @default(false)
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
   deletedAt             DateTime?
@@ -126,6 +129,7 @@ model Family {
 
   @@index([status])
   @@index([deletedAt])
+  @@index([isDemo])
 }
 
 model User {

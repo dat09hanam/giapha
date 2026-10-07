@@ -65,6 +65,16 @@ export const getPlatformFeatures = cache(() =>
   getJson<FamilyFeatures>('/platform-features', 'tải danh sách chức năng'),
 );
 
+export type DemoFamily = { id: string; slug: string; name: string };
+
+/** The public sample family (Gia phả mẫu); 404 until the platform admin marks one. */
+export const getDemoFamily = cache(() => getJson<DemoFamily>('/demo-family', 'tải gia phả mẫu'));
+
+/** The sample family's tree, readable without signing in; phones and photos are left out. */
+export const getDemoFamilyTree = cache(() =>
+  getJson<FamilyTreeResponse>('/demo-family/tree', 'tải cây gia phả mẫu'),
+);
+
 export const getFamilyTree = cache((slug: string, sessionToken?: string) =>
   getJson<FamilyTreeResponse>(
     `/families/${encodeURIComponent(slug)}/tree`,

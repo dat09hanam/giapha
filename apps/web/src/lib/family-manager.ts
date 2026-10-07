@@ -1,7 +1,12 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { ApiUnauthorizedError, getAuthProfile } from "@/lib/api";
+import {
+  ApiNotFoundError,
+  ApiUnauthorizedError,
+  getAuthProfile,
+  getDemoFamily,
+} from "@/lib/api";
 import { profileDestination, type AuthProfile } from "@/lib/auth-api";
 import { requirePasswordChanged } from "@/lib/session";
 
@@ -40,6 +45,16 @@ export async function requireFamilyManager(
     throw error;
   }
   requirePasswordChanged(profile, requestedPath);
+
+  // The sample family has no accounts; the platform admin edits it as its clan head.
+  if (profile.role === "ADMIN") {
+    const demo = await getDemoFamily().catch((error: unknown) => {
+      if (error instanceof ApiNotFoundError) return null;
+      throw error;
+    });
+    if (!demo || demo.slug !== slug) redirect("/admin");
+    return { ...profile, role: "MEMBER_PLUS", family: demo, sessionToken };
+  }
 
   const branchManager =
     area === "designer" && profile.role === "MEMBER" && profile.managesBranches;

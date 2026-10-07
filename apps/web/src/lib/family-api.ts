@@ -17,6 +17,12 @@ export type CreatedFamilyResult = {
   };
 };
 
+/** The sample family comes without accounts: the platform admin edits it directly. */
+export type CreatedDemoFamilyResult = {
+  family: CreatedFamilyResult['family'];
+  accounts: null;
+};
+
 export type CreateFamilyInput = {
   name: string;
   slug: string;
@@ -48,6 +54,20 @@ export function createFamily(input: CreateFamilyInput): Promise<CreatedFamilyRes
       body: JSON.stringify(input),
     },
     'tạo dòng họ',
+  );
+}
+
+/** Creates Gia phả mẫu; refused while one already exists. */
+export function createDemoFamily(input: CreateFamilyInput): Promise<CreatedDemoFamilyResult> {
+  return apiFetch<CreatedDemoFamilyResult>(
+    `${API_URL}/families`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...input, isDemo: true }),
+    },
+    'tạo gia phả mẫu',
   );
 }
 

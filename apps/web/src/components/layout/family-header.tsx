@@ -225,6 +225,7 @@ export function FamilyHeader({
           aria-hidden="true"
           className="pointer-events-none absolute -right-20 top-20 size-72 rounded-full bg-gold-400/10 blur-3xl"
         />
+        {/* The painting's sky is opaque; fading its top keeps its edge from showing as a line. */}
         <Image
           src="/images/decorations/sidebar-ancestral-hall.png"
           alt=""
@@ -232,7 +233,7 @@ export function FamilyHeader({
           width={900}
           height={300}
           draggable={false}
-          className="pointer-events-none absolute bottom-0 left-0 w-full opacity-20"
+          className="pointer-events-none absolute bottom-0 left-0 w-full opacity-20 [mask-image:linear-gradient(to_bottom,transparent,black_40%)]"
         />
         <Link
           href={familyHref(family.slug, '')}
@@ -254,11 +255,14 @@ export function FamilyHeader({
             <SideNavEntry key={item.key} item={item} slug={family.slug} pathname={pathname} />
           ))}
           {managerLink ? (
+            <span className="mx-3 mt-2 h-px bg-white/10" aria-hidden="true" />
+          ) : null}
+          {managerLink ? (
             <Link
               href={managerLink.href}
               aria-current={managerLink.active ? 'page' : undefined}
               className={cn(
-                'relative mt-2 flex h-11 items-center gap-3 rounded-xl border-t border-white/10 px-3 text-[15px] font-medium transition duration-200',
+                'relative mt-1 flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition duration-200',
                 managerLink.active
                   ? 'bg-paper text-brand-800 shadow-sm ring-1 ring-inset ring-gold-400/40'
                   : 'text-gold-50/85 hover:bg-white/10 hover:text-white',

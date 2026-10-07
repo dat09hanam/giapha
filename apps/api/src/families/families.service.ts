@@ -81,11 +81,12 @@ function toFamilySummary(record: FamilySummaryRecord): FamilySummary {
 }
 
 export type CreatedFamilyResult = {
-  family: FamilySummary & { deathAnniversary: string };
+  family: FamilySummary & { deathAnniversary: string; isDemo: boolean };
+  /** Null for the sample family, which the platform admin edits directly. */
   accounts: {
     memberPlus: { role: 'MEMBER_PLUS'; username: string; password: string };
     member: { role: 'MEMBER'; username: string; password: string };
-  };
+  } | null;
 };
 
 @Injectable()
@@ -114,19 +115,30 @@ export class FamiliesService {
     ]);
 
     const posterDefaults = await this.defaultPosterDecorations();
+    const isDemo = input.isDemo === true;
 
     try {
       const family = await this.prisma.$transaction(async (transaction) => {
+        // Only one sample family: the admin edits the existing one instead of adding another.
+        if (
+          isDemo &&
+          (await transaction.family.count({ where: { isDemo: true, deletedAt: null } }))
+        ) {
+          throw new ConflictException('Đã có gia phả mẫu. Hãy chỉnh sửa gia phả mẫu hiện có.');
+        }
         const created = await transaction.family.create({
           data: {
             name,
             slug,
             deathAnniversaryDay: anniversary.day,
             deathAnniversaryMonth: anniversary.month,
+            isDemo,
             ...posterDefaults,
           },
           select: familySummarySelect,
         });
+        // The sample family gets no accounts: the platform admin edits it directly.
+        if (isDemo) return created;
         await transaction.user.createMany({
           data: [
             {
@@ -151,19 +163,21 @@ export class FamiliesService {
       });
 
       return {
-        family: { ...toFamilySummary(family), deathAnniversary: anniversary.display },
-        accounts: {
-          memberPlus: {
-            role: UserRole.MEMBER_PLUS,
-            username: usernames.memberPlus,
-            password: memberPlusPassword,
-          },
-          member: {
-            role: UserRole.MEMBER,
-            username: usernames.member,
-            password: usernames.member,
-          },
-        },
+        family: { ...toFamilySummary(family), deathAnniversary: anniversary.display, isDemo },
+        accounts: isDemo
+          ? null
+          : {
+              memberPlus: {
+                role: UserRole.MEMBER_PLUS,
+                username: usernames.memberPlus,
+                password: memberPlusPassword,
+              },
+              member: {
+                role: UserRole.MEMBER,
+                username: usernames.member,
+                password: usernames.member,
+              },
+            },
       };
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {

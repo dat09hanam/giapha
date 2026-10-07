@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
+import { ArrowRight, LockKeyhole, UserRound } from 'lucide-react';
 
 import { getApiErrorMessage } from '@/lib/api-error';
 import { login, profileDestination } from '@/lib/auth-api';
@@ -10,6 +11,7 @@ import { safeReturnPath } from '@/lib/return-path';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { Field } from './form-fields';
+import { PasswordField } from './password-field';
 
 export function LoginForm({ initialError = null }: { initialError?: string | null }) {
   const router = useRouter();
@@ -57,22 +59,30 @@ export function LoginForm({ initialError = null }: { initialError?: string | nul
         id="username"
         name="username"
         label="Tên đăng nhập"
+        icon={<UserRound />}
         autoComplete="username"
         minLength={3}
         maxLength={191}
         required
       />
-      <Field
+      <PasswordField
         id="password"
         name="password"
         label="Mật khẩu"
-        type="password"
+        icon={<LockKeyhole />}
         autoComplete="current-password"
         minLength={1}
         required
       />
-      <Button type="submit" size="lg" disabled={submitting}>
-        {submitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
+      <Button type="submit" size="lg" className="mt-1" disabled={submitting}>
+        {submitting ? (
+          'Đang đăng nhập…'
+        ) : (
+          <>
+            Đăng nhập
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </>
+        )}
       </Button>
     </form>
   );

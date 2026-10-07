@@ -7,10 +7,19 @@ import { usePathname } from 'next/navigation';
 import { SiteHeaderContent } from '@/components/layout/site-header-content';
 import { isFamilyAdminRoute, isFamilyRoute } from '@/lib/family-nav';
 
-/** The platform header; family pages and the clan head's admin pages draw the family's instead. */
+/**
+ * The platform header; family pages and the clan head's admin pages draw the family's instead,
+ * the login page is full-screen with its own way home, and Gia phả mẫu wears the public
+ * site's masthead (HomeHeader).
+ */
 export function SiteHeader() {
   const pathname = usePathname();
-  return isFamilyRoute(pathname) || isFamilyAdminRoute(pathname) ? null : <SiteHeaderBar />;
+  const hidden =
+    pathname === '/login' ||
+    pathname === '/gia-pha-mau' ||
+    isFamilyRoute(pathname) ||
+    isFamilyAdminRoute(pathname);
+  return hidden ? null : <SiteHeaderBar />;
 }
 
 /** The platform header bar itself, also used under a family path that has no family. */

@@ -1,4 +1,6 @@
-.home {
+/* The header carries the palette too, so it can stand alone on Gia phả mẫu. */
+.home,
+.header {
   --green: #1f4a3b;
   --green-dark: #163829;
   --brown: #7a4a1f;
@@ -11,10 +13,26 @@
   --line: #e6d7b8;
   --ink: #2c221e;
   --muted: #6f6258;
+  /* Raster artwork cut from the ink-wash paintings in /images/decorations. */
+  --paper-texture: url('/images/home/paper-texture.webp');
+}
+
+.home {
   min-height: 100vh;
-  overflow: hidden;
-  background: var(--paper);
+  /* clip, not hidden: hidden would make this the scroll box and stop the sticky header. */
+  overflow-x: clip;
+  background: var(--paper) var(--paper-texture) repeat;
   color: var(--ink);
+}
+
+/* Menu links glide to their section instead of jumping. */
+:global(html):has(.home) {
+  scroll-behavior: smooth;
+}
+
+/* Land each section below the sticky header rather than under it. */
+.home [id] {
+  scroll-margin-top: 104px;
 }
 
 /* The landing page owns its full-width masthead. */
@@ -22,20 +40,24 @@
   display: none;
 }
 
-.home a {
+.home a,
+.header a {
   text-decoration: none;
 }
 
 .home a:focus-visible,
 .home button:focus-visible,
-.home summary:focus-visible {
+.home summary:focus-visible,
+.header a:focus-visible,
+.header button:focus-visible {
   outline: 3px solid var(--green);
   outline-offset: 3px;
 }
 
 .home h1,
 .home h2,
-.home h3 {
+.home h3,
+.header h2 {
   margin: 0;
   font-family: var(--font-display);
 }
@@ -44,20 +66,111 @@
   margin: 0;
 }
 
-/* Header */
+/* Header: a parchment scroll hung across the page, with a tassel at each end */
 
 .header {
   position: sticky;
   top: 0;
   z-index: 30;
+  padding: 0 max(56px, calc((100% - 1320px) / 2)) 10px;
+  /* The rod the scroll hangs from, running out to both edges. */
+  background: linear-gradient(90deg, transparent, var(--gold) 6%, var(--gold) 94%, transparent)
+    center 18px / 100% 1px no-repeat;
+}
+
+.header::before,
+.header::after {
+  position: absolute;
+  top: 18px;
+  width: 24px;
+  height: 90px;
+  background: url('/images/home/header-tassel.webp') center top / contain no-repeat;
+  content: '';
+  pointer-events: none;
+}
+
+.header::before {
+  left: max(16px, calc((100% - 1320px) / 2 - 36px));
+}
+
+.header::after {
+  right: max(16px, calc((100% - 1320px) / 2 - 36px));
+}
+
+.headerBar {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 24px;
-  height: 72px;
-  padding: 0 max(16px, calc((100% - 1240px) / 2));
-  border-bottom: 1px solid var(--line);
-  background: rgb(255 253 248 / 92%);
+  gap: 20px;
+  min-height: 84px;
+  /* The same inset on both ends, so the login button sits as far in as the logo. */
+  padding: 0 22px;
+  border: 1px solid rgb(197 160 89 / 55%);
+  border-top: 0;
+  /* Flush with the top of the window, so only the lower corners are rounded. */
+  border-radius: 0 0 22px 22px;
+  background:
+    url('/images/home/header-cloud.webp') left -120px top 6px / 180px auto no-repeat,
+    url('/images/home/header-cloud.webp') right -60px top 4px / 200px auto no-repeat,
+    linear-gradient(180deg, rgb(255 253 248 / 96%), rgb(250 243 228 / 96%));
+  box-shadow:
+    inset 0 0 0 4px rgb(255 253 248 / 70%),
+    inset 0 0 0 5px rgb(197 160 89 / 22%),
+    0 16px 32px -22px rgb(74 46 18 / 55%);
   backdrop-filter: blur(10px);
+}
+
+.brand {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
+  color: var(--brown);
+}
+
+.brandSeal {
+  display: grid;
+  width: 60px;
+  height: 60px;
+  place-items: center;
+  border: 2px solid var(--brown);
+  border-radius: 50%;
+  background: var(--paper-light);
+  box-shadow:
+    0 0 0 3px var(--paper-light),
+    0 0 0 4px rgb(122 74 31 / 35%);
+}
+
+.brandSeal .logoMark {
+  width: 42px;
+  height: 42px;
+}
+
+.brandText {
+  display: grid;
+  line-height: 1.1;
+}
+
+.brandText strong {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.brandText em {
+  color: #8b2825;
+  font-style: italic;
+}
+
+.brandText small {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
 }
 
 .logo {
@@ -84,65 +197,129 @@
 .navigation {
   display: flex;
   flex: 1;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 16px;
 }
 
 .navLinks {
   display: flex;
   flex: 1;
   justify-content: center;
-  gap: 32px;
+  align-self: stretch;
+  min-width: 0;
+  padding-left: 8px;
+  border-left: 1px solid var(--line);
 }
 
 .navLinks a {
   position: relative;
-  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  gap: 6px;
+  /* Items share the width left over, so the menu never pushes the buttons out of the bar. */
+  padding: 10px 8px 14px;
   color: var(--ink);
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.navLinks a svg {
+  color: var(--brown);
+  transition: color 0.2s ease;
+}
+
+/* Short rules between items, like the ruled columns of a scroll. */
+.navLinks a + a::before {
+  position: absolute;
+  top: 26%;
+  bottom: 26%;
+  left: 0;
+  width: 1px;
+  background: var(--line);
+  content: '';
 }
 
 .navLinks a::after {
   position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  bottom: 9px;
+  left: 50%;
+  width: 72px;
   height: 2px;
+  margin-left: -36px;
   border-radius: 2px;
-  background: var(--green);
+  background: #8b2825;
   content: '';
   transform: scaleX(0);
   transition: transform 0.2s ease;
 }
 
-.navLinks a:hover::after,
 .navLinks a[aria-current]::after {
   transform: scaleX(1);
 }
 
+/* The hollow diamond sitting on the active item's rule. */
+.navLinks a[aria-current] span::after {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border: 1.5px solid #8b2825;
+  background: var(--paper-light);
+  content: '';
+  transform: rotate(45deg);
+}
+
+.navLinks a:hover,
+.navLinks a:hover svg,
+.navLinks a[aria-current],
+.navLinks a[aria-current] svg {
+  color: #8b2825;
+}
+
+.navLinks a:hover::after {
+  transform: scaleX(0.5);
+}
+
+.navLinks a[aria-current]:hover::after {
+  transform: scaleX(1);
+}
+
 .navLinks a[aria-current] {
-  color: var(--green);
   font-weight: 600;
 }
 
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+}
+
+.actionDivider {
+  width: 1px;
+  height: 36px;
+  background: var(--line);
 }
 
 .iconButton {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--paper-light);
+  background: var(--paper);
   color: var(--ink);
   cursor: pointer;
+  box-shadow: inset 0 0 0 3px var(--paper-light);
 }
 
 .iconButton:hover {
@@ -155,15 +332,17 @@
 
 .loginAction {
   display: inline-flex;
-  height: 40px;
+  height: 48px;
   align-items: center;
-  padding: 0 24px;
+  gap: 8px;
+  padding: 0 26px;
   border-radius: 999px;
   background: var(--green);
   color: #fff !important;
   font-size: 15px;
   font-weight: 600;
-  box-shadow: 0 8px 18px -12px rgb(22 56 41 / 80%);
+  white-space: nowrap;
+  box-shadow: 0 10px 20px -12px rgb(22 56 41 / 85%);
 }
 
 .loginAction:hover {
@@ -320,8 +499,7 @@
   margin-top: 28px;
 }
 
-.primary,
-.secondary {
+.primary {
   display: inline-flex;
   height: 46px;
   align-items: center;
@@ -344,43 +522,60 @@
   background: var(--green-dark);
 }
 
-.secondary {
-  border: 1px solid var(--gold);
-  background: rgb(255 253 248 / 85%);
-  color: var(--brown) !important;
-}
+/* Overview strip: one line per section */
 
-.secondary:hover {
-  background: #fff;
-}
-
-/* Value strip */
-
-.values {
+.overview {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  padding: 28px max(16px, calc((100% - 1240px) / 2));
+  padding: 24px max(16px, calc((100% - 1240px) / 2));
   border-block: 1px solid var(--line);
   background: var(--paper-light);
 }
 
-.values article {
+.overview a {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 4px 20px;
+  gap: 14px;
+  padding: 8px 18px;
+  border-radius: 12px;
+  color: inherit;
+  transition: background 0.2s ease;
 }
 
-.values article + article {
+.overview a:hover {
+  background: var(--paper);
+}
+
+.overview a + a {
   border-left: 1px solid var(--line);
+  border-radius: 0 12px 12px 0;
 }
 
-.values h2 {
+.overview .roundIcon {
+  width: 56px;
+  height: 56px;
+}
+
+.overview a:nth-child(odd) .roundIcon {
+  background: #e7ead8;
+  color: var(--green);
+}
+
+.overview strong {
+  display: block;
   color: var(--ink);
-  font-size: 17px;
+  font-family: var(--font-display);
+  font-size: 16px;
 }
 
-.values p,
+.overview small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .reasonGrid p {
   margin-top: 4px;
   color: var(--muted);
@@ -399,9 +594,134 @@
   color: var(--brown);
 }
 
-.values article:nth-child(odd) .roundIcon {
+/* Shared section heading */
+
+.steps {
+  padding: 64px max(16px, calc((100% - 1240px) / 2));
+  text-align: center;
+}
+
+.steps > h2 {
+  margin-top: 12px;
+  font-size: clamp(26px, 3vw, 34px);
+}
+
+/* Features, the full-width foot of the introduction */
+
+.featureGrid {
+  position: relative;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.featureGrid article {
+  display: flex;
+  flex-direction: column;
+  padding: 22px 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper-light);
+  box-shadow: 0 14px 30px -26px rgb(74 46 18 / 60%);
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.featureGrid article:hover {
+  border-color: var(--gold);
+  transform: translateY(-2px);
+}
+
+.squareIcon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--paper-deep);
+  color: var(--brown);
+}
+
+.featureGrid article:nth-child(4n + 1) .squareIcon,
+.featureGrid article:nth-child(4n + 3) .squareIcon {
   background: #e7ead8;
   color: var(--green);
+}
+
+.featureGrid h3 {
+  margin-top: 16px !important;
+  font-size: 17px;
+}
+
+.featureGrid p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* Steps */
+
+.steps {
+  border-top: 1px solid var(--line);
+  background:
+    url('/images/home/sun-clouds.webp') right -40px top -10px / 520px auto no-repeat,
+    var(--paper-texture);
+}
+
+.stepList {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin: 40px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.stepList li {
+  position: relative;
+  padding: 0 8px;
+}
+
+/* The thread joining one step to the next. */
+.stepList li + li::before {
+  position: absolute;
+  top: 26px;
+  right: calc(50% + 34px);
+  width: calc(100% - 44px);
+  height: 1px;
+  background: repeating-linear-gradient(90deg, var(--gold) 0 6px, transparent 6px 12px);
+  content: '';
+}
+
+.stepNumber {
+  display: inline-grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--brown);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.stepList h3 {
+  margin-top: 14px !important;
+  font-size: 17px;
+}
+
+.stepList p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 /* Introduction */
@@ -414,8 +734,10 @@
   gap: 40px;
   padding: 64px max(16px, calc((100% - 1240px) / 2));
   background:
+    url('/images/home/hoa-sen.webp') right -20px bottom / 300px auto no-repeat,
     radial-gradient(circle at 78% 40%, rgb(197 160 89 / 22%), transparent 30rem),
-    linear-gradient(90deg, var(--paper) 0%, #f2e6cf 100%);
+    linear-gradient(90deg, rgb(251 246 236 / 70%) 0%, rgb(242 230 207 / 85%) 100%),
+    var(--paper-texture);
 }
 
 .bamboo {
@@ -423,7 +745,7 @@
   top: 0;
   left: 0;
   width: 210px;
-  height: 100%;
+  height: min(100%, 620px);
   object-fit: cover;
   object-position: left top;
   /* Fade the photo into the paper on the right and at the foot. */
@@ -461,40 +783,6 @@
   line-height: 1.7;
 }
 
-.highlights {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin: 28px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.highlights li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--paper-light);
-  box-shadow: 0 10px 24px -20px rgb(74 46 18 / 60%);
-  color: var(--brown);
-}
-
-.highlights strong {
-  display: block;
-  color: var(--ink);
-  font-family: var(--font-display);
-  font-size: 15px;
-}
-
-.highlights small {
-  display: block;
-  color: var(--muted);
-  font-size: 12px;
-}
-
 .devices {
   margin: 0;
 }
@@ -510,19 +798,11 @@
 .reasons {
   position: relative;
   isolation: isolate;
-  padding: 56px max(16px, calc((100% - 1240px) / 2)) 72px;
+  padding: 56px max(16px, calc((100% - 1240px) / 2)) 120px;
   text-align: center;
-  background: var(--paper);
-}
-
-.mountains {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: -1;
-  width: 100%;
-  height: 160px;
+  background:
+    url('/images/home/mountains-strip.webp') center bottom / max(100%, 1100px) auto no-repeat,
+    var(--paper-texture);
 }
 
 .reasons > h2 {
@@ -562,11 +842,11 @@
 
 .faq {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 0.55fr) minmax(0, 1.45fr);
   gap: 40px;
   padding: 64px max(16px, calc((100% - 1240px) / 2));
   border-top: 1px solid var(--line);
-  background: var(--paper-light);
+  background: linear-gradient(rgb(255 253 248 / 55%), rgb(255 253 248 / 55%)), var(--paper-texture);
 }
 
 .faq h2 {
@@ -574,167 +854,453 @@
   font-size: clamp(26px, 3vw, 34px);
 }
 
-.faqList details {
+.faqList {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 32px;
+  margin: 0;
+}
+
+.faqList div {
+  padding: 18px 0;
   border-bottom: 1px solid var(--line);
 }
 
-.faqList summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 0;
+.faqList dt {
   font-weight: 600;
-  cursor: pointer;
-  list-style: none;
+  line-height: 1.45;
 }
 
-.faqList summary::-webkit-details-marker {
-  display: none;
-}
-
-.faqList summary::after {
-  color: var(--brown);
-  font-size: 22px;
-  font-weight: 400;
-  content: '+';
-}
-
-.faqList details[open] summary::after {
-  content: '−';
-}
-
-.faqList p {
-  padding-bottom: 18px;
+.faqList dd {
+  margin: 8px 0 0;
   color: var(--muted);
+  font-size: 14.5px;
   line-height: 1.65;
 }
 
-/* Footer */
+/* Footer: an ink-wash landscape above a deep green band, joined by a gold curve */
 
 .footer {
-  background: var(--green-dark);
+  position: relative;
   color: #eae3d2;
 }
 
 .footerCta {
+  position: relative;
+  z-index: 2;
   display: grid;
   justify-items: center;
-  gap: 10px;
-  padding: 56px 16px;
+  gap: 12px;
+  padding: 40px 16px 64px;
   text-align: center;
+  /* The cream upper half of footer.png, its gold rule on this band's bottom edge. Cover keeps it
+     edge to edge and, on a phone, crops to the middle rather than shrinking the scene. */
+  /* The top fades from the section above's paper into the picture, so no edge shows. */
+  background:
+    linear-gradient(rgb(252 247 237), rgb(252 247 237 / 0%) 48px),
+    url('/images/home/footer-top.webp') center bottom / cover no-repeat #f4e9d2;
+}
+
+.footerOrnament {
+  display: block;
+  width: min(440px, 80%);
+  height: 30px;
+  background:
+    url('/images/home/footer-lotus.webp') center / auto 26px no-repeat,
+    linear-gradient(
+        90deg,
+        transparent,
+        var(--gold) 18%,
+        var(--gold) 40%,
+        transparent 44%,
+        transparent 56%,
+        var(--gold) 60%,
+        var(--gold) 82%,
+        transparent
+      )
+      center / 100% 1px no-repeat;
 }
 
 .footerCta h2 {
-  color: #fff;
-  font-size: clamp(24px, 3vw, 32px);
+  margin-top: 4px !important;
+  color: var(--green-dark);
+  font-size: clamp(26px, 3.4vw, 40px);
+  line-height: 1.2;
 }
 
 .footerCta p {
-  color: #d3cbb8;
+  color: var(--muted);
+  font-size: 16px;
 }
 
-.footerCta .secondary {
-  border-color: rgb(255 255 255 / 40%);
-  background: transparent;
+.footerActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.footerPrimary,
+.footerSecondary {
+  display: inline-flex;
+  height: 52px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 34px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 600;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.footerPrimary {
+  border: 2px solid var(--gold);
+  background: var(--green-dark);
   color: #fff !important;
+  box-shadow:
+    inset 0 0 0 2px rgb(255 255 255 / 8%),
+    0 10px 20px -12px rgb(14 38 29 / 90%);
 }
 
-.footerCta .secondary:hover {
-  background: rgb(255 255 255 / 10%);
+.footerPrimary:hover {
+  background: var(--green);
 }
 
-.footerCta .primary {
-  background: var(--gold);
+.footerSecondary {
+  border: 2px solid var(--gold);
+  background: rgb(255 253 248 / 92%);
   color: var(--green-dark) !important;
 }
 
-.footerCta .primary:hover {
-  background: var(--gold-soft);
+.footerSecondary:hover {
+  background: #fff;
 }
 
-.footerBar {
+.footerMain {
+  position: relative;
+  padding: 44px max(24px, calc((100% - 1240px) / 2)) 14px;
+  /* The green lower half of footer.png, full width and pinned to the foot so the lotus corners
+     and gold waves stay there; above it the picture's own green carries on. */
+  background:
+    url('/images/home/footer-bottom.webp') center bottom / max(100%, 720px) auto no-repeat,
+    linear-gradient(rgb(12 59 41), rgb(15 65 47));
+}
+
+.footerGrid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.3fr repeat(3, 1fr) 1.45fr;
+  align-items: center;
+}
+
+.footerGrid > * {
+  position: relative;
+  padding: 8px 18px;
+}
+
+/* Gold rules with a diamond between the columns. */
+.footerGrid > * + *::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: linear-gradient(
+    transparent,
+    rgb(197 160 89 / 70%) 20%,
+    rgb(197 160 89 / 70%) 80%,
+    transparent
+  );
+  content: '';
+}
+
+.footerGrid > * + *::after {
+  position: absolute;
+  top: 50%;
+  left: -4px;
+  width: 9px;
+  height: 9px;
+  margin-top: -4px;
+  border: 1px solid var(--gold);
+  background: #133426;
+  content: '';
+  transform: rotate(45deg);
+}
+
+.footerMedal {
+  display: grid;
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+  place-items: center;
+  background: url('/images/home/footer-medallion.webp') center / contain no-repeat;
+  color: #f1d58c;
+}
+
+.footerBrand {
+  padding-left: 0 !important;
+}
+
+.footerLogo {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 20px max(16px, calc((100% - 1240px) / 2));
-  border-top: 1px solid rgb(255 255 255 / 12%);
-  font-size: 14px;
+  gap: 12px;
 }
 
-.footerBar .logo,
-.footerBar .logo span,
-.footerBar .logoMark {
-  color: var(--gold-soft);
+.footerLogo .logoMark {
+  width: 46px;
+  height: 46px;
+  color: #f1d58c;
+}
+
+.footerLogo strong {
+  display: block;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.footerLogo em {
+  color: #e2bd6b;
+  font-style: normal;
+}
+
+.footerLogo small {
+  display: block;
+  margin-top: 6px;
+  color: rgb(234 227 210 / 75%);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+.footerBrand > p {
+  max-width: 300px;
+  margin-top: 16px;
+  color: rgb(234 227 210 / 82%);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.footerSocial {
+  display: flex;
+  gap: 14px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footerSocial a {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid rgb(197 160 89 / 75%);
+  border-radius: 50%;
+  color: #f4ead2;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.footerSocial a:hover {
+  background: var(--gold);
+  color: var(--green-dark);
+}
+
+.footerValue {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.footerValue h3 {
+  margin-top: 6px !important;
+  color: #fff;
+  font-size: 19px;
+  white-space: nowrap;
+}
+
+.footerValue p {
+  max-width: 220px;
+  color: rgb(234 227 210 / 80%);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.footerContact h3 {
+  padding-bottom: 12px;
+  color: #f1d58c;
+  font-family: inherit !important;
   font-size: 18px;
+  font-weight: 600;
+  background:
+    linear-gradient(45deg, transparent 2.5px, var(--gold) 2.5px 4.5px, transparent 4.5px) left 18px
+      bottom 0 / 7px 7px no-repeat,
+    linear-gradient(90deg, var(--gold), transparent) left bottom 3px / 100% 1px no-repeat;
 }
 
-.footerBar .logoMark {
-  width: 32px;
-  height: 32px;
+.footerContact ul {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.credit {
-  font-size: 12px;
-  opacity: 0.7;
+.footerContact li {
+  display: flex;
+  white-space: nowrap;
+  align-items: center;
+  gap: 14px;
+  color: #f4ead2;
+  font-size: 15px;
 }
 
-.credit a {
+.footerContact li > span {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid rgb(197 160 89 / 75%);
+  border-radius: 50%;
+  color: #f1d58c;
+}
+
+.footerContact a {
+  color: inherit;
+}
+
+.footerContact a:hover {
+  color: #f1d58c;
+}
+
+.footerBottom {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  /* Room for the picture's lotus corners: the columns stay above them, this row sits under the
+     gold wave and between the two clumps. */
+  margin-top: max(96px, 8vw);
+  padding-inline: max(0px, calc(15vw - max(24px, (100vw - 1240px) / 2)));
+  font-size: 13.5px;
+}
+
+.footerBottom > p {
+  color: rgb(234 227 210 / 85%);
+  white-space: nowrap;
+}
+
+.footerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 16px;
+  font-size: 13.5px;
+}
+
+.footerLinks a {
+  color: rgb(234 227 210 / 85%);
+  white-space: nowrap;
+  text-decoration: underline transparent !important;
+  text-underline-offset: 4px;
+  transition:
+    color 0.2s ease,
+    text-decoration-color 0.2s ease;
+}
+
+.footerLinks a:hover {
+  color: #f1d58c;
+  text-decoration-color: currentColor !important;
+}
+
+/* The bamboo photo's attribution (CC BY 4.0), kept beside the photo itself. */
+.photoCredit {
+  position: absolute;
+  bottom: 8px;
+  left: 16px;
+  color: rgb(111 98 88 / 75%);
+  font-size: 11px;
+}
+
+.photoCredit a {
   color: inherit;
   text-decoration: underline !important;
-}
-
-.toTop {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 25%);
-  border-radius: 50%;
-  color: #fff;
 }
 
 /* Responsive */
 
 @media (max-width: 1100px) {
-  .navLinks {
-    gap: 20px;
+  .footerGrid {
+    grid-template-columns: repeat(3, 1fr);
+    row-gap: 32px;
   }
 
-  .values,
-  .reasonGrid {
+  .footerBrand,
+  .footerContact {
+    grid-column: 1 / -1;
+  }
+
+  .footerBrand + *::before,
+  .footerBrand + *::after,
+  .footerContact::before,
+  .footerContact::after {
+    display: none;
+  }
+
+  .footerGrid > * {
+    padding: 8px 16px;
+  }
+
+  .overview,
+  .reasonGrid,
+  .featureGrid,
+  .stepList {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .values {
-    row-gap: 20px;
+  .overview {
+    row-gap: 12px;
   }
 
-  .values article:nth-child(3) {
+  .overview a:nth-child(3) {
     border-left: 0;
+  }
+
+  .stepList {
+    row-gap: 32px;
+  }
+
+  .stepList li:nth-child(3)::before {
+    display: none;
   }
 }
 
-@media (max-width: 900px) {
-  .header {
-    gap: 12px;
-  }
-
+/* Too narrow for the full menu: it folds behind the menu button. */
+@media (max-width: 1260px) {
   .menuToggle {
     display: grid;
   }
 
   .navLinks {
     position: absolute;
-    top: 72px;
+    top: calc(100% + 8px);
     right: 0;
     left: 0;
     display: none;
     flex-direction: column;
     gap: 0;
-    padding: 8px 16px 16px;
-    border-bottom: 1px solid var(--line);
+    padding: 8px 16px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
     background: var(--paper-light);
     box-shadow: 0 18px 30px -24px rgb(43 26 12 / 50%);
   }
@@ -744,29 +1310,95 @@
   }
 
   .navLinks a {
+    flex: none;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
     padding: 12px 4px;
     border-bottom: 1px solid var(--line);
   }
 
-  .navLinks a::after {
+  .navLinks a:last-child {
+    border-bottom: 0;
+  }
+
+  .navLinks a::before,
+  .navLinks a::after,
+  .navLinks a[aria-current] span::after {
+    display: none;
+  }
+
+  .actionDivider {
     display: none;
   }
 
   .navigation {
     justify-content: flex-end;
   }
+}
+
+@media (max-width: 900px) {
+  .header {
+    padding: 0 12px 8px;
+    background: none;
+  }
+
+  .header::before,
+  .header::after {
+    display: none;
+  }
+
+  .headerBar {
+    gap: 12px;
+    min-height: 64px;
+    padding: 0 12px;
+    border-radius: 0 0 18px 18px;
+  }
 
   .intro,
-  .faq {
+  .faq,
+  .faqList {
     grid-template-columns: 1fr;
   }
 
-  .bamboo {
+  .bamboo,
+  .photoCredit {
     display: none;
   }
 }
 
 @media (max-width: 640px) {
+  .brandSeal {
+    width: 46px;
+    height: 46px;
+  }
+
+  .brandSeal .logoMark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brandText strong {
+    font-size: 20px;
+  }
+
+  .brandText small {
+    display: none;
+  }
+
+  .headerActions {
+    gap: 8px;
+  }
+
+  .iconButton {
+    width: 40px;
+    height: 40px;
+  }
+
+  .loginAction {
+    height: 40px;
+  }
+
   .logo {
     font-size: 19px;
   }
@@ -806,28 +1438,195 @@
     display: none;
   }
 
-  .values,
+  .overview,
   .reasonGrid,
-  .highlights {
+  .featureGrid,
+  .stepList {
     grid-template-columns: 1fr;
   }
 
-  .values article {
-    padding: 4px 0;
+  .overview a {
+    padding: 8px 0;
   }
 
-  .values article + article {
+  .featureGrid {
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .featureGrid article {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    column-gap: 14px;
+    padding: 16px;
+  }
+
+  .featureGrid .squareIcon {
+    grid-row: span 2;
+  }
+
+  .featureGrid h3 {
+    margin-top: 2px !important;
+  }
+
+  .overview a + a {
     border-left: 0;
   }
 
-  .footerBar {
-    flex-direction: column;
+  .steps {
+    padding-block: 48px;
+  }
+
+  /* On a phone the artwork would sit under the text, so only light touches stay. */
+  .steps {
+    background:
+      url('/images/home/sun-clouds.webp') right -120px top -20px / 360px auto no-repeat,
+      var(--paper-texture);
+  }
+
+  .intro {
+    background-size:
+      220px auto,
+      auto,
+      auto,
+      auto;
+  }
+
+  .reasons {
+    padding-bottom: 96px;
+  }
+
+  .stepList {
+    text-align: left;
+  }
+
+  .stepList li {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    column-gap: 16px;
+    padding: 0;
+  }
+
+  .stepList li::before {
+    display: none;
+  }
+
+  .stepNumber {
+    grid-row: span 2;
+  }
+
+  .stepList h3 {
+    margin-top: 4px !important;
+  }
+
+  .footerGrid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .footerGrid > * {
+    padding: 0;
+  }
+
+  .footerGrid > * + *::before,
+  .footerGrid > * + *::after {
+    display: none;
+  }
+
+  .footerValue {
+    grid-template-columns: 64px 1fr;
+    justify-items: start;
+    column-gap: 16px;
+    text-align: left;
+  }
+
+  .footerValue .footerMedal {
+    grid-row: span 2;
+    width: 64px;
+    height: 64px;
+  }
+
+  .footerValue h3 {
+    margin-top: 0 !important;
+    font-size: 18px;
+  }
+
+  /* Phones get the portrait version of the footer picture, split the same way. */
+  .footerCta {
+    gap: 10px;
+    /* The whole picture across the width, so the sun, pine, pavilion and the gold curve all
+       show; the text sits in its cream sky, which the band's colour carries on above it. */
+    min-height: 49.8vw;
+    padding: 28px 16px 46vw;
+    background:
+      linear-gradient(rgb(252 247 237), rgb(252 247 237 / 0%) 32px),
+      url('/images/home/footer-mb-top.webp') center bottom / 100% auto no-repeat #f4e9d4;
+  }
+
+  .footerCta h2 {
+    font-size: 24px;
+  }
+
+  .footerCta p {
+    font-size: 14px;
+  }
+
+  .footerActions {
+    flex-wrap: nowrap;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .footerPrimary,
+  .footerSecondary {
+    height: 44px;
+    padding: 0 18px;
+    font-size: 14px;
+  }
+
+  .footerMain {
+    /* Keeps the last row above the picture's lotus clumps. */
+    padding-bottom: 34vw;
+    background:
+      url('/images/home/footer-mb-bottom.webp') center bottom / 100% auto no-repeat,
+      rgb(12 58 39);
+  }
+
+  .footerBottom {
+    margin-top: 48px;
+    padding-inline: 0;
     text-align: center;
+  }
+
+  .footerBottom > p {
+    white-space: normal;
+  }
+}
+
+/* Too narrow for the label: the login button keeps only its icon. */
+@media (max-width: 480px) {
+  .loginAction {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .loginLabel {
+    display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .navLinks a::after {
+  :global(html):has(.home) {
+    scroll-behavior: auto;
+  }
+
+  .navLinks a::after,
+  .featureGrid article {
     transition: none;
+  }
+
+  .featureGrid article:hover {
+    transform: none;
   }
 }

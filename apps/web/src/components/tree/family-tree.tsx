@@ -114,6 +114,8 @@ type FamilyTreeProps = {
   tree: FamilyTreeResponse;
   family: { name: string; poster: FamilyPoster; features: FamilyFeatures };
   familySlug: string;
+  /** The title, search and Xưng hô bar above the sheet; Gia phả mẫu leaves it out. */
+  showToolbar?: boolean;
 };
 
 export function FamilyTree(props: FamilyTreeProps) {
@@ -210,7 +212,7 @@ function DesktopShortcuts({
   );
 }
 
-function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
+function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: FamilyTreeProps) {
   const { fitView } = useReactFlow();
   const { nodes, edges } = useMemo(
     () => toPosterElements(tree, family, familySlug),
@@ -336,26 +338,32 @@ function FamilyTreeView({ tree, family, familySlug }: FamilyTreeProps) {
       style={layoutVars}
     >
       {/* A wood strip on phones, as every family section opens; a plain toolbar from sm. */}
-      <div className="heritage-hero flex w-full shrink-0 items-center justify-center gap-2 rounded-none border-x-0 px-3 py-2.5 sm:max-w-[var(--poster-width)] sm:border-0 sm:bg-none sm:p-0 sm:shadow-none">
-        <h1 className="sr-only shrink-0 font-display text-2xl font-bold text-brand-800 sm:not-sr-only sm:mr-auto">
-          Gia phả
-        </h1>
-        <PersonSearch entries={searchEntries} onSelect={focusPerson} onClear={clearFocus} />
-        <button type="button" onClick={() => setKinshipFromId(null)} className={toolbarButtonClass}>
-          <UsersRound className="size-4" aria-hidden="true" />
-          Xưng hô
-        </button>
-        {family.features.printBook ? (
-          <Link
-            href={`/${encodeURIComponent(familySlug)}/in-gia-pha`}
-            aria-label="In gia phả"
+      {showToolbar ? (
+        <div className="heritage-hero flex w-full shrink-0 items-center justify-center gap-2 rounded-none border-x-0 px-3 py-2.5 sm:max-w-[var(--poster-width)] sm:border-0 sm:bg-none sm:p-0 sm:shadow-none">
+          <h1 className="sr-only shrink-0 font-display text-2xl font-bold text-brand-800 sm:not-sr-only sm:mr-auto">
+            Gia phả
+          </h1>
+          <PersonSearch entries={searchEntries} onSelect={focusPerson} onClear={clearFocus} />
+          <button
+            type="button"
+            onClick={() => setKinshipFromId(null)}
             className={toolbarButtonClass}
           >
-            <Printer className="size-4" aria-hidden="true" />
-            <span className="hidden sm:inline">In gia phả</span>
-          </Link>
-        ) : null}
-      </div>
+            <UsersRound className="size-4" aria-hidden="true" />
+            Xưng hô
+          </button>
+          {family.features.printBook ? (
+            <Link
+              href={`/${encodeURIComponent(familySlug)}/in-gia-pha`}
+              aria-label="In gia phả"
+              className={toolbarButtonClass}
+            >
+              <Printer className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">In gia phả</span>
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
       {landscape ? (
         <div
           aria-hidden="true"

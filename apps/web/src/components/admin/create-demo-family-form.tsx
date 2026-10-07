@@ -1,0 +1,116 @@
+'use client';
+
+import { LoaderCircle, Plus, Sparkles } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, type FormEvent } from 'react';
+
+import { SectionCard } from '@/components/admin/admin-layout';
+import { Field } from '@/components/auth/form-fields';
+import { Button } from '@/components/ui/button';
+import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker';
+import { useToast } from '@/components/ui/toast';
+import { getApiErrorMessage } from '@/lib/api-error';
+import { createDemoFamily } from '@/lib/family-api';
+import { foldVietnamese } from '@/lib/person-search';
+
+/**
+ * The sample family's path, from its name: "Họ Nguyễn" → "ho-nguyen-mau". Not `gia-pha-mau`
+ * itself, which is the page that shows the sample and is reserved.
+ */
+function demoSlug(name: string): string {
+  const base = foldVietnamese(name)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 95)
+    .replace(/-+$/, '');
+  return `${base || 'dong-ho'}-mau`;
+}
+
+/** Creates Gia phả mẫu, shown while there is none; the tab then switches to editing it. */
+export function CreateDemoFamilyForm() {
+  const router = useRouter();
+  const showToast = useToast();
+  const [name, setName] = useState('');
+  const [deathAnniversary, setDeathAnniversary] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const slug = demoSlug(name);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      const body = await createDemoFamily({ name, slug, deathAnniversary });
+      showToast({ kind: 'success', message: `Đã tạo gia phả mẫu ${body.family.name}.` });
+      // The tab is rendered on the server; reloading it swaps this form for the editor.
+      router.refresh();
+    } catch (error: unknown) {
+      showToast({ kind: 'error', message: getApiErrorMessage(error, 'tạo gia phả mẫu') });
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <SectionCard
+      icon={<Sparkles aria-hidden="true" />}
+      title="Tạo gia phả mẫu"
+      description="Gia phả khách chưa đăng nhập xem thử từ trang chủ, tại /gia-pha-mau. Chỉ có một gia phả mẫu."
+    >
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-10">
+        <form className="grid content-start gap-5" onSubmit={handleSubmit}>
+          <Field
+            id="demo-family-name"
+            name="name"
+            label="Tên dòng họ"
+            placeholder="Họ Nguyễn"
+            minLength={2}
+            maxLength={100}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            required
+          />
+          <Field
+            id="demo-family-slug"
+            name="slug"
+            label="Đường dẫn"
+            value={slug}
+            readOnly
+            className="bg-gold-50/70 text-stone-600"
+            hint="Tạo tự động từ tên dòng họ."
+          />
+          <DeathAnniversaryPicker
+            id="demo-death-anniversary"
+            value={deathAnniversary}
+            onChange={setDeathAnniversary}
+            hint="Chọn ngày và tháng giỗ họ."
+            required
+          />
+          <Button
+            type="submit"
+            size="lg"
+            className="mt-1 sm:justify-self-start"
+            disabled={submitting}
+          >
+            {submitting ? (
+              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Plus className="size-4" aria-hidden="true" />
+            )}
+            {submitting ? 'Đang tạo…' : 'Tạo gia phả mẫu'}
+          </Button>
+        </form>
+
+        <div className="grid content-start gap-3 rounded-2xl border border-dashed border-brand-900/20 bg-stone-50/60 p-5 text-sm leading-6 text-stone-600">
+          <p className="font-medium text-brand-950">Về gia phả mẫu</p>
+          <p>
+            Không cấp tài khoản Trưởng họ hay Thành viên. Sau khi tạo, bạn nhập cây gia phả, thông
+            tin và trang trí phả đồ ngay trong tab này.
+          </p>
+          <p>
+            Khách xem được cây gia phả nhưng không thấy số điện thoại và ảnh đại diện. Chỉ nhập dữ
+            liệu mẫu, không dùng thông tin người thật.
+          </p>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}

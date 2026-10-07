@@ -21,7 +21,7 @@ Family resolved from the URL before allowing access.
 The three roles are stored directly on `User`:
 
 - `ADMIN`: platform operator, always has `familyId = NULL`. It may create a Family but does not
-  inherit access to private genealogy data.
+  inherit access to private genealogy data, except the sample Family (below).
 - `MEMBER_PLUS`: the clan head, attached to one Family and allowed to mutate that Family.
 - `MEMBER`: attached to one Family and read-only, except as a branch manager (below).
 
@@ -42,6 +42,21 @@ anyone who was in the branch, ends up outside it.
 
 Every Family-owned query must use the server-trusted `familyId`. Client-supplied IDs and slugs are
 never sufficient authorization.
+
+### Gia phả mẫu (the public sample Family)
+
+The sample Family the public home page offers visitors is the one exception to both rules above.
+The platform `ADMIN` creates it from the Gia phả mẫu tab of `/admin` (`POST /api/families` with
+`isDemo: true`), which stores `Family.isDemo`; the request is refused while a sample already
+exists, so there is at most one. It gets no `MEMBER_PLUS` or `MEMBER` accounts. Instead
+`FamilyAccessGuard` lets the platform `ADMIN` into that one Family, and only that one, acting with
+`MEMBER_PLUS` rights, so the admin edits its tree (`/{slug}/thiet_ke`), details and phả đồ directly;
+every other Family still refuses the admin.
+
+`GET /api/demo-family` and `GET /api/demo-family/tree` are public and read-only. They resolve the
+Family by the mark alone, never by a slug the visitor sends, and the tree omits `phone` and
+`avatarUrl` (photos stay behind the member-only media route). The web shows it at `/gia-pha-mau`
+with every member-only section hidden. The sample Family must hold sample data, not real people.
 
 ## Authentication and Family provisioning
 
@@ -101,7 +116,7 @@ Platform Admin accounts are provisioned or rotated with `npm run admin:bootstrap
 
 ## Genealogy model
 
-`Family` stores the public locator and clan-level record: `slug`, `name`, `description`, `status`,
+`Family` stores the public locator and clan-level record: `slug`, `name`, `description`, `status`, `isDemo` (see Gia phả mẫu above),
 the recurring death anniversary (`deathAnniversaryDay` and `deathAnniversaryMonth`), the ancestral
 hall `address` and the clan origin (`ancestryOrigin`). `introduction` (JSON) is the clan head's formatted
 Giới thiệu: a structured document of blocks (paragraph, heading, subheading, quote, bulleted and

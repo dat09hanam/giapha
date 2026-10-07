@@ -131,7 +131,7 @@ function Hero({ family }: { family: FamilyDetails }) {
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-paper/45"
       />
-      <div className="relative z-10 flex h-full min-h-[25rem] min-w-0 flex-col items-center justify-end px-4 pb-8 pt-10 text-center sm:min-h-[27rem] sm:px-10 sm:pb-10 lg:min-h-0 lg:pb-[4%]">
+      <div className="relative z-10 flex h-full min-h-[25rem] min-w-0 flex-col items-center justify-end px-4 pb-20 pt-10 text-center sm:min-h-[27rem] sm:px-10 sm:pb-24 lg:min-h-0 lg:pb-[11%]">
         <p className="mt-5 font-display text-xl font-semibold text-brand-700 sm:mt-6 sm:text-2xl">
           Gia phả
         </p>
