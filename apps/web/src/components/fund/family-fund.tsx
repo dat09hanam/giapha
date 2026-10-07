@@ -15,6 +15,7 @@ import { Fragment, useRef, useState, type FormEvent } from 'react';
 
 import { heroOverlapClass, PageHero } from '@/components/layout/page-hero';
 import { Button } from '@/components/ui/button';
+import { PdfExportButton } from '@/components/ui/pdf-export-button';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Segmented } from '@/components/ui/segmented';
 import { useToast } from '@/components/ui/toast';
@@ -352,6 +353,26 @@ export function FamilyFund({ familySlug, initial }: { familySlug: string; initia
             Sổ thu chi
           </h2>
           <Segmented options={FILTERS} value={filter} onChange={setFilter} label="Lọc theo loại" />
+          <PdfExportButton
+            familySlug={familySlug}
+            filename={`quy-ho-${familySlug}-${filter.toLowerCase()}`}
+            report={{
+              title: 'Báo cáo quỹ họ',
+              scope: `${filter === 'ALL' ? 'Tất cả thu chi' : filter === 'INCOME' ? 'Các khoản thu' : 'Các khoản chi'} · ${visible.length} khoản`,
+              lines: [
+                `Tổng thu toàn sổ: ${formatVnd(totals.income)}`,
+                `Tổng chi toàn sổ: ${formatVnd(totals.expense)}`,
+                `Số dư toàn sổ: ${formatVnd(totals.balance)}`,
+                `Tổng số tiền các khoản đang lọc: ${formatVnd(visible.reduce((sum, entry) => sum + entry.amount, 0))}`,
+                '',
+                ...visible.map(
+                  (entry, index) =>
+                    `${index + 1}. ${formatDay(entry.occurredOn)} · ${entry.kind === 'INCOME' ? 'Thu' : 'Chi'} · ${formatVnd(entry.amount)}\n${entry.content}`,
+                ),
+                ...(visible.length ? [] : ['Không có khoản thu chi trong phạm vi này.']),
+              ],
+            }}
+          />
         </div>
 
         {visible.length === 0 ? (

@@ -2,6 +2,7 @@ import { CalendarHeart, Landmark, MapPin, ScrollText } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { RichTextView } from '@/components/rich-text/rich-text-view';
+import { PdfExportButton } from '@/components/ui/pdf-export-button';
 import { plainToRichText, richTextIsEmpty } from '@/lib/rich-text';
 import type { FamilyDetails } from '@/types/family-tree';
 
@@ -74,6 +75,29 @@ export function FamilyAbout({ family }: { family: FamilyDetails }) {
         <p className="mt-3 max-w-sm text-sm leading-6 text-stone-600">
           Những câu chuyện của dòng họ được lưu lại để các thế hệ cùng tìm hiểu và tiếp nối.
         </p>
+        <div className="mt-4">
+          <PdfExportButton
+            familySlug={family.slug}
+            familyName={family.name}
+            filename={`gioi-thieu-${family.slug}`}
+            report={{
+              title: 'Lịch sử và truyền thống dòng họ',
+              scope: 'Thông tin và nội dung giới thiệu dòng họ',
+              lines: [
+                ...facts.map((fact) => `${fact.label}: ${fact.value}`),
+                '',
+                ...introduction.blocks.flatMap((block) =>
+                  'items' in block
+                    ? block.items.map(
+                        (item, index) =>
+                          `${block.type === 'numbered' ? `${index + 1}.` : '•'} ${item.map((run) => run.text).join('')}`,
+                      )
+                    : [block.content.map((run) => run.text).join('')],
+                ),
+              ],
+            }}
+          />
+        </div>
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -bottom-10 -right-8 size-36 rounded-full border border-brand-200/60"

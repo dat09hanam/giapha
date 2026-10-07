@@ -41,6 +41,8 @@ import { HighlightedPersonContext, PersonNode } from '@/components/tree/person-n
 import { PersonSearch } from '@/components/tree/person-search';
 import { PosterFrame } from '@/components/tree/poster-nodes';
 import { Presence } from '@/components/ui/presence';
+import { PdfExportButton } from '@/components/ui/pdf-export-button';
+import { downloadTreePdf } from '@/lib/tree-pdf';
 import { useIsPortrait, useRotatedPanZoom } from '@/components/tree/rotated-pan-zoom';
 import { buildKinshipGraph } from '@/lib/kinship';
 import type { PersonSearchEntry } from '@/lib/person-search';
@@ -213,6 +215,7 @@ function DesktopShortcuts({
 }
 
 function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: FamilyTreeProps) {
+  const [pdfBranchId, setPdfBranchId] = useState('');
   const { fitView } = useReactFlow();
   const { nodes, edges } = useMemo(
     () => toPosterElements(tree, family, familySlug),
@@ -339,7 +342,7 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
     >
       {/* A wood strip on phones, as every family section opens; a plain toolbar from sm. */}
       {showToolbar ? (
-        <div className="heritage-hero flex w-full shrink-0 items-center justify-center gap-2 rounded-none border-x-0 px-3 py-2.5 sm:max-w-[var(--poster-width)] sm:border-0 sm:bg-none sm:p-0 sm:shadow-none">
+        <div className="heritage-hero flex w-full shrink-0 flex-wrap items-center justify-center gap-2 rounded-none border-x-0 px-3 py-2.5 sm:max-w-[var(--poster-width)] sm:border-0 sm:bg-none sm:p-0 sm:shadow-none">
           <h1 className="sr-only shrink-0 font-display text-2xl font-bold text-brand-800 sm:not-sr-only sm:mr-auto">
             Gia phả
           </h1>
@@ -362,6 +365,26 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
               <span className="hidden sm:inline">In gia phả</span>
             </Link>
           ) : null}
+          <select
+            aria-label="Phạm vi xuất PDF gia phả"
+            value={pdfBranchId}
+            onChange={(event) => setPdfBranchId(event.target.value)}
+            className="h-10 max-w-40 rounded-lg border border-gold-500/30 bg-paper px-2 text-sm text-brand-900"
+          >
+            <option value="">Toàn bộ cây</option>
+            {tree.people.map((person) => (
+              <option key={person.id} value={person.id}>
+                Nhánh: {person.name}
+              </option>
+            ))}
+          </select>
+          <PdfExportButton
+            familySlug={familySlug}
+            filename={`gia-pha-${familySlug}`}
+            onExport={() => downloadTreePdf(tree, familySlug, pdfBranchId)}
+            disabled={!tree.people.length}
+            className={toolbarButtonClass}
+          />
         </div>
       ) : null}
       {landscape ? (

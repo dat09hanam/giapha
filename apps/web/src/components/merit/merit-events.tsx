@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { MeritEventDialog } from '@/components/merit/merit-event-dialog';
 import { heroButtonClass, heroOverlapClass, PageHero } from '@/components/layout/page-hero';
 import { Presence } from '@/components/ui/presence';
+import { PdfExportButton } from '@/components/ui/pdf-export-button';
 import type { MeritOverview, MeritTotals } from '@/lib/merit-api';
 import { cn } from '@/lib/utils';
 import { formatVnd } from '@/lib/vietnamese-number';
@@ -42,12 +43,32 @@ export function MeritEvents({
         icon={HandHeart}
         description="Ghi nhận tấm lòng của con cháu và quan khách đóng góp tiền mặt hoặc hiện vật cho các sự kiện của dòng họ."
         actions={
-          canManage ? (
-            <button type="button" className={heroButtonClass} onClick={() => setCreating(true)}>
-              <Plus className="size-4" aria-hidden="true" />
-              Tạo sự kiện
-            </button>
-          ) : null
+          <>
+            <PdfExportButton
+              familySlug={familySlug}
+              filename={`tong-hop-cong-duc-${familySlug}`}
+              report={{
+                title: 'Tổng hợp công đức',
+                scope: `Tất cả ${events.length} sự kiện`,
+                lines: [
+                  `Tổng tiền mặt: ${formatVnd(events.reduce((sum, event) => sum + event.totals.cashAmount, 0))}`,
+                  `Tổng lượt hiện vật: ${events.reduce((sum, event) => sum + event.totals.itemCount, 0)}`,
+                  '',
+                  ...events.map(
+                    (event, index) =>
+                      `${index + 1}. ${event.title}${event.heldOn ? ` · ${formatDay(event.heldOn)}` : ''}\n${meritTotalsLine(event.totals)}`,
+                  ),
+                  ...(events.length ? [] : ['Chưa có sự kiện công đức.']),
+                ],
+              }}
+            />
+            {canManage ? (
+              <button type="button" className={heroButtonClass} onClick={() => setCreating(true)}>
+                <Plus className="size-4" aria-hidden="true" />
+                Tạo sự kiện
+              </button>
+            ) : null}
+          </>
         }
         overlap
       />

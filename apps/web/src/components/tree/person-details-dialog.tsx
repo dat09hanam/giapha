@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { PdfExportButton } from '@/components/ui/pdf-export-button';
 
 import { EditSuggestionForm } from '@/components/tree/edit-suggestion-form';
 import { PersonAvatar } from '@/components/ui/person-avatar';
@@ -143,11 +144,13 @@ export function PersonDetailsDialog({
   const closeRef = useRef<HTMLButtonElement>(null);
   // Keyed by person so opening a relative from this popup starts without the form.
   const [suggestingFor, setSuggestingFor] = useState<string | null>(null);
+  const [includePrivateInfo, setIncludePrivateInfo] = useState(false);
   const suggesting = suggestingFor === person.id;
   const byId = new Map(people.map((entry) => [entry.id, entry]));
 
   useEffect(() => {
     closeRef.current?.focus();
+    setIncludePrivateInfo(false);
   }, [person.id]);
 
   useEffect(() => {
@@ -183,7 +186,7 @@ export function PersonDetailsDialog({
   const otherNames = [
     person.courtesyName ? `Tên tự: ${person.courtesyName}` : null,
     person.nickname ? `Tên thường gọi: ${person.nickname}` : null,
-  ].filter(Boolean);
+  ].filter((name) => name !== null);
 
   const infoRows = [
     birth ? { key: 'birth', icon: <CalendarDays />, label: 'Ngày sinh', value: birth } : null,
@@ -279,6 +282,39 @@ export function PersonDetailsDialog({
               </span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
+              <PdfExportButton
+                familySlug={familySlug}
+                filename={`ho-so-${familySlug}-${person.name}`}
+                report={{
+                  title: `Hồ sơ: ${displayPersonTitle(person)}`,
+                  scope: includePrivateInfo
+                    ? 'Hồ sơ thành viên, gồm ngày sinh và số điện thoại'
+                    : 'Hồ sơ chia sẻ, ẩn ngày sinh và số điện thoại',
+                  lines: [
+                    ...otherNames,
+                    `Giới tính: ${genderLabel}`,
+                    `Tình trạng: ${person.isAlive ? 'Còn sống' : 'Đã mất'}`,
+                    ...(generation ? [`Đời thứ: ${generation}`] : []),
+                    ...(includePrivateInfo && birth ? [`Ngày sinh: ${birth}`] : []),
+                    ...(includePrivateInfo && person.phone
+                      ? [`Số điện thoại: ${person.phone}`]
+                      : []),
+                    ...(death ? [`Ngày mất: ${death}`] : []),
+                    ...(lunarAnniversary ? [`Ngày giỗ: ${lunarAnniversary}`] : []),
+                    ...(person.burialPlace ? [`Nơi an táng: ${person.burialPlace}`] : []),
+                    ...(father ? [`Cha: ${father.name}`] : []),
+                    ...(mother ? [`Mẹ: ${mother.name}`] : []),
+                    ...spouses.map(({ spouse, note }) => `Vợ/chồng: ${spouse.name} · ${note}`),
+                    ...(children.length
+                      ? [`Các con: ${children.map((child) => child.name).join(', ')}`]
+                      : []),
+                    '',
+                    'Tiểu sử',
+                    person.biography ?? 'Chưa có tiểu sử.',
+                  ],
+                  images: person.avatarUrl ? [familyMediaSrc(familySlug, person.avatarUrl)] : [],
+                }}
+              />
               <button
                 type="button"
                 onClick={() => onFindKinship(person.id)}
@@ -299,6 +335,15 @@ export function PersonDetailsDialog({
                 </button>
               ) : null}
             </div>
+            <label className="mt-2 flex items-start gap-2 text-xs text-stone-600">
+              <input
+                type="checkbox"
+                checked={includePrivateInfo}
+                onChange={(event) => setIncludePrivateInfo(event.target.checked)}
+                className="mt-0.5 accent-brand-700"
+              />
+              Gồm ngày sinh và số điện thoại trong PDF
+            </label>
           </div>
           <button
             ref={closeRef}

@@ -19,6 +19,8 @@ import {
 } from '@/components/feed/reactions';
 import { useViewerName } from '@/components/feed/use-viewer-name';
 import { Button } from '@/components/ui/button';
+import { PdfExportButton } from '@/components/ui/pdf-export-button';
+import { familyMediaSrc } from '@/lib/media-api';
 import { Presence } from '@/components/ui/presence';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -215,6 +217,21 @@ export function PostCard({
             {post.editedAt ? ' · Đã chỉnh sửa' : null}
           </p>
         </div>
+        <PdfExportButton
+          familySlug={familySlug}
+          filename={`bang-tin-${familySlug}-${post.id}`}
+          report={{
+            title: 'Bài viết bảng tin',
+            scope: 'Một bài viết và ảnh đính kèm; không gồm bình luận',
+            lines: [
+              `Người đăng: ${post.authorName}`,
+              `Ngày đăng: ${new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' }).format(new Date(post.createdAt))}`,
+              '',
+              post.content,
+            ],
+            images: post.images.map((image) => familyMediaSrc(familySlug, image.url)),
+          }}
+        />
         {post.isMine || canDelete ? (
           <div ref={menuRef} className="relative">
             <button

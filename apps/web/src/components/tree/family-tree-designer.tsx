@@ -21,7 +21,10 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
+  Download,
   ImagePlus,
   MessageSquareQuote,
   HeartHandshake,
@@ -64,6 +67,7 @@ import { saveFamilyTreeDesign, type FamilyTreeDesignSaveInput } from '@/lib/fami
 import { computeGenerations, layoutFamily, type LayoutDimensions } from '@/lib/family-layout';
 import { familyEdges, type FamilyEdge } from '@/lib/tree-layout';
 import { cn } from '@/lib/utils';
+import { downloadDesignerPdf } from '@/lib/designer-pdf';
 import { todayInVietnam } from '@/lib/vietnam-date';
 import type { EditSuggestion } from '@/types/edit-suggestion';
 import type { FamilyTreeResponse, Person } from '@/types/family-tree';
@@ -863,6 +867,8 @@ export function FamilyTreeDesigner({
 }) {
   const initialDraft = useMemo(() => createInitialDraft(initialTree), [initialTree]);
   const [draft, setDraft] = useState<DesignerDraft>(initialDraft);
+  const [memberPanelCollapsed, setMemberPanelCollapsed] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const focusMemberId =
     focus && initialDraft.people.some((member) => member.id === focus.personId)
       ? focus.personId
@@ -1031,6 +1037,25 @@ export function FamilyTreeDesigner({
       selectedMemberId,
     ],
   );
+
+  async function exportPdf(): Promise<void> {
+    if (exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      const measured = new Map(flowRef.current?.getNodes().map((node) => [node.id, node.measured]));
+      await downloadDesignerPdf(
+        nodes.map((node) => ({ ...node, measured: measured.get(node.id) })),
+        edges,
+        familyName,
+        familySlug,
+      );
+      showToast({ kind: 'success', message: 'Đã xuất file PDF gia phả.' });
+    } catch (error: unknown) {
+      showToast({ kind: 'error', message: getApiErrorMessage(error, 'xuất PDF gia phả') });
+    } finally {
+      setExportingPdf(false);
+    }
+  }
 
   function closeRelationshipPicker(): void {
     setRelationshipTargetId(null);
@@ -1462,6 +1487,20 @@ export function FamilyTreeDesigner({
               {savingAll ? 'Đang lưu tất cả…' : hasUnsavedChanges ? 'Lưu tất cả' : 'Đã lưu'}
             </Button>
             <Button
+              type="button"
+              variant="outline"
+              className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+              disabled={exportingPdf || !nodes.length}
+              onClick={() => void exportPdf()}
+            >
+              {exportingPdf ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Download className="size-4" aria-hidden="true" />
+              )}
+              {exportingPdf ? 'Đang xuất PDF…' : 'Xuất PDF'}
+            </Button>
+            <Button
               asChild
               variant="outline"
               className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
@@ -1480,7 +1519,34 @@ export function FamilyTreeDesigner({
         </div>
       </header>
 
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div
+        className={cn(
+          'relative grid',
+          memberPanelCollapsed
+            ? 'lg:grid-cols-[minmax(0,1fr)]'
+            : 'lg:grid-cols-[minmax(0,1fr)_22rem]',
+        )}
+      >
+        <button
+          type="button"
+          className={cn(
+            'absolute top-6 z-30 hidden h-12 w-7 items-center justify-center rounded-l-lg border border-r-0 border-gold-500/30 bg-[var(--card)] text-wood-900 shadow-md hover:bg-paper-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-700 lg:flex',
+            memberPanelCollapsed ? 'right-0' : 'right-[22rem]',
+          )}
+          aria-label={
+            memberPanelCollapsed ? 'Mở thông tin thành viên' : 'Thu gọn thông tin thành viên'
+          }
+          title={memberPanelCollapsed ? 'Mở thông tin thành viên' : 'Thu gọn thông tin thành viên'}
+          aria-expanded={!memberPanelCollapsed}
+          aria-controls="designer-member-panel"
+          onClick={() => setMemberPanelCollapsed((collapsed) => !collapsed)}
+        >
+          {memberPanelCollapsed ? (
+            <ChevronLeft className="size-5" aria-hidden="true" />
+          ) : (
+            <ChevronRight className="size-5" aria-hidden="true" />
+          )}
+        </button>
         <section
           className="relative h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] overflow-hidden bg-paper lg:h-[calc(100vh-4rem)] lg:border-r lg:border-gold-500/30"
           aria-label="Canvas thiết kế cây gia phả"
@@ -1540,12 +1606,14 @@ export function FamilyTreeDesigner({
           />
         ) : null}
         <aside
+          id="designer-member-panel"
           className={cn(
             'overflow-y-auto bg-[var(--card)] p-5',
             editorSheet.mounted
               ? 'ui-sheet-below-lg fixed inset-x-0 bottom-0 z-[45] max-h-[85dvh] rounded-t-3xl pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl'
               : 'hidden',
-            'lg:static lg:z-auto lg:block lg:h-[calc(100vh-4rem)] lg:max-h-none lg:rounded-none lg:pb-5 lg:shadow-none',
+            'lg:static lg:z-auto lg:h-[calc(100vh-4rem)] lg:max-h-none lg:rounded-none lg:pb-5 lg:shadow-none',
+            memberPanelCollapsed ? 'lg:hidden' : 'lg:block',
           )}
           aria-label="Thông tin thành viên"
           data-presence={editorSheet.state}

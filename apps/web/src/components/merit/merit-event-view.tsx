@@ -17,6 +17,7 @@ import { heroIconButtonClass, heroOverlapClass, PageHero } from '@/components/la
 import { MeritDonationDialog } from '@/components/merit/merit-donation-dialog';
 import { MeritEventDialog } from '@/components/merit/merit-event-dialog';
 import { Button } from '@/components/ui/button';
+import { PdfExportButton } from '@/components/ui/pdf-export-button';
 import { Presence } from '@/components/ui/presence';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -136,31 +137,53 @@ export function MeritEventView({
           ) : null
         }
         actions={
-          canManage ? (
-            <>
-              <button
-                type="button"
-                className={heroIconButtonClass}
-                aria-label="Sửa sự kiện"
-                onClick={() => setEditingEvent(true)}
-              >
-                <PencilLine className="size-4" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className={heroIconButtonClass}
-                aria-label="Xóa sự kiện"
-                disabled={deletingEvent}
-                onClick={() => void removeEvent()}
-              >
-                {deletingEvent ? (
-                  <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Trash2 className="size-4" aria-hidden="true" />
-                )}
-              </button>
-            </>
-          ) : null
+          <>
+            <PdfExportButton
+              familySlug={familySlug}
+              filename={`cong-duc-${familySlug}-${event.id}`}
+              report={{
+                title: `Công đức: ${event.title}`,
+                scope: `Toàn bộ ${rows.length} lượt đóng góp của sự kiện`,
+                lines: [
+                  ...(event.heldOn ? [`Ngày tổ chức: ${formatDay(event.heldOn)}`] : []),
+                  event.description ?? '',
+                  `Tổng tiền mặt: ${formatVnd(totals.cashAmount)} · ${totals.cashCount} lượt`,
+                  `Hiện vật: ${totals.itemCount} lượt`,
+                  '',
+                  ...rows.map(
+                    (donation, index) =>
+                      `${index + 1}. ${donation.donorName} · ${formatDay(donation.donatedOn)}\n${donation.kind === 'CASH' ? formatVnd(donation.amount ?? 0) : `Hiện vật: ${donation.itemContent ?? ''}`}${donation.note ? `\nGhi chú: ${donation.note}` : ''}`,
+                  ),
+                  ...(rows.length ? [] : ['Chưa có lượt đóng góp.']),
+                ],
+              }}
+            />
+            {canManage ? (
+              <>
+                <button
+                  type="button"
+                  className={heroIconButtonClass}
+                  aria-label="Sửa sự kiện"
+                  onClick={() => setEditingEvent(true)}
+                >
+                  <PencilLine className="size-4" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className={heroIconButtonClass}
+                  aria-label="Xóa sự kiện"
+                  disabled={deletingEvent}
+                  onClick={() => void removeEvent()}
+                >
+                  {deletingEvent ? (
+                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  )}
+                </button>
+              </>
+            ) : null}
+          </>
         }
         overlap
       />

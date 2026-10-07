@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { FamilyHeader, type FamilyHeaderViewer } from '@/components/layout/family-header';
 import { SiteHeaderBar } from '@/components/layout/site-header';
 import { ViewerIdentityScope } from '@/components/layout/viewer-identity-scope';
+import { PdfFamilyScope } from '@/components/ui/pdf-export-button';
 import { ApiNotFoundError, getAuthProfile, getFamily, getPlatformFeatures } from '@/lib/api';
 import type { AuthProfile } from '@/lib/auth-api';
 import { familyNav } from '@/lib/family-nav';
@@ -95,13 +96,15 @@ export async function FamilyChrome({ slug, children }: { slug: string; children:
         viewer?.role === 'MEMBER_PLUS' || viewer?.managesBranches ? viewer.displayName : null
       }
     >
-      <FamilyHeader family={{ slug, name }} nav={familyNav(features)} viewer={viewer} />
-      {/* Below lg the navigation is a 4rem bar fixed to the bottom; keep content above it.
+      <PdfFamilyScope slug={slug} name={name}>
+        <FamilyHeader family={{ slug, name }} nav={familyNav(features)} viewer={viewer} />
+        {/* Below lg the navigation is a 4rem bar fixed to the bottom; keep content above it.
           From lg it is a 15rem sidebar on the left. */}
-      <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 lg:pl-60 print:p-0">
-        <PageBackground />
-        {children}
-      </div>
+        <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 lg:pl-60 print:p-0">
+          <PageBackground />
+          {children}
+        </div>
+      </PdfFamilyScope>
     </ViewerIdentityScope>
   );
 }
