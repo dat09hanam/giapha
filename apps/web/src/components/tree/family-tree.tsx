@@ -22,6 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
+  ChevronDown,
   HandHeart,
   Images,
   Maximize2,
@@ -365,26 +366,39 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
               <span className="hidden sm:inline">In gia phả</span>
             </Link>
           ) : null}
-          <select
-            aria-label="Phạm vi xuất PDF gia phả"
-            value={pdfBranchId}
-            onChange={(event) => setPdfBranchId(event.target.value)}
-            className="h-10 max-w-40 rounded-lg border border-gold-500/30 bg-paper px-2 text-sm text-brand-900"
-          >
-            <option value="">Toàn bộ cây</option>
-            {tree.people.map((person) => (
-              <option key={person.id} value={person.id}>
-                Nhánh: {person.name}
-              </option>
-            ))}
-          </select>
-          <PdfExportButton
-            familySlug={familySlug}
-            filename={`gia-pha-${familySlug}`}
-            onExport={() => downloadTreePdf(tree, familySlug, pdfBranchId)}
-            disabled={!tree.people.length}
-            className={toolbarButtonClass}
-          />
+          <div className="inline-flex max-w-full items-center gap-2">
+            <div className="relative w-40 shrink-0 sm:w-44">
+              <select
+                aria-label="Phạm vi xuất PDF gia phả"
+                value={pdfBranchId}
+                onChange={(event) => setPdfBranchId(event.target.value)}
+                className={cn(
+                  toolbarButtonClass,
+                  'w-full appearance-none truncate border-0 pr-9 text-left',
+                )}
+              >
+                <option value="" className="bg-paper text-brand-900">
+                  Toàn bộ cây
+                </option>
+                {tree.people.map((person) => (
+                  <option key={person.id} value={person.id} className="bg-paper text-brand-900">
+                    Nhánh: {person.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-white sm:text-brand-800"
+                aria-hidden="true"
+              />
+            </div>
+            <PdfExportButton
+              familySlug={familySlug}
+              filename={`gia-pha-${familySlug}`}
+              onExport={() => downloadTreePdf(tree, familySlug, pdfBranchId)}
+              disabled={!tree.people.length}
+              className={toolbarButtonClass}
+            />
+          </div>
         </div>
       ) : null}
       {landscape ? (
