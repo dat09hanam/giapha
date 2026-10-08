@@ -1,32 +1,22 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import {
-  BookOpen,
-  CircleHelp,
-  Flower2,
-  House,
-  Menu,
-  Network,
-  ScrollText,
-  Search,
-  UserRound,
-  X,
-} from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { BookOpen, Flame, House, LayoutGrid, Menu, Network, UserRound, X } from 'lucide-react';
+
+import { ContactLink } from '@/components/social/contact-link';
+import { RingingPhone } from '@/components/social/ringing-phone';
 
 import styles from './home.module.css';
 
 const LINKS = [
   { href: '#top', label: 'Trang chủ', icon: House },
   { href: '/gia-pha-mau', label: 'Gia phả mẫu', icon: Network },
-  { href: '#gioi-thieu', label: 'Giới thiệu', icon: BookOpen },
-  { href: '#cach-bat-dau', label: 'Cách bắt đầu', icon: ScrollText },
-  { href: '#y-nghia', label: 'Ý nghĩa', icon: Flower2 },
-  { href: '#hoi-dap', label: 'Hỏi đáp', icon: CircleHelp },
+  { href: '#chuc-nang', label: 'Chức năng', icon: LayoutGrid },
+  { href: '/mau-bai-cung', label: 'Mẫu bài cúng', icon: Flame },
+  { href: '/thu-vien', label: 'Thư viện', icon: BookOpen },
 ] as const;
-
-const SAMPLE_PATH = '/gia-pha-mau';
 
 /** Away from the home page, section links lead back to that section of it. */
 function linkHref(href: string, onHomePage: boolean): string {
@@ -35,8 +25,15 @@ function linkHref(href: string, onHomePage: boolean): string {
 
 export function HomeHeaderMenu({ onHomePage = true }: { onHomePage?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [current, setCurrent] = useState<string>(onHomePage ? '#top' : SAMPLE_PATH);
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const pathname = usePathname();
+  // On the home page the chosen section is remembered; elsewhere the path decides.
+  const [chosenSection, setChosenSection] = useState('#top');
+  const current = onHomePage
+    ? chosenSection
+    : LINKS.find(
+        ({ href }) =>
+          !href.startsWith('#') && (pathname === href || pathname.startsWith(`${href}/`)),
+      )?.href;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -56,7 +53,7 @@ export function HomeHeaderMenu({ onHomePage = true }: { onHomePage?: boolean }) 
             href={linkHref(href, onHomePage)}
             aria-current={current === href ? 'location' : undefined}
             onClick={() => {
-              setCurrent(href);
+              setChosenSection(href);
               setMenuOpen(false);
             }}
           >
@@ -64,17 +61,12 @@ export function HomeHeaderMenu({ onHomePage = true }: { onHomePage?: boolean }) 
             <span>{label}</span>
           </a>
         ))}
+        <ContactLink href={linkHref('#lien-he', onHomePage)} onOpen={() => setMenuOpen(false)}>
+          <RingingPhone size={22} strokeWidth={1.7} />
+          <span>Tạo gia phả</span>
+        </ContactLink>
       </nav>
       <div className={styles.headerActions}>
-        <button
-          type="button"
-          className={styles.iconButton}
-          aria-label="Tìm kiếm"
-          onClick={() => dialogRef.current?.showModal()}
-        >
-          <Search size={18} aria-hidden="true" />
-        </button>
-        <span className={styles.actionDivider} aria-hidden="true" />
         <Link href="/login" className={styles.loginAction} aria-label="Đăng nhập">
           <UserRound size={18} aria-hidden="true" />
           <span className={styles.loginLabel}>Đăng nhập</span>
@@ -90,27 +82,6 @@ export function HomeHeaderMenu({ onHomePage = true }: { onHomePage?: boolean }) 
           {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
         </button>
       </div>
-      <dialog
-        ref={dialogRef}
-        className={styles.menuDialog}
-        aria-labelledby="search-dialog-title"
-        aria-describedby="search-dialog-description"
-      >
-        <div className={styles.dialogHeading}>
-          <h2 id="search-dialog-title">Tìm kiếm</h2>
-          <button
-            type="button"
-            aria-label="Đóng thông báo"
-            onClick={() => dialogRef.current?.close()}
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <p id="search-dialog-description">Chức năng đang phát triển</p>
-        <form method="dialog">
-          <button className={styles.dialogClose}>Đóng</button>
-        </form>
-      </dialog>
     </div>
   );
 }

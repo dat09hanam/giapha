@@ -40,7 +40,7 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
   const required = profile.mustChangePassword;
   return (
     <AuthShell
-      brandTitle="Gia Phả Việt"
+      brandTitle="Gia Phả Đời Đời"
       brandTagline="Không gian lưu giữ và kết nối câu chuyện của mỗi dòng họ."
       eyebrow={profile.displayName}
       title={required ? 'Đặt mật khẩu của riêng bạn' : 'Đổi mật khẩu'}

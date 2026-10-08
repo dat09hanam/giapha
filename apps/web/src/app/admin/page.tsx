@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { ImageIcon, Network, ShieldCheck, Sparkles, ToggleRight } from 'lucide-react';
+import { ImageIcon, Network, Newspaper, ShieldCheck, Sparkles, ToggleRight } from 'lucide-react';
 
 import { AdminPageHeader } from '@/components/admin/admin-layout';
+import { ArticleManager } from '@/components/admin/article-manager';
 import { CreateFamilyForm } from '@/components/admin/create-family-form';
 import { DemoFamilyPanel } from '@/components/admin/demo-family-panel';
 import { PlatformFeaturesForm } from '@/components/admin/platform-features-form';
@@ -13,6 +14,7 @@ import { Tabs } from '@/components/ui/tabs';
 import {
   ApiNotFoundError,
   ApiUnauthorizedError,
+  getAdminArticles,
   getAuthProfile,
   getDemoFamily,
   getFamily,
@@ -22,11 +24,12 @@ import {
 import { ApiRequestError } from '@/lib/api-error';
 import { profileDestination, type AuthProfile } from '@/lib/auth-api';
 import type { AdminPosterDecoration } from '@/lib/poster-decorations';
+import type { AdminArticle } from '@/types/article';
 import { requirePasswordChanged } from '@/lib/session';
 import type { FamilyDetails, FamilyFeatures } from '@/types/family-tree';
 
 export const metadata: Metadata = {
-  description: 'Khu vực quản trị nền tảng Gia Phả Việt.',
+  description: 'Khu vực quản trị nền tảng Gia Phả Đời Đời.',
 };
 
 export const dynamic = 'force-dynamic';
@@ -68,13 +71,15 @@ export default async function AdminPage() {
   let decorations: AdminPosterDecoration[];
   let features: FamilyFeatures;
   let demoFamily: FamilyDetails | null;
+  let articles: AdminArticle[];
   try {
     profile = await requireAdmin();
     const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
-    [decorations, features, demoFamily] = await Promise.all([
+    [decorations, features, demoFamily, articles] = await Promise.all([
       getPosterDecorations<AdminPosterDecoration>(sessionToken),
       getPlatformFeatures(),
       loadDemoFamily(),
+      getAdminArticles(sessionToken),
     ]);
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
@@ -99,7 +104,7 @@ export default async function AdminPage() {
           </>
         }
         title={`Xin chào, ${profile.displayName}`}
-        description="Tạo không gian gia phả cho các dòng họ, chỉnh sửa gia phả mẫu, quản lý thư viện hình nền phả đồ dùng chung và bật tắt chức năng cho toàn hệ thống."
+        description="Tạo không gian gia phả cho các dòng họ, chỉnh sửa gia phả mẫu, quản lý thư viện hình nền phả đồ dùng chung, viết bài cho Mẫu bài cúng và Thư viện, và bật tắt chức năng cho toàn hệ thống."
       />
 
       <Tabs
@@ -127,6 +132,12 @@ export default async function AdminPage() {
             label: 'Hình nền phả đồ',
             icon: <ImageIcon aria-hidden="true" />,
             content: <PosterDecorationManager initial={decorations} />,
+          },
+          {
+            id: 'bai-viet',
+            label: 'Bài viết',
+            icon: <Newspaper aria-hidden="true" />,
+            content: <ArticleManager initial={articles} />,
           },
           {
             id: 'chuc-nang',

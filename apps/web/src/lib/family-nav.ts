@@ -5,7 +5,16 @@ import type { FamilyFeature, FamilyFeatures } from '@/types/family-tree';
  * segment is a family slug (`/{slug}`), which draws its own family header in
  * place of the site header. Add new top-level routes here.
  */
-const PLATFORM_SEGMENTS = new Set(['', 'admin', 'login', 'register', 'doi-mat-khau', 'gia-pha-mau']);
+const PLATFORM_SEGMENTS = new Set([
+  '',
+  'admin',
+  'login',
+  'register',
+  'doi-mat-khau',
+  'gia-pha-mau',
+  'mau-bai-cung',
+  'thu-vien',
+]);
 
 export function isFamilyRoute(pathname: string): boolean {
   const firstSegment = pathname.split('/')[1] ?? '';

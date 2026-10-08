@@ -95,9 +95,14 @@ function blockLines(block: RichTextBlock): RichTextRun[][] {
 
 /**
  * Checks a document a client sent and returns it normalised, or null when it holds no text at
- * all. Anything outside the shape above is refused with `message`.
+ * all. Anything outside the shape above is refused with `message`; `subject` names the text in
+ * the too-long error.
  */
-export function parseRichText(value: unknown, message: string): RichTextDocument | null {
+export function parseRichText(
+  value: unknown,
+  message: string,
+  subject = 'Nội dung giới thiệu',
+): RichTextDocument | null {
   const parsed = documentSchema.safeParse(value);
   if (!parsed.success) throw new BadRequestException(message);
 
@@ -116,7 +121,7 @@ export function parseRichText(value: unknown, message: string): RichTextDocument
   );
   if (total > MAX_TOTAL_LENGTH) {
     throw new BadRequestException(
-      `Nội dung giới thiệu quá dài (tối đa ${MAX_TOTAL_LENGTH.toLocaleString('vi-VN')} ký tự).`,
+      `${subject} quá dài (tối đa ${MAX_TOTAL_LENGTH.toLocaleString('vi-VN')} ký tự).`,
     );
   }
   if (total === 0) return null;

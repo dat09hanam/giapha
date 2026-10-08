@@ -1,4 +1,4 @@
-# Gia Phả Việt
+# Gia Phả Đời Đời
 
 Base source cho ứng dụng web gia phả đa dòng họ. Mỗi tenant được truy cập bằng URL `/{slug}`, ví dụ `http://localhost:3000/demo`.
 

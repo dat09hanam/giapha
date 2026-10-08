@@ -279,6 +279,33 @@ a {
   animation: page-enter 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* A phone ringing: a quick burst of shakes, then a rest, so it catches the eye without
+   nagging. Used on the "Tạo gia phả" contact buttons (RingingPhone). */
+@keyframes phone-ring {
+  0%,
+  28%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  2%,
+  10%,
+  18% {
+    transform: rotate(-16deg);
+  }
+
+  6%,
+  14%,
+  22% {
+    transform: rotate(16deg);
+  }
+}
+
+.phone-ring {
+  transform-origin: 50% 60%;
+  animation: phone-ring 2.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
   .ui-backdrop,
@@ -287,5 +314,9 @@ a {
   .ui-sheet-dialog,
   .ui-sheet-below-lg {
     animation-duration: 1ms !important;
+  }
+
+  .phone-ring {
+    animation: none;
   }
 }

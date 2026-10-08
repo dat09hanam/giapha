@@ -146,6 +146,16 @@ there are no built-in, code-drawn backgrounds. Only the platform `ADMIN` creates
 they are shared artwork, not family data. Deleting a row sets the families using it to null. A
 family head may only pick an active row.
 
+`Article` holds the public site's own reading: Mẫu bài cúng (`category` `PRAYER`) and Thư viện
+(`LIBRARY`). Like `PosterDecoration` it is platform-level and **not** tenant-owned: it has no
+`familyId`, is written only by the platform `ADMIN` (the Bài viết tab of `/admin`), and must not hold
+any Family's data. Its body is the same validated rich-text document as `Family.introduction`, and
+an optional cover image lives under `MEDIA_ROOT/articles/`. `GET /api/articles?category=` and
+`GET /api/articles/:category/:slug` are public and only ever return published rows (a draft is a
+404); `GET /api/articles/admin` and the writes are `ADMIN` only; covers are served publicly. The web
+shows them at `/mau-bai-cung` and `/thu-vien` (both reserved Family slugs) under the home page's
+masthead; `slug` is unique per category, and `publishedAt` is set on first publication and kept.
+
 An uploaded background may carry `insetTop/Right/Bottom/Left` (percent, all four or none): the tree
 area the `ADMIN` drew over the art. The web app's `poster-geometry.ts` sizes the 16:9 sheet so the
 tree fills exactly that area at any tree size; without one the tree sits inside the frame band.

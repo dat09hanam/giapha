@@ -9,6 +9,7 @@ import type { FeedPage } from '@/lib/feed-api';
 import type { FundLedger } from '@/lib/fund-api';
 import type { AlbumDetail, LibraryOverview } from '@/lib/library-api';
 import type { MeritEventDetail, MeritOverview } from '@/lib/merit-api';
+import type { AdminArticle, Article, ArticleCategory, ArticleSummary } from '@/types/article';
 import type { EditSuggestion } from '@/types/edit-suggestion';
 import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
 
@@ -163,4 +164,19 @@ export const getEditSuggestions = cache((slug: string, sessionToken: string) =>
 export const getPosterDecorations = cache(
   <T extends PosterDecoration = PosterDecoration>(sessionToken: string) =>
     getJson<T[]>('/poster-decorations', 'tải thư viện hình nền', sessionToken),
+);
+
+/** The published articles of Mẫu bài cúng or Thư viện, newest first; readable by anyone. */
+export const getArticles = cache((category: ArticleCategory) =>
+  getJson<ArticleSummary[]>(`/articles?category=${category}`, 'tải danh sách bài viết'),
+);
+
+/** One published article; 404 for a draft or an unknown path. */
+export const getArticle = cache((category: ArticleCategory, slug: string) =>
+  getJson<Article>(`/articles/${category}/${encodeURIComponent(slug)}`, 'tải bài viết'),
+);
+
+/** Every article, drafts included; platform ADMIN only. */
+export const getAdminArticles = cache((sessionToken: string) =>
+  getJson<AdminArticle[]>('/articles/admin', 'tải danh sách bài viết', sessionToken),
 );

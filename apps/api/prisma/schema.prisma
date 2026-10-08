@@ -509,3 +509,35 @@ model PlatformFeature {
   enabled   Boolean  @default(true)
   updatedAt DateTime @updatedAt
 }
+
+/// Which public section of the platform's own site an article belongs to.
+enum ArticleCategory {
+  /// Mẫu bài cúng: offering prayers for anniversaries, festivals and family rites.
+  PRAYER
+  /// Thư viện: longer reading about genealogy and family traditions.
+  LIBRARY
+}
+
+/// A platform-wide article written by the platform ADMIN for the public site, not family data:
+/// it has no familyId and every visitor may read it once published.
+model Article {
+  id          String          @id @default(uuid()) @db.Char(36)
+  category    ArticleCategory
+  /// The article's path under its section, e.g. `/mau-bai-cung/{slug}`; unique per section.
+  slug        String          @db.VarChar(160)
+  title       String          @db.VarChar(200)
+  /// One or two sentences for listing cards and the page's meta description.
+  summary     String?         @db.VarChar(500)
+  /// The body as the structured rich-text document the API validates, never HTML.
+  content     Json
+  /// Server-generated `<uuid>.<ext>` under the article media folder.
+  coverFile   String?         @db.VarChar(64)
+  isPublished Boolean         @default(false)
+  /// Set the first time the article is published, and kept when it is later hidden and shown.
+  publishedAt DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([category, slug])
+  @@index([category, isPublished, publishedAt])
+}

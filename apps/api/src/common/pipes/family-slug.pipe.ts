@@ -8,6 +8,8 @@ const RESERVED_FAMILY_SLUGS = new Set([
   'register',
   'doi-mat-khau',
   'gia-pha-mau',
+  'mau-bai-cung',
+  'thu-vien',
 ]);
 
 export function normalizeFamilySlug(value: string): string {

@@ -32,7 +32,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="vi" className={`${sans.variable} ${serif.variable}`}>
       <head>
-        <title>Gia Phả Việt</title>
+        <title>Gia Phả Đời Đời</title>
       </head>
       <body>
         <ToastProvider>

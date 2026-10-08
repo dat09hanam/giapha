@@ -1,6 +1,7 @@
-/* The header carries the palette too, so it can stand alone on Gia phả mẫu. */
+/* The header and footer carry the palette too, so they can stand alone on other public pages. */
 .home,
-.header {
+.header,
+.footer {
   --green: #1f4a3b;
   --green-dark: #163829;
   --brown: #7a4a1f;
@@ -41,7 +42,8 @@
 }
 
 .home a,
-.header a {
+.header a,
+.footer a {
   text-decoration: none;
 }
 
@@ -49,7 +51,8 @@
 .home button:focus-visible,
 .home summary:focus-visible,
 .header a:focus-visible,
-.header button:focus-visible {
+.header button:focus-visible,
+.footer a:focus-visible {
   outline: 3px solid var(--green);
   outline-offset: 3px;
 }
@@ -57,12 +60,15 @@
 .home h1,
 .home h2,
 .home h3,
-.header h2 {
+.header h2,
+.footer h2,
+.footer h3 {
   margin: 0;
   font-family: var(--font-display);
 }
 
-.home p {
+.home p,
+.footer p {
   margin: 0;
 }
 
@@ -87,6 +93,10 @@
   background: url('/images/home/header-tassel.webp') center top / contain no-repeat;
   content: '';
   pointer-events: none;
+  /* Swing from the hook on the rod, not from the middle of the tassel. */
+  transform-origin: 50% 0;
+  animation: tasselSway 7s ease-in-out infinite;
+  will-change: transform;
 }
 
 .header::before {
@@ -95,6 +105,49 @@
 
 .header::after {
   right: max(16px, calc((100% - 1320px) / 2 - 36px));
+  /* A different period and phase, so the two tassels never swing in lockstep. */
+  animation-duration: 8.6s;
+  animation-delay: -3.2s;
+}
+
+/* Uneven steps read as gusts of wind: a strong push, a settle, a light breeze, then still. */
+@keyframes tasselSway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  10% {
+    transform: rotate(7deg);
+  }
+
+  22% {
+    transform: rotate(-5deg);
+  }
+
+  33% {
+    transform: rotate(3.5deg);
+  }
+
+  44% {
+    transform: rotate(-2deg);
+  }
+
+  55% {
+    transform: rotate(1deg);
+  }
+
+  66% {
+    transform: rotate(-3deg);
+  }
+
+  78% {
+    transform: rotate(2deg);
+  }
+
+  89% {
+    transform: rotate(-0.8deg);
+  }
 }
 
 .headerBar {
@@ -142,8 +195,8 @@
 }
 
 .brandSeal .logoMark {
-  width: 42px;
-  height: 42px;
+  width: 54px;
+  height: 54px;
 }
 
 .brandText {
@@ -191,7 +244,8 @@
 .logoMark {
   width: 40px;
   height: 40px;
-  color: var(--brown);
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .navigation {
@@ -303,12 +357,6 @@
   gap: 16px;
 }
 
-.actionDivider {
-  width: 1px;
-  height: 36px;
-  background: var(--line);
-}
-
 .iconButton {
   display: grid;
   width: 46px;
@@ -347,53 +395,6 @@
 
 .loginAction:hover {
   background: var(--green-dark);
-}
-
-.menuDialog {
-  width: min(360px, calc(100% - 32px));
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--paper-light);
-  color: var(--ink);
-  box-shadow: 0 24px 60px -24px rgb(43 26 12 / 50%);
-}
-
-.menuDialog::backdrop {
-  background: rgb(28 20 12 / 40%);
-}
-
-.dialogHeading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.dialogHeading h2 {
-  font-size: 20px;
-}
-
-.dialogHeading button {
-  border: 0;
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.menuDialog p {
-  margin: 12px 0 20px;
-  color: var(--muted);
-}
-
-.dialogClose {
-  width: 100%;
-  height: 40px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--green);
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
 }
 
 /* Hero */
@@ -612,7 +613,7 @@
   position: relative;
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 18px;
   margin-top: 8px;
 }
@@ -645,8 +646,7 @@
   color: var(--brown);
 }
 
-.featureGrid article:nth-child(4n + 1) .squareIcon,
-.featureGrid article:nth-child(4n + 3) .squareIcon {
+.featureGrid article:nth-child(odd) .squareIcon {
   background: #e7ead8;
   color: var(--green);
 }
@@ -891,14 +891,18 @@
   display: grid;
   justify-items: center;
   gap: 12px;
+  /* Never shorter than the picture (366 / 2172 of the width), so it is never cut at the top. */
+  min-height: 16.85vw;
   padding: 40px 16px 64px;
   text-align: center;
-  /* The cream upper half of footer.png, its gold rule on this band's bottom edge. Cover keeps it
-     edge to edge and, on a phone, crops to the middle rather than shrinking the scene. */
+  /* The cream upper half of footer.png, its gold rule on this band's bottom edge. The whole
+     strip spans the width, pinned to the foot: `cover` would scale this 6:1 strip up to the
+     band's height and crop away the pine and pavilion at the sides on tablets and laptops.
+     Above the picture the band's cream carries on, the same colour as its sky. */
   /* The top fades from the section above's paper into the picture, so no edge shows. */
   background:
     linear-gradient(rgb(252 247 237), rgb(252 247 237 / 0%) 48px),
-    url('/images/home/footer-top.webp') center bottom / cover no-repeat #f4e9d2;
+    url('/images/home/footer-top.webp') center bottom / 100% auto no-repeat #f4e9d2;
 }
 
 .footerOrnament {
@@ -981,12 +985,39 @@
 
 .footerMain {
   position: relative;
+  /* The two picture layers below sit behind the text without escaping this box. */
+  isolation: isolate;
   padding: 44px max(24px, calc((100% - 1240px) / 2)) 14px;
-  /* The green lower half of footer.png, full width and pinned to the foot so the lotus corners
-     and gold waves stay there; above it the picture's own green carries on. */
-  background:
-    url('/images/home/footer-bottom.webp') center bottom / max(100%, 720px) auto no-repeat,
-    linear-gradient(rgb(12 59 41), rgb(15 65 47));
+  background: rgb(12 59 41);
+}
+
+/* The text is written on the painting itself, not on flat green. The green lower half of
+   footer.png is a 6:1 strip, far wider than this block, so it is drawn twice: enlarged to fill
+   the whole block (its misty hills and forest behind the columns), and again whole across the
+   foot so the lotus corners and gold waves stay uncropped, fading in at its top. */
+.footerMain::before,
+.footerMain::after {
+  position: absolute;
+  z-index: -1;
+  content: '';
+  pointer-events: none;
+}
+
+.footerMain::before {
+  inset: 0;
+  /* Only the strip's upper part, its texture, hills and forest: at 155% of the block's height
+     the gold line (77% down the strip) always falls below the block, however tall the columns
+     make it. At that size the 6:1 strip is far wider than any screen, so the sides never show. */
+  background: url('/images/home/footer-bottom.webp') center top / auto 155% no-repeat;
+}
+
+.footerMain::after {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: max(16.48vw, 119px);
+  background: url('/images/home/footer-bottom.webp') center bottom / max(100%, 720px) auto no-repeat;
+  mask-image: linear-gradient(transparent, #000 45%);
 }
 
 .footerGrid {
@@ -1051,9 +1082,8 @@
 }
 
 .footerLogo .logoMark {
-  width: 46px;
-  height: 46px;
-  color: #f1d58c;
+  width: 58px;
+  height: 58px;
 }
 
 .footerLogo strong {
@@ -1097,6 +1127,8 @@
 }
 
 .footerSocial a {
+  /* The word inside the Zalo mark, against the bubble drawn in currentColor. */
+  --zalo-ink: var(--green-dark);
   display: grid;
   width: 46px;
   height: 46px;
@@ -1110,6 +1142,7 @@
 }
 
 .footerSocial a:hover {
+  --zalo-ink: var(--gold);
   background: var(--gold);
   color: var(--green-dark);
 }
@@ -1285,7 +1318,7 @@
 }
 
 /* Too narrow for the full menu: it folds behind the menu button. */
-@media (max-width: 1260px) {
+@media (max-width: 1240px) {
   .menuToggle {
     display: grid;
   }
@@ -1325,10 +1358,6 @@
   .navLinks a::before,
   .navLinks a::after,
   .navLinks a[aria-current] span::after {
-    display: none;
-  }
-
-  .actionDivider {
     display: none;
   }
 
@@ -1374,8 +1403,8 @@
   }
 
   .brandSeal .logoMark {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
   }
 
   .brandText strong {
@@ -1411,10 +1440,6 @@
   .loginAction {
     padding: 0 16px;
     font-size: 14px;
-  }
-
-  .header .iconButton:not(.menuToggle) {
-    display: none;
   }
 
   .hero {
@@ -1587,9 +1612,13 @@
   .footerMain {
     /* Keeps the last row above the picture's lotus clumps. */
     padding-bottom: 34vw;
-    background:
-      url('/images/home/footer-mb-bottom.webp') center bottom / 100% auto no-repeat,
-      rgb(12 58 39);
+    background: rgb(12 58 39);
+  }
+
+  /* The portrait version of the strip across the foot; its pale top edge fades out. */
+  .footerMain::after {
+    height: 100vw;
+    background: url('/images/home/footer-mb-bottom.webp') center bottom / 100% auto no-repeat;
   }
 
   .footerBottom {
@@ -1626,7 +1655,84 @@
     transition: none;
   }
 
+  .header::before,
+  .header::after {
+    animation: none;
+  }
+
   .featureGrid article:hover {
     transform: none;
+  }
+}
+
+/* The phones' and tablets' tab bar (PublicBottomNav, shown below lg): the page ends above it,
+   and the header drops its menu button, the bar being the menu, and keeps a labelled sign-in
+   button even on the narrowest phones. */
+@media (max-width: 1023px) {
+  :global(body):has(.bottomNav) {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+
+  .menuToggle {
+    display: none;
+  }
+
+  .loginAction {
+    width: auto;
+    height: 40px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+
+  .loginLabel {
+    display: inline;
+  }
+}
+
+/* Narrow phones: the brand and the labelled sign-in button share one row, so both tighten. */
+@media (max-width: 480px) {
+  .headerBar {
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brandText strong {
+    font-size: 17px;
+  }
+
+  .loginAction {
+    height: 38px;
+    padding: 0 14px;
+    font-size: 13.5px;
+  }
+
+  .loginAction svg {
+    display: none;
+  }
+}
+
+/* The smallest phones (320px): a smaller seal and name keep the row from overlapping. */
+@media (max-width: 359px) {
+  .brandSeal {
+    width: 38px;
+    height: 38px;
+  }
+
+  .brandSeal .logoMark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .brandText strong {
+    font-size: 15px;
+  }
+
+  .loginAction {
+    padding: 0 12px;
+    font-size: 13px;
   }
 }
