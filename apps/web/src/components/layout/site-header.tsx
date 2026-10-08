@@ -1,11 +1,12 @@
 'use client';
 
-import { Sprout } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { LogoMark } from '@/components/layout/logo-mark';
 import { SiteHeaderContent } from '@/components/layout/site-header-content';
 import { isFamilyAdminRoute, isFamilyRoute } from '@/lib/family-nav';
+import { SITE_BRAND } from '@/lib/site-brand';
 
 /** Public-site pages that wear the home page's masthead (HomeHeader) instead. */
 const PUBLIC_SITE_SECTIONS = ['/gia-pha-mau', '/mau-bai-cung', '/thu-vien'];
@@ -34,13 +35,14 @@ export function SiteHeaderBar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
+          aria-label={`${SITE_BRAND.name} — Trang chủ`}
           className="flex items-center gap-2.5 font-display text-lg font-bold text-wood-700"
         >
-          <span className="grid size-9 place-items-center rounded-full border border-gold-400/70 bg-wood-700 text-gold-100 shadow-sm ring-2 ring-gold-100">
-            <Sprout className="size-5" aria-hidden="true" />
+          <span className="grid size-10 place-items-center rounded-full border-2 border-wood-700 bg-[#fffaf0] shadow-sm ring-2 ring-gold-100">
+            <LogoMark className="size-8" />
           </span>
           <span>
-            Gia Phả <span className="text-brand-700">Đời Đời</span>
+            {SITE_BRAND.nameLead} <span className="text-brand-700">{SITE_BRAND.nameAccent}</span>
           </span>
         </Link>
         <SiteHeaderContent />

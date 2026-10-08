@@ -301,6 +301,31 @@ a {
   }
 }
 
+/*
+ * A field that failed its check (FormValidation sets `aria-invalid`), and the red text under it.
+ * Plain red, apart from the lacquer `brand-*` reds used for actions, so an error reads as one.
+ * Unlayered, so it wins over the field's own border utilities.
+ */
+:is(input, select, textarea)[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+
+:is(input, select, textarea)[aria-invalid='true']:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgb(220 38 38 / 0.15);
+}
+
+[data-field-error] {
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: #dc2626;
+}
+
+[data-field-error]:empty {
+  display: none;
+}
+
 .phone-ring {
   transform-origin: 50% 60%;
   animation: phone-ring 2.4s ease-in-out infinite;

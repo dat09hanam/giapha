@@ -27,6 +27,9 @@ export type FamilyAccountBranch = { rootPersonId: string; rootName: string };
 const SHARED_USERNAME_PREFIX = 'ThanhVien';
 const HEAD_USERNAME_PREFIX = 'TruongHo';
 
+/** One email belongs to one account, since signing in and Quên mật khẩu find the account by it. */
+const EMAIL_TAKEN_MESSAGE = 'Email đã được dùng cho tài khoản khác. Hãy dùng email khác.';
+
 function pad2(value: number): string {
   return value.toString().padStart(2, '0');
 }
@@ -35,6 +38,8 @@ export type FamilyAccount = {
   id: string;
   username: string;
   displayName: string;
+  /** Where a Quên mật khẩu code goes; it also signs the account in. */
+  email: string | null;
   role: UserRole;
   status: UserStatus;
   /** The family's shared member account, whose password cannot be reset. */
@@ -50,6 +55,7 @@ const accountSelect = {
   id: true,
   username: true,
   displayName: true,
+  email: true,
   role: true,
   status: true,
   isShared: true,
@@ -67,6 +73,7 @@ function toAccount(record: AccountRecord): FamilyAccount {
     id: record.id,
     username: record.username,
     displayName: record.displayName,
+    email: record.email,
     role: record.role,
     status: record.status,
     isShared: record.isShared,
@@ -152,12 +159,15 @@ export class FamilyAccountsService {
   ): Promise<FamilyAccountWithPassword> {
     const password = generatePassword();
     const username = `${input.usernamePrefix.trim()}${await this.usernameSuffix(familyId)}`;
+    const email = normalizeEmail(input.email);
+    await this.assertEmailFree(email);
     try {
       const account = await this.prisma.user.create({
         data: {
           familyId,
           username,
           displayName: input.displayName.trim(),
+          email,
           passwordHash: await hashPassword(password),
           mustChangePassword: true,
           role: UserRole.MEMBER,
@@ -166,9 +176,7 @@ export class FamilyAccountsService {
       });
       return { account: toAccount(account), password };
     } catch (error: unknown) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException('Tên đăng nhập đã được sử dụng. Hãy chọn tên khác.');
-      }
+      throwIfTaken(error);
       throw error;
     }
   }
@@ -178,22 +186,34 @@ export class FamilyAccountsService {
     userId: string,
     input: UpdateFamilyAccountDto,
   ): Promise<FamilyAccount> {
-    await this.findMemberAccount(familyId, userId);
+    const { isShared } = await this.findMemberAccount(familyId, userId);
     const displayName = input.displayName?.trim();
-    const account = await this.prisma.$transaction(async (transaction) => {
-      if (input.status === UserStatus.SUSPENDED) {
-        await transaction.authSession.deleteMany({ where: { userId } });
-      }
-      return transaction.user.update({
-        where: { id: userId },
-        data: {
-          ...(displayName ? { displayName } : {}),
-          ...(input.status ? { status: input.status } : {}),
-        },
-        select: accountSelect,
+    const email = input.email === undefined ? undefined : normalizeEmail(input.email);
+    if (email && isShared) {
+      // Anyone holding the shared password could otherwise reset it to a password of their own.
+      throw new BadRequestException('Tài khoản dùng chung không được gắn email.');
+    }
+    await this.assertEmailFree(email ?? null, userId);
+    try {
+      const account = await this.prisma.$transaction(async (transaction) => {
+        if (input.status === UserStatus.SUSPENDED) {
+          await transaction.authSession.deleteMany({ where: { userId } });
+        }
+        return transaction.user.update({
+          where: { id: userId },
+          data: {
+            ...(displayName ? { displayName } : {}),
+            ...(input.status ? { status: input.status } : {}),
+            ...(email !== undefined ? { email } : {}),
+          },
+          select: accountSelect,
+        });
       });
-    });
-    return toAccount(account);
+      return toAccount(account);
+    } catch (error: unknown) {
+      throwIfTaken(error);
+      throw error;
+    }
   }
 
   /**
@@ -299,6 +319,13 @@ export class FamilyAccountsService {
   }
 
   /** Only member accounts of this family are managed here, never the family head's own. */
+  /** Refused before writing, so the answer names the email rather than a constraint. */
+  private async assertEmailFree(email: string | null, exceptUserId?: string): Promise<void> {
+    if (!email) return;
+    const owner = await this.prisma.user.findUnique({ where: { email }, select: { id: true } });
+    if (owner && owner.id !== exceptUserId) throw new ConflictException(EMAIL_TAKEN_MESSAGE);
+  }
+
   private async findMemberAccount(
     familyId: string,
     userId: string,
@@ -312,5 +339,20 @@ export class FamilyAccountsService {
       throw new BadRequestException('Chỉ quản lý được tài khoản thành viên tại đây.');
     }
     return { isShared: account.isShared };
+  }
+}
+
+/** Stored lower-case, like the clan head's; an empty value means no email. */
+function normalizeEmail(value: string | undefined): string | null {
+  return value?.trim().toLowerCase() || null;
+}
+
+/** A unique index hit by a request racing with another: says which value was taken. */
+function throwIfTaken(error: unknown): void {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    if (String(error.meta?.target ?? '').includes('email')) {
+      throw new ConflictException(EMAIL_TAKEN_MESSAGE);
+    }
+    throw new ConflictException('Tên đăng nhập đã được sử dụng. Hãy chọn tên khác.');
   }
 }

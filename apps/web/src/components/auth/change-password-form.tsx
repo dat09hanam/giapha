@@ -5,11 +5,12 @@ import { useState, type FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
+import { reportFieldError } from '@/components/ui/form-validation';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { changePassword, profileDestination } from '@/lib/auth-api';
 import { MIN_PASSWORD_LENGTH } from '@/lib/password';
 import { safeReturnPath } from '@/lib/return-path';
-import { Field } from './form-fields';
+import { PasswordField } from './password-field';
 
 /** Replaces the signed-in account's password, then goes on to `next` or the usual landing page. */
 export function ChangePasswordForm({ next }: { next: string | null }) {
@@ -22,7 +23,10 @@ export function ChangePasswordForm({ next }: { next: string | null }) {
     const form = new FormData(event.currentTarget);
     const newPassword = String(form.get('newPassword') ?? '');
     if (newPassword !== String(form.get('confirmPassword') ?? '')) {
-      showToast({ kind: 'error', message: 'Mật khẩu nhập lại không khớp.' });
+      const confirmField = event.currentTarget.elements.namedItem('confirmPassword');
+      if (confirmField instanceof HTMLInputElement) {
+        reportFieldError(confirmField, 'Mật khẩu nhập lại không khớp.');
+      }
       return;
     }
 
@@ -43,31 +47,27 @@ export function ChangePasswordForm({ next }: { next: string | null }) {
 
   return (
     <form className="grid gap-4" onSubmit={handleSubmit}>
-      <Field
+      <PasswordField
         id="current-password"
         name="currentPassword"
         label="Mật khẩu hiện tại"
-        type="password"
         autoComplete="current-password"
         maxLength={128}
         required
       />
-      <Field
+      <PasswordField
         id="new-password"
         name="newPassword"
         label="Mật khẩu mới"
-        type="password"
         autoComplete="new-password"
         minLength={MIN_PASSWORD_LENGTH}
         maxLength={128}
-        hint={`Tối thiểu ${MIN_PASSWORD_LENGTH} ký tự, khác mật khẩu hiện tại.`}
         required
       />
-      <Field
+      <PasswordField
         id="confirm-password"
         name="confirmPassword"
         label="Nhập lại mật khẩu mới"
-        type="password"
         autoComplete="new-password"
         minLength={MIN_PASSWORD_LENGTH}
         maxLength={128}

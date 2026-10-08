@@ -16,7 +16,7 @@ import {
 } from '../common/validation/rich-text.js';
 import { PrismaService } from '../database/prisma.service.js';
 import {
-  generatePassword,
+  generateClanHeadPassword,
   generateSharedMemberPassword,
   hashPassword,
 } from '../auth/password.js';
@@ -57,6 +57,9 @@ export type FamilySummary = {
   ancestryOrigin: string | null;
   poster: FamilyPoster;
 };
+
+/** One email belongs to one account, since Quên mật khẩu finds the account by it. */
+const EMAIL_TAKEN_MESSAGE = 'Email Trưởng họ đã được dùng cho tài khoản khác. Hãy dùng email khác.';
 
 const familySummarySelect = {
   id: true,
@@ -125,12 +128,17 @@ export class FamiliesService {
           usernames: generateFamilyUsernames(name, anniversary),
         }
       : await this.chooseFamilyLocator(name, anniversary, ancestryOrigin);
-    const memberPlusPassword = generatePassword();
+    const memberPlusPassword = generateClanHeadPassword();
     const memberPassword = generateSharedMemberPassword();
     const [memberPlusPasswordHash, memberPasswordHash] = await Promise.all([
       hashPassword(memberPlusPassword),
       hashPassword(memberPassword),
     ]);
+
+    const headEmail = input.headEmail?.trim().toLowerCase() || null;
+    if (headEmail && (await this.prisma.user.count({ where: { email: headEmail } }))) {
+      throw new ConflictException(EMAIL_TAKEN_MESSAGE);
+    }
 
     const posterDefaults = await this.defaultPosterDecorations();
 
@@ -164,7 +172,7 @@ export class FamiliesService {
               passwordHash: memberPlusPasswordHash,
               mustChangePassword: true,
               displayName: `Trưởng họ - ${name}`,
-              email: input.headEmail?.trim().toLowerCase() ?? null,
+              email: headEmail,
               role: UserRole.MEMBER_PLUS,
               familyId: created.id,
             },
@@ -201,6 +209,9 @@ export class FamiliesService {
     } catch (error: unknown) {
       // Reached only when another request took the same locator between the check and the insert.
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        if (String(error.meta?.target ?? '').includes('email')) {
+          throw new ConflictException(EMAIL_TAKEN_MESSAGE);
+        }
         throw new ConflictException(
           'Đường dẫn dòng họ hoặc tên đăng nhập vừa được dùng cho dòng họ khác. Vui lòng thử lại.',
         );

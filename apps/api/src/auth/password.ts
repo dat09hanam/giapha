@@ -23,7 +23,19 @@ export function generatePassword(): string {
  * around the clan by word of mouth. It is never forced to change, since everyone shares it.
  */
 export function generateSharedMemberPassword(): string {
-  return `thanhvien${randomInt(0, 1_000_000).toString().padStart(6, '0')}`;
+  return `thanhvien${sixRandomDigits()}`;
+}
+
+/**
+ * The clan head's first password: "truongho" and six random digits, in the same easy form as the
+ * shared one. The head must still replace it on their first sign-in.
+ */
+export function generateClanHeadPassword(): string {
+  return `truongho${sixRandomDigits()}`;
+}
+
+function sixRandomDigits(): string {
+  return randomInt(0, 1_000_000).toString().padStart(6, '0');
 }
 
 /** A password the account's owner chose themselves. */

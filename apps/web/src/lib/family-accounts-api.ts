@@ -6,6 +6,8 @@ export type FamilyAccount = {
   id: string;
   username: string;
   displayName: string;
+  /** Signs the account in and receives its Quên mật khẩu code; the shared account has none. */
+  email: string | null;
   role: 'MEMBER_PLUS' | 'MEMBER';
   status: 'ACTIVE' | 'SUSPENDED';
   /** The family's shared member account; a reset gives it a new shared password. */
@@ -61,7 +63,7 @@ export function checkUsernameAvailable(
 export function createFamilyAccount(
   slug: string,
   /** `usernamePrefix` is what the clan head typed; the API appends the family's suffix. */
-  input: { usernamePrefix: string; displayName: string },
+  input: { usernamePrefix: string; displayName: string; email?: string },
 ): Promise<FamilyAccountWithPassword> {
   return send(accountsUrl(slug), 'POST', input, 'tạo tài khoản');
 }
@@ -69,7 +71,8 @@ export function createFamilyAccount(
 export function updateFamilyAccount(
   slug: string,
   userId: string,
-  input: { displayName?: string; status?: FamilyAccount['status'] },
+  /** `email: ''` removes the account's email. */
+  input: { displayName?: string; status?: FamilyAccount['status']; email?: string },
 ): Promise<FamilyAccount> {
   return send(accountsUrl(slug, `/${userId}`), 'PATCH', input, 'cập nhật tài khoản');
 }

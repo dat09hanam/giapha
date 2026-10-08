@@ -138,8 +138,8 @@ model User {
   passwordHash       String              @db.VarChar(255)
   displayName        String              @db.VarChar(191)
   /// Where a forgotten password's one-time code is sent; set for the clan head when the family is
-  /// created. Not unique: one person may head more than one family.
-  email              String?             @db.VarChar(191)
+  /// created. Stored lower-case; one email belongs to one account, so Quên mật khẩu also accepts it.
+  email              String?             @unique @db.VarChar(191)
   role               UserRole
   familyId           String?             @db.Char(36)
   status             UserStatus          @default(ACTIVE)

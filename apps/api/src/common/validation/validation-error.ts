@@ -3,6 +3,7 @@ import type { ValidationError } from 'class-validator';
 
 const FIELD_LABELS: Record<string, string> = {
   username: 'tên đăng nhập',
+  login: 'tên đăng nhập hoặc email',
   password: 'mật khẩu',
   headEmail: 'email Trưởng họ',
   code: 'mã xác nhận',

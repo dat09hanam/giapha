@@ -12,7 +12,6 @@ type DeathAnniversaryPickerProps = {
   label?: string;
   /** Lunar months never exceed 30 days; solar anniversaries keep the default. */
   maxDayInMonth?: number;
-  hint?: string;
   required?: boolean;
   disabled?: boolean;
 };
@@ -40,7 +39,6 @@ export function DeathAnniversaryPicker({
   onChange,
   label = 'Ngày giỗ họ',
   maxDayInMonth = 31,
-  hint,
   required = false,
   disabled = false,
 }: DeathAnniversaryPickerProps) {
@@ -67,12 +65,11 @@ export function DeathAnniversaryPicker({
     onChange(formatValue(nextDay, nextMonth));
   }
 
-  const hintId = hint ? `${id}-hint` : undefined;
   const selectClassName =
     'h-11 w-full appearance-none rounded-xl border bg-white px-3 pr-10 text-base font-medium text-brand-950 sm:text-sm outline-none transition focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500';
 
   return (
-    <fieldset className="grid gap-1.5" aria-describedby={hintId}>
+    <fieldset className="grid gap-1.5">
       <legend className="text-sm font-medium text-brand-950">{label}</legend>
       <div className="grid grid-cols-2 gap-3">
         <label className="grid gap-1" htmlFor={`${id}-day`}>
@@ -127,11 +124,6 @@ export function DeathAnniversaryPicker({
           </span>
         </label>
       </div>
-      {hint ? (
-        <span id={hintId} className="text-xs text-stone-500">
-          {hint}
-        </span>
-      ) : null}
     </fieldset>
   );
 }

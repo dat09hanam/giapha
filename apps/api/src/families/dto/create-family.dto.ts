@@ -37,7 +37,7 @@ export class CreateFamilyDto {
 
   /**
    * The clan head's email, where a forgotten password's one-time code is sent. Required for every
-   * family with accounts; the sample family has none.
+   * family with accounts; the sample family has none. Refused when another account already has it.
    */
   @ValidateIf((input: CreateFamilyDto) => input.isDemo !== true || input.headEmail !== undefined)
   @IsEmail({}, { message: 'Email Trưởng họ không hợp lệ.' })

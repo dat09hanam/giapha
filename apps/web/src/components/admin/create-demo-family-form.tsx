@@ -75,13 +75,11 @@ export function CreateDemoFamilyForm() {
             value={slug}
             readOnly
             className="bg-gold-50/70 text-stone-600"
-            hint="Tạo tự động từ tên dòng họ."
           />
           <DeathAnniversaryPicker
             id="demo-death-anniversary"
             value={deathAnniversary}
             onChange={setDeathAnniversary}
-            hint="Chọn ngày và tháng giỗ họ."
             required
           />
           <Button

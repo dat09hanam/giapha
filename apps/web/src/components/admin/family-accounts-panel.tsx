@@ -7,6 +7,7 @@ import {
   KeyRound,
   Lock,
   LockOpen,
+  Mail,
   Plus,
   Trash2,
   TriangleAlert,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 
+import { AccountEmailDialog } from '@/components/admin/account-email-dialog';
 import { SectionCard } from '@/components/admin/admin-layout';
 import { BranchRootPicker, type ClaimedBranch } from '@/components/admin/branch-root-picker';
 import {
@@ -25,6 +27,7 @@ import {
 } from '@/components/admin/username-field';
 import { Field } from '@/components/auth/form-fields';
 import { Button } from '@/components/ui/button';
+import { Presence } from '@/components/ui/presence';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
 import {
@@ -74,6 +77,8 @@ export function FamilyAccountsPanel({
   const usernameStatus = useUsernameCheck(familySlug, username);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [credential, setCredential] = useState<Credential | null>(null);
+  /** The account whose email the dialog is editing. */
+  const [editingEmail, setEditingEmail] = useState<FamilyAccount | null>(null);
   const [copied, setCopied] = useState(false);
   const credentialRef = useRef<HTMLDivElement>(null);
   /** The account whose "giao chi" tree dialog is open. */
@@ -133,9 +138,11 @@ export function FamilyAccountsPanel({
     const form = new FormData(formElement);
     setCreating(true);
     try {
+      const email = String(form.get('email') ?? '').trim();
       const result = await createFamilyAccount(familySlug, {
         usernamePrefix: username.trim(),
         displayName: String(form.get('displayName') ?? '').trim(),
+        ...(email ? { email } : {}),
       });
       setAccounts((current) => [...current, result.account]);
       reveal(result.account, result.password, 'created');
@@ -225,6 +232,7 @@ export function FamilyAccountsPanel({
               label="Tên đăng nhập"
               placeholder="adminchi1"
               pattern="[A-Za-z0-9][A-Za-z0-9_.@\-]*"
+              title="Chỉ dùng chữ không dấu, số và các ký tự _ . @ -, bắt đầu bằng chữ hoặc số."
               minLength={3}
               maxLength={PREFIX_MAX_LENGTH}
               suffix={usernameSuffix}
@@ -232,6 +240,15 @@ export function FamilyAccountsPanel({
               onChange={(event) => setUsername(event.target.value)}
               status={usernameStatus}
               required
+            />
+            <Field
+              id="account-email"
+              name="email"
+              type="email"
+              label="Email (không bắt buộc)"
+              placeholder="nguyenvana@gmail.com"
+              maxLength={191}
+              autoComplete="off"
             />
             <p className="text-xs leading-5 text-stone-500">
               Hệ thống tự sinh mật khẩu. Người dùng phải đổi sang mật khẩu riêng ở lần đăng nhập
@@ -308,6 +325,12 @@ export function FamilyAccountsPanel({
                       ) : null}
                     </p>
                     <p className="break-all font-mono text-xs text-stone-500">{account.username}</p>
+                    {account.email ? (
+                      <p className="flex items-center gap-1.5 break-all text-xs text-stone-500">
+                        <Mail className="size-3.5 shrink-0" aria-hidden="true" />
+                        {account.email}
+                      </p>
+                    ) : null}
                   </div>
                   {isHead ? null : (
                     <div className="flex flex-wrap gap-2">
@@ -321,6 +344,19 @@ export function FamilyAccountsPanel({
                         <KeyRound className="size-3.5" aria-hidden="true" />
                         Đặt lại mật khẩu
                       </Button>
+                      {/* The shared account has no email: anyone could reset it to their own. */}
+                      {account.isShared ? null : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => setEditingEmail(account)}
+                        >
+                          <Mail className="size-3.5" aria-hidden="true" />
+                          {account.email ? 'Đổi email' : 'Thêm email'}
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         size="sm"
@@ -419,6 +455,20 @@ export function FamilyAccountsPanel({
           })}
         </ul>
       </SectionCard>
+
+      <Presence>
+        {editingEmail ? (
+          <AccountEmailDialog
+            familySlug={familySlug}
+            account={editingEmail}
+            onClose={() => setEditingEmail(null)}
+            onSaved={(saved) => {
+              replaceAccount(saved);
+              setEditingEmail(null);
+            }}
+          />
+        ) : null}
+      </Presence>
 
       {assigning ? (
         <BranchRootPicker

@@ -75,22 +75,38 @@ export function changePassword(input: {
 
 export const FORGOT_PASSWORD_PATH = '/quen-mat-khau';
 
-/** Mails a one-time code to the account's email; the answer never says whether it exists. */
-export function requestPasswordReset(username: string): Promise<void> {
-  return apiFetch<void>(
+/**
+ * Mails a one-time code to the account's email; `login` is its username or email. Answers with the
+ * masked email the code went to, and fails with "Tài khoản không tồn tại." when nothing matches.
+ */
+export function requestPasswordReset(login: string): Promise<{ sentTo: string }> {
+  return apiFetch<{ sentTo: string }>(
     `${API_URL}/auth/password-reset`,
     {
       method: 'POST',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username }),
+      body: JSON.stringify({ login }),
     },
     'gửi mã xác nhận',
   );
 }
 
+/** Checks the mailed code before asking for a new password; a wrong guess uses up an attempt. */
+export function verifyPasswordReset(input: { login: string; code: string }): Promise<void> {
+  return apiFetch<void>(
+    `${API_URL}/auth/password-reset/verify`,
+    {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    },
+    'kiểm tra mã xác nhận',
+  );
+}
+
 /** Replaces a forgotten password with the mailed code; every device is signed out. */
 export function confirmPasswordReset(input: {
-  username: string;
+  login: string;
   code: string;
   newPassword: string;
 }): Promise<void> {

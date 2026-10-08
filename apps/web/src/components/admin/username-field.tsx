@@ -90,7 +90,7 @@ export function UsernameField({
 }) {
   const statusId = `${id}-status`;
   return (
-    <div className="grid gap-1.5">
+    <div className="grid gap-1.5" data-field="">
       <label className="text-sm font-medium text-brand-950" htmlFor={id}>
         {label}
       </label>
@@ -119,6 +119,7 @@ export function UsernameField({
           {suffix}
         </span>
       </div>
+      <span data-field-error="" aria-live="polite" />
       <span
         id={statusId}
         aria-live="polite"

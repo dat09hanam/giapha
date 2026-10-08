@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { SITE_BRAND } from '../common/site-brand.js';
+
 const environmentSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().max(65535).default(4000),
@@ -23,7 +25,7 @@ const environmentSchema = z.object({
     .transform((value) => value === 'true'),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  MAIL_FROM: z.string().min(1).default('Gia Phả <no-reply@giapha.local>'),
+  MAIL_FROM: z.string().min(1).default(`${SITE_BRAND.name} <no-reply@giapha.local>`),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;

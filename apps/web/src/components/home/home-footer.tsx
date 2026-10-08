@@ -4,9 +4,10 @@ import { BookOpen, Clock, HandHeart, Mail, MapPin, Phone, UsersRound } from 'luc
 import { ContactLink } from '@/components/social/contact-link';
 import { RingingPhone } from '@/components/social/ringing-phone';
 import { FacebookIcon, YoutubeIcon, ZaloIcon } from '@/components/social/social-icons';
+import { LogoMark } from '@/components/layout/logo-mark';
+import { SITE_BRAND } from '@/lib/site-brand';
 import { SITE_CONTACT, phoneHref, zaloHref } from '@/lib/site-contact';
 
-import { LogoMark } from './home-header';
 import styles from './home.module.css';
 
 const footerValues = [
@@ -53,21 +54,22 @@ export function HomeFooter() {
       <div className={styles.footerMain}>
         <div className={styles.footerGrid}>
           <div className={styles.footerBrand}>
-            <Link href="/" className={styles.footerLogo} aria-label="Gia Phả Đời Đời — Trang chủ">
+            <Link
+              href="/"
+              className={styles.footerLogo}
+              aria-label={`${SITE_BRAND.name} — Trang chủ`}
+            >
               <span className={styles.footerMedal}>
-                <LogoMark />
+                <LogoMark className={styles.logoMark} />
               </span>
               <span>
                 <strong>
-                  Gia Phả <em>Đời Đời</em>
+                  {SITE_BRAND.nameLead} <em>{SITE_BRAND.nameAccent}</em>
                 </strong>
-                <small>Kết nối cội nguồn</small>
+                <small>{SITE_BRAND.tagline}</small>
               </span>
             </Link>
-            <p>
-              Nơi lưu giữ, kết nối và lan tỏa giá trị truyền thống gia đình, dòng họ Việt Nam bằng
-              công nghệ hiện đại.
-            </p>
+            <p>{SITE_BRAND.description}</p>
             <ul className={styles.footerSocial} aria-label="Mạng xã hội">
               <li>
                 <a
@@ -148,7 +150,7 @@ export function HomeFooter() {
         </div>
 
         <div className={styles.footerBottom}>
-          <p>© {new Date().getFullYear()} Gia Phả Đời Đời. Giữ gìn cội nguồn. Kết nối muôn đời.</p>
+          <p>© {new Date().getFullYear()} {SITE_BRAND.name}. Giữ gìn cội nguồn. Kết nối muôn đời.</p>
         </div>
       </div>
     </footer>

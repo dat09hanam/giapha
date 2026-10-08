@@ -4,16 +4,19 @@ import { cn } from '@/lib/utils';
 
 type FieldProps = ComponentProps<'input'> & {
   label: string;
-  hint?: string;
   /** Decorative glyph shown inside the input's leading edge. */
   icon?: ReactNode;
   /** Control rendered inside the input's trailing edge, such as a visibility toggle. */
   trailing?: ReactNode;
 };
 
-export function Field({ label, hint, icon, trailing, id, className, ...props }: FieldProps) {
+/**
+ * A labelled input. Nothing shows under it until it fails a check; then FormValidation writes the
+ * red error into the slot below.
+ */
+export function Field({ label, icon, trailing, id, className, ...props }: FieldProps) {
   return (
-    <div className="grid gap-1.5">
+    <div className="grid gap-1.5" data-field="">
       <label className="text-sm font-medium text-brand-950" htmlFor={id}>
         {label}
       </label>
@@ -40,7 +43,7 @@ export function Field({ label, hint, icon, trailing, id, className, ...props }: 
           <span className="absolute inset-y-0 right-1 flex items-center">{trailing}</span>
         ) : null}
       </div>
-      {hint ? <span className="text-xs text-stone-500">{hint}</span> : null}
+      <span data-field-error="" aria-live="polite" />
     </div>
   );
 }

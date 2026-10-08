@@ -1,10 +1,11 @@
 import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class LoginDto {
+  /** The account's username or its email; neither contains a space. */
   @IsString()
   @MinLength(3)
   @MaxLength(191)
-  @Matches(/^[A-Za-z0-9][A-Za-z0-9_.@-]*$/)
+  @Matches(/^\S+$/)
   username!: string;
 
   @IsString()

@@ -21,6 +21,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+import { SITE_BRAND } from '@/lib/site-brand';
+
 import { HomeFooter } from './home-footer';
 import { HomeHeader } from './home-header';
 import styles from './home.module.css';
@@ -147,7 +149,7 @@ const reasons = [
 
 const questions = [
   {
-    q: 'Làm sao để dòng họ tôi có gia phả trên Gia Phả Đời Đời?',
+    q: `Làm sao để dòng họ tôi có gia phả trên ${SITE_BRAND.name}?`,
     a: 'Liên hệ quản trị để được tạo gia phả. Trưởng họ sẽ nhận tài khoản để bắt đầu nhập phả hệ và cấp tài khoản cho con cháu.',
   },
   {
@@ -205,10 +207,7 @@ export function HomeLanding() {
             <span>Gia phả</span>
             <span>Kết nối muôn đời</span>
           </h1>
-          <p>
-            Nơi lưu giữ, xây dựng và lan tỏa giá trị truyền thống gia đình, dòng họ Việt Nam bằng
-            công nghệ hiện đại.
-          </p>
+          <p>{SITE_BRAND.description}</p>
           <div className={styles.heroActions}>
             <Link className={styles.primary} href="/gia-pha-mau">
               Xem gia phả mẫu <ArrowRight size={18} aria-hidden="true" />

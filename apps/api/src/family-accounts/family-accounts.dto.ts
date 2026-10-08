@@ -1,6 +1,7 @@
 import {
   ArrayMaxSize,
   IsArray,
+  IsEmail,
   IsIn,
   IsOptional,
   IsString,
@@ -8,6 +9,7 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { UserStatus } from '@prisma/client';
 
@@ -36,6 +38,12 @@ export class CreateFamilyAccountDto {
   @MinLength(2)
   @MaxLength(191)
   displayName!: string;
+
+  /** Optional; lets the member sign in with it and receive a Quên mật khẩu code. */
+  @IsOptional()
+  @IsEmail({}, { message: 'Email không hợp lệ.' })
+  @MaxLength(191)
+  email?: string;
 }
 
 export class UpdateFamilyAccountDto {
@@ -48,6 +56,14 @@ export class UpdateFamilyAccountDto {
   @IsOptional()
   @IsIn([UserStatus.ACTIVE, UserStatus.SUSPENDED])
   status?: UserStatus;
+
+  /** A new email, or an empty string to remove it. Left out, the email stays as it is. */
+  @IsOptional()
+  @IsString()
+  @ValidateIf((input: UpdateFamilyAccountDto) => input.email !== '')
+  @IsEmail({}, { message: 'Email không hợp lệ.' })
+  @MaxLength(191)
+  email?: string;
 }
 
 export class SetBranchesDto {

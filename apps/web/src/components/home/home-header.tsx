@@ -1,24 +1,11 @@
-import Image from 'next/image';
 import Link from 'next/link';
+
+import { LogoMark } from '@/components/layout/logo-mark';
+import { SITE_BRAND } from '@/lib/site-brand';
 
 import { HomeHeaderMenu } from './home-header-menu';
 import { PublicBottomNav } from './public-bottom-nav';
 import styles from './home.module.css';
-
-/** The brand mark: the logo's tree, sun and open book, cropped to fit a round seal. */
-export function LogoMark() {
-  return (
-    <Image
-      className={styles.logoMark}
-      src="/images/decorations/logo-mark.webp"
-      alt=""
-      aria-hidden="true"
-      width={384}
-      height={384}
-      sizes="64px"
-    />
-  );
-}
 
 /**
  * The public site's masthead: a parchment scroll with the brand and the menu, plus the tab bar
@@ -30,15 +17,15 @@ export function HomeHeader({ onHomePage = true }: { onHomePage?: boolean }) {
     <>
       <header className={styles.header}>
         <div className={styles.headerBar}>
-          <Link href="/" className={styles.brand} aria-label="Gia Phả Đời Đời — Trang chủ">
+          <Link href="/" className={styles.brand} aria-label={`${SITE_BRAND.name} — Trang chủ`}>
             <span className={styles.brandSeal}>
-              <LogoMark />
+              <LogoMark className={styles.logoMark} />
             </span>
             <span className={styles.brandText}>
               <strong>
-                Gia Phả <em>Đời Đời</em>
+                {SITE_BRAND.nameLead} <em>{SITE_BRAND.nameAccent}</em>
               </strong>
-              <small>Kết nối cội nguồn</small>
+              <small>{SITE_BRAND.tagline}</small>
             </span>
           </Link>
           <HomeHeaderMenu onHomePage={onHomePage} />

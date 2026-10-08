@@ -6,6 +6,7 @@ import { ApiErrorState } from '@/components/ui/api-error-state';
 import { ApiNotFoundError, getArticle, getArticles } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { ARTICLE_SECTIONS, articleCoverSrc } from '@/lib/article-api';
+import { SITE_BRAND } from '@/lib/site-brand';
 import type { ArticleCategory } from '@/types/article';
 
 /*
@@ -20,7 +21,7 @@ export function sectionMetadata(category: ArticleCategory): Metadata {
   const section = ARTICLE_SECTIONS[category];
   return {
     description: section.description,
-    openGraph: { title: `${section.label} · Gia Phả Đời Đời`, description: section.description },
+    openGraph: { title: `${section.label} · ${SITE_BRAND.name}`, description: section.description },
   };
 }
 

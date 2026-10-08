@@ -12,15 +12,22 @@ The browser keeps an opaque session token in an `HttpOnly`, `SameSite=Strict` co
 SHA-256 digest is stored in `AuthSession`. Passwords use scrypt with an independent random salt and
 plaintext credentials are never persisted.
 
-Quên mật khẩu: `POST /api/auth/password-reset` takes a username and mails a six-digit code to the
-account's `User.email` (set for the clan head when the family is created) over SMTP (`SMTP_*`,
-`MAIL_FROM`; Mailpit in `docker-compose.yml` for development). It answers `204` whether or not the
-account exists or has an email, so it reveals no usernames; without `SMTP_HOST` it answers `503`
-for everyone. `PasswordResetCode` keeps only a SHA-256 digest of the code bound to the user; only the
+Quên mật khẩu: `POST /api/auth/password-reset` takes a `login` (username, or the account's email;
+a username match wins) and mails a six-digit code to the account's `User.email` (set for the clan
+head when the family is created, and optionally by the clan head for a member account on the
+accounts tab; never for the shared account, whose holders could otherwise take it over; stored
+lower-case and unique across accounts) over SMTP (`SMTP_*`,
+`MAIL_FROM`; Mailpit in `docker-compose.yml` for development). By product decision it does reveal
+whether an account exists: `404` when nothing matches, `403` for a suspended account, `400` when
+the account has no email, and otherwise `200` with `{ sentTo }`, the email masked to its first six characters and domain (`nguyen***@gmail.com`)
+so the answer does not hand out the full address; without `SMTP_HOST` it answers `503` for
+everyone. `PasswordResetCode` keeps only a SHA-256 digest of the code bound to the user, one row per account (a new code or a reset deletes the older rows); only the
 newest code works, for 10 minutes, at most five wrong guesses, and a new one is mailed no sooner
-than a minute after the last. `POST /api/auth/password-reset/confirm` takes the username, code and
-new password, sets it (clearing `mustChangePassword`) and signs the account out everywhere. Both
-routes share the login throttle; `quen-mat-khau` is the web page and a reserved Family slug.
+than two minutes after the last. `POST /api/auth/password-reset/verify` takes the same `login` and
+the code and only checks it (a wrong guess counts), so the web form asks for the new password only
+after a right code. `POST /api/auth/password-reset/confirm` takes the `login`, code and new
+password, checks the code again, sets the password (clearing `mustChangePassword`) and signs the
+account out everywhere. All three routes share the login throttle; `quen-mat-khau` is the web page and a reserved Family slug.
 
 ## Family authorization boundary
 
@@ -70,8 +77,9 @@ with every member-only section hidden. The sample Family must hold sample data, 
 
 ## Authentication and Family provisioning
 
-Authentication uses the globally unique `User.username`; email is not stored on the account and is
-not accepted by the login contract. Unknown username, incorrect password, suspended account and
+Authentication accepts the globally unique `User.username` or the account's unique `User.email` in
+the login's `username` field (`findUserByLogin`, shared with Quên mật khẩu; a username match wins,
+since usernames may contain `@`). Unknown username, incorrect password, suspended account and
 other invalid credentials produce the same authentication failure. Login is rate-limited per API
 process.
 
@@ -128,7 +136,8 @@ the admin types; `slug-check` is therefore a reserved Family slug.
 The two initial usernames are deterministically derived from the accent-free PascalCase Family name
 and `DDMM`, for example `TruongHoHoNguyen1003` and `ThanhVienHoNguyen1003`, with the origin's
 PascalCase place appended when the slug needed it (`TruongHoHoNguyen1003ThanhLoc`). The clan head's password is
-always a generated 10-character one; nobody types another person's password. The shared `MEMBER`
+always generated, `truongho` plus six random digits (`truongho305917`), and must be replaced on the
+first sign-in; nobody types another person's password. The shared `MEMBER`
 account (`User.isShared`) gets `thanhvien` plus six random digits (`thanhvien042817`), easy to pass
 around the clan; it is never forced to change, and the clan head can reset it to a new one of the
 same form (which signs every device out). Families created earlier keep a password identical to the

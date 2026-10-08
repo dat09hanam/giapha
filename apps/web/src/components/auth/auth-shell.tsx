@@ -1,8 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { ArrowLeft, Sprout } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
+import { LogoMark } from '@/components/layout/logo-mark';
+import { SITE_BRAND } from '@/lib/site-brand';
 import { cn } from '@/lib/utils';
 
 const LANDSCAPE_SRC = '/images/decorations/family-background.png';
@@ -13,8 +15,6 @@ type AuthShellProps = {
   description: string;
   children: ReactNode;
   footer: ReactNode;
-  brandTitle: string;
-  brandTagline: string;
   /** True when the page draws no site header, so the shell fills the whole viewport. */
   fullScreen?: boolean;
 };
@@ -29,8 +29,6 @@ export function AuthShell({
   description,
   children,
   footer,
-  brandTitle,
-  brandTagline,
   fullScreen = false,
 }: AuthShellProps) {
   return (
@@ -48,7 +46,7 @@ export function AuthShell({
         <Landscape imageClassName="object-bottom" />
       </div>
 
-      <BrandBlock title={brandTitle} tagline={brandTagline} className="px-6 pt-8 lg:hidden" />
+      <BrandBlock className="px-6 pt-8 lg:hidden" />
 
       {/* Phones and tablets: a landscape band the card overlaps. */}
       <div className="pointer-events-none relative mt-6 h-64 sm:h-80 lg:hidden" aria-hidden="true">
@@ -58,7 +56,7 @@ export function AuthShell({
 
       <section className="relative z-10 mx-4 -mt-16 mb-8 rounded-2xl border border-gold-500/40 bg-[#fffaf0]/95 p-6 shadow-2xl shadow-wood-950/15 backdrop-blur-sm sm:mx-auto sm:w-full sm:max-w-md sm:p-8 lg:m-0 lg:max-w-[26rem] lg:p-9">
         <div className="hidden lg:block">
-          <BrandBlock title={brandTitle} tagline={brandTagline} />
+          <BrandBlock />
           <LotusDivider className="my-6" />
         </div>
 
@@ -100,26 +98,26 @@ function Landscape({ imageClassName }: { imageClassName: string }) {
   );
 }
 
-function BrandBlock({
-  title,
-  tagline,
-  className,
-}: {
-  title: string;
-  tagline: string;
-  className?: string;
-}) {
+/** The site's logo, name and description, the same as the home page's masthead and footer. */
+function BrandBlock({ className }: { className?: string }) {
   return (
     <div className={cn('flex flex-col items-center text-center', className)}>
       <Link
         href="/"
-        aria-label="Về trang chủ"
-        className="grid size-14 place-items-center rounded-full bg-wood-700 text-gold-100 ring-4 ring-gold-200/70 transition hover:bg-wood-800 hover:ring-gold-300 focus-visible:outline-none focus-visible:ring-[var(--ring)]"
+        aria-label={`${SITE_BRAND.name} — Trang chủ`}
+        className="grid size-16 place-items-center rounded-full border-2 border-wood-700 bg-[#fffaf0] ring-4 ring-gold-200/70 transition hover:ring-gold-300 focus-visible:outline-none focus-visible:ring-[var(--ring)]"
       >
-        <Sprout className="size-7" aria-hidden="true" />
+        <LogoMark className="size-14" />
       </Link>
-      <p className="mt-3 font-display text-3xl font-bold text-wood-800">{title}</p>
-      <p className="mt-2 max-w-[18rem] text-sm leading-6 text-stone-600">{tagline}</p>
+      <p className="mt-3 font-display text-3xl font-bold text-wood-800">
+        {SITE_BRAND.nameLead} <span className="text-brand-700">{SITE_BRAND.nameAccent}</span>
+      </p>
+      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-gold-700">
+        {SITE_BRAND.tagline}
+      </p>
+      <p className="mt-2 max-w-[20rem] text-sm leading-6 text-stone-600">
+        {SITE_BRAND.description}
+      </p>
     </div>
   );
 }

@@ -182,7 +182,6 @@ export function CreateFamilyForm() {
             id="death-anniversary"
             value={deathAnniversary}
             onChange={setDeathAnniversary}
-            hint="Chọn ngày và tháng giỗ họ."
             required
           />
           <Field
@@ -193,7 +192,6 @@ export function CreateFamilyForm() {
             maxLength={255}
             value={ancestryOrigin}
             onChange={(event) => setAncestryOrigin(event.target.value)}
-            hint="Nếu đã có dòng họ cùng tên và ngày giỗ, phần trước dấu phẩy đầu tiên được thêm vào cuối đường dẫn."
           />
           <Field
             id="family-head-email"
@@ -205,7 +203,6 @@ export function CreateFamilyForm() {
             autoComplete="off"
             value={headEmail}
             onChange={(event) => setHeadEmail(event.target.value)}
-            hint="Dùng để nhận mã OTP khi Trưởng họ quên mật khẩu."
             required
           />
           <div className="grid gap-1.5">

@@ -309,7 +309,6 @@ function BackgroundEditor({
             max={9999}
             value={draft.sortOrder}
             onChange={(event) => onChange({ ...draft, sortOrder: event.currentTarget.value })}
-            hint="Số nhỏ hiện trước. Để trống khi thêm mới để xếp cuối."
           />
 
           <label className="flex items-start gap-3 rounded-xl border bg-white px-3.5 py-3 text-sm text-brand-950">

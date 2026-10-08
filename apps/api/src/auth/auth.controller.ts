@@ -30,8 +30,12 @@ import { ChangePasswordDto } from './dto/change-password.dto.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { LoginDto } from './dto/login.dto.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { ConfirmPasswordResetDto, RequestPasswordResetDto } from './dto/password-reset.dto.js';
-import { PasswordResetService } from './password-reset.service.js';
+import {
+  ConfirmPasswordResetDto,
+  RequestPasswordResetDto,
+  VerifyPasswordResetDto,
+} from './dto/password-reset.dto.js';
+import { PasswordResetService, type PasswordResetRequested } from './password-reset.service.js';
 
 @Controller('auth')
 export class AuthController {
@@ -51,12 +55,20 @@ export class AuthController {
     return this.finishAuthentication(await this.authService.login(input), reply);
   }
 
-  /** Mails a one-time code; answers the same whether or not the account exists or has an email. */
+  /** Mails a one-time code and names the masked email; `404` when no account matches. */
   @Post('password-reset')
   @UseGuards(AuthThrottleGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  requestPasswordReset(@Body() input: RequestPasswordResetDto): Promise<void> {
+  @HttpCode(HttpStatus.OK)
+  requestPasswordReset(@Body() input: RequestPasswordResetDto): Promise<PasswordResetRequested> {
     return this.passwordReset.request(input);
+  }
+
+  /** Checks the mailed code before the form asks for a new password; nothing changes yet. */
+  @Post('password-reset/verify')
+  @UseGuards(AuthThrottleGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  verifyPasswordReset(@Body() input: VerifyPasswordResetDto): Promise<void> {
+    return this.passwordReset.verify(input);
   }
 
   @Post('password-reset/confirm')

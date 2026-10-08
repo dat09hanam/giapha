@@ -3,6 +3,8 @@ import { Be_Vietnam_Pro, Noto_Serif } from 'next/font/google';
 
 import { SiteHeader } from '@/components/layout/site-header';
 import { ToastProvider } from '@/components/ui/toast';
+import { FormValidation } from '@/components/ui/form-validation';
+import { SITE_BRAND } from '@/lib/site-brand';
 
 import './globals.css';
 
@@ -25,16 +27,17 @@ const serif = Noto_Serif({
 // below rather than in metadata: Next streams metadata and drops the old <title> on each
 // navigation, which flashed the URL in the tab. Pages must not set a title of their own.
 export const metadata: Metadata = {
-  description: 'Không gian lưu giữ và kết nối câu chuyện của mỗi dòng họ.',
+  description: SITE_BRAND.description,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi" className={`${sans.variable} ${serif.variable}`}>
       <head>
-        <title>Gia Phả Đời Đời</title>
+        <title>{SITE_BRAND.name}</title>
       </head>
       <body>
+        <FormValidation />
         <ToastProvider>
           <SiteHeader />
           {children}

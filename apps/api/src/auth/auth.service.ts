@@ -10,6 +10,7 @@ import { UserStatus, type Prisma } from '@prisma/client';
 
 import { hashSessionToken } from '../common/auth/session-token.js';
 import { PrismaService } from '../database/prisma.service.js';
+import { findUserByLogin } from './account-lookup.js';
 import type { ChangePasswordDto } from './dto/change-password.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
 import { hashPassword, validateOwnPassword, verifyPassword } from './password.js';
@@ -68,16 +69,18 @@ export class AuthService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async login(input: LoginDto): Promise<AuthResult> {
-    const user = await this.prisma.user.findUnique({
-      where: { username: input.username.trim() },
-      select: { id: true, passwordHash: true, status: true, deletedAt: true },
+    const user = await findUserByLogin(this.prisma, input.username, {
+      id: true,
+      passwordHash: true,
+      status: true,
+      deletedAt: true,
     });
     const passwordMatches = await verifyPassword(
       input.password,
       user?.passwordHash ?? DUMMY_PASSWORD_HASH,
     );
     if (!user || user.deletedAt || user.status !== UserStatus.ACTIVE || !passwordMatches) {
-      throw new UnauthorizedException('Tên đăng nhập hoặc mật khẩu không đúng.');
+      throw new UnauthorizedException('Tên đăng nhập, email hoặc mật khẩu không đúng.');
     }
 
     const token = createRawToken();

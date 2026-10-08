@@ -10,8 +10,6 @@ export const metadata: Metadata = {
 export default function ForgotPasswordPage() {
   return (
     <AuthShell
-      brandTitle="Gia Phả Đời Đời"
-      brandTagline="Không gian lưu giữ và kết nối câu chuyện của mỗi dòng họ."
       eyebrow="Tài khoản Gia Phả"
       title="Quên mật khẩu"
       description="Nhận mã xác nhận qua email đã đăng ký để đặt mật khẩu mới."

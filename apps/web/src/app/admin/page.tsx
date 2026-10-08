@@ -24,12 +24,13 @@ import {
 import { ApiRequestError } from '@/lib/api-error';
 import { profileDestination, type AuthProfile } from '@/lib/auth-api';
 import type { AdminPosterDecoration } from '@/lib/poster-decorations';
+import { SITE_BRAND } from '@/lib/site-brand';
 import type { AdminArticle } from '@/types/article';
 import { requirePasswordChanged } from '@/lib/session';
 import type { FamilyDetails, FamilyFeatures } from '@/types/family-tree';
 
 export const metadata: Metadata = {
-  description: 'Khu vực quản trị nền tảng Gia Phả Đời Đời.',
+  description: `Khu vực quản trị nền tảng ${SITE_BRAND.name}.`,
 };
 
 export const dynamic = 'force-dynamic';

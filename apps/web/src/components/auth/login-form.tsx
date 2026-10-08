@@ -59,7 +59,7 @@ export function LoginForm({ initialError = null }: { initialError?: string | nul
       <Field
         id="username"
         name="username"
-        label="Tên đăng nhập"
+        label="Tên đăng nhập hoặc email"
         icon={<UserRound />}
         autoComplete="username"
         minLength={3}

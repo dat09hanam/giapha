@@ -18,8 +18,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       : null;
   return (
     <AuthShell
-      brandTitle="Gia Phả Đời Đời"
-      brandTagline="Không gian lưu giữ và kết nối câu chuyện của mỗi dòng họ."
       eyebrow="Tài khoản Gia Phả"
       title="Chào mừng trở lại"
       description="Đăng nhập bằng tài khoản Admin, Trưởng họ hoặc Thành viên."
