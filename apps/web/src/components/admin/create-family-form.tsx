@@ -10,39 +10,136 @@ import {
   TriangleAlert,
   UsersRound,
 } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { createFamily, type CreatedFamilyResult } from '@/lib/family-api';
+import {
+  checkFamilySlug,
+  createFamily,
+  type CreatedFamilyResult,
+  type FamilySlugCheck,
+} from '@/lib/family-api';
+import { foldVietnamese } from '@/lib/person-search';
+import { cn } from '@/lib/utils';
 import { SectionCard } from '@/components/admin/admin-layout';
 import { Field } from '@/components/auth/form-fields';
 import { useToast } from '@/components/ui/toast';
 
+/**
+ * The path the API tries first, mirrored for the preview: "Họ Nguyễn" on 15/03 → "ho-nguyen-15-03".
+ * The API owns the final value and appends the origin when this one is taken.
+ */
+function previewSlug(name: string, deathAnniversary: string): string {
+  const base = foldVietnamese(name)
+    .replace(/[^a-z0-9]+/g, '-')
+    .slice(0, 60)
+    .replace(/^-+|-+$/g, '');
+  return `${base || 'ten-dong-ho'}-${deathAnniversary.replace('/', '-') || 'dd-mm'}`;
+}
+
+type SlugStatus = 'empty' | 'checking' | 'free' | 'taken' | 'unknown';
+
+/** Waits for a pause in typing before asking the API about the path. */
+const SLUG_CHECK_DELAY_MS = 350;
+
+function slugStatusMessage(
+  status: SlugStatus,
+  check: FamilySlugCheck | null,
+  hasOrigin: boolean,
+): string {
+  switch (status) {
+    case 'empty':
+      return 'Tạo tự động từ tên dòng họ và ngày giỗ.';
+    case 'checking':
+      return 'Đang kiểm tra đường dẫn…';
+    case 'unknown':
+      return 'Chưa kiểm tra được đường dẫn; hệ thống sẽ kiểm tra lại khi tạo.';
+    case 'free':
+      return check?.withOrigin
+        ? 'Đã có dòng họ cùng tên và ngày giỗ, nên quê quán được thêm vào. Đường dẫn dùng được.'
+        : 'Đường dẫn dùng được.';
+    case 'taken':
+      return hasOrigin
+        ? 'Đường dẫn có quê quán này cũng đã được dùng. Hãy ghi quê quán cụ thể hơn (phần trước dấu phẩy đầu tiên).'
+        : 'Đã có dòng họ cùng tên và ngày giỗ. Hãy nhập quê quán để phân biệt.';
+  }
+}
+
 export function CreateFamilyForm() {
+  const [name, setName] = useState('');
   const [deathAnniversary, setDeathAnniversary] = useState('');
+  const [ancestryOrigin, setAncestryOrigin] = useState('');
+  const [headEmail, setHeadEmail] = useState('');
+  /** The latest answer and the inputs it was for; a null result means the check failed. */
+  const [slugCheck, setSlugCheck] = useState<{
+    key: string;
+    result: FamilySlugCheck | null;
+  } | null>(null);
   const showToast = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<CreatedFamilyResult | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
+  const checkKey =
+    name.trim().length >= 2 && deathAnniversary
+      ? JSON.stringify([name.trim(), deathAnniversary, ancestryOrigin.trim()])
+      : null;
+
+  useEffect(() => {
+    if (!checkKey) return;
+    const [checkName, checkAnniversary, checkOrigin] = JSON.parse(checkKey) as [
+      string,
+      string,
+      string,
+    ];
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      checkFamilySlug(
+        { name: checkName, deathAnniversary: checkAnniversary, ancestryOrigin: checkOrigin },
+        controller.signal,
+      )
+        .then((result) => setSlugCheck({ key: checkKey, result }))
+        .catch(() => {
+          if (!controller.signal.aborted) setSlugCheck({ key: checkKey, result: null });
+        });
+    }, SLUG_CHECK_DELAY_MS);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [checkKey]);
+
+  const checked = checkKey && slugCheck?.key === checkKey ? slugCheck.result : undefined;
+  const slugStatus: SlugStatus = !checkKey
+    ? 'empty'
+    : checked === undefined
+      ? 'checking'
+      : checked === null
+        ? 'unknown'
+        : checked.available
+          ? 'free'
+          : 'taken';
+  const shownSlug = checked?.slug ?? previewSlug(name, deathAnniversary);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setSubmitting(true);
     setCreated(null);
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
 
     try {
       const body = await createFamily({
-        name: String(form.get('name') ?? ''),
-        slug: String(form.get('slug') ?? ''),
+        name,
         deathAnniversary,
+        ancestryOrigin,
+        headEmail: headEmail.trim(),
       });
       setCreated(body);
-      formElement.reset();
+      setName('');
       setDeathAnniversary('');
+      setAncestryOrigin('');
+      setHeadEmail('');
       showToast({
         kind: 'success',
         message: `Đã tạo dòng họ ${body.family.name}.`,
@@ -77,17 +174,8 @@ export function CreateFamilyForm() {
             placeholder="Họ Nguyễn"
             minLength={2}
             maxLength={100}
-            required
-          />
-          <Field
-            id="family-slug"
-            name="slug"
-            label="Đường dẫn"
-            placeholder="ho-nguyen"
-            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-            minLength={2}
-            maxLength={100}
-            hint="Chữ thường không dấu, nối bằng dấu gạch ngang. Ví dụ: giapha.vn/ho-nguyen"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
             required
           />
           <DeathAnniversaryPicker
@@ -97,11 +185,64 @@ export function CreateFamilyForm() {
             hint="Chọn ngày và tháng giỗ họ."
             required
           />
+          <Field
+            id="family-ancestry-origin"
+            name="ancestryOrigin"
+            label="Quê quán, nguồn gốc"
+            placeholder="Thanh Lộc, Can Lộc, Hà Tĩnh"
+            maxLength={255}
+            value={ancestryOrigin}
+            onChange={(event) => setAncestryOrigin(event.target.value)}
+            hint="Nếu đã có dòng họ cùng tên và ngày giỗ, phần trước dấu phẩy đầu tiên được thêm vào cuối đường dẫn."
+          />
+          <Field
+            id="family-head-email"
+            name="headEmail"
+            type="email"
+            label="Email Trưởng họ"
+            placeholder="truongho@gmail.com"
+            maxLength={191}
+            autoComplete="off"
+            value={headEmail}
+            onChange={(event) => setHeadEmail(event.target.value)}
+            hint="Dùng để nhận mã OTP khi Trưởng họ quên mật khẩu."
+            required
+          />
+          <div className="grid gap-1.5">
+            <Field
+              id="family-slug"
+              label="Đường dẫn"
+              value={`/${shownSlug}`}
+              readOnly
+              tabIndex={-1}
+              aria-describedby="family-slug-status"
+              aria-invalid={slugStatus === 'taken'}
+              className={cn(
+                'cursor-default bg-gold-50/70 text-stone-600 focus:ring-0',
+                // `!`: the unlayered `* { border-color }` in globals.css outranks plain utilities.
+                slugStatus === 'free' && 'border-2 border-emerald-600!',
+                slugStatus === 'taken' && 'border-2 border-red-600!',
+              )}
+            />
+            <span
+              id="family-slug-status"
+              aria-live="polite"
+              className={cn(
+                'break-all text-xs',
+                slugStatus === 'free' && 'text-emerald-700',
+                slugStatus === 'taken' && 'font-medium text-red-700',
+                (slugStatus === 'empty' || slugStatus === 'checking' || slugStatus === 'unknown') &&
+                  'text-stone-500',
+              )}
+            >
+              {slugStatusMessage(slugStatus, checked ?? null, ancestryOrigin.trim() !== '')}
+            </span>
+          </div>
           <Button
             type="submit"
             size="lg"
             className="mt-1 sm:justify-self-start"
-            disabled={submitting}
+            disabled={submitting || slugStatus === 'taken'}
           >
             {submitting ? (
               <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />

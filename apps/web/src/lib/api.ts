@@ -102,6 +102,15 @@ export const getFamilyAccounts = cache((slug: string, sessionToken: string) =>
   ),
 );
 
+/** What the API appends to every username the clan head creates, e.g. `HoPham1503`. */
+export const getFamilyUsernameSuffix = cache((slug: string, sessionToken: string) =>
+  getJson<{ suffix: string }>(
+    `/families/${encodeURIComponent(slug)}/accounts/username-suffix`,
+    'tải hậu tố tên đăng nhập',
+    sessionToken,
+  ),
+);
+
 export const getAuthProfile = cache((sessionToken: string) =>
   getJson<AuthProfile>('/auth/me', 'tải thông tin tài khoản', sessionToken),
 );

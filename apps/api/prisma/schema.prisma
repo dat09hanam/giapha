@@ -133,26 +133,46 @@ model Family {
 }
 
 model User {
-  id           String          @id @default(uuid()) @db.Char(36)
-  username     String          @unique @db.VarChar(191)
-  passwordHash String          @db.VarChar(255)
-  displayName  String          @db.VarChar(191)
-  role         UserRole
-  familyId     String?         @db.Char(36)
-  status       UserStatus      @default(ACTIVE)
+  id                 String              @id @default(uuid()) @db.Char(36)
+  username           String              @unique @db.VarChar(191)
+  passwordHash       String              @db.VarChar(255)
+  displayName        String              @db.VarChar(191)
+  /// Where a forgotten password's one-time code is sent; set for the clan head when the family is
+  /// created. Not unique: one person may head more than one family.
+  email              String?             @db.VarChar(191)
+  role               UserRole
+  familyId           String?             @db.Char(36)
+  status             UserStatus          @default(ACTIVE)
   /// Set when someone else chose the password; the owner must replace it before using the app.
-  mustChangePassword Boolean   @default(false)
+  mustChangePassword Boolean             @default(false)
   /// The family's shared member account (password = username); its password is never reset.
-  isShared     Boolean         @default(false)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  deletedAt    DateTime?
-  family       Family?         @relation(fields: [familyId], references: [id], onDelete: Restrict)
-  sessions     AuthSession[]
-  branches     BranchManager[]
+  isShared           Boolean             @default(false)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deletedAt          DateTime?
+  family             Family?             @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  sessions           AuthSession[]
+  branches           BranchManager[]
+  passwordResetCodes PasswordResetCode[]
 
   @@index([familyId, role, status])
   @@index([deletedAt])
+}
+
+/// A one-time code mailed for a forgotten password. Only its SHA-256 digest is stored; a code
+/// works once, until `expiresAt`, and stops after too many wrong guesses.
+model PasswordResetCode {
+  id         String    @id @default(uuid()) @db.Char(36)
+  userId     String    @db.Char(36)
+  codeHash   String    @db.Char(64)
+  expiresAt  DateTime
+  attempts   Int       @default(0) @db.UnsignedTinyInt
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
 }
 
 model AuthSession {

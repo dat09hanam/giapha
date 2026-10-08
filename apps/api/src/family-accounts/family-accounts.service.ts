@@ -7,9 +7,14 @@ import {
 } from '@nestjs/common';
 import { Prisma, UserRole, UserStatus } from '@prisma/client';
 
-import { generatePassword, hashPassword } from '../auth/password.js';
+import {
+  generatePassword,
+  generateSharedMemberPassword,
+  hashPassword,
+} from '../auth/password.js';
 import { computeBranchScope } from '../branches/branch-scope.js';
 import { PrismaService } from '../database/prisma.service.js';
+import { familyNameKey } from '../families/family-credentials.js';
 import type {
   CreateFamilyAccountDto,
   SetBranchesDto,
@@ -17,6 +22,14 @@ import type {
 } from './family-accounts.dto.js';
 
 export type FamilyAccountBranch = { rootPersonId: string; rootName: string };
+
+/** The prefixes `generateFamilyUsernames` puts before a family's shared suffix. */
+const SHARED_USERNAME_PREFIX = 'ThanhVien';
+const HEAD_USERNAME_PREFIX = 'TruongHo';
+
+function pad2(value: number): string {
+  return value.toString().padStart(2, '0');
+}
 
 export type FamilyAccount = {
   id: string;
@@ -82,16 +95,68 @@ export class FamilyAccountsService {
     return accounts.map(toAccount);
   }
 
+  /**
+   * What every account the clan head creates ends with, e.g. `HoPham1503`: the part the family's
+   * generated accounts share (`ThanhVienHoPham1503`, `TruongHoHoPham1503`), so it carries the
+   * origin when the family needed one and survives a later rename. Families without those accounts
+   * fall back to the name and death anniversary.
+   */
+  async usernameSuffix(familyId: string): Promise<string> {
+    const generated = await this.prisma.user.findMany({
+      where: { familyId, OR: [{ isShared: true }, { role: UserRole.MEMBER_PLUS }] },
+      select: { username: true, isShared: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    for (const [prefix, shared] of [
+      [SHARED_USERNAME_PREFIX, true],
+      [HEAD_USERNAME_PREFIX, false],
+    ] as const) {
+      const match = generated.find(
+        (user) => user.isShared === shared && user.username.startsWith(prefix),
+      );
+      if (match && match.username.length > prefix.length) {
+        return match.username.slice(prefix.length);
+      }
+    }
+    const family = await this.prisma.family.findUniqueOrThrow({
+      where: { id: familyId },
+      select: { name: true, deathAnniversaryDay: true, deathAnniversaryMonth: true },
+    });
+    const anniversary =
+      family.deathAnniversaryDay && family.deathAnniversaryMonth
+        ? `${pad2(family.deathAnniversaryDay)}${pad2(family.deathAnniversaryMonth)}`
+        : '';
+    return `${familyNameKey(family.name)}${anniversary}`;
+  }
+
+  /**
+   * The full username for a typed prefix and whether it is free. Usernames are unique across every
+   * family, soft-deleted accounts included, so this looks past the tenant; it reveals only whether
+   * the name is taken, never whose it is.
+   */
+  async checkUsername(
+    familyId: string,
+    usernamePrefix: string,
+  ): Promise<{ username: string; available: boolean }> {
+    const username = `${usernamePrefix.trim()}${await this.usernameSuffix(familyId)}`;
+    const existing = await this.prisma.user.findFirst({
+      where: { username },
+      select: { id: true },
+    });
+    return { username, available: existing === null };
+  }
+
   async create(
     familyId: string,
     input: CreateFamilyAccountDto,
   ): Promise<FamilyAccountWithPassword> {
     const password = generatePassword();
+    const username = `${input.usernamePrefix.trim()}${await this.usernameSuffix(familyId)}`;
     try {
       const account = await this.prisma.user.create({
         data: {
           familyId,
-          username: input.username.trim(),
+          username,
           displayName: input.displayName.trim(),
           passwordHash: await hashPassword(password),
           mustChangePassword: true,
@@ -131,19 +196,20 @@ export class FamilyAccountsService {
     return toAccount(account);
   }
 
-  /** A generated password the owner must replace on their next sign-in. */
+  /**
+   * A generated password the owner must replace on their next sign-in. The shared account gets a
+   * new shared password instead, kept as is, since it is shown only once and could otherwise be lost.
+   */
   async resetPassword(familyId: string, userId: string): Promise<FamilyAccountWithPassword> {
-    if ((await this.findMemberAccount(familyId, userId)).isShared) {
-      throw new BadRequestException('Không thể đặt lại mật khẩu của tài khoản dùng chung.');
-    }
-    const password = generatePassword();
+    const { isShared } = await this.findMemberAccount(familyId, userId);
+    const password = isShared ? generateSharedMemberPassword() : generatePassword();
     const passwordHash = await hashPassword(password);
     const account = await this.prisma.$transaction(async (transaction) => {
       // Signs the account out everywhere, so the old password stops working at once.
       await transaction.authSession.deleteMany({ where: { userId } });
       return transaction.user.update({
         where: { id: userId },
-        data: { passwordHash, mustChangePassword: true },
+        data: { passwordHash, mustChangePassword: !isShared },
         select: accountSelect,
       });
     });
@@ -165,8 +231,13 @@ export class FamilyAccountsService {
     userId: string,
     input: SetBranchesDto,
   ): Promise<FamilyAccount> {
-    await this.findMemberAccount(familyId, userId);
+    const { isShared } = await this.findMemberAccount(familyId, userId);
     const rootIds = [...new Set(input.rootPersonIds)];
+    // The whole clan signs in with the shared account, so it must never edit a branch. Clearing
+    // stays allowed, for branches given to it before this rule.
+    if (isShared && rootIds.length > 0) {
+      throw new BadRequestException('Không thể giao chi/nhánh cho tài khoản dùng chung.');
+    }
 
     const account = await this.prisma.$transaction(
       async (transaction) => {

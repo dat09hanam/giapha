@@ -18,6 +18,11 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 
 import { SectionCard } from '@/components/admin/admin-layout';
 import { BranchRootPicker, type ClaimedBranch } from '@/components/admin/branch-root-picker';
+import {
+  PREFIX_MAX_LENGTH,
+  UsernameField,
+  useUsernameCheck,
+} from '@/components/admin/username-field';
 import { Field } from '@/components/auth/form-fields';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
@@ -34,7 +39,16 @@ import { displayPersonName } from '@/lib/person-name';
 import { cn } from '@/lib/utils';
 import type { FamilyTreeResponse } from '@/types/family-tree';
 
-type Credential = { displayName: string; username: string; password: string };
+type Credential = {
+  accountId: string;
+  /** A new account's password shows beside the form; a reset one under that account in the list. */
+  source: 'created' | 'reset';
+  displayName: string;
+  username: string;
+  password: string;
+  /** The shared account's password is handed to the whole clan and never forced to change. */
+  isShared: boolean;
+};
 
 /**
  * The clan head's accounts tab: member accounts, their passwords, and the chi/nhánh each one
@@ -43,16 +57,21 @@ type Credential = { displayName: string; username: string; password: string };
 export function FamilyAccountsPanel({
   familySlug,
   initialAccounts,
+  usernameSuffix,
   tree,
 }: {
   familySlug: string;
   initialAccounts: FamilyAccount[];
+  /** Appended by the API to every username created here, e.g. `HoPham1503`. */
+  usernameSuffix: string;
   /** Drawn in the dialog where the clan head picks who heads a branch. */
   tree: FamilyTreeResponse;
 }) {
   const showToast = useToast();
   const [accounts, setAccounts] = useState(initialAccounts);
   const [creating, setCreating] = useState(false);
+  const [username, setUsername] = useState('');
+  const usernameStatus = useUsernameCheck(familySlug, username);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [credential, setCredential] = useState<Credential | null>(null);
   const [copied, setCopied] = useState(false);
@@ -72,20 +91,27 @@ export function FamilyAccountsPanel({
     [accounts, assigningId],
   );
 
-  // The new password shows at the top of the page; a reset is clicked far below it in the list.
+  // Keeps the password in view: the account list can push either spot off screen.
   useEffect(() => {
-    credentialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    credentialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [credential]);
 
   function replaceAccount(next: FamilyAccount): void {
     setAccounts((current) => current.map((account) => (account.id === next.id ? next : account)));
   }
 
-  function reveal(account: FamilyAccount, newPassword: string): void {
+  function reveal(
+    account: FamilyAccount,
+    newPassword: string,
+    source: Credential['source'],
+  ): void {
     setCredential({
+      accountId: account.id,
+      source,
       displayName: account.displayName,
       username: account.username,
       password: newPassword,
+      isShared: account.isShared,
     });
     setCopied(false);
   }
@@ -108,12 +134,13 @@ export function FamilyAccountsPanel({
     setCreating(true);
     try {
       const result = await createFamilyAccount(familySlug, {
-        username: String(form.get('username') ?? '').trim(),
+        usernamePrefix: username.trim(),
         displayName: String(form.get('displayName') ?? '').trim(),
       });
       setAccounts((current) => [...current, result.account]);
-      reveal(result.account, result.password);
+      reveal(result.account, result.password, 'created');
       formElement.reset();
+      setUsername('');
       showToast({ kind: 'success', message: `Đã tạo tài khoản ${result.account.displayName}.` });
     } catch (error: unknown) {
       showToast({ kind: 'error', message: getApiErrorMessage(error, 'tạo tài khoản') });
@@ -133,14 +160,16 @@ export function FamilyAccountsPanel({
   function resetPassword(account: FamilyAccount): void {
     if (
       !window.confirm(
-        `Đặt lại mật khẩu cho ${account.displayName}? Mật khẩu cũ sẽ hết hiệu lực và người dùng phải đổi mật khẩu ở lần đăng nhập tới.`,
+        account.isShared
+          ? `Đặt lại mật khẩu dùng chung của ${account.displayName}? Mọi người đang dùng tài khoản này sẽ bị đăng xuất và cần mật khẩu mới để đăng nhập lại.`
+          : `Đặt lại mật khẩu cho ${account.displayName}? Mật khẩu cũ sẽ hết hiệu lực và người dùng phải đổi mật khẩu ở lần đăng nhập tới.`,
       )
     )
       return;
     void run(account.id, 'đặt lại mật khẩu', async () => {
       const result = await resetFamilyAccountPassword(familySlug, account.id);
       replaceAccount(result.account);
-      reveal(result.account, result.password);
+      reveal(result.account, result.password, 'reset');
       showToast({
         kind: 'success',
         message: `Đã đặt lại mật khẩu cho ${result.account.displayName}.`,
@@ -190,60 +219,42 @@ export function FamilyAccountsPanel({
               maxLength={191}
               required
             />
-            <Field
+            <UsernameField
               id="account-username"
               name="username"
               label="Tên đăng nhập"
-              placeholder="chitruong.hoNguyen"
+              placeholder="adminchi1"
               pattern="[A-Za-z0-9][A-Za-z0-9_.@\-]*"
               minLength={3}
-              maxLength={191}
-              autoComplete="off"
-              hint="Chữ không dấu, số và các ký tự . _ @ -"
+              maxLength={PREFIX_MAX_LENGTH}
+              suffix={usernameSuffix}
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              status={usernameStatus}
               required
             />
             <p className="text-xs leading-5 text-stone-500">
               Hệ thống tự sinh mật khẩu. Người dùng phải đổi sang mật khẩu riêng ở lần đăng nhập
               đầu tiên.
             </p>
-            <Button type="submit" className="sm:justify-self-start" disabled={creating}>
+            <Button
+              type="submit"
+              className="sm:justify-self-start"
+              disabled={creating || usernameStatus === 'taken'}
+            >
               <Plus className="size-4" aria-hidden="true" />
               {creating ? 'Đang tạo…' : 'Tạo tài khoản'}
             </Button>
           </form>
 
-          {credential ? (
-            <div
-              ref={credentialRef}
-              className="grid content-start gap-3 rounded-2xl border border-brand-200 bg-brand-50/70 p-5"
-              role="status"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-semibold text-brand-950">{credential.displayName}</p>
-                <Button type="button" size="sm" variant="outline" onClick={copyCredential}>
-                  {copied ? (
-                    <Check className="size-3.5" aria-hidden="true" />
-                  ) : (
-                    <Copy className="size-3.5" aria-hidden="true" />
-                  )}
-                  {copied ? 'Đã sao chép' : 'Sao chép'}
-                </Button>
-              </div>
-              <dl className="grid gap-1.5 rounded-xl border bg-white p-4 text-sm">
-                <div className="flex flex-wrap justify-between gap-2">
-                  <dt className="text-stone-500">Tên đăng nhập</dt>
-                  <dd className="break-all font-mono font-medium">{credential.username}</dd>
-                </div>
-                <div className="flex flex-wrap justify-between gap-2">
-                  <dt className="text-stone-500">Mật khẩu</dt>
-                  <dd className="break-all font-mono font-medium">{credential.password}</dd>
-                </div>
-              </dl>
-              <p className="flex gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-900">
-                <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                Mật khẩu tạm chỉ hiển thị một lần tại đây. Hãy gửi riêng cho đúng người dùng; họ sẽ
-                phải đổi mật khẩu ở lần đăng nhập đầu tiên.
-              </p>
+          {credential?.source === 'created' ? (
+            <div ref={credentialRef}>
+              <CredentialCard
+                title={credential.displayName}
+                credential={credential}
+                copied={copied}
+                onCopy={copyCredential}
+              />
             </div>
           ) : (
             <div className="grid content-start gap-3 rounded-2xl border border-dashed border-brand-900/20 bg-stone-50/60 p-5 text-sm leading-6 text-stone-600">
@@ -300,18 +311,16 @@ export function FamilyAccountsPanel({
                   </div>
                   {isHead ? null : (
                     <div className="flex flex-wrap gap-2">
-                      {account.isShared ? null : (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={busy}
-                          onClick={() => resetPassword(account)}
-                        >
-                          <KeyRound className="size-3.5" aria-hidden="true" />
-                          Đặt lại mật khẩu
-                        </Button>
-                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => resetPassword(account)}
+                      >
+                        <KeyRound className="size-3.5" aria-hidden="true" />
+                        Đặt lại mật khẩu
+                      </Button>
                       <Button
                         type="button"
                         size="sm"
@@ -343,6 +352,10 @@ export function FamilyAccountsPanel({
 
                 {isHead ? (
                   <p className="text-sm text-stone-600">Quản lý toàn bộ dòng họ.</p>
+                ) : account.isShared && account.branches.length === 0 ? (
+                  <p className="text-sm text-stone-600">
+                    Tài khoản dùng chung cho tất cả mọi người
+                  </p>
                 ) : (
                   <div className="grid gap-2">
                     <div className="flex flex-wrap items-center gap-2">
@@ -374,7 +387,8 @@ export function FamilyAccountsPanel({
                           </button>
                         </span>
                       ))}
-                      {assigningId === account.id ? null : (
+                      {/* A shared account may only lose a branch given before this rule. */}
+                      {assigningId === account.id || account.isShared ? null : (
                         <Button
                           type="button"
                           size="sm"
@@ -389,6 +403,17 @@ export function FamilyAccountsPanel({
                     </div>
                   </div>
                 )}
+
+                {credential?.source === 'reset' && credential.accountId === account.id ? (
+                  <div ref={credentialRef}>
+                    <CredentialCard
+                      title="Mật khẩu mới"
+                      credential={credential}
+                      copied={copied}
+                      onCopy={copyCredential}
+                    />
+                  </div>
+                ) : null}
               </li>
             );
           })}
@@ -413,6 +438,54 @@ export function FamilyAccountsPanel({
           }}
         />
       ) : null}
+    </div>
+  );
+}
+
+/** A generated password, shown once, with the note on who should receive it. */
+function CredentialCard({
+  title,
+  credential,
+  copied,
+  onCopy,
+}: {
+  title: string;
+  credential: Credential;
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <div
+      className="grid content-start gap-3 rounded-2xl border border-brand-200 bg-brand-50/70 p-5"
+      role="status"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-semibold text-brand-950">{title}</p>
+        <Button type="button" size="sm" variant="outline" onClick={onCopy}>
+          {copied ? (
+            <Check className="size-3.5" aria-hidden="true" />
+          ) : (
+            <Copy className="size-3.5" aria-hidden="true" />
+          )}
+          {copied ? 'Đã sao chép' : 'Sao chép'}
+        </Button>
+      </div>
+      <dl className="grid gap-1.5 rounded-xl border bg-white p-4 text-sm">
+        <div className="flex flex-wrap justify-between gap-2">
+          <dt className="text-stone-500">Tên đăng nhập</dt>
+          <dd className="break-all font-mono font-medium">{credential.username}</dd>
+        </div>
+        <div className="flex flex-wrap justify-between gap-2">
+          <dt className="text-stone-500">Mật khẩu</dt>
+          <dd className="break-all font-mono font-medium">{credential.password}</dd>
+        </div>
+      </dl>
+      <p className="flex gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-900">
+        <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+        {credential.isShared
+          ? 'Mật khẩu chỉ hiển thị một lần tại đây. Hãy lưu lại và gửi cho con cháu trong họ.'
+          : 'Mật khẩu tạm chỉ hiển thị một lần tại đây. Hãy gửi riêng cho đúng người dùng; họ sẽ phải đổi mật khẩu ở lần đăng nhập đầu tiên.'}
+      </p>
     </div>
   );
 }

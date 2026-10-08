@@ -23,5 +23,13 @@ services:
       timeout: 5s
       retries: 20
 
+  # Development mail catcher: the API sends to localhost:1025, read the mail at localhost:8025.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
 volumes:
   giapha_mysql_data:

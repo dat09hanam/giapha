@@ -1,4 +1,4 @@
-import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto';
 
 import { BadRequestException } from '@nestjs/common';
 
@@ -16,6 +16,14 @@ export function generatePassword(): string {
     bytes,
     (byte) => GENERATED_PASSWORD_ALPHABET[byte % GENERATED_PASSWORD_ALPHABET.length],
   ).join('');
+}
+
+/**
+ * The family's shared member password: "thanhvien" and six random digits, simple enough to pass
+ * around the clan by word of mouth. It is never forced to change, since everyone shares it.
+ */
+export function generateSharedMemberPassword(): string {
+  return `thanhvien${randomInt(0, 1_000_000).toString().padStart(6, '0')}`;
 }
 
 /** A password the account's owner chose themselves. */

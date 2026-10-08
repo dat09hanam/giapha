@@ -25,9 +25,15 @@ export type CreatedDemoFamilyResult = {
 
 export type CreateFamilyInput = {
   name: string;
-  slug: string;
   deathAnniversary: string;
+  /** Where the clan head's forgotten-password code is sent; the sample family has none. */
+  headEmail?: string;
+  /** Quê quán / nguồn gốc; appended to the path when name and anniversary are already taken. */
+  ancestryOrigin?: string;
 };
+
+/** Only the sample family's path is chosen here; the API derives every other Family's. */
+export type CreateDemoFamilyInput = CreateFamilyInput & { slug: string };
 
 /** Fields left out are not changed, so each admin form sends only its own. */
 export type UpdateFamilyInput = Partial<{
@@ -57,8 +63,25 @@ export function createFamily(input: CreateFamilyInput): Promise<CreatedFamilyRes
   );
 }
 
+/** The slug a new Family would get; `withOrigin` when its name and anniversary were already taken. */
+export type FamilySlugCheck = { slug: string; available: boolean; withOrigin: boolean };
+
+/** Asks the API which path `createFamily` would choose, so the form can flag a clash early. */
+export function checkFamilySlug(
+  input: CreateFamilyInput,
+  signal: AbortSignal,
+): Promise<FamilySlugCheck> {
+  const query = new URLSearchParams({ name: input.name, deathAnniversary: input.deathAnniversary });
+  if (input.ancestryOrigin) query.set('ancestryOrigin', input.ancestryOrigin);
+  return apiFetch<FamilySlugCheck>(
+    `${API_URL}/families/slug-check?${query.toString()}`,
+    { credentials: 'include', headers: { Accept: 'application/json' }, signal },
+    'kiểm tra đường dẫn',
+  );
+}
+
 /** Creates Gia phả mẫu; refused while one already exists. */
-export function createDemoFamily(input: CreateFamilyInput): Promise<CreatedDemoFamilyResult> {
+export function createDemoFamily(input: CreateDemoFamilyInput): Promise<CreatedDemoFamilyResult> {
   return apiFetch<CreatedDemoFamilyResult>(
     `${API_URL}/families`,
     {

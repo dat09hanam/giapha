@@ -12,6 +12,16 @@ The browser keeps an opaque session token in an `HttpOnly`, `SameSite=Strict` co
 SHA-256 digest is stored in `AuthSession`. Passwords use scrypt with an independent random salt and
 plaintext credentials are never persisted.
 
+Quên mật khẩu: `POST /api/auth/password-reset` takes a username and mails a six-digit code to the
+account's `User.email` (set for the clan head when the family is created) over SMTP (`SMTP_*`,
+`MAIL_FROM`; Mailpit in `docker-compose.yml` for development). It answers `204` whether or not the
+account exists or has an email, so it reveals no usernames; without `SMTP_HOST` it answers `503`
+for everyone. `PasswordResetCode` keeps only a SHA-256 digest of the code bound to the user; only the
+newest code works, for 10 minutes, at most five wrong guesses, and a new one is mailed no sooner
+than a minute after the last. `POST /api/auth/password-reset/confirm` takes the username, code and
+new password, sets it (clearing `mustChangePassword`) and signs the account out everywhere. Both
+routes share the login throttle; `quen-mat-khau` is the web page and a reserved Family slug.
+
 ## Family authorization boundary
 
 `Family` is the root data boundary. Its globally unique slug is a public locator, not proof of
@@ -75,7 +85,13 @@ Endpoints:
 - `POST /api/families`: `ADMIN` only. It atomically creates one Family, one `MEMBER_PLUS` account and
   one `MEMBER` account.
 - `/api/families/:slug/accounts`: `MEMBER_PLUS` only. `GET` lists the Family's accounts with their
-  branches; `POST` creates a `MEMBER` account; `PATCH :userId` renames or suspends/reactivates it;
+  branches; `POST` creates a `MEMBER` account from a typed `usernamePrefix` (e.g. `adminchi1`) plus
+  the family's suffix, giving `adminchi1HoPham1503`. The suffix (`GET username-suffix`) is what the
+  family's generated accounts share after `ThanhVien`/`TruongHo`, so it keeps the origin when the
+  slug needed one and survives a rename; families without them fall back to name and anniversary.
+  `GET username-check?usernamePrefix=` answers `{ username, available }` for the create form's live
+  green/red check (usernames are global, so it looks past the tenant but reveals only that a name is
+  taken); `PATCH :userId` renames or suspends/reactivates it;
   `POST :userId/password` resets it to a generated password and signs it out; `PUT :userId/branches` replaces its
   branch roots; `DELETE :userId` removes it so the username can be reused. The clan head's own
   account is never changed here. Password responses are `Cache-Control: no-store`.
@@ -94,22 +110,36 @@ Endpoints:
 The old public clan-head registration and invitation endpoints are removed. Pending invitation
 accounts are migrated to `SUSPENDED` and their tokens are discarded.
 
-Family creation accepts a display name, a safe URL slug and a recurring death-anniversary in
-`DD/MM`. The day and month are stored separately because no year is implied. The API validates real
-month lengths and permits `29/02`.
+Family creation accepts a display name, a recurring death-anniversary in `DD/MM`, an optional
+origin (`ancestryOrigin`, stored on the Family) and the clan head's email (`headEmail`, required
+except for the sample family, stored as the head account's `User.email` for password reset). The day and month are stored separately because no
+year is implied. The API validates real month lengths and permits `29/02`.
+
+The API derives the slug; clients no longer send one (only the sample family's path is chosen by
+the admin form). It tries the accent-free kebab-case name plus the anniversary, `ho-nguyen-10-03`,
+then the same with the origin's first comma-separated part appended, `ho-nguyen-10-03-thanh-loc`,
+and takes the first whose slug and usernames are all unused, soft-deleted rows included so an old
+link never points at another clan. When none is free it answers `409` asking for (a more specific)
+origin; the unique indexes still catch a concurrent create. `GET /api/families/slug-check` (platform
+`ADMIN` only, `no-store`) runs the same choice for `name`, `deathAnniversary` and `ancestryOrigin`
+and returns `{ slug, available, withOrigin }`, so the create form marks the path green or red while
+the admin types; `slug-check` is therefore a reserved Family slug.
 
 The two initial usernames are deterministically derived from the accent-free PascalCase Family name
-and `DDMM`, for example `TruongHoHoNguyen1003` and `ThanhVienHoNguyen1003`. The clan head's password is
+and `DDMM`, for example `TruongHoHoNguyen1003` and `ThanhVienHoNguyen1003`, with the origin's
+PascalCase place appended when the slug needed it (`TruongHoHoNguyen1003ThanhLoc`). The clan head's password is
 always a generated 10-character one; nobody types another person's password. The shared `MEMBER`
-account (`User.isShared`) keeps a password identical to its username; its password cannot be reset. The response is `Cache-Control: no-store`, returns the plaintext credentials once to
-the authenticated Admin, and the database stores only scrypt hashes. If the slug or either username
-already exists, the entire transaction rolls back with a conflict.
+account (`User.isShared`) gets `thanhvien` plus six random digits (`thanhvien042817`), easy to pass
+around the clan; it is never forced to change, and the clan head can reset it to a new one of the
+same form (which signs every device out). Families created earlier keep a password identical to the
+username until it is reset. The response is `Cache-Control: no-store`, returns the plaintext credentials once to
+the authenticated Admin, and the database stores only scrypt hashes.
 
 `User.mustChangePassword` marks a password someone else saw: it is set for the new clan head, every
 account the clan head creates, and every reset. While it is set, `SessionAuthGuard` answers 403 to
 every route except those marked `@AllowPendingPasswordChange()` (`auth/me`, `auth/logout`,
 `auth/password`), and the web app sends the account to `/doi-mat-khau` from every page. The shared
-member account is never marked, since its password is meant to be shared and stays guessable.
+member account is never marked, since its password is meant to be shared with the whole clan.
 
 Platform Admin accounts are provisioned or rotated with `npm run admin:bootstrap --workspace
 @giapha/api` using `ADMIN_NICKNAME`, `ADMIN_PASSWORD` and `DATABASE_URL`.

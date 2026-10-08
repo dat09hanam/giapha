@@ -15,18 +15,26 @@ import {
   type RichTextDocument,
 } from '../common/validation/rich-text.js';
 import { PrismaService } from '../database/prisma.service.js';
-import { generatePassword, hashPassword } from '../auth/password.js';
+import {
+  generatePassword,
+  generateSharedMemberPassword,
+  hashPassword,
+} from '../auth/password.js';
 import {
   posterDecorationSelect,
   toPosterDecorationResponse,
   type PosterDecorationResponse,
 } from '../poster-decorations/poster-decoration.types.js';
 import type { CreateFamilyDto } from './dto/create-family.dto.js';
+import type { FamilySlugCheckQueryDto } from './dto/family-slug-check.dto.js';
 import type { UpdateFamilyDto } from './dto/update-family.dto.js';
 import {
+  familyLocatorCandidates,
   generateFamilyUsernames,
   normalizeFamilyName,
   parseDeathAnniversary,
+  type DeathAnniversary,
+  type FamilyLocator,
 } from './family-credentials.js';
 
 /** The phả đồ sheet: the chosen library background (null shows plain paper) carries all decoration. */
@@ -80,6 +88,9 @@ function toFamilySummary(record: FamilySummaryRecord): FamilySummary {
   };
 }
 
+/** The slug a new Family would get; `withOrigin` when its name and anniversary were already taken. */
+export type FamilySlugCheck = { slug: string; available: boolean; withOrigin: boolean };
+
 export type CreatedFamilyResult = {
   family: FamilySummary & { deathAnniversary: string; isDemo: boolean };
   /** Null for the sample family, which the platform admin edits directly. */
@@ -105,17 +116,23 @@ export class FamiliesService {
 
   async createFamily(input: CreateFamilyDto): Promise<CreatedFamilyResult> {
     const name = normalizeFamilyName(input.name);
-    const slug = normalizeFamilySlug(input.slug);
     const anniversary = parseDeathAnniversary(input.deathAnniversary);
-    const usernames = generateFamilyUsernames(name, anniversary);
+    const ancestryOrigin = input.ancestryOrigin?.trim() || null;
+    const isDemo = input.isDemo === true;
+    const { slug, usernames } = isDemo
+      ? {
+          slug: normalizeFamilySlug(input.slug ?? ''),
+          usernames: generateFamilyUsernames(name, anniversary),
+        }
+      : await this.chooseFamilyLocator(name, anniversary, ancestryOrigin);
     const memberPlusPassword = generatePassword();
+    const memberPassword = generateSharedMemberPassword();
     const [memberPlusPasswordHash, memberPasswordHash] = await Promise.all([
       hashPassword(memberPlusPassword),
-      hashPassword(usernames.member),
+      hashPassword(memberPassword),
     ]);
 
     const posterDefaults = await this.defaultPosterDecorations();
-    const isDemo = input.isDemo === true;
 
     try {
       const family = await this.prisma.$transaction(async (transaction) => {
@@ -130,6 +147,7 @@ export class FamiliesService {
           data: {
             name,
             slug,
+            ancestryOrigin,
             deathAnniversaryDay: anniversary.day,
             deathAnniversaryMonth: anniversary.month,
             isDemo,
@@ -146,6 +164,7 @@ export class FamiliesService {
               passwordHash: memberPlusPasswordHash,
               mustChangePassword: true,
               displayName: `Trưởng họ - ${name}`,
+              email: input.headEmail?.trim().toLowerCase() ?? null,
               role: UserRole.MEMBER_PLUS,
               familyId: created.id,
             },
@@ -175,18 +194,85 @@ export class FamiliesService {
               member: {
                 role: UserRole.MEMBER,
                 username: usernames.member,
-                password: usernames.member,
+                password: memberPassword,
               },
             },
       };
     } catch (error: unknown) {
+      // Reached only when another request took the same locator between the check and the insert.
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException(
-          'Đường dẫn dòng họ hoặc tên đăng nhập được tạo tự động đã tồn tại.',
+          'Đường dẫn dòng họ hoặc tên đăng nhập vừa được dùng cho dòng họ khác. Vui lòng thử lại.',
         );
       }
       throw error;
     }
+  }
+
+  /** What `createFamily` would choose for these inputs, so the form can flag a clash as it is typed. */
+  async checkFamilySlug(input: FamilySlugCheckQueryDto): Promise<FamilySlugCheck> {
+    const { candidates, free } = await this.findFreeLocator(
+      normalizeFamilyName(input.name),
+      parseDeathAnniversary(input.deathAnniversary),
+      input.ancestryOrigin?.trim() || null,
+    );
+    // Nothing free: report the most specific path tried, which the admin can still change.
+    const shown = free ?? candidates[candidates.length - 1]!;
+    return { slug: shown.slug, available: free !== null, withOrigin: shown !== candidates[0] };
+  }
+
+  private async chooseFamilyLocator(
+    name: string,
+    anniversary: DeathAnniversary,
+    ancestryOrigin: string | null,
+  ): Promise<FamilyLocator> {
+    const { free } = await this.findFreeLocator(name, anniversary, ancestryOrigin);
+    if (free) return free;
+    throw new ConflictException(
+      ancestryOrigin
+        ? 'Đã có dòng họ cùng tên, ngày giỗ và quê quán này. Hãy ghi quê quán cụ thể hơn (phần trước dấu phẩy đầu tiên được dùng cho đường dẫn).'
+        : 'Đã có dòng họ cùng tên và ngày giỗ. Hãy nhập quê quán để phân biệt.',
+    );
+  }
+
+  /**
+   * The first free locator: name and death anniversary, then with the origin appended. Soft-deleted
+   * Families and accounts still hold theirs, so an old link never points at another clan.
+   */
+  private async findFreeLocator(
+    name: string,
+    anniversary: DeathAnniversary,
+    ancestryOrigin: string | null,
+  ): Promise<{ candidates: FamilyLocator[]; free: FamilyLocator | null }> {
+    const candidates = familyLocatorCandidates(name, anniversary, ancestryOrigin);
+    const [families, users] = await Promise.all([
+      this.prisma.family.findMany({
+        where: { slug: { in: candidates.map((candidate) => candidate.slug) } },
+        select: { slug: true },
+      }),
+      this.prisma.user.findMany({
+        where: {
+          username: {
+            in: candidates.flatMap((candidate) => [
+              candidate.usernames.memberPlus,
+              candidate.usernames.member,
+            ]),
+          },
+        },
+        select: { username: true },
+      }),
+    ]);
+    const taken = new Set([
+      ...families.map((family) => family.slug),
+      ...users.map((user) => user.username),
+    ]);
+    const free = candidates.find(
+      (candidate) =>
+        !taken.has(candidate.slug) &&
+        !taken.has(candidate.usernames.memberPlus) &&
+        !taken.has(candidate.usernames.member),
+    );
+    return { candidates, free: free ?? null };
   }
 
   /**

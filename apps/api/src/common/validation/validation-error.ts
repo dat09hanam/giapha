@@ -4,6 +4,10 @@ import type { ValidationError } from 'class-validator';
 const FIELD_LABELS: Record<string, string> = {
   username: 'tên đăng nhập',
   password: 'mật khẩu',
+  headEmail: 'email Trưởng họ',
+  code: 'mã xác nhận',
+  newPassword: 'mật khẩu mới',
+  usernamePrefix: 'tên đăng nhập',
   name: 'tên',
   slug: 'đường dẫn',
   deathAnniversary: 'ngày giỗ họ',

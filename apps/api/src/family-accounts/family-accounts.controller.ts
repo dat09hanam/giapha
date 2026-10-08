@@ -12,6 +12,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   Req,
   UnauthorizedException,
   UseGuards,
@@ -29,6 +30,7 @@ import {
   CreateFamilyAccountDto,
   SetBranchesDto,
   UpdateFamilyAccountDto,
+  UsernameCheckQueryDto,
 } from './family-accounts.dto.js';
 import {
   FamilyAccountsService,
@@ -49,6 +51,25 @@ export class FamilyAccountsController {
     @Req() request: AuthRequest,
   ): Promise<FamilyAccount[]> {
     return this.accounts.list(this.familyId(request));
+  }
+
+  /** What the API appends to every username the clan head creates, e.g. `HoPham1503`. */
+  @Get('username-suffix')
+  async usernameSuffix(
+    @Param('slug', FamilySlugPipe) _slug: string,
+    @Req() request: AuthRequest,
+  ): Promise<{ suffix: string }> {
+    return { suffix: await this.accounts.usernameSuffix(this.familyId(request)) };
+  }
+
+  @Get('username-check')
+  @Header('Cache-Control', 'no-store')
+  checkUsername(
+    @Param('slug', FamilySlugPipe) _slug: string,
+    @Query() query: UsernameCheckQueryDto,
+    @Req() request: AuthRequest,
+  ): Promise<{ username: string; available: boolean }> {
+    return this.accounts.checkUsername(this.familyId(request), query.usernamePrefix);
   }
 
   @Post()

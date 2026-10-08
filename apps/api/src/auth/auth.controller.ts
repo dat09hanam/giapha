@@ -29,11 +29,15 @@ import { AuthService, type AuthProfile, type AuthResult } from './auth.service.j
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { LoginDto } from './dto/login.dto.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { ConfirmPasswordResetDto, RequestPasswordResetDto } from './dto/password-reset.dto.js';
+import { PasswordResetService } from './password-reset.service.js';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
+    @Inject(PasswordResetService) private readonly passwordReset: PasswordResetService,
     @Inject(ConfigService) private readonly config: ConfigService,
   ) {}
 
@@ -45,6 +49,21 @@ export class AuthController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<AuthProfile> {
     return this.finishAuthentication(await this.authService.login(input), reply);
+  }
+
+  /** Mails a one-time code; answers the same whether or not the account exists or has an email. */
+  @Post('password-reset')
+  @UseGuards(AuthThrottleGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  requestPasswordReset(@Body() input: RequestPasswordResetDto): Promise<void> {
+    return this.passwordReset.request(input);
+  }
+
+  @Post('password-reset/confirm')
+  @UseGuards(AuthThrottleGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  confirmPasswordReset(@Body() input: ConfirmPasswordResetDto): Promise<void> {
+    return this.passwordReset.confirm(input);
   }
 
   @Post('logout')

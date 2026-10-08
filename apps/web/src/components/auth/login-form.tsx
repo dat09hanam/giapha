@@ -1,11 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowRight, LockKeyhole, UserRound } from 'lucide-react';
 
 import { getApiErrorMessage } from '@/lib/api-error';
-import { login, profileDestination } from '@/lib/auth-api';
+import { FORGOT_PASSWORD_PATH, login, profileDestination } from '@/lib/auth-api';
 import { changePasswordHref } from '@/lib/login-redirect';
 import { safeReturnPath } from '@/lib/return-path';
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,12 @@ export function LoginForm({ initialError = null }: { initialError?: string | nul
         minLength={1}
         required
       />
+      <Link
+        href={FORGOT_PASSWORD_PATH}
+        className="-mt-1 justify-self-end text-sm font-medium text-brand-800 underline-offset-4 hover:underline"
+      >
+        Quên mật khẩu?
+      </Link>
       <Button type="submit" size="lg" className="mt-1" disabled={submitting}>
         {submitting ? (
           'Đang đăng nhập…'

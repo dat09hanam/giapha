@@ -6,11 +6,15 @@ import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilyAccessGuard } from '../common/auth/family-access.guard.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { PasswordResetService } from './password-reset.service.js';
+import { MailModule } from '../mail/mail.module.js';
 
 @Module({
+  imports: [MailModule],
   controllers: [AuthController],
   providers: [
     AuthService,
+    PasswordResetService,
     AuthThrottleGuard,
     SessionAuthGuard,
     FamilyAccessGuard,

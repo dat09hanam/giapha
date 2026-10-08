@@ -11,17 +11,71 @@ export function normalizeFamilyName(value: string): string {
   return value.trim().replace(/\s+/g, ' ');
 }
 
-export function familyNameKey(value: string): string {
+function asciiWords(value: string): string[] {
   const ascii = normalizeFamilyName(value)
     .replace(/[Đđ]/g, (character) => (character === 'Đ' ? 'D' : 'd'))
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
-  const parts = ascii.match(/[A-Za-z0-9]+/g) ?? [];
-  const key = parts
+  return ascii.match(/[A-Za-z0-9]+/g) ?? [];
+}
+
+function pascalKey(value: string): string {
+  return asciiWords(value)
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`)
     .join('');
+}
+
+export function familyNameKey(value: string): string {
+  const key = pascalKey(value);
   if (!key) throw new BadRequestException('Tên dòng họ phải chứa ít nhất một chữ cái hoặc chữ số.');
   return key;
+}
+
+/** Accent-free kebab-case capped at `maxLength`: "Họ Nguyễn" → "ho-nguyen". */
+function slugPart(value: string, maxLength: number): string {
+  return asciiWords(value)
+    .join('-')
+    .toLowerCase()
+    .slice(0, maxLength)
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * The most specific place of an origin such as "Thanh Lộc, Can Lộc, Hà Tĩnh" (its first
+ * comma-separated part), so a disambiguated path stays short.
+ */
+function originPlace(origin: string): string {
+  return origin.split(',')[0] ?? '';
+}
+
+export type FamilyLocator = {
+  slug: string;
+  usernames: { memberPlus: string; member: string };
+};
+
+/**
+ * The Family's path and initial usernames, in order of preference: name and death anniversary
+ * ("ho-nguyen-15-03"), then with the origin's place appended ("ho-nguyen-15-03-thanh-loc").
+ * Each part is capped so the slug stays within its 100-character column.
+ */
+export function familyLocatorCandidates(
+  familyName: string,
+  anniversary: DeathAnniversary,
+  origin: string | null,
+): FamilyLocator[] {
+  const base = `${slugPart(familyName, 60)}-${anniversary.display.replace('/', '-')}`;
+  const candidates: FamilyLocator[] = [
+    { slug: base, usernames: generateFamilyUsernames(familyName, anniversary) },
+  ];
+  const place = origin ? originPlace(origin) : '';
+  const placeSlug = slugPart(place, 30);
+  if (placeSlug) {
+    candidates.push({
+      slug: `${base}-${placeSlug}`,
+      usernames: generateFamilyUsernames(familyName, anniversary, pascalKey(place)),
+    });
+  }
+  return candidates;
 }
 
 export function parseDeathAnniversary(value: string): DeathAnniversary {
@@ -41,10 +95,11 @@ export function parseDeathAnniversary(value: string): DeathAnniversary {
 export function generateFamilyUsernames(
   familyName: string,
   anniversary: DeathAnniversary,
+  originKey = '',
 ): { memberPlus: string; member: string } {
-  const key = familyNameKey(familyName);
+  const key = `${familyNameKey(familyName)}${anniversary.key}${originKey}`;
   return {
-    memberPlus: `TruongHo${key}${anniversary.key}`,
-    member: `ThanhVien${key}${anniversary.key}`,
+    memberPlus: `TruongHo${key}`,
+    member: `ThanhVien${key}`,
   };
 }

@@ -8,7 +8,7 @@ export type FamilyAccount = {
   displayName: string;
   role: 'MEMBER_PLUS' | 'MEMBER';
   status: 'ACTIVE' | 'SUSPENDED';
-  /** The family's shared member account, whose password cannot be reset. */
+  /** The family's shared member account; a reset gives it a new shared password. */
   isShared: boolean;
   createdAt: string;
   branches: FamilyAccountBranch[];
@@ -41,9 +41,27 @@ function send<T>(url: string, method: string, body: unknown, action: string): Pr
   );
 }
 
+/**
+ * The full username for a typed prefix (the API appends the family's suffix) and whether it is
+ * still free; usernames are unique across every family.
+ */
+export function checkUsernameAvailable(
+  slug: string,
+  usernamePrefix: string,
+  signal: AbortSignal,
+): Promise<{ username: string; available: boolean }> {
+  const query = new URLSearchParams({ usernamePrefix });
+  return apiFetch<{ username: string; available: boolean }>(
+    accountsUrl(slug, `/username-check?${query.toString()}`),
+    { credentials: 'include', headers: { Accept: 'application/json' }, signal },
+    'kiểm tra tên đăng nhập',
+  );
+}
+
 export function createFamilyAccount(
   slug: string,
-  input: { username: string; displayName: string },
+  /** `usernamePrefix` is what the clan head typed; the API appends the family's suffix. */
+  input: { usernamePrefix: string; displayName: string },
 ): Promise<FamilyAccountWithPassword> {
   return send(accountsUrl(slug), 'POST', input, 'tạo tài khoản');
 }

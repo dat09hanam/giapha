@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UnauthorizedException,
   UseGuards,
@@ -24,10 +25,14 @@ import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
 import { CreateFamilyDto } from './dto/create-family.dto.js';
 // Runtime import is required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { FamilySlugCheckQueryDto } from './dto/family-slug-check.dto.js';
+// Runtime import is required for Nest's emitted DTO validation metadata.
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { UpdateFamilyDto } from './dto/update-family.dto.js';
 import {
   FamiliesService,
   type CreatedFamilyResult,
+  type FamilySlugCheck,
   type FamilySummary,
 } from './families.service.js';
 
@@ -40,6 +45,14 @@ export class FamiliesController {
   @Header('Cache-Control', 'no-store')
   createFamily(@Body() input: CreateFamilyDto): Promise<CreatedFamilyResult> {
     return this.families.createFamily(input);
+  }
+
+  /** Declared before `:slug`, which reserves `slug-check` (see FamilySlugPipe). */
+  @Get('slug-check')
+  @UseGuards(SessionAuthGuard, PlatformAdminGuard)
+  @Header('Cache-Control', 'no-store')
+  checkFamilySlug(@Query() query: FamilySlugCheckQueryDto): Promise<FamilySlugCheck> {
+    return this.families.checkFamilySlug(query);
   }
 
   @Get(':slug')

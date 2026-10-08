@@ -15,6 +15,7 @@ import {
   getFamily,
   getFamilyAccounts,
   getFamilyTree,
+  getFamilyUsernameSuffix,
   getPosterDecorations,
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
@@ -42,11 +43,13 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
   // The other tabs still work if only the suggestions fail to load.
   let suggestions: EditSuggestion[] | ApiRequestError;
   let accounts: FamilyAccount[];
+  let usernameSuffix: string;
   let tree: FamilyTreeResponse;
   try {
     profile = await requireFamilyManager(slug, 'admin');
     const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
-    [family, decorations, suggestions, accounts, tree] = await Promise.all([
+    let suffix: { suffix: string };
+    [family, decorations, suggestions, accounts, tree, suffix] = await Promise.all([
       getFamily(profile.family.slug),
       getPosterDecorations(sessionToken),
       getEditSuggestions(profile.family.slug, sessionToken).catch((error: unknown) => {
@@ -56,7 +59,9 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
       getFamilyAccounts(profile.family.slug, sessionToken),
       // The clan head picks a branch root on the tree.
       getFamilyTree(profile.family.slug, sessionToken),
+      getFamilyUsernameSuffix(profile.family.slug, sessionToken),
     ]);
+    usernameSuffix = suffix.suffix;
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
       return (
@@ -112,6 +117,7 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
               <FamilyAccountsPanel
                 familySlug={profile.family.slug}
                 initialAccounts={accounts}
+                usernameSuffix={usernameSuffix}
                 tree={tree}
               />
             ),

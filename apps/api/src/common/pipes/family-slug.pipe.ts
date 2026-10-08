@@ -6,9 +6,12 @@ const RESERVED_FAMILY_SLUGS = new Set([
   'api',
   'login',
   'register',
+  'slug-check',
   'doi-mat-khau',
+  'quen-mat-khau',
   'gia-pha-mau',
   'mau-bai-cung',
+  'quen-mat-khau',
   'thu-vien',
 ]);
 

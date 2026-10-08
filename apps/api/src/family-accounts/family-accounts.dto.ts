@@ -11,14 +11,26 @@ import {
 } from 'class-validator';
 import { UserStatus } from '@prisma/client';
 
-const USERNAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.@-]*$/;
+const USERNAME_PREFIX_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.@-]*$/;
+
+/**
+ * What the clan head types, e.g. `adminchi1`; the API appends the family's suffix
+ * (`HoPham1503`) to make the username.
+ */
+export class UsernameCheckQueryDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(60)
+  @Matches(USERNAME_PREFIX_PATTERN)
+  usernamePrefix!: string;
+}
 
 export class CreateFamilyAccountDto {
   @IsString()
   @MinLength(3)
-  @MaxLength(191)
-  @Matches(USERNAME_PATTERN)
-  username!: string;
+  @MaxLength(60)
+  @Matches(USERNAME_PREFIX_PATTERN)
+  usernamePrefix!: string;
 
   @IsString()
   @MinLength(2)
