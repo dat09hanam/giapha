@@ -15,6 +15,11 @@ export type AuthProfile = {
   mustChangePassword: boolean;
 };
 
+/** The clan head (trưởng họ) of this very family; other roles and other families are not. */
+export function isClanHeadOf(profile: AuthProfile, slug: string): boolean {
+  return profile.role === 'MEMBER_PLUS' && profile.family?.slug === slug;
+}
+
 type LoginInput = { username: string; password: string };
 
 export { CHANGE_PASSWORD_PATH };

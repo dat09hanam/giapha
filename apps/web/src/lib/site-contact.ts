@@ -8,7 +8,7 @@ export const SITE_CONTACT = {
   email: 'support@giaphaviet.vn',
   /** Also the Zalo number, as most Vietnamese hotlines are. */
   phone: '0123 456 789',
-  hours: 'Thứ 2 - Thứ 6: 8:00 - 17:00',
+  hours: 'Hàng Ngày: 6:00 - 24:00',
   facebook: '#' as string | null,
   youtube: '#' as string | null,
   tiktok: null as string | null,

@@ -50,8 +50,7 @@ export function ContactLink({
               {open ? (
                 <SheetDialog title="Liên hệ tạo gia phả" onClose={() => setOpen(false)}>
                   <p className="text-sm leading-6 text-stone-600">
-                    Gọi hoặc nhắn cho chúng tôi để được tư vấn và tạo không gian gia phả riêng cho
-                    dòng họ của bạn.
+                    Hãy gọi điện hoặc nhắn tin để chúng tôi tư vấn trực tiếp và đồng hành cùng bạn tạo nên không gian gia phả dành riêng cho dòng họ.
                   </p>
                   <SocialContact />
                 </SheetDialog>

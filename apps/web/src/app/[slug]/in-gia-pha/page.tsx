@@ -6,11 +6,13 @@ import { ApiErrorState } from '@/components/ui/api-error-state';
 import {
   ApiNotFoundError,
   ApiUnauthorizedError,
+  getAuthProfile,
   getFamily,
   getFamilyTree,
   getPlatformFeatures,
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
+import { isClanHeadOf } from '@/lib/auth-api';
 import type { FamilyDetails, FamilyTreeResponse } from '@/types/family-tree';
 
 type PrintPageProps = {
@@ -29,13 +31,14 @@ async function loadBook(
   }
 
   try {
-    const [tree, family, features] = await Promise.all([
+    const [tree, family, features, profile] = await Promise.all([
       getFamilyTree(slug, sessionToken),
       getFamily(slug),
       getPlatformFeatures(),
+      getAuthProfile(sessionToken),
     ]);
-    // The platform admin has switched printing off.
-    if (!features.printBook) notFound();
+    // The platform admin has switched printing off, or this is not the family's clan head.
+    if (!features.printBook || !isClanHeadOf(profile, slug)) notFound();
     return { tree, family };
   } catch (error) {
     if (error instanceof ApiNotFoundError) notFound();

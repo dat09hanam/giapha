@@ -7,11 +7,13 @@ import { ApiErrorState } from '@/components/ui/api-error-state';
 import {
   ApiNotFoundError,
   ApiUnauthorizedError,
+  getAuthProfile,
   getFamilyTree,
   getFamily,
   getPlatformFeatures,
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
+import { isClanHeadOf } from '@/lib/auth-api';
 import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
 
 type FamilyPageProps = {
@@ -31,14 +33,20 @@ export async function generateMetadata({ params }: FamilyPageProps): Promise<Met
   }
 }
 
-async function loadFamilyTree(slug: string) {
+async function loadFamilyTree(
+  slug: string,
+): Promise<{ tree: FamilyTreeResponse; isClanHead: boolean }> {
   const sessionToken = (await cookies()).get('giapha_session')?.value;
   if (!sessionToken) {
     redirect(`/login?next=${encodeURIComponent(`/${slug}/gia-pha`)}`);
   }
 
   try {
-    return await getFamilyTree(slug, sessionToken);
+    const [tree, profile] = await Promise.all([
+      getFamilyTree(slug, sessionToken),
+      getAuthProfile(sessionToken),
+    ]);
+    return { tree, isClanHead: isClanHeadOf(profile, slug) };
   } catch (error) {
     if (error instanceof ApiNotFoundError) {
       notFound();
@@ -60,8 +68,12 @@ export default async function FamilyPage({ params }: FamilyPageProps) {
   let family: FamilyDetails;
   let features: FamilyFeatures;
   try {
-    tree = await loadFamilyTree(slug);
-    [family, features] = await Promise.all([getFamily(slug), getPlatformFeatures()]);
+    const loaded = await loadFamilyTree(slug);
+    tree = loaded.tree;
+    let platformFeatures: FamilyFeatures;
+    [family, platformFeatures] = await Promise.all([getFamily(slug), getPlatformFeatures()]);
+    // Only the clan head prints the gia phả; everyone else sees no print button.
+    features = { ...platformFeatures, printBook: platformFeatures.printBook && loaded.isClanHead };
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
       return (
