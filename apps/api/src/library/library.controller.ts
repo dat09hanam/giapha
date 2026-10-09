@@ -37,9 +37,13 @@ import {
   type AlbumSummaryResponse,
   type LibraryItemResponse,
   type LibraryOverviewResponse,
+  type LibraryViewer,
 } from './library.service.js';
 
-/** Album và tư liệu: every member views; only the clan head (MEMBER_PLUS) keeps the library. */
+/**
+ * Album và tư liệu: every member views and may send photos into an album for
+ * review; only the clan head (MEMBER_PLUS) keeps the library and approves them.
+ */
 @Controller('families/:slug/library')
 @RequiresFamilyFeature('library')
 @UseGuards(SessionAuthGuard, FamilyAccessGuard)
@@ -53,7 +57,7 @@ export class LibraryController {
     @Param('slug', FamilySlugPipe) _slug: string,
     @Req() request: AuthRequest,
   ): Promise<LibraryOverviewResponse> {
-    return this.library.overview(this.familyId(request), this.canManage(request));
+    return this.library.overview(this.familyId(request), this.viewer(request));
   }
 
   @Get('albums/:albumId')
@@ -63,7 +67,7 @@ export class LibraryController {
     @Param('albumId', new ParseUUIDPipe()) albumId: string,
     @Req() request: AuthRequest,
   ): Promise<AlbumDetailResponse> {
-    return this.library.album(this.familyId(request), albumId, this.canManage(request));
+    return this.library.album(this.familyId(request), albumId, this.viewer(request));
   }
 
   @Post('albums')
@@ -95,14 +99,25 @@ export class LibraryController {
     return this.library.deleteAlbum(this.familyId(request), albumId);
   }
 
+  /** Members may send photos too; theirs wait for the clan head's approval. */
   @Post('albums/:albumId/photos')
+  @FamilyRoles(UserRole.MEMBER_PLUS, UserRole.MEMBER)
   addPhoto(
     @Param('slug', FamilySlugPipe) _slug: string,
     @Param('albumId', new ParseUUIDPipe()) albumId: string,
     @Body() input: UploadPhotoDto,
     @Req() request: AuthRequest,
   ): Promise<LibraryItemResponse> {
-    return this.library.addPhoto(this.familyId(request), albumId, input);
+    return this.library.addPhoto(this.familyId(request), albumId, input, this.viewer(request));
+  }
+
+  @Post('items/:itemId/approve')
+  approvePhoto(
+    @Param('slug', FamilySlugPipe) _slug: string,
+    @Param('itemId', new ParseUUIDPipe()) itemId: string,
+    @Req() request: AuthRequest,
+  ): Promise<LibraryItemResponse> {
+    return this.library.approvePhoto(this.familyId(request), itemId);
   }
 
   @Post('documents')
@@ -124,14 +139,16 @@ export class LibraryController {
     return this.library.updateItem(this.familyId(request), itemId, input);
   }
 
+  /** The clan head deletes or turns down; a member withdraws their own pending photo. */
   @Delete('items/:itemId')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @FamilyRoles(UserRole.MEMBER_PLUS, UserRole.MEMBER)
   deleteItem(
     @Param('slug', FamilySlugPipe) _slug: string,
     @Param('itemId', new ParseUUIDPipe()) itemId: string,
     @Req() request: AuthRequest,
   ): Promise<void> {
-    return this.library.deleteItem(this.familyId(request), itemId);
+    return this.library.deleteItem(this.familyId(request), itemId, this.viewer(request));
   }
 
   private familyId(request: AuthRequest): string {
@@ -141,7 +158,13 @@ export class LibraryController {
     return request.familyAccess.familyId;
   }
 
-  private canManage(request: AuthRequest): boolean {
-    return request.familyAccess?.role === UserRole.MEMBER_PLUS;
+  private viewer(request: AuthRequest): LibraryViewer {
+    if (!request.familyAccess) {
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
+    }
+    return {
+      userId: request.familyAccess.userId,
+      canManage: request.familyAccess.role === UserRole.MEMBER_PLUS,
+    };
   }
 }

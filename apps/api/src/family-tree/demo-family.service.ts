@@ -24,13 +24,19 @@ export class DemoFamilyService {
     return { id: family.id, slug: family.slug, name: family.name };
   }
 
-  /** The sample tree, without phone numbers or member-only photo links. */
+  /** The sample tree, without phone numbers, home addresses or member-only photo links. */
   async getDemoTree(): Promise<FamilyTreeResponse> {
     const family = await this.findDemoFamily();
     const tree = await this.familyTree.getTree(family.id);
     return {
       ...tree,
-      people: tree.people.map((person) => ({ ...person, phone: null, avatarUrl: null })),
+      people: tree.people.map((person) => ({
+        ...person,
+        phone: null,
+        avatarUrl: null,
+        currentAddress: null,
+        mapUrl: null,
+      })),
     };
   }
 

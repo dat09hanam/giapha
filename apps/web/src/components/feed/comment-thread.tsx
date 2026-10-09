@@ -1,8 +1,9 @@
 'use client';
 
-import { CornerDownRight, LoaderCircle, SendHorizontal, X } from 'lucide-react';
+import { CornerDownRight, SendHorizontal, X } from 'lucide-react';
 import { forwardRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { NameAvatar, timeAgo } from '@/components/feed/feed-format';
 import { ReactionButton, ReactionIcons } from '@/components/feed/reactions';
 import { setViewerName, useViewerName } from '@/components/feed/use-viewer-name';
@@ -280,7 +281,7 @@ export const CommentComposer = forwardRef<
             aria-label="Gửi bình luận"
           >
             {sending ? (
-              <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
+              <InlineLoader className="size-5" />
             ) : (
               <SendHorizontal className="size-5" aria-hidden="true" />
             )}

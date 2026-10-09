@@ -1,9 +1,10 @@
 'use client';
 
-import { Frame, LoaderCircle, RotateCcw, Save } from 'lucide-react';
+import { Frame, RotateCcw, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { Field } from '@/components/auth/form-fields';
 import { PosterBackgroundSwatch, PosterSheet } from '@/components/tree/poster-art';
 import { Button } from '@/components/ui/button';
@@ -199,7 +200,7 @@ export function FamilyPosterForm({
           </Button>
           <Button type="submit" form="family-poster-form" disabled={submitting || !isDirty}>
             {submitting ? (
-              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              <InlineLoader className="size-4" />
             ) : (
               <Save className="size-4" aria-hidden="true" />
             )}

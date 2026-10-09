@@ -1,8 +1,9 @@
 'use client';
 
-import { ImagePlus, LoaderCircle, X } from 'lucide-react';
+import { ImagePlus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { NameAvatar } from '@/components/feed/feed-format';
 import {
   isViewerNameFixed,
@@ -207,7 +208,7 @@ function ComposerDialog({
                   key={`preparing-${index}`}
                   className="grid aspect-square animate-pulse place-items-center rounded-xl bg-stone-100 text-stone-400"
                 >
-                  <LoaderCircle className="size-6 animate-spin" aria-label="Đang xử lý ảnh" />
+                  <InlineLoader className="size-6" label="Đang xử lý ảnh" />
                 </div>
               ))}
             </div>
@@ -233,7 +234,7 @@ function ComposerDialog({
             disabled={!canPost}
             onClick={() => void post()}
           >
-            {posting ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
+            {posting ? <InlineLoader className="size-4" /> : null}
             {posting ? 'Đang đăng…' : 'Đăng'}
           </Button>
         </footer>

@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Be_Vietnam_Pro, Noto_Serif } from 'next/font/google';
 
 import { SiteHeader } from '@/components/layout/site-header';
+import { NavigationProgress } from '@/components/layout/navigation-progress';
+import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { ToastProvider } from '@/components/ui/toast';
 import { FormValidation } from '@/components/ui/form-validation';
 import { SITE_BRAND } from '@/lib/site-brand';
@@ -38,9 +40,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body>
         <FormValidation />
+        <NavigationProgress />
         <ToastProvider>
-          <SiteHeader />
-          {children}
+          <ConfirmProvider>
+            <SiteHeader />
+            {children}
+          </ConfirmProvider>
         </ToastProvider>
       </body>
     </html>

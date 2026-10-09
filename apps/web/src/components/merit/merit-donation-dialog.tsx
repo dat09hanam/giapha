@@ -3,6 +3,7 @@
 import { Banknote, Gift, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { meritInputClass } from '@/components/merit/merit-event-dialog';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -90,6 +91,7 @@ export function MeritDonationDialog({
   onSaved: (donation: MeritDonation, previous: MeritDonation | null) => void;
   onDeleted: (donation: MeritDonation) => void;
 }) {
+  const confirm = useConfirm();
   const showToast = useToast();
   const [donorName, setDonorName] = useState(editing?.donorName ?? '');
   const [kind, setKind] = useState<MeritDonationKind>(editing?.kind ?? 'CASH');
@@ -109,7 +111,15 @@ export function MeritDonationDialog({
 
   async function remove(donation: MeritDonation): Promise<void> {
     const what = donation.amount !== null ? formatVnd(donation.amount) : donation.itemContent;
-    if (!window.confirm(`Xóa lượt công đức của ${donation.donorName} (${what})?`)) return;
+    if (
+      !(await confirm({
+        title: `Xóa lượt công đức của ${donation.donorName}?`,
+        message: what ?? undefined,
+        confirmLabel: 'Xóa',
+        tone: 'danger',
+      }))
+    )
+      return;
     setSaving(true);
     try {
       await deleteMeritDonation(familySlug, donation.id);

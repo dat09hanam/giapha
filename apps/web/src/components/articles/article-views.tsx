@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, CalendarDays } from 'lucide-react';
 
+import { PageLoader } from '@/components/ui/heritage-loader';
 import { ArticleCard, SectionIcon, formatDate } from '@/components/articles/article-card';
 import { ArticleSearchList } from '@/components/articles/article-search-list';
 import { RichTextView } from '@/components/rich-text/rich-text-view';
@@ -133,18 +134,7 @@ export function ArticleView({
 }
 
 export function ArticlesLoading() {
-  return (
-    <main className="mx-auto max-w-6xl animate-pulse px-4 py-10 sm:px-6">
-      <div className="mx-auto h-4 w-32 rounded bg-stone-200" />
-      <div className="mx-auto mt-4 h-9 w-96 max-w-full rounded bg-stone-200" />
-      <div className="mx-auto mt-3 h-5 w-[32rem] max-w-full rounded bg-stone-200" />
-      <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {[0, 1, 2].map((index) => (
-          <div key={index} className="h-80 rounded-2xl bg-[var(--card)]/70" />
-        ))}
-      </div>
-    </main>
-  );
+  return <PageLoader label="Đang tải bài viết" />;
 }
 
 /** An unknown path or an article taken down, inside the section's masthead. */

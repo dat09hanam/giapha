@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/api-error';
-import type { Gender } from '@/types/family-tree';
+import type { Gender, MaritalStatus } from '@/types/family-tree';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
@@ -25,6 +25,16 @@ export type FamilyTreeDesignSaveInput = {
     orderInFamily: number;
     fatherClientId: string | null;
     motherClientId: string | null;
+    maritalStatus: MaritalStatus | null;
+    education: string | null;
+    occupation: string | null;
+    hometown: string | null;
+    currentAddress: string | null;
+    mapUrl: string | null;
+    ageAtDeath: number | null;
+    worshipPlace: string | null;
+    worshipKeeperClientId: string | null;
+    deathAnniversaryText: string | null;
   }>;
   relationships: Array<{
     husbandClientId: string;

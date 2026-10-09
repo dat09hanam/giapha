@@ -1,9 +1,10 @@
 'use client';
 
-import { Landmark, Link2, LoaderCircle, RotateCcw, Save } from 'lucide-react';
+import { Landmark, Link2, RotateCcw, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { Field } from '@/components/auth/form-fields';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
@@ -168,7 +169,7 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
           </Button>
           <Button type="submit" form="family-profile-form" disabled={submitting || !isDirty}>
             {submitting ? (
-              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              <InlineLoader className="size-4" />
             ) : (
               <Save className="size-4" aria-hidden="true" />
             )}

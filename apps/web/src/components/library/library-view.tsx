@@ -5,7 +5,6 @@ import {
   FolderPlus,
   ImageIcon,
   Images,
-  LoaderCircle,
   MoreHorizontal,
   PencilLine,
   Plus,
@@ -25,6 +24,8 @@ import {
   LibraryLightbox,
   type ItemDetailsValue,
 } from '@/components/library/item-details';
+import { InlineLoader } from '@/components/ui/heritage-loader';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { heroOverlapClass, PageHero } from '@/components/layout/page-hero';
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
@@ -223,7 +224,7 @@ function NewDocumentDialog({
             onClick={() => void save()}
             disabled={saving || !picked || !details.title.trim()}
           >
-            {saving ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
+            {saving ? <InlineLoader className="size-4" /> : null}
             {saving ? 'Đang tải lên…' : 'Lưu tư liệu'}
           </Button>
         </>
@@ -434,6 +435,7 @@ export function LibraryView({
   /** The tree's people, for tagging documents; empty for members, who cannot edit. */
   people: Person[];
 }) {
+  const confirm = useConfirm();
   const showToast = useToast();
   const [tab, setTab] = useState<Tab>('albums');
   const [documents, setDocuments] = useState(initial.documents);
@@ -442,6 +444,7 @@ export function LibraryView({
   const [editing, setEditing] = useState<LibraryItem | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
   const canManage = initial.canManage;
+  const pendingTotal = initial.albums.reduce((sum, album) => sum + album.pendingCount, 0);
   const entries = useMemo(() => searchEntriesFromPeople(people), [people]);
   // The lightbox pages through the image documents; PDFs open on their own.
   const imageDocuments = documents.filter((item) => item.contentType !== 'application/pdf');
@@ -456,7 +459,15 @@ export function LibraryView({
   }
 
   async function removeDocument(item: LibraryItem): Promise<void> {
-    if (!window.confirm(`Xóa tư liệu “${item.title ?? ''}”? Tệp sẽ bị xóa vĩnh viễn.`)) return;
+    if (
+      !(await confirm({
+        title: `Xóa tư liệu “${item.title ?? ''}”?`,
+        message: 'Tệp sẽ bị xóa vĩnh viễn.',
+        confirmLabel: 'Xóa',
+        tone: 'danger',
+      }))
+    )
+      return;
     try {
       await deleteLibraryItem(familySlug, item.id);
       setDocuments((current) => current.filter((entry) => entry.id !== item.id));
@@ -499,52 +510,63 @@ export function LibraryView({
       </div>
 
       {tab === 'albums' ? (
-        <section
-          aria-label="Album ảnh"
-          className="grid grid-cols-2 gap-3 px-3 sm:grid-cols-3 sm:gap-4 sm:px-0"
-        >
+        <section aria-label="Album ảnh" className="grid gap-3 px-3 sm:gap-4 sm:px-0">
           {canManage ? (
-            <button
-              type="button"
-              onClick={() => setCreatingAlbum(true)}
-              className="grid aspect-[4/5] place-items-center content-center gap-2 rounded-2xl border-2 border-dashed border-brand-700/30 bg-white text-brand-800 transition hover:border-brand-700 hover:bg-brand-50"
-            >
-              <FolderPlus className="size-8" aria-hidden="true" />
-              <span className="text-sm font-semibold">Tạo album</span>
-            </button>
-          ) : null}
-          {initial.albums.map((album) => (
-            <Link
-              key={album.id}
-              href={`/${encodeURIComponent(familySlug)}/tu-lieu/${album.id}`}
-              className="surface group grid overflow-hidden transition hover:shadow-md"
-            >
-              <span className="relative block aspect-square overflow-hidden bg-stone-100">
-                {album.cover ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={familyMediaSrc(familySlug, album.cover.url)}
-                    alt=""
-                    loading="lazy"
-                    className="size-full object-cover transition duration-300 group-hover:scale-105"
-                  />
-                ) : (
-                  <span className="grid size-full place-items-center text-stone-300">
-                    <ImageIcon className="size-10" aria-hidden="true" />
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-stone-500">
+                {pendingTotal > 0 ? (
+                  <span className="font-medium text-amber-800">
+                    {pendingTotal} ảnh thành viên gửi đang chờ duyệt
                   </span>
-                )}
-              </span>
-              <span className="grid gap-0.5 px-3 py-2.5">
-                <span className="line-clamp-2 font-semibold leading-snug text-stone-900">
-                  {album.title}
+                ) : null}
+              </p>
+              <Button type="button" size="sm" onClick={() => setCreatingAlbum(true)}>
+                <FolderPlus className="size-4" aria-hidden="true" />
+                Tạo album
+              </Button>
+            </div>
+          ) : null}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+            {initial.albums.map((album) => (
+              <Link
+                key={album.id}
+                href={`/${encodeURIComponent(familySlug)}/tu-lieu/${album.id}`}
+                className="surface group grid overflow-hidden transition hover:shadow-md"
+              >
+                <span className="relative block aspect-square overflow-hidden bg-stone-100">
+                  {album.cover ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={familyMediaSrc(familySlug, album.cover.url)}
+                      alt=""
+                      loading="lazy"
+                      className="size-full object-cover transition duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <span className="grid size-full place-items-center text-stone-300">
+                      <ImageIcon className="size-10" aria-hidden="true" />
+                    </span>
+                  )}
+                  {album.pendingCount > 0 ? (
+                    <span className="absolute left-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white shadow">
+                      {album.pendingCount} chờ duyệt
+                    </span>
+                  ) : null}
                 </span>
-                <span className="text-xs text-stone-500">{album.photoCount} ảnh</span>
-              </span>
-            </Link>
-          ))}
-          {initial.albums.length === 0 && !canManage ? (
-            <p className="surface col-span-full px-6 py-12 text-center text-sm text-stone-500">
-              Dòng họ chưa có album nào.
+                <span className="grid gap-0.5 px-3 py-2.5">
+                  <span className="line-clamp-2 font-semibold leading-snug text-stone-900">
+                    {album.title}
+                  </span>
+                  <span className="text-xs text-stone-500">{album.photoCount} ảnh</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+          {initial.albums.length === 0 ? (
+            <p className="surface px-6 py-12 text-center text-sm text-stone-500">
+              {canManage
+                ? 'Chưa có album nào. Bấm “Tạo album” để bắt đầu lưu ảnh của dòng họ.'
+                : 'Dòng họ chưa có album nào.'}
             </p>
           ) : null}
         </section>

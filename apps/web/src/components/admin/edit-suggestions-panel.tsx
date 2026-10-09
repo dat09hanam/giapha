@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   Clock3,
   Inbox,
-  LoaderCircle,
   PencilLine,
   RotateCcw,
   UserRound,
@@ -16,6 +15,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -138,7 +138,7 @@ function SuggestionCard({
                 onClick={() => onChangeStatus('RESOLVED')}
               >
                 {busy ? (
-                  <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  <InlineLoader className="size-4" />
                 ) : (
                   <Check className="size-4" aria-hidden="true" />
                 )}
@@ -171,7 +171,7 @@ function SuggestionCard({
               onClick={() => onChangeStatus('PENDING')}
             >
               {busy ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                <InlineLoader className="size-4" />
               ) : (
                 <RotateCcw className="size-4" aria-hidden="true" />
               )}

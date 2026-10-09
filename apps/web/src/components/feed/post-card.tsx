@@ -9,6 +9,7 @@ import {
   type CommentActions,
   type ReplyTarget,
 } from '@/components/feed/comment-thread';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { NameAvatar, timeAgo } from '@/components/feed/feed-format';
 import { ImageLightbox, PostImages } from '@/components/feed/post-images';
 import {
@@ -52,6 +53,7 @@ export function PostCard({
   onChange: (post: FeedPost) => void;
   onDelete: (postId: string) => void;
 }) {
+  const confirm = useConfirm();
   const showToast = useToast();
   const viewerName = useViewerName();
   const [expanded, setExpanded] = useState(false);
@@ -144,8 +146,10 @@ export function PostCard({
         return false;
       }
     },
-    onDelete: (comment) => {
-      if (!window.confirm('Xóa bình luận này?')) return;
+    onDelete: async (comment) => {
+      if (!(await confirm({ title: 'Xóa bình luận này?', confirmLabel: 'Xóa', tone: 'danger' }))) {
+        return;
+      }
       deleteFeedComment(familySlug, comment.id)
         .then(() => {
           const current = postRef.current;
@@ -192,7 +196,15 @@ export function PostCard({
 
   async function removePost(): Promise<void> {
     setMenuOpen(false);
-    if (!window.confirm('Xóa bài viết này? Bình luận và ảnh trong bài cũng sẽ bị xóa.')) return;
+    if (
+      !(await confirm({
+        title: 'Xóa bài viết này?',
+        message: 'Bình luận và ảnh trong bài cũng sẽ bị xóa.',
+        confirmLabel: 'Xóa',
+        tone: 'danger',
+      }))
+    )
+      return;
     try {
       await deleteFeedPost(familySlug, post.id);
       onDelete(post.id);

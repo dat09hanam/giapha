@@ -9,6 +9,7 @@ import {
 } from '@/lib/family-layout';
 import { displayPersonName, displayPersonTitle } from '@/lib/person-name';
 import type { FamilyTreeResponse, Person } from '@/types/family-tree';
+import { yearOf } from '@/lib/partial-date';
 
 /*
  * The family tree as a printed book: a cover, a table of contents, the phả đồ cut into pages
@@ -362,13 +363,9 @@ function buildUnits(
   return { units, roots };
 }
 
-function year(value: string): string {
-  return new Date(value).getUTCFullYear().toString();
-}
-
 function years(person: Person): string | null {
-  const born = person.birthDate ? year(person.birthDate) : null;
-  const died = person.deathDate ? year(person.deathDate) : null;
+  const born = yearOf(person.birthDate)?.toString() ?? null;
+  const died = yearOf(person.deathDate)?.toString() ?? null;
   if (born && died) return `${born}–${died}`;
   if (born) return person.isAlive ? `s. ${born}` : `${born}–?`;
   if (died) return `?–${died}`;

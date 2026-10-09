@@ -32,6 +32,8 @@ function Calendar({
   const today = todayInVietnam();
   const start = parseDay(value) ?? parseDay(today)!;
   const [view, setView] = useState({ year: start.year, month: start.month });
+  // What is typed in the year box; null shows the viewed year.
+  const [yearDraft, setYearDraft] = useState<string | null>(null);
   const selectedRef = useRef<HTMLButtonElement>(null);
   const minYear = Number(min.slice(0, 4));
   const maxYear = Number(max.slice(0, 4));
@@ -45,7 +47,15 @@ function Calendar({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  function typeYear(text: string): void {
+    const digits = text.replace(/\D/g, '').slice(0, 4);
+    setYearDraft(digits);
+    const year = Number(digits);
+    if (digits.length === 4 && year >= minYear && year <= maxYear) setView({ ...view, year });
+  }
+
   function shiftMonth(step: number): void {
+    setYearDraft(null);
     setView((current) => {
       const next = new Date(Date.UTC(current.year, current.month + step, 1));
       const year = Math.min(maxYear, Math.max(minYear, next.getUTCFullYear()));
@@ -59,7 +69,6 @@ function Calendar({
     const iso = toIsoDay({ year: view.year, month: view.month, day: index - lead + 1 });
     return { iso, inMonth: Number(iso.slice(5, 7)) - 1 === view.month };
   });
-  const years = Array.from({ length: maxYear - minYear + 1 }, (_, index) => maxYear - index);
   const todayAllowed = today >= min && today <= max;
 
   return (
@@ -98,18 +107,18 @@ function Calendar({
               </option>
             ))}
           </select>
-          <select
-            className={cn(selectClass, 'w-[5.5rem] shrink-0')}
-            value={view.year}
-            onChange={(event) => setView({ ...view, year: Number(event.target.value) })}
-            aria-label="Năm"
-          >
-            {years.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
+          {/* Typed, not a menu: ancestors can be born centuries back. */}
+          <input
+            className={cn(selectClass, 'w-[4.5rem] shrink-0 text-center tabular-nums')}
+            type="text"
+            inputMode="numeric"
+            maxLength={4}
+            value={yearDraft ?? String(view.year)}
+            onChange={(event) => typeYear(event.target.value)}
+            onFocus={(event) => event.target.select()}
+            onBlur={() => setYearDraft(null)}
+            aria-label={`Năm (${minYear}–${maxYear})`}
+          />
           <button
             type="button"
             onClick={() => shiftMonth(1)}

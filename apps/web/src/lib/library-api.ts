@@ -19,6 +19,10 @@ export type LibraryItem = {
   takenOn: string | null;
   createdAt: string;
   person: { id: string; name: string; honorific: string | null } | null;
+  /** Sent by a member and not yet approved by the clan head. */
+  pending: boolean;
+  /** Who sent a pending photo. */
+  uploadedBy: string | null;
 };
 
 export type AlbumSummary = {
@@ -29,6 +33,8 @@ export type AlbumSummary = {
   cover: { url: string; width: number | null; height: number | null } | null;
   createdAt: string;
   updatedAt: string;
+  /** Photos waiting for approval; counted for the clan head only. */
+  pendingCount: number;
 };
 
 export type LibraryOverview = {
@@ -40,6 +46,8 @@ export type LibraryOverview = {
 export type AlbumDetail = {
   album: AlbumSummary;
   photos: LibraryItem[];
+  /** Waiting for approval: all of them for the clan head, a member's own for a member. */
+  pendingPhotos: LibraryItem[];
   canManage: boolean;
 };
 
@@ -136,6 +144,15 @@ export function updateLibraryItem(
     'PATCH',
     'lưu thông tin',
     input,
+  );
+}
+
+/** The clan head lets a member's pending photo into its album. */
+export function approveLibraryPhoto(slug: string, itemId: string): Promise<LibraryItem> {
+  return send(
+    libraryUrl(slug, `/items/${encodeURIComponent(itemId)}/approve`),
+    'POST',
+    'duyệt ảnh',
   );
 }
 

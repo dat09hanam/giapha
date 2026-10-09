@@ -6,7 +6,6 @@ import {
   EyeOff,
   ImageIcon,
   ImagePlus,
-  LoaderCircle,
   Pencil,
   Plus,
   Save,
@@ -14,6 +13,8 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Field } from '@/components/auth/form-fields';
 import { hasTreeArea, NO_TREE_AREA, PosterAreaEditor } from '@/components/admin/poster-area-editor';
 import { PosterBackgroundSwatch } from '@/components/tree/poster-art';
@@ -216,7 +217,7 @@ function BackgroundEditor({
           </Button>
           <Button type="submit" form="background-editor" disabled={saving}>
             {saving ? (
-              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              <InlineLoader className="size-4" />
             ) : (
               <Save className="size-4" aria-hidden="true" />
             )}
@@ -375,6 +376,7 @@ function FittedSwatch({
 
 /** The platform ADMIN's CRUD screen for the phả đồ background library. */
 export function PosterDecorationManager({ initial }: { initial: AdminPosterDecoration[] }) {
+  const confirm = useConfirm();
   const showToast = useToast();
   const [decorations, setDecorations] = useState(initial);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -447,7 +449,15 @@ export function PosterDecorationManager({ initial }: { initial: AdminPosterDecor
       decoration.usageCount > 0
         ? `Hình nền “${decoration.name}” đang được ${decoration.usageCount} dòng họ sử dụng. Các dòng họ này sẽ chuyển về giấy trơn. Xóa hình nền?`
         : `Xóa hình nền “${decoration.name}”?`;
-    if (!window.confirm(warning)) return;
+    if (
+      !(await confirm({
+        title: `Xóa hình nền “${decoration.name}”?`,
+        message: decoration.usageCount > 0 ? warning : undefined,
+        confirmLabel: 'Xóa',
+        tone: 'danger',
+      }))
+    )
+      return;
 
     setBusyId(decoration.id);
     try {

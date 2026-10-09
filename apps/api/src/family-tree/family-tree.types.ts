@@ -1,4 +1,18 @@
-import type { Gender, RelationshipStatus } from "@prisma/client";
+import type { Gender, MaritalStatus, RelationshipStatus } from "@prisma/client";
+
+/** The profile, hometown and worship fields every person response carries. */
+export type PersonProfile = {
+  maritalStatus: MaritalStatus | null;
+  education: string | null;
+  occupation: string | null;
+  hometown: string | null;
+  currentAddress: string | null;
+  mapUrl: string | null;
+  ageAtDeath: number | null;
+  worshipPlace: string | null;
+  worshipKeeperId: string | null;
+  deathAnniversaryText: string | null;
+};
 
 export type FamilyTreeResponse = {
   family: {
@@ -29,6 +43,16 @@ export type FamilyTreeResponse = {
     orderInFamily: number | null;
     fatherId: string | null;
     motherId: string | null;
+    maritalStatus: MaritalStatus | null;
+    education: string | null;
+    occupation: string | null;
+    hometown: string | null;
+    currentAddress: string | null;
+    mapUrl: string | null;
+    ageAtDeath: number | null;
+    worshipPlace: string | null;
+    worshipKeeperId: string | null;
+    deathAnniversaryText: string | null;
   }>;
   relationships: Array<{
     id: string;
@@ -39,7 +63,7 @@ export type FamilyTreeResponse = {
   }>;
 };
 
-export type PersonResponse = {
+export type PersonResponse = PersonProfile & {
   id: string;
   familyId: string;
   fatherId: string | null;

@@ -113,7 +113,7 @@ Endpoints:
 - `/api/families/:slug/feed` (Bảng tin): `MEMBER` and `MEMBER_PLUS`. `GET` pages posts (with comments and reaction summaries); `POST posts`, `PATCH|DELETE posts/:postId`, `POST posts/:postId/comments`, `PATCH|DELETE comments/:commentId`, and `POST|DELETE posts/:postId/reaction` / `comments/:commentId/reaction`. Writes need the `X-Feed-Key` device header described below.
 - `GET /api/families/:slug/fund` (Quỹ họ): `MEMBER` and `MEMBER_PLUS`; the ledger with income, expense and balance totals. `POST fund/entries` and `PATCH|DELETE fund/entries/:entryId`: `MEMBER_PLUS` only.
 - `/api/families/:slug/merit` (Công đức): `GET` (events with totals) and `GET events/:eventId` (one event with its donations) for `MEMBER` and `MEMBER_PLUS`; `POST events`, `PATCH|DELETE events/:eventId`, `POST events/:eventId/donations` and `PATCH|DELETE donations/:donationId` for `MEMBER_PLUS` only.
-- `/api/families/:slug/library` (Album và tư liệu): `GET` (albums and documents) and `GET albums/:albumId` for `MEMBER` and `MEMBER_PLUS`; `POST albums`, `PATCH|DELETE albums/:albumId`, `POST albums/:albumId/photos`, `POST documents` and `PATCH|DELETE items/:itemId` for `MEMBER_PLUS` only.
+- `/api/families/:slug/library` (Album và tư liệu): `GET` (albums and documents) and `GET albums/:albumId` for `MEMBER` and `MEMBER_PLUS`; `POST albums/:albumId/photos` for both, where a `MEMBER`'s photo is stored `PENDING` until the clan head approves it with `POST items/:itemId/approve`; `DELETE items/:itemId` for both, a `MEMBER` only withdrawing their own pending photo; `POST albums`, `PATCH|DELETE albums/:albumId`, `POST documents`, `PATCH items/:itemId` and the approval for `MEMBER_PLUS` only. Lists and photo counts show `ACTIVE` items only; the album detail adds `pendingPhotos` (all of them for the clan head, a member's own for a member).
 
 The old public clan-head registration and invitation endpoints are removed. Pending invitation
 accounts are migrated to `SUSPENDED` and their tokens are discarded.
@@ -214,6 +214,17 @@ Person carries the birth `name`, optional `honorific` (danh xưng như Cụ tổ
 `birthDate`, `deathDate`, `isAlive`, `burialPlace`, `phone`, `avatarUrl`, `biography`, `generation`
 and `orderInFamily`. The lunar death anniversary is stored as `lunarDeathDay` and `lunarDeathMonth`
 rather than a single text field, so the Family's death-anniversary calendar can be queried by month.
+`birthDate` and `deathDate` are free text of up to 100 characters (`15/03/1920`, `03/1920`,
+`1850`, `khoảng 1850`), because early ancestors are often remembered only by year; the web reads a
+year or sort key out of them (`apps/web/src/lib/partial-date.ts`) and the API only checks that the
+death year is not before the birth year.
+A Person also carries a profile for the member editor: `maritalStatus`, `education`,
+`occupation`, `hometown` (nguyên quán, free text rather than administrative-unit pickers, since
+units are renamed and merged), `currentAddress`, `mapUrl` (http(s) only), and for the deceased
+`ageAtDeath` (null means derive it from the dates), `worshipPlace`, `deathAnniversaryText` and
+`worshipKeeperId`. The keeper is another Person of the same Family through the composite
+`(familyId, worshipKeeperId)` foreign key, cleared with the other inbound links when a Person is
+deleted. The demo tree hides `currentAddress` and `mapUrl` along with phone numbers.
 
 `Relationship` records one spousal link: `husbandId`, `wifeId`, `marriageDate`, `status` and
 `wifeOrder`. It carries its own `familyId` and both Person foreign keys are composite
@@ -232,7 +243,10 @@ a scanned genealogy book, a royal decree or a PDF (`kind`). Each row holds its `
 `description`, `takenOn` day and the optional `personId` of the Person it is about. `Album` groups
 photos (`title`, `description`); its cover is its first photo and `updatedAt` moves when photos are
 added. Both are Family-scoped through composite `(familyId, …)` foreign keys; photos cascade from
-their album. Every member reads the library; only `MEMBER_PLUS` writes it. Photos are shrunk on the
+their album. Every member reads the library; only `MEMBER_PLUS` writes it, except that a member
+may send photos into an album: they are stored with `status` `PENDING` and `uploadedById` (the
+sending User, set null if the account is deleted) and show to others only once the clan head
+approves them. Photos are shrunk on the
 phone and sent one per request (2 MB, with the thumbnail); PDFs are capped at 4 MB to stay under the
 API's 6 MB body limit. PDFs are served with `Content-Security-Policy: sandbox` so script inside them
 cannot run with the API's origin.

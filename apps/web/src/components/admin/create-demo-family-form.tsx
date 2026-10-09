@@ -1,9 +1,10 @@
 'use client';
 
-import { LoaderCircle, Plus, Sparkles } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { SectionCard } from '@/components/admin/admin-layout';
 import { Field } from '@/components/auth/form-fields';
 import { Button } from '@/components/ui/button';
@@ -89,7 +90,7 @@ export function CreateDemoFamilyForm() {
             disabled={submitting}
           >
             {submitting ? (
-              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              <InlineLoader className="size-4" />
             ) : (
               <Plus className="size-4" aria-hidden="true" />
             )}

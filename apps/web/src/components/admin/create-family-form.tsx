@@ -1,17 +1,9 @@
 'use client';
 
-import {
-  Check,
-  CheckCircle2,
-  Copy,
-  KeyRound,
-  LoaderCircle,
-  Plus,
-  TriangleAlert,
-  UsersRound,
-} from 'lucide-react';
+import { Check, CheckCircle2, Copy, KeyRound, Plus, TriangleAlert, UsersRound } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { Button } from '@/components/ui/button';
 import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -242,7 +234,7 @@ export function CreateFamilyForm() {
             disabled={submitting || slugStatus === 'taken'}
           >
             {submitting ? (
-              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              <InlineLoader className="size-4" />
             ) : (
               <Plus className="size-4" aria-hidden="true" />
             )}

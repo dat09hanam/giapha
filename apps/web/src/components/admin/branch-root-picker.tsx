@@ -10,9 +10,10 @@ import {
   type NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { GitBranch, LoaderCircle, X } from 'lucide-react';
+import { GitBranch, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { familyEdgeTypes } from '@/components/tree/family-link-edge';
 import { Button } from '@/components/ui/button';
 import { computeGenerations, layoutFamily, type LayoutDimensions } from '@/lib/family-layout';
@@ -20,6 +21,7 @@ import { displayPersonName } from '@/lib/person-name';
 import { familyEdges } from '@/lib/tree-layout';
 import { cn } from '@/lib/utils';
 import type { FamilyTreeResponse, Person } from '@/types/family-tree';
+import { yearOf } from '@/lib/partial-date';
 
 /** Why a card cannot be picked, or null when it can. */
 type Blocked = { kind: 'assigned' | 'inside' | 'contains'; owner: string };
@@ -47,8 +49,8 @@ const DIMENSIONS: LayoutDimensions = {
 const LINK_STYLE = { stroke: '#9a6b2f', strokeWidth: 1.6 };
 
 function years(person: Person): string {
-  const birth = person.birthDate?.slice(0, 4);
-  const death = person.deathDate?.slice(0, 4);
+  const birth = yearOf(person.birthDate) ?? undefined;
+  const death = yearOf(person.deathDate) ?? undefined;
   if (!birth && !death) return '';
   return `${birth ?? '?'} – ${death ?? (person.isAlive ? 'nay' : '?')}`;
 }
@@ -355,7 +357,7 @@ function BranchRootPickerDialog({
               onClick={() => selected && onConfirm(selected.id)}
             >
               {saving ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                <InlineLoader className="size-4" />
               ) : (
                 <GitBranch className="size-4" aria-hidden="true" />
               )}

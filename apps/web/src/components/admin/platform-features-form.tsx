@@ -1,8 +1,9 @@
 'use client';
 
-import { LoaderCircle, ToggleRight } from 'lucide-react';
+import { ToggleRight } from 'lucide-react';
 import { useState } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { SectionCard } from '@/components/admin/admin-layout';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -54,7 +55,7 @@ export function PlatformFeaturesForm({ initial }: { initial: FamilyFeatures }) {
                 <p className="mt-0.5 text-sm leading-6 text-stone-600">{choice.description}</p>
               </div>
               {saving === choice.feature ? (
-                <LoaderCircle className="size-4 shrink-0 animate-spin text-stone-400" aria-hidden="true" />
+                <InlineLoader className="size-4 shrink-0 text-stone-400" />
               ) : null}
               <button
                 id={id}

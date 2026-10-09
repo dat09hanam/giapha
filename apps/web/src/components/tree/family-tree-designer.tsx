@@ -23,10 +23,11 @@ import {
   ChevronDown,
   ChevronUp,
   ImagePlus,
+  Info,
   MessageSquareQuote,
   HeartHandshake,
-  LoaderCircle,
   Lock,
+  MapPin,
   Network,
   PencilLine,
   Plus,
@@ -38,13 +39,21 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { BottomTab } from '@/components/layout/family-header';
+import { EditorSection, EditorTabs, FieldHint } from '@/components/tree/member-editor-layout';
+import { MemberPicker } from '@/components/tree/member-picker';
 import { familyEdgeTypes } from '@/components/tree/family-link-edge';
 import { Button } from '@/components/ui/button';
 import { CameraCapture } from '@/components/ui/camera-capture';
-import { DatePicker } from '@/components/ui/date-picker';
+import { useConfirm } from '@/components/ui/confirm-dialog';
+import { Segmented } from '@/components/ui/segmented';
+import { PartialDatePicker } from '@/components/ui/partial-date-picker';
+import { canChiYear } from '@/lib/han-viet';
+import { yearOf, formatPartialDate } from '@/lib/partial-date';
 import { ImageCropper } from '@/components/ui/image-cropper';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { Presence, usePresence } from '@/components/ui/presence';
@@ -64,9 +73,8 @@ import { saveFamilyTreeDesign, type FamilyTreeDesignSaveInput } from '@/lib/fami
 import { computeGenerations, layoutFamily, type LayoutDimensions } from '@/lib/family-layout';
 import { familyEdges, type FamilyEdge } from '@/lib/tree-layout';
 import { cn } from '@/lib/utils';
-import { todayInVietnam } from '@/lib/vietnam-date';
 import type { EditSuggestion } from '@/types/edit-suggestion';
-import type { FamilyTreeResponse, Person } from '@/types/family-tree';
+import type { FamilyTreeResponse, MaritalStatus, Person } from '@/types/family-tree';
 
 import {
   findMember,
@@ -77,6 +85,7 @@ import {
 } from './designer-model';
 import {
   findDuplicatePair,
+  husbandsOf,
   isChildKind,
   needsMotherChoice,
   nextWifeOrder,
@@ -155,12 +164,37 @@ const RELATIONSHIP_CHOICE_GRID_CLASSES: Record<RelationshipKind, string> = {
   DAUGHTER: 'sm:col-start-2 sm:row-start-3',
 };
 
-const GENDER_CHOICES: ReadonlyArray<{
-  value: Extract<DesignerGender, 'MALE' | 'FEMALE'>;
-  label: string;
-}> = [
+const GENDER_CHOICES: ReadonlyArray<{ value: DesignerGender; label: string }> = [
   { value: 'MALE', label: 'Nam' },
   { value: 'FEMALE', label: 'Nữ' },
+  { value: 'OTHER', label: 'Khác' },
+];
+
+const MARITAL_STATUS_LABELS: Record<MaritalStatus, string> = {
+  SINGLE: 'Độc thân',
+  MARRIED: 'Đã kết hôn',
+  DIVORCED: 'Ly hôn',
+  WIDOWED: 'Goá',
+};
+
+const LUNAR_MONTH_NAMES = [
+  'Giêng',
+  'Hai',
+  'Ba',
+  'Tư',
+  'Năm',
+  'Sáu',
+  'Bảy',
+  'Tám',
+  'Chín',
+  'Mười',
+  'Một',
+  'Chạp',
+] as const;
+
+const LIFE_CHOICES: ReadonlyArray<{ value: 'ALIVE' | 'DECEASED'; label: string }> = [
+  { value: 'ALIVE', label: 'Còn sống' },
+  { value: 'DECEASED', label: 'Đã mất' },
 ];
 
 const genderStyles: Record<DesignerGender, string> = {
@@ -201,12 +235,12 @@ function GenderAvatarFallback({
 }
 
 function memberYears(member: DesignerMember): string {
-  const birthYear = member.birthDate.slice(0, 4);
-  const deathYear = member.deathDate.slice(0, 4);
-  if (!birthYear && !deathYear) return 'Chưa cập nhật năm sinh';
+  const bornIn = yearOf(member.birthDate)?.toString() ?? '';
+  const deathYear = yearOf(member.deathDate)?.toString() ?? '';
+  if (!bornIn && !deathYear) return 'Chưa cập nhật năm sinh';
 
   const end = deathYear || (member.isAlive ? 'nay' : '?');
-  return (birthYear || '?') + ' – ' + end;
+  return (bornIn || '?') + ' – ' + end;
 }
 
 function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
@@ -332,10 +366,6 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
 
 const nodeTypes = { designerPerson: DesignerPersonNode } satisfies NodeTypes;
 
-function dateInputValue(value: string | null): string {
-  return value ? value.slice(0, 10) : '';
-}
-
 function lunarAnniversaryInput(day: number | null, month: number | null): string {
   if (!day || !month) return '';
   return String(day).padStart(2, '0') + '/' + String(month).padStart(2, '0');
@@ -364,8 +394,8 @@ function toDesignerMember(person: Person): DesignerMember {
     nickname: person.nickname ?? '',
     courtesyName: person.courtesyName ?? '',
     gender: person.gender,
-    birthDate: dateInputValue(person.birthDate),
-    deathDate: dateInputValue(person.deathDate),
+    birthDate: formatPartialDate(person.birthDate),
+    deathDate: formatPartialDate(person.deathDate),
     lunarDeathAnniversary: lunarAnniversaryInput(person.lunarDeathDay, person.lunarDeathMonth),
     isAlive: person.isAlive,
     burialPlace: person.burialPlace ?? '',
@@ -374,6 +404,16 @@ function toDesignerMember(person: Person): DesignerMember {
     biography: person.biography ?? '',
     fatherId: person.fatherId,
     motherId: person.motherId,
+    maritalStatus: person.maritalStatus ?? '',
+    education: person.education ?? '',
+    occupation: person.occupation ?? '',
+    hometown: person.hometown ?? '',
+    currentAddress: person.currentAddress ?? '',
+    mapUrl: person.mapUrl ?? '',
+    ageAtDeath: person.ageAtDeath?.toString() ?? '',
+    worshipPlace: person.worshipPlace ?? '',
+    worshipKeeperId: person.worshipKeeperId ?? '',
+    deathAnniversaryText: person.deathAnniversaryText ?? '',
     generation: person.generation ?? 1,
     orderInFamily: person.orderInFamily ?? 1,
     deletesBranch: true,
@@ -399,6 +439,16 @@ function createMember(gender: DesignerGender, generation = 1, orderInFamily = 1)
     biography: '',
     fatherId: null,
     motherId: null,
+    maritalStatus: '',
+    education: '',
+    occupation: '',
+    hometown: '',
+    currentAddress: '',
+    mapUrl: '',
+    ageAtDeath: '',
+    worshipPlace: '',
+    worshipKeeperId: '',
+    deathAnniversaryText: '',
     generation,
     orderInFamily,
     deletesBranch: true,
@@ -627,6 +677,20 @@ function buildDesignPayload(
         orderInFamily: member.orderInFamily,
         fatherClientId: member.fatherId,
         motherClientId: member.motherId,
+        maritalStatus: member.maritalStatus || null,
+        education: trimmedOrNull(member.education),
+        occupation: trimmedOrNull(member.occupation),
+        hometown: trimmedOrNull(member.hometown),
+        currentAddress: trimmedOrNull(member.currentAddress),
+        mapUrl: trimmedOrNull(member.mapUrl),
+        ageAtDeath: member.ageAtDeath ? Number(member.ageAtDeath) : null,
+        worshipPlace: trimmedOrNull(member.worshipPlace),
+        // A keeper removed from the draft is dropped rather than sent dangling.
+        worshipKeeperClientId:
+          member.worshipKeeperId && currentIds.has(member.worshipKeeperId)
+            ? member.worshipKeeperId
+            : null,
+        deathAnniversaryText: trimmedOrNull(member.deathAnniversaryText),
       };
     }),
     relationships: draft.relationships
@@ -726,6 +790,116 @@ function removeMembers(draft: DesignerDraft, removedIds: ReadonlySet<string>): D
 const fieldClassName =
   'h-11 min-w-0 rounded-xl border bg-white px-3 text-base sm:text-sm outline-none transition focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15';
 
+/** The eldest son is "Con trưởng"; everyone else is a son or a daughter. */
+function childRole(children: readonly DesignerMember[], child: DesignerMember): string {
+  if (child.gender === 'FEMALE') return 'Con gái';
+  if (child.gender !== 'MALE') return 'Con';
+  return children.find((entry) => entry.gender === 'MALE')?.id === child.id
+    ? 'Con trưởng'
+    : 'Con trai';
+}
+
+/** Years from birth to death, when both dates name a year. */
+function computedAgeAtDeath(member: DesignerMember): number | null {
+  const bornIn = yearOf(member.birthDate);
+  const diedIn = yearOf(member.deathDate);
+  return bornIn === null || diedIn === null || diedIn < bornIn ? null : diedIn - bornIn;
+}
+
+/**
+ * "Mùng 5 tháng Giêng năm Canh Ngọ" from the lunar anniversary and the death
+ * year. The can chi follows the solar year, so a death just before Tết may
+ * need correcting by hand.
+ */
+function anniversaryText(member: DesignerMember): string {
+  const { day, month } = parseLunarAnniversary(member.lunarDeathAnniversary);
+  if (!day || !month) return '';
+  const diedIn = yearOf(member.deathDate);
+  const date = `${day <= 10 ? 'Mùng ' + day : day} tháng ${LUNAR_MONTH_NAMES[month - 1]}`;
+  return diedIn === null ? date : `${date} năm ${canChiYear(diedIn)}`;
+}
+
+function CountBadge({ count }: { count: number }) {
+  return count > 0 ? (
+    <span className="grid h-6 min-w-6 place-items-center rounded-full bg-gold-100 px-1.5 text-xs font-semibold tabular-nums text-wood-700">
+      {count}
+    </span>
+  ) : null;
+}
+
+/** One relative in the Quan hệ tab: tap the name to open them, arrows to reorder. */
+function RelativeRow({
+  member,
+  role,
+  order,
+  onOpen,
+  onMove,
+}: {
+  member: DesignerMember;
+  role: string;
+  order?: number;
+  onOpen: () => void;
+  onMove?: { up: (() => void) | null; down: (() => void) | null };
+}) {
+  const name = member.name.trim() || 'Chưa đặt tên';
+  return (
+    <li className="flex items-center gap-3 rounded-xl border border-gold-500/25 bg-white p-2.5">
+      {order === undefined ? null : (
+        <span className="grid size-7 shrink-0 place-items-center rounded-lg border border-gold-500/40 text-xs font-semibold tabular-nums text-wood-700">
+          {order}
+        </span>
+      )}
+      <span
+        className={cn(
+          'grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold ring-1',
+          genderStyles[member.gender],
+        )}
+        aria-hidden="true"
+      >
+        {member.name.trim().split(/\s+/).pop()?.charAt(0).toUpperCase() || '?'}
+      </span>
+      <span className="grid min-w-0 flex-1 gap-1">
+        <button
+          type="button"
+          className="truncate text-left text-sm font-semibold text-brand-950 underline-offset-2 hover:underline"
+          title={name}
+          onClick={onOpen}
+        >
+          {name}
+        </button>
+        <span className="flex flex-wrap items-center gap-1.5 text-xs text-stone-500">
+          <span className="rounded-md bg-stone-100 px-1.5 py-0.5 font-medium text-stone-700">
+            {role}
+          </span>
+          {memberYears(member)}
+        </span>
+      </span>
+      {onMove ? (
+        <span className="flex shrink-0 flex-col">
+          <button
+            type="button"
+            className="grid size-7 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-brand-900 disabled:pointer-events-none disabled:opacity-30"
+            disabled={!onMove.up}
+            aria-label={'Chuyển ' + name + ' lên trên'}
+            onClick={() => onMove.up?.()}
+          >
+            <ChevronUp className="size-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="grid size-7 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-brand-900 disabled:pointer-events-none disabled:opacity-30"
+            disabled={!onMove.down}
+            aria-label={'Chuyển ' + name + ' xuống dưới'}
+            onClick={() => onMove.down?.()}
+          >
+            <ChevronDown className="size-4" aria-hidden="true" />
+          </button>
+        </span>
+      ) : null}
+    </li>
+  );
+}
+
 function DesignerTextField({
   id,
   label,
@@ -739,24 +913,24 @@ function DesignerTextField({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  type?: 'text' | 'date' | 'tel' | 'url';
+  type?: 'text' | 'partialDate' | 'tel' | 'url';
   maxLength?: number;
   placeholder?: string;
 }) {
-  if (type === 'date') {
-    // Birth and death dates: the Vietnamese calendar, never later than today.
+  if (type === 'partialDate') {
+    // Birth and death dates: a popup with day, month and year boxes; old
+    // ancestors often have only a year.
     return (
       <div className="grid gap-1.5">
         <label className="text-sm font-medium text-brand-950" htmlFor={id}>
           {label}
         </label>
-        <DatePicker
+        <PartialDatePicker
           id={id}
+          title={label}
           value={value}
           onChange={onChange}
-          max={todayInVietnam()}
-          allowClear
-          placeholder={placeholder ?? 'Chưa rõ'}
+          placeholder={placeholder}
         />
       </div>
     );
@@ -781,8 +955,10 @@ function DesignerTextField({
 function validateMemberForSave(member: DesignerMember): string | null {
   if (!member.name.trim()) return 'Vui lòng nhập họ và tên thành viên.';
 
-  if (member.birthDate && member.deathDate && member.deathDate < member.birthDate) {
-    return 'Ngày mất không được trước ngày sinh.';
+  const bornIn = yearOf(member.birthDate);
+  const diedIn = yearOf(member.deathDate);
+  if (bornIn !== null && diedIn !== null && diedIn < bornIn) {
+    return 'Năm mất không được trước năm sinh.';
   }
 
   return null;
@@ -929,6 +1105,8 @@ export function FamilyTreeDesigner({
     initialTree.people.length > 0 ? JSON.stringify(buildDesignPayload(initialDraft, [])) : null,
   );
   const showToast = useToast();
+  const confirm = useConfirm();
+  const router = useRouter();
   /** Below lg the member form is a bottom sheet, opened by tapping a card. */
   const [editorOpen, setEditorOpen] = useState(focusMemberId !== null);
   /** The suggestion being worked on, until it is marked handled or hidden. */
@@ -974,6 +1152,32 @@ export function FamilyTreeDesigner({
     [draft, selectedMemberId],
   );
   const selectedWives = useMemo(() => wivesOf(draft, selectedMemberId), [draft, selectedMemberId]);
+  const selectedHusbands = useMemo(
+    () => husbandsOf(draft, selectedMemberId),
+    [draft, selectedMemberId],
+  );
+  const selectedParents = useMemo(() => {
+    const parents: { role: string; member: DesignerMember }[] = [];
+    const father = selectedMember?.fatherId ? findMember(draft, selectedMember.fatherId) : null;
+    const mother = selectedMember?.motherId ? findMember(draft, selectedMember.motherId) : null;
+    if (father) parents.push({ role: 'Cha', member: father });
+    if (mother) parents.push({ role: 'Mẹ', member: mother });
+    return parents;
+  }, [draft, selectedMember]);
+  const selectedSpouseCount =
+    selectedMember?.gender === 'MALE' ? selectedWives.length : selectedHusbands.length;
+  const relativeCount = selectedParents.length + selectedSpouseCount + selectedChildren.length;
+  const selectedComputedAge = selectedMember ? computedAgeAtDeath(selectedMember) : null;
+  const selectedAge = selectedMember?.ageAtDeath
+    ? Number(selectedMember.ageAtDeath)
+    : selectedComputedAge;
+  // Vietnamese obituaries say "hưởng dương" for those who die young.
+  const selectedAgeLabel = selectedAge !== null && selectedAge < 60 ? 'Hưởng dương' : 'Hưởng thọ';
+  const worshipKeeperChoices = useMemo(
+    () => [...draft.people].filter((member) => member.id !== selectedMemberId).sort(sortMembers),
+    [draft.people, selectedMemberId],
+  );
+  const [editorTab, setEditorTab] = useState<'personal' | 'relations'>('personal');
   const designPayload = useMemo(
     () => buildDesignPayload(draft, deletedPersonIds),
     [deletedPersonIds, draft],
@@ -1210,7 +1414,42 @@ export function FamilyTreeDesigner({
 
   /** A death date and "còn sống" cannot both hold, so each one clears the other. */
   function patchDeathDate(value: string): void {
-    patchSelectedMember(value ? { deathDate: value, isAlive: false } : { deathDate: value });
+    patchWithAnniversaryText(value ? { deathDate: value, isAlive: false } : { deathDate: value });
+  }
+
+  /**
+   * Applies a change to the death date or lunar anniversary, and keeps "cách
+   * gọi ngày giỗ" in step while it is empty or still the filled-in wording.
+   */
+  function patchWithAnniversaryText(patch: Partial<DesignerMember>): void {
+    if (!selectedMember) return;
+    const filled = anniversaryText(selectedMember);
+    const follows =
+      !selectedMember.deathAnniversaryText.trim() || selectedMember.deathAnniversaryText === filled;
+    patchSelectedMember(
+      follows
+        ? { ...patch, deathAnniversaryText: anniversaryText({ ...selectedMember, ...patch }) }
+        : patch,
+    );
+  }
+
+  function locateOnMap(): void {
+    if (!('geolocation' in navigator)) {
+      showToast({ kind: 'error', message: 'Trình duyệt không hỗ trợ định vị.' });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) =>
+        patchSelectedMember({
+          mapUrl: `https://www.google.com/maps?q=${coords.latitude.toFixed(6)},${coords.longitude.toFixed(6)}`,
+        }),
+      () =>
+        showToast({
+          kind: 'error',
+          message: 'Không lấy được vị trí. Hãy cho phép truy cập vị trí rồi thử lại.',
+        }),
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
   }
 
   function patchIsAlive(isAlive: boolean): void {
@@ -1222,6 +1461,10 @@ export function FamilyTreeDesigner({
             deathDate: '',
             lunarDeathAnniversary: '',
             burialPlace: '',
+            ageAtDeath: '',
+            worshipPlace: '',
+            worshipKeeperId: '',
+            deathAnniversaryText: '',
           }
         : { isAlive },
     );
@@ -1304,13 +1547,20 @@ export function FamilyTreeDesigner({
     }
   }
 
-  function confirmLeave(event: { preventDefault: () => void }): void {
-    if (
-      hasUnsavedChanges &&
-      !window.confirm('Bản thiết kế có thay đổi chưa lưu. Bạn vẫn muốn rời trang?')
-    ) {
-      event.preventDefault();
-    }
+  /** Leaving with unsaved changes waits for the visitor to confirm, then follows the link. */
+  function confirmLeave(event: MouseEvent<HTMLAnchorElement>): void {
+    if (!hasUnsavedChanges) return;
+    event.preventDefault();
+    const href = event.currentTarget.href;
+    void confirm({
+      title: 'Rời trang khi chưa lưu?',
+      message: 'Bản thiết kế có thay đổi chưa lưu. Nếu rời trang, các thay đổi này sẽ mất.',
+      confirmLabel: 'Rời trang',
+      cancelLabel: 'Ở lại',
+      tone: 'danger',
+    }).then((leave) => {
+      if (leave) router.push(href);
+    });
   }
 
   async function saveAll(): Promise<boolean> {
@@ -1424,8 +1674,10 @@ export function FamilyTreeDesigner({
   }
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-paper-deep">
-      <header className="heritage-hero hidden rounded-none border-x-0 border-t-0 text-gold-50 lg:block">
+    // From lg the designer is exactly one screen: the page never scrolls, only
+    // the member panel does, whatever height the header wraps to.
+    <main className="min-h-[calc(100vh-4rem)] bg-paper-deep lg:flex lg:h-dvh lg:min-h-0 lg:flex-col lg:overflow-hidden">
+      <header className="heritage-hero hidden shrink-0 rounded-none border-x-0 border-t-0 text-gold-50 lg:block">
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid size-10 shrink-0 place-items-center rounded-full bg-gold-200/10 text-gold-200 ring-1 ring-gold-200/25">
@@ -1453,7 +1705,7 @@ export function FamilyTreeDesigner({
               onClick={() => void saveAll()}
             >
               {savingAll ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                <InlineLoader className="size-4" />
               ) : hasUnsavedChanges ? (
                 <Save className="size-4" aria-hidden="true" />
               ) : (
@@ -1480,9 +1732,9 @@ export function FamilyTreeDesigner({
         </div>
       </header>
 
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[minmax(0,1fr)]">
         <section
-          className="relative h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] overflow-hidden bg-paper lg:h-[calc(100vh-4rem)] lg:border-r lg:border-gold-500/30"
+          className="relative h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] overflow-hidden bg-paper lg:h-auto lg:border-r lg:border-gold-500/30"
           aria-label="Canvas thiết kế cây gia phả"
         >
           <ReactFlow
@@ -1516,12 +1768,6 @@ export function FamilyTreeDesigner({
             <Controls position="bottom-left" showInteractive={false} className="max-lg:!hidden" />
             <Panel
               position="top-left"
-              className="hidden max-w-xs rounded-xl border border-gold-500/30 bg-paper/90 px-3 py-2 text-xs leading-5 text-stone-600 shadow-sm backdrop-blur lg:block"
-            >
-              Chọn một khung để chỉnh sửa hoặc bấm “Thêm quan hệ” để mở rộng cây.
-            </Panel>
-            <Panel
-              position="top-left"
               className="rounded-full border border-gold-500/30 bg-paper/90 px-3 py-1.5 text-xs text-stone-600 shadow-sm backdrop-blur lg:hidden"
             >
               {memberCount} khung · Chạm vào khung để sửa
@@ -1545,10 +1791,10 @@ export function FamilyTreeDesigner({
             editorSheet.mounted
               ? 'ui-sheet-below-lg fixed inset-x-0 bottom-0 z-[45] max-h-[85dvh] rounded-t-3xl pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl'
               : 'hidden',
-            'lg:static lg:z-auto lg:block lg:h-[calc(100vh-4rem)] lg:max-h-none lg:rounded-none lg:pb-5 lg:shadow-none',
+            'lg:static lg:z-auto lg:block lg:h-auto lg:min-h-0 lg:max-h-none lg:rounded-none lg:pb-5 lg:shadow-none',
           )}
           aria-label="Thông tin thành viên"
-          data-presence={editorSheet.state}
+          data-sheet={editorSheet.state}
         >
           <div
             className="mx-auto -mt-1 mb-3 h-1 w-10 rounded-full bg-stone-300 lg:hidden"
@@ -1621,7 +1867,7 @@ export function FamilyTreeDesigner({
                     onClick={() => void resolveSuggestion()}
                   >
                     {markingSuggestion ? (
-                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                      <InlineLoader className="size-4" />
                     ) : (
                       <Check className="size-4" aria-hidden="true" />
                     )}
@@ -1648,365 +1894,562 @@ export function FamilyTreeDesigner({
           ) : null}
 
           {selectedMember ? (
-            // A disabled fieldset locks every control for someone outside the manager's branch.
-            <fieldset
-              disabled={!canEditMember(selectedMember.id)}
-              className="mt-5 grid min-w-0 gap-4"
-            >
-              <DesignerTextField
-                id="designer-member-honorific"
-                label="Danh xưng"
-                value={selectedMember.honorific}
-                maxLength={100}
-                placeholder="Ví dụ: Cụ tổ, Cụ, Ông, Bà..."
-                onChange={(value) => patchSelectedMember({ honorific: value })}
+            <div className="mt-4 grid min-w-0 gap-4">
+              <EditorTabs
+                tabs={[
+                  {
+                    value: 'personal',
+                    label: 'Cá nhân',
+                    icon: <UserRound className="size-4 shrink-0" aria-hidden="true" />,
+                  },
+                  {
+                    value: 'relations',
+                    label: 'Quan hệ',
+                    icon: <Network className="size-4 shrink-0" aria-hidden="true" />,
+                    count: relativeCount,
+                  },
+                ]}
+                value={editorTab}
+                onChange={setEditorTab}
+                panelId="designer-member-panel"
               />
 
-              <DesignerTextField
-                id="designer-member-name"
-                label="Họ và tên"
-                value={selectedMember.name}
-                maxLength={191}
-                onChange={(value) => patchSelectedMember({ name: value })}
-              />
+              {/* A disabled fieldset locks every control for someone outside the manager's branch. */}
+              <fieldset
+                id="designer-member-panel"
+                role="tabpanel"
+                disabled={!canEditMember(selectedMember.id)}
+                className="grid min-w-0 gap-4"
+              >
+                {editorTab === 'personal' ? (
+                  <>
+                    <EditorSection number={1} title="Ảnh & vai vế">
+                      <div className="flex items-center gap-4">
+                        <span className="grid size-24 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-gold-500/40 bg-gold-50">
+                          {selectedAvatarSrc ? (
+                            // Avatars come from the API or a local crop, so next/image's
+                            // loader does not apply.
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={selectedAvatarSrc}
+                              alt={'Ảnh đại diện của ' + selectedMember.name}
+                              className="size-full object-cover"
+                            />
+                          ) : (
+                            <GenderAvatarFallback
+                              gender={selectedMember.gender}
+                              generation={selectedPlacement?.generation}
+                              birthDate={selectedMember.birthDate}
+                            />
+                          )}
+                        </span>
 
-              <DesignerTextField
-                id="designer-member-nickname"
-                label="Tên thường gọi"
-                value={selectedMember.nickname}
-                maxLength={191}
-                placeholder="Không bắt buộc"
-                onChange={(value) => patchSelectedMember({ nickname: value })}
-              />
+                        <div className="grid min-w-0 flex-1 gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-brand-950">Ảnh đại diện</p>
+                            <p className="text-xs leading-5 text-stone-500">
+                              JPG, PNG hoặc WEBP. Sẽ hiện trên phả đồ.
+                            </p>
+                          </div>
+                          <input
+                            ref={avatarInputRef}
+                            id="designer-member-avatar"
+                            type="file"
+                            accept={ACCEPTED_IMAGE_TYPES.join(',')}
+                            className="sr-only"
+                            onChange={(event) => {
+                              const file = event.currentTarget.files?.[0];
+                              event.currentTarget.value = '';
+                              if (file) pickAvatarSource(file);
+                            }}
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={savingAll}
+                              onClick={() => avatarInputRef.current?.click()}
+                            >
+                              <ImagePlus className="size-4" aria-hidden="true" />
+                              {selectedAvatarSrc ? 'Đổi ảnh' : 'Tải ảnh lên'}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={savingAll}
+                              onClick={() => setCameraOpen(true)}
+                            >
+                              <Camera className="size-4" aria-hidden="true" />
+                              Chụp ảnh
+                            </Button>
+                          </div>
+                          {selectedAvatarSrc ? (
+                            <button
+                              type="button"
+                              className="w-fit text-left text-xs font-medium text-red-700 underline-offset-2 hover:underline"
+                              onClick={removeAvatar}
+                            >
+                              Xóa ảnh đại diện
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
 
-              <fieldset className="grid gap-1.5">
-                <legend className="text-sm font-medium text-brand-950">Giới tính</legend>
-                <div className="mt-1.5 grid grid-cols-2 gap-3">
-                  {GENDER_CHOICES.map((choice) => {
-                    const isChecked = selectedMember.gender === choice.value;
-                    return (
-                      <label
-                        key={choice.value}
-                        className={cn(
-                          'flex h-11 cursor-pointer items-center gap-2.5 rounded-xl border bg-white px-3 text-sm transition',
-                          isChecked
-                            ? 'border-brand-700 font-medium text-brand-950 ring-2 ring-brand-700/15'
-                            : 'text-stone-600 hover:border-brand-800/35',
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          name="designer-gender"
-                          value={choice.value}
-                          checked={isChecked}
-                          onChange={() => patchSelectedMember({ gender: choice.value })}
-                          className="size-4 accent-brand-700"
+                      <div className="border-t border-gold-500/20" />
+
+                      <DesignerTextField
+                        id="designer-member-honorific"
+                        label="Vai vế hiển thị trên phả đồ"
+                        value={selectedMember.honorific}
+                        maxLength={100}
+                        placeholder="Ông, Cụ, Bà, Chi trưởng, Thuỷ tổ..."
+                        onChange={(value) => patchSelectedMember({ honorific: value })}
+                      />
+                      <FieldHint>Hiện dưới tên trong ô phả đồ</FieldHint>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-1.5">
+                          <span className="text-sm font-medium text-brand-950">Đời thứ</span>
+                          <output className="flex h-11 items-center rounded-xl border border-gold-500/30 bg-gold-100/60 px-3 text-sm tabular-nums text-wood-800">
+                            {selectedPlacement?.generation ?? '–'}
+                          </output>
+                        </div>
+                        <div className="grid gap-1.5">
+                          <span className="text-sm font-medium text-brand-950">
+                            Thứ tự trong nhà
+                          </span>
+                          <output className="flex h-11 items-center rounded-xl border border-gold-500/30 bg-gold-100/60 px-3 text-sm tabular-nums text-wood-800">
+                            {selectedPlacement?.orderInFamily ?? '–'}
+                          </output>
+                        </div>
+                      </div>
+                      <FieldHint>Tự tính theo quan hệ cha – con</FieldHint>
+                    </EditorSection>
+
+                    <EditorSection number={2} title="Nhân thân">
+                      <DesignerTextField
+                        id="designer-member-name"
+                        label="Họ và tên *"
+                        value={selectedMember.name}
+                        maxLength={191}
+                        placeholder="Họ và tên đầy đủ"
+                        onChange={(value) => patchSelectedMember({ name: value })}
+                      />
+
+                      <DesignerTextField
+                        id="designer-member-nickname"
+                        label="Tên khác"
+                        value={selectedMember.nickname}
+                        maxLength={191}
+                        placeholder="Tên thường gọi, biệt danh..."
+                        onChange={(value) => patchSelectedMember({ nickname: value })}
+                      />
+
+                      <div className="grid gap-1.5">
+                        <span className="text-sm font-medium text-brand-950">Giới tính</span>
+                        <Segmented
+                          label="Giới tính"
+                          options={GENDER_CHOICES}
+                          value={selectedMember.gender}
+                          onChange={(gender) => patchSelectedMember({ gender })}
                         />
-                        {choice.label}
+                      </div>
+
+                      <DesignerTextField
+                        id="designer-member-birth-date"
+                        label="Ngày sinh"
+                        type="partialDate"
+                        value={selectedMember.birthDate}
+                        onChange={(value) => patchSelectedMember({ birthDate: value })}
+                      />
+                      <FieldHint>Chỉ biết năm cũng được</FieldHint>
+
+                      <DesignerTextField
+                        id="designer-member-phone"
+                        label="Số điện thoại"
+                        type="tel"
+                        value={selectedMember.phone}
+                        maxLength={30}
+                        placeholder="Nhập số điện thoại"
+                        onChange={(value) => patchSelectedMember({ phone: value })}
+                      />
+
+                      <fieldset className="grid gap-1.5">
+                        <legend className="mb-1.5 text-sm font-medium text-brand-950">
+                          Tình trạng hôn nhân
+                        </legend>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(
+                            Object.entries(MARITAL_STATUS_LABELS) as Array<[MaritalStatus, string]>
+                          ).map(([status, statusLabel]) => {
+                            const selected = selectedMember.maritalStatus === status;
+                            return (
+                              <button
+                                key={status}
+                                type="button"
+                                aria-pressed={selected}
+                                // Tapping the chosen one again clears it.
+                                onClick={() =>
+                                  patchSelectedMember({ maritalStatus: selected ? '' : status })
+                                }
+                                className={cn(
+                                  'h-11 truncate whitespace-nowrap rounded-xl border px-2 text-sm font-medium transition',
+                                  selected
+                                    ? 'border-brand-700 bg-brand-700 text-white shadow-sm'
+                                    : 'border-stone-200 bg-white text-stone-700 hover:border-brand-700/40 hover:bg-gold-50',
+                                )}
+                              >
+                                {statusLabel}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </fieldset>
+
+                      <DesignerTextField
+                        id="designer-member-education"
+                        label="Trình độ"
+                        value={selectedMember.education}
+                        maxLength={191}
+                        placeholder="Học vấn, kĩ năng..."
+                        onChange={(value) => patchSelectedMember({ education: value })}
+                      />
+
+                      <DesignerTextField
+                        id="designer-member-occupation"
+                        label="Nghề nghiệp"
+                        value={selectedMember.occupation}
+                        maxLength={191}
+                        placeholder="Nghề, chức vụ..."
+                        onChange={(value) => patchSelectedMember({ occupation: value })}
+                      />
+                    </EditorSection>
+
+                    <EditorSection number={3} title="Quê quán & địa chỉ" collapsible>
+                      <DesignerTextField
+                        id="designer-member-hometown"
+                        label="Nguyên quán"
+                        value={selectedMember.hometown}
+                        maxLength={255}
+                        placeholder="Xã/phường, tỉnh/thành phố..."
+                        onChange={(value) => patchSelectedMember({ hometown: value })}
+                      />
+
+                      <div className="border-t border-gold-500/20" />
+
+                      <DesignerTextField
+                        id="designer-member-current-address"
+                        label="Địa chỉ hiện tại"
+                        value={selectedMember.currentAddress}
+                        maxLength={255}
+                        placeholder="Số nhà, đường, thôn..."
+                        onChange={(value) => patchSelectedMember({ currentAddress: value })}
+                      />
+
+                      <div className="grid gap-1.5">
+                        <label
+                          className="text-sm font-medium text-brand-950"
+                          htmlFor="designer-member-map-url"
+                        >
+                          Link Google Map
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            id="designer-member-map-url"
+                            type="url"
+                            inputMode="url"
+                            value={selectedMember.mapUrl}
+                            maxLength={500}
+                            placeholder="Dán link..."
+                            onChange={(event) =>
+                              patchSelectedMember({ mapUrl: event.currentTarget.value })
+                            }
+                            className={cn(fieldClassName, 'flex-1')}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-11 shrink-0"
+                            onClick={locateOnMap}
+                          >
+                            <MapPin className="size-4" aria-hidden="true" />
+                            Định vị
+                          </Button>
+                        </div>
+                        {selectedMember.mapUrl &&
+                        !/^https?:\/\/\S+$/.test(selectedMember.mapUrl.trim()) ? (
+                          <p className="text-xs text-red-700">
+                            Link phải bắt đầu bằng http:// hoặc https://.
+                          </p>
+                        ) : null}
+                      </div>
+                    </EditorSection>
+
+                    <EditorSection number={4} title="Tiểu sử" collapsible>
+                      <label className="sr-only" htmlFor="designer-member-biography">
+                        Tiểu sử
                       </label>
-                    );
-                  })}
-                </div>
-              </fieldset>
-
-              <DesignerTextField
-                id="designer-member-birth-date"
-                label="Ngày sinh"
-                type="date"
-                value={selectedMember.birthDate}
-                onChange={(value) => patchSelectedMember({ birthDate: value })}
-              />
-
-              <label
-                className="flex h-11 cursor-pointer items-center gap-2.5 rounded-xl border bg-white px-3 text-sm text-brand-950 transition hover:border-brand-800/35"
-                htmlFor="designer-member-is-alive"
-              >
-                <input
-                  id="designer-member-is-alive"
-                  type="checkbox"
-                  checked={selectedMember.isAlive}
-                  onChange={(event) => patchIsAlive(event.currentTarget.checked)}
-                  className="size-4 accent-brand-700"
-                />
-                <span className="font-medium">Còn sống</span>
-              </label>
-
-              {selectedMember.isAlive ? null : (
-                <fieldset className="grid gap-4 rounded-2xl border border-amber-900/20 bg-amber-50/50 p-4">
-                  <legend className="px-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
-                    Thông tin người đã mất
-                  </legend>
-
-                  <DesignerTextField
-                    id="designer-member-courtesy-name"
-                    label="Tên tự / hiệu"
-                    value={selectedMember.courtesyName}
-                    maxLength={191}
-                    placeholder="Không bắt buộc"
-                    onChange={(value) => patchSelectedMember({ courtesyName: value })}
-                  />
-
-                  <DesignerTextField
-                    id="designer-member-death-date"
-                    label="Ngày mất"
-                    type="date"
-                    value={selectedMember.deathDate}
-                    onChange={patchDeathDate}
-                  />
-
-                  <DeathAnniversaryPicker
-                    id="designer-member-anniversary"
-                    label="Ngày giỗ (âm lịch)"
-                    maxDayInMonth={30}
-                    value={selectedMember.lunarDeathAnniversary}
-                    onChange={(value) => patchSelectedMember({ lunarDeathAnniversary: value })}
-                  />
-
-                  <DesignerTextField
-                    id="designer-member-burial-place"
-                    label="Nơi an táng"
-                    value={selectedMember.burialPlace}
-                    maxLength={255}
-                    placeholder="Không bắt buộc"
-                    onChange={(value) => patchSelectedMember({ burialPlace: value })}
-                  />
-                </fieldset>
-              )}
-
-              <DesignerTextField
-                id="designer-member-phone"
-                label="Số điện thoại"
-                type="tel"
-                value={selectedMember.phone}
-                maxLength={30}
-                placeholder="Không bắt buộc"
-                onChange={(value) => patchSelectedMember({ phone: value })}
-              />
-
-              <div className="grid gap-1.5">
-                <span className="text-sm font-medium text-brand-950">Ảnh đại diện</span>
-                <div className="flex items-center gap-3">
-                  <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl border bg-white">
-                    {selectedAvatarSrc ? (
-                      // Avatars come from the API or a local crop, so next/image's
-                      // loader does not apply.
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={selectedAvatarSrc}
-                        alt={'Ảnh đại diện của ' + selectedMember.name}
-                        className="size-full object-cover"
+                      <textarea
+                        id="designer-member-biography"
+                        value={selectedMember.biography}
+                        onChange={(event) =>
+                          patchSelectedMember({ biography: event.currentTarget.value })
+                        }
+                        rows={4}
+                        maxLength={10000}
+                        placeholder="Kể lại thân thế, sự nghiệp, công đức của thành viên..."
+                        className="min-w-0 resize-y rounded-xl border bg-white px-3 py-2.5 text-base leading-6 outline-none transition focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 sm:text-sm"
                       />
-                    ) : (
-                      <GenderAvatarFallback
-                        gender={selectedMember.gender}
-                        generation={selectedPlacement?.generation}
-                        birthDate={selectedMember.birthDate}
-                      />
-                    )}
-                  </span>
+                    </EditorSection>
 
-                  <div className="grid min-w-0 flex-1 gap-2">
-                    <input
-                      ref={avatarInputRef}
-                      id="designer-member-avatar"
-                      type="file"
-                      accept={ACCEPTED_IMAGE_TYPES.join(',')}
-                      className="sr-only"
-                      onChange={(event) => {
-                        const file = event.currentTarget.files?.[0];
-                        event.currentTarget.value = '';
-                        if (file) pickAvatarSource(file);
-                      }}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={savingAll}
-                        onClick={() => avatarInputRef.current?.click()}
-                      >
-                        <ImagePlus className="size-4" aria-hidden="true" />
-                        {selectedAvatarSrc ? 'Đổi ảnh' : 'Chọn ảnh'}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={savingAll}
-                        onClick={() => setCameraOpen(true)}
-                      >
-                        <Camera className="size-4" aria-hidden="true" />
-                        Chụp ảnh
-                      </Button>
-                    </div>
-                    {selectedAvatarSrc ? (
-                      <button
-                        type="button"
-                        className="text-left text-xs font-medium text-red-700 underline-offset-2 hover:underline"
-                        onClick={removeAvatar}
-                      >
-                        Xóa ảnh đại diện
-                      </button>
-                    ) : (
-                      <span className="text-xs text-stone-500">
-                        JPG, PNG hoặc WEBP, tối đa 2 MB.
+                    <EditorSection number={5} title="Mất & thờ cúng">
+                      <Segmented
+                        label="Còn sống hay đã mất"
+                        options={LIFE_CHOICES}
+                        value={selectedMember.isAlive ? 'ALIVE' : 'DECEASED'}
+                        onChange={(choice) => patchIsAlive(choice === 'ALIVE')}
+                      />
+
+                      {selectedMember.isAlive ? (
+                        <p className="text-xs leading-5 text-stone-500">
+                          Thành viên còn sống. Chọn &quot;Đã mất&quot; để nhập ngày mất, ngày giỗ,
+                          nơi thờ cúng và mộ táng.
+                        </p>
+                      ) : (
+                        <>
+                          <DesignerTextField
+                            id="designer-member-death-date"
+                            label="Ngày mất (dương lịch)"
+                            type="partialDate"
+                            value={selectedMember.deathDate}
+                            onChange={patchDeathDate}
+                          />
+
+                          <DeathAnniversaryPicker
+                            id="designer-member-anniversary"
+                            label="Ngày giỗ (âm lịch)"
+                            maxDayInMonth={30}
+                            value={selectedMember.lunarDeathAnniversary}
+                            onChange={(value) =>
+                              patchWithAnniversaryText({ lunarDeathAnniversary: value })
+                            }
+                          />
+
+                          <DesignerTextField
+                            id="designer-member-anniversary-text"
+                            label="Cách gọi ngày giỗ"
+                            value={selectedMember.deathAnniversaryText}
+                            maxLength={191}
+                            placeholder="20 tháng Chạp năm Canh Ngọ"
+                            onChange={(value) =>
+                              patchSelectedMember({ deathAnniversaryText: value })
+                            }
+                          />
+                          <FieldHint>
+                            Hiện ở trang xem. Tự điền từ ngày giỗ và năm mất, sửa được (ví dụ thêm
+                            giờ mất).
+                          </FieldHint>
+
+                          <DesignerTextField
+                            id="designer-member-age-at-death"
+                            label={selectedAgeLabel}
+                            value={selectedMember.ageAtDeath}
+                            maxLength={3}
+                            placeholder={
+                              selectedComputedAge === null
+                                ? 'Số tuổi'
+                                : `${selectedComputedAge} tuổi`
+                            }
+                            onChange={(value) =>
+                              patchSelectedMember({
+                                ageAtDeath: value.replace(/\D/g, '').slice(0, 3),
+                              })
+                            }
+                          />
+                          <FieldHint>Tự tính = năm mất − năm sinh</FieldHint>
+
+                          <DesignerTextField
+                            id="designer-member-worship-place"
+                            label="Thờ cúng tại"
+                            value={selectedMember.worshipPlace}
+                            maxLength={255}
+                            placeholder="Vị trí thờ cúng hiện tại"
+                            onChange={(value) => patchSelectedMember({ worshipPlace: value })}
+                          />
+
+                          <MemberPicker
+                            id="designer-member-worship-keeper"
+                            label="Người phụ trách cúng giỗ"
+                            members={worshipKeeperChoices}
+                            value={selectedMember.worshipKeeperId}
+                            onChange={(worshipKeeperId) => patchSelectedMember({ worshipKeeperId })}
+                          />
+
+                          <DesignerTextField
+                            id="designer-member-courtesy-name"
+                            label="Tên tự / hiệu / thụy"
+                            value={selectedMember.courtesyName}
+                            maxLength={191}
+                            placeholder="Không bắt buộc"
+                            onChange={(value) => patchSelectedMember({ courtesyName: value })}
+                          />
+
+                          <DesignerTextField
+                            id="designer-member-burial-place"
+                            label="Mộ táng"
+                            value={selectedMember.burialPlace}
+                            maxLength={255}
+                            placeholder="Địa chỉ an lạc"
+                            onChange={(value) => patchSelectedMember({ burialPlace: value })}
+                          />
+                        </>
+                      )}
+                    </EditorSection>
+
+                    <p className="flex gap-2 rounded-xl border border-amber-900/15 bg-amber-50/70 px-3 py-2.5 text-xs leading-5 text-amber-950/80">
+                      <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                      <span>
+                        Chỉ <strong>Họ và tên</strong> là bắt buộc. Các mục khác có thể bổ sung dần.
                       </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <EditorSection title="Cha mẹ">
+                      {selectedParents.length > 0 ? (
+                        <ul className="grid gap-2">
+                          {selectedParents.map(({ role, member }) => (
+                            <RelativeRow
+                              key={member.id}
+                              member={member}
+                              role={role}
+                              onOpen={() => selectMember(member.id)}
+                            />
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="flex gap-2 rounded-xl border border-amber-900/15 bg-amber-50/70 px-3 py-2.5 text-xs leading-5 text-amber-950/80">
+                          <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                          Chưa có cha mẹ trong phả — thành viên đứng đầu nhánh này.
+                        </p>
+                      )}
+                    </EditorSection>
 
-              <label className="grid gap-1.5" htmlFor="designer-member-biography">
-                <span className="text-sm font-medium text-brand-950">Tiểu sử</span>
-                <textarea
-                  id="designer-member-biography"
-                  value={selectedMember.biography}
-                  onChange={(event) =>
-                    patchSelectedMember({
-                      biography: event.currentTarget.value,
-                    })
-                  }
-                  rows={4}
-                  maxLength={10000}
-                  placeholder="Tóm tắt cuộc đời, công trạng, ghi chú của dòng họ..."
-                  className="min-w-0 resize-y rounded-xl border bg-white px-3 py-2.5 text-base sm:text-sm leading-6 outline-none transition focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15"
-                />
-              </label>
-
-              {selectedWives.length > 1 ? (
-                <fieldset className="grid gap-3 rounded-2xl border border-rose-900/20 bg-rose-50/50 p-4">
-                  <legend className="px-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-rose-700">
-                    Danh sách vợ ({selectedWives.length})
-                  </legend>
-
-                  <ol className="grid gap-2">
-                    {selectedWives.map((wife, index) => (
-                      <li
-                        key={wife.member.id}
-                        className="flex items-center gap-2 rounded-xl border border-rose-900/10 bg-white p-2"
+                    <EditorSection
+                      title="Vợ / chồng"
+                      badge={<CountBadge count={selectedSpouseCount} />}
+                    >
+                      {selectedMember.gender === 'MALE' && selectedWives.length > 0 ? (
+                        <ol className="grid gap-2">
+                          {selectedWives.map((wife, index) => (
+                            <RelativeRow
+                              key={wife.member.id}
+                              member={wife.member}
+                              role={selectedWives.length > 1 ? `Vợ ${index + 1}` : 'Vợ'}
+                              onOpen={() => selectMember(wife.member.id)}
+                              onMove={
+                                selectedWives.length > 1
+                                  ? {
+                                      up: index > 0 ? () => moveWife(index, -1) : null,
+                                      down:
+                                        index < selectedWives.length - 1
+                                          ? () => moveWife(index, 1)
+                                          : null,
+                                    }
+                                  : undefined
+                              }
+                            />
+                          ))}
+                        </ol>
+                      ) : selectedHusbands.length > 0 ? (
+                        <ul className="grid gap-2">
+                          {selectedHusbands.map((husband) => (
+                            <RelativeRow
+                              key={husband.id}
+                              member={husband}
+                              role="Chồng"
+                              onOpen={() => selectMember(husband.id)}
+                            />
+                          ))}
+                        </ul>
+                      ) : null}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={savingAll}
+                        onClick={() => openRelationshipPicker(selectedMember.id)}
                       >
-                        <span className="shrink-0 rounded-lg bg-rose-100 px-2 py-1 text-xs font-semibold text-rose-900">
-                          Vợ {index + 1}
-                        </span>
-                        <button
-                          type="button"
-                          className="min-w-0 flex-1 truncate text-left text-sm font-medium text-brand-950 underline-offset-2 hover:underline"
-                          title={wife.member.name}
-                          onClick={() => selectMember(wife.member.id)}
-                        >
-                          {wife.member.name}
-                        </button>
-                        <span className="flex shrink-0 items-center">
-                          <button
-                            type="button"
-                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-brand-900 disabled:pointer-events-none disabled:opacity-30"
-                            disabled={index === 0}
-                            aria-label={'Chuyển ' + wife.member.name + ' lên trên'}
-                            onClick={() => moveWife(index, -1)}
-                          >
-                            <ChevronUp className="size-4" aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
-                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-brand-900 disabled:pointer-events-none disabled:opacity-30"
-                            disabled={index === selectedWives.length - 1}
-                            aria-label={'Chuyển ' + wife.member.name + ' xuống dưới'}
-                            onClick={() => moveWife(index, 1)}
-                          >
-                            <ChevronDown className="size-4" aria-hidden="true" />
-                          </button>
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                </fieldset>
-              ) : null}
+                        <Plus className="size-4" aria-hidden="true" />
+                        Thêm vợ / chồng
+                      </Button>
+                    </EditorSection>
 
-              {selectedChildren.length > 0 ? (
-                <fieldset className="grid gap-3 rounded-2xl border border-brand-900/20 bg-brand-50/50 p-4">
-                  <legend className="px-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-brand-700">
-                    Danh sách con ({selectedChildren.length})
-                  </legend>
-
-                  <ol className="grid gap-2">
-                    {selectedChildren.map((child, index) => (
-                      <li
-                        key={child.id}
-                        className="flex items-center gap-2 rounded-xl border border-brand-900/10 bg-white p-2"
+                    <EditorSection
+                      title="Các con"
+                      badge={<CountBadge count={selectedChildren.length} />}
+                    >
+                      {selectedChildren.length > 0 ? (
+                        <ol className="grid gap-2">
+                          {selectedChildren.map((child, index) => (
+                            <RelativeRow
+                              key={child.id}
+                              member={child}
+                              order={index + 1}
+                              role={childRole(selectedChildren, child)}
+                              onOpen={() => selectMember(child.id)}
+                              onMove={
+                                selectedChildren.length > 1
+                                  ? {
+                                      up: index > 0 ? () => moveChild(index, -1) : null,
+                                      down:
+                                        index < selectedChildren.length - 1
+                                          ? () => moveChild(index, 1)
+                                          : null,
+                                    }
+                                  : undefined
+                              }
+                            />
+                          ))}
+                        </ol>
+                      ) : null}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={savingAll}
+                        onClick={() => openRelationshipPicker(selectedMember.id)}
                       >
-                        <span className="shrink-0 rounded-lg bg-brand-100 px-2 py-1 text-xs font-semibold text-brand-900">
-                          Thứ {index + 1}
-                        </span>
-                        <button
-                          type="button"
-                          className="min-w-0 flex-1 truncate text-left text-sm font-medium text-brand-950 underline-offset-2 hover:underline"
-                          title={child.name}
-                          onClick={() => selectMember(child.id)}
-                        >
-                          {child.name}
-                        </button>
-                        <span className="flex shrink-0 items-center">
-                          <button
-                            type="button"
-                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-brand-900 disabled:pointer-events-none disabled:opacity-30"
-                            disabled={index === 0}
-                            aria-label={'Chuyển ' + child.name + ' lên trên'}
-                            onClick={() => moveChild(index, -1)}
-                          >
-                            <ChevronUp className="size-4" aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
-                            className="grid size-8 place-items-center rounded-lg text-stone-600 transition hover:bg-stone-100 hover:text-brand-900 disabled:pointer-events-none disabled:opacity-30"
-                            disabled={index === selectedChildren.length - 1}
-                            aria-label={'Chuyển ' + child.name + ' xuống dưới'}
-                            onClick={() => moveChild(index, 1)}
-                          >
-                            <ChevronDown className="size-4" aria-hidden="true" />
-                          </button>
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                </fieldset>
-              ) : null}
+                        <Plus className="size-4" aria-hidden="true" />
+                        Thêm con
+                      </Button>
+                    </EditorSection>
 
-              <p className="rounded-xl border border-amber-900/15 bg-amber-50/70 px-3 py-2 text-xs leading-5 text-amber-950/75">
-                Thế hệ {selectedPlacement?.generation ?? '-'} · Thứ tự{' '}
-                {selectedPlacement?.orderInFamily ?? '-'}
-              </p>
-
-              <Button
-                type="button"
-                variant="outline"
-                disabled={savingAll}
-                onClick={() => openRelationshipPicker(selectedMember.id)}
-              >
-                <Plus className="size-4" aria-hidden="true" />
-                Thêm quan hệ
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="border-red-200 bg-white text-red-700 hover:bg-red-50 hover:text-red-800"
-                disabled={
-                  selectedMember.id === draft.protectedMemberId ||
-                  branchRootIds.has(selectedMember.id) ||
-                  savingAll
-                }
-                title={
-                  selectedMember.id === draft.protectedMemberId
-                    ? 'Khung khởi điểm không thể xóa'
-                    : branchRootIds.has(selectedMember.id)
-                      ? 'Người đứng đầu chi chỉ trưởng họ mới xóa được'
-                      : 'Xóa thành viên đang chọn'
-                }
-                onClick={() => setDeleteTargetId(selectedMember.id)}
-              >
-                <Trash2 className="size-4" aria-hidden="true" />
-                Xóa thành viên
-              </Button>
-            </fieldset>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-red-200 bg-white text-red-700 hover:bg-red-50 hover:text-red-800"
+                      disabled={
+                        selectedMember.id === draft.protectedMemberId ||
+                        branchRootIds.has(selectedMember.id) ||
+                        savingAll
+                      }
+                      title={
+                        selectedMember.id === draft.protectedMemberId
+                          ? 'Khung khởi điểm không thể xóa'
+                          : branchRootIds.has(selectedMember.id)
+                            ? 'Người đứng đầu chi chỉ trưởng họ mới xóa được'
+                            : 'Xóa thành viên đang chọn'
+                      }
+                      onClick={() => setDeleteTargetId(selectedMember.id)}
+                    >
+                      <Trash2 className="size-4" aria-hidden="true" />
+                      Xóa thành viên
+                    </Button>
+                  </>
+                )}
+              </fieldset>
+            </div>
           ) : null}
         </aside>
       </div>
@@ -2072,7 +2515,8 @@ export function FamilyTreeDesigner({
               aria-label={savingAll ? 'Đang lưu' : hasUnsavedChanges ? 'Lưu tất cả' : 'Đã lưu'}
             >
               <BottomTab
-                icon={savingAll ? LoaderCircle : hasUnsavedChanges ? Save : Check}
+                icon={hasUnsavedChanges ? Save : Check}
+                busy={savingAll}
                 label={savingAll ? 'Đang lưu' : hasUnsavedChanges ? 'Lưu' : 'Đã lưu'}
                 active={hasUnsavedChanges}
               />

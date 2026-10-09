@@ -31,6 +31,13 @@ enum Gender {
   UNKNOWN
 }
 
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
 enum RelationshipStatus {
   MARRIED
   SEPARATED
@@ -85,6 +92,8 @@ enum MediaKind {
 enum MediaStatus {
   ACTIVE
   HIDDEN
+  /// A member's photo waiting for the clan head to approve it into the album.
+  PENDING
 }
 
 model Family {
@@ -154,6 +163,7 @@ model User {
   sessions           AuthSession[]
   branches           BranchManager[]
   passwordResetCodes PasswordResetCode[]
+  uploadedMedia      Media[]             @relation("MediaUploader")
 
   @@index([familyId, role, status])
   @@index([deletedAt])
@@ -188,42 +198,61 @@ model AuthSession {
 }
 
 model Person {
-  id                 String           @id @default(uuid()) @db.Char(36)
-  familyId           String           @db.Char(36)
-  fatherId           String?          @db.Char(36)
-  motherId           String?          @db.Char(36)
-  name               String           @db.VarChar(191)
-  honorific          String?          @db.VarChar(100)
-  nickname           String?          @db.VarChar(191)
-  courtesyName       String?          @db.VarChar(191)
-  gender             Gender           @default(UNKNOWN)
-  birthDate          DateTime?        @db.Date
-  deathDate          DateTime?        @db.Date
-  lunarDeathDay      Int?             @db.UnsignedTinyInt
-  lunarDeathMonth    Int?             @db.UnsignedTinyInt
-  isAlive            Boolean          @default(true)
-  burialPlace        String?          @db.VarChar(255)
-  phone              String?          @db.VarChar(30)
-  avatarUrl          String?          @db.VarChar(500)
-  biography          String?          @db.Text
-  generation         Int?
-  orderInFamily      Int?             @db.UnsignedSmallInt
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  family             Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  father             Person?          @relation("FatherChildren", fields: [familyId, fatherId], references: [familyId, id], onDelete: Restrict, map: "Person_father_fkey")
-  mother             Person?          @relation("MotherChildren", fields: [familyId, motherId], references: [familyId, id], onDelete: Restrict, map: "Person_mother_fkey")
-  childrenAsFather   Person[]         @relation("FatherChildren")
-  childrenAsMother   Person[]         @relation("MotherChildren")
-  husbandInMarriages Relationship[]   @relation("HusbandRelationships")
-  wifeInMarriages    Relationship[]   @relation("WifeRelationships")
-  uploadedMedia      Media[]          @relation("MediaAuthor")
-  editSuggestions    EditSuggestion[]
-  branchManagers     BranchManager[]
+  id                   String           @id @default(uuid()) @db.Char(36)
+  familyId             String           @db.Char(36)
+  fatherId             String?          @db.Char(36)
+  motherId             String?          @db.Char(36)
+  name                 String           @db.VarChar(191)
+  honorific            String?          @db.VarChar(100)
+  nickname             String?          @db.VarChar(191)
+  courtesyName         String?          @db.VarChar(191)
+  gender               Gender           @default(UNKNOWN)
+  /// Free text: old ancestors often have only a year ("1850", "khoảng 1850", "03/1920").
+  birthDate            String?          @db.VarChar(100)
+  /// Free text, like birthDate.
+  deathDate            String?          @db.VarChar(100)
+  lunarDeathDay        Int?             @db.UnsignedTinyInt
+  lunarDeathMonth      Int?             @db.UnsignedTinyInt
+  isAlive              Boolean          @default(true)
+  burialPlace          String?          @db.VarChar(255)
+  phone                String?          @db.VarChar(30)
+  avatarUrl            String?          @db.VarChar(500)
+  biography            String?          @db.Text
+  generation           Int?
+  orderInFamily        Int?             @db.UnsignedSmallInt
+  maritalStatus        MaritalStatus?
+  education            String?          @db.VarChar(191)
+  occupation           String?          @db.VarChar(191)
+  /// Nguyên quán as free text; administrative units are renamed and merged too often for a list.
+  hometown             String?          @db.VarChar(255)
+  currentAddress       String?          @db.VarChar(255)
+  mapUrl               String?          @db.VarChar(500)
+  /// Hưởng thọ / hưởng dương typed by the family; null means work it out from the dates.
+  ageAtDeath           Int?             @db.UnsignedTinyInt
+  worshipPlace         String?          @db.VarChar(255)
+  /// The relative who keeps the death anniversary, in the same Family.
+  worshipKeeperId      String?          @db.Char(36)
+  /// How the anniversary reads on the view page, e.g. "20 tháng Chạp năm Canh Ngọ".
+  deathAnniversaryText String?          @db.VarChar(191)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  family               Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  father               Person?          @relation("FatherChildren", fields: [familyId, fatherId], references: [familyId, id], onDelete: Restrict, map: "Person_father_fkey")
+  mother               Person?          @relation("MotherChildren", fields: [familyId, motherId], references: [familyId, id], onDelete: Restrict, map: "Person_mother_fkey")
+  worshipKeeper        Person?          @relation("WorshipKeeper", fields: [familyId, worshipKeeperId], references: [familyId, id], onDelete: Restrict, map: "Person_worship_keeper_fkey")
+  worshipKeeperOf      Person[]         @relation("WorshipKeeper")
+  childrenAsFather     Person[]         @relation("FatherChildren")
+  childrenAsMother     Person[]         @relation("MotherChildren")
+  husbandInMarriages   Relationship[]   @relation("HusbandRelationships")
+  wifeInMarriages      Relationship[]   @relation("WifeRelationships")
+  uploadedMedia        Media[]          @relation("MediaAuthor")
+  editSuggestions      EditSuggestion[]
+  branchManagers       BranchManager[]
 
   @@unique([familyId, id])
   @@index([familyId, fatherId])
   @@index([familyId, motherId])
+  @@index([familyId, worshipKeeperId])
   @@index([familyId, generation])
   @@index([familyId, name])
   @@index([familyId, lunarDeathMonth, lunarDeathDay])
@@ -253,33 +282,38 @@ model Relationship {
 /// views them. personId names the Person the item is about. Items are deleted outright together with
 /// their files; deletedAt is legacy and always null.
 model Media {
-  id          String      @id @default(uuid()) @db.Char(36)
-  familyId    String      @db.Char(36)
-  personId    String?     @db.Char(36)
-  albumId     String?     @db.Char(36)
-  kind        MediaKind   @default(PHOTO)
-  fileUrl     String      @db.VarChar(500)
+  id           String      @id @default(uuid()) @db.Char(36)
+  familyId     String      @db.Char(36)
+  personId     String?     @db.Char(36)
+  albumId      String?     @db.Char(36)
+  kind         MediaKind   @default(PHOTO)
+  fileUrl      String      @db.VarChar(500)
   /// A small JPEG for grids and lists; null for PDFs.
-  thumbUrl    String?     @db.VarChar(500)
-  contentType String      @default("image/jpeg") @db.VarChar(100)
-  sizeBytes   Int         @default(0) @db.UnsignedInt
-  width       Int?        @db.UnsignedSmallInt
-  height      Int?        @db.UnsignedSmallInt
-  title       String?     @db.VarChar(191)
-  description String?     @db.Text
+  thumbUrl     String?     @db.VarChar(500)
+  contentType  String      @default("image/jpeg") @db.VarChar(100)
+  sizeBytes    Int         @default(0) @db.UnsignedInt
+  width        Int?        @db.UnsignedSmallInt
+  height       Int?        @db.UnsignedSmallInt
+  title        String?     @db.VarChar(191)
+  description  String?     @db.Text
   /// When the photo was taken or the document dated, if known.
-  takenOn     DateTime?   @db.Date
-  status      MediaStatus @default(ACTIVE)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  deletedAt   DateTime?
-  family      Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  person      Person?     @relation("MediaAuthor", fields: [familyId, personId], references: [familyId, id], onDelete: Restrict, map: "Media_person_fkey")
-  album       Album?      @relation(fields: [familyId, albumId], references: [familyId, id], onDelete: Cascade, map: "Media_album_fkey")
+  takenOn      DateTime?   @db.Date
+  status       MediaStatus @default(ACTIVE)
+  /// The account that sent it; kept for a member's pending photos so they can see and withdraw them.
+  uploadedById String?     @db.Char(36)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
+  family       Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  person       Person?     @relation("MediaAuthor", fields: [familyId, personId], references: [familyId, id], onDelete: Restrict, map: "Media_person_fkey")
+  album        Album?      @relation(fields: [familyId, albumId], references: [familyId, id], onDelete: Cascade, map: "Media_album_fkey")
+  uploadedBy   User?       @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
 
   @@index([familyId, status])
   @@index([familyId, personId])
   @@index([familyId, albumId, createdAt])
+  @@index([familyId, albumId, status])
+  @@index([uploadedById])
   @@index([familyId, kind, createdAt])
   @@index([deletedAt])
 }

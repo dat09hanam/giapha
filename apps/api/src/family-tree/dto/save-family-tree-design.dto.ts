@@ -1,11 +1,10 @@
 import { Type } from "class-transformer";
-import { Gender } from "@prisma/client";
+import { Gender, MaritalStatus } from "@prisma/client";
 import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
   IsBoolean,
-  IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
@@ -19,6 +18,10 @@ import {
   ValidateNested,
 } from "class-validator";
 
+import {
+  MAP_URL_MESSAGE,
+  MAP_URL_PATTERN,
+} from "../../common/validation/map-url.js";
 import {
   AVATAR_URL_MESSAGE,
   AVATAR_URL_PATTERN,
@@ -58,11 +61,13 @@ export class FamilyTreeDesignPersonDto {
   gender!: Gender;
 
   @IsOptional()
-  @IsDateString()
+  @IsString()
+  @MaxLength(100)
   birthDate?: string | null;
 
   @IsOptional()
-  @IsDateString()
+  @IsString()
+  @MaxLength(100)
   deathDate?: string | null;
 
   @IsOptional()
@@ -100,6 +105,56 @@ export class FamilyTreeDesignPersonDto {
   @IsString()
   @MaxLength(10000)
   biography?: string | null;
+
+  @IsOptional()
+  @IsEnum(MaritalStatus)
+  maritalStatus?: MaritalStatus | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  education?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  occupation?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  hometown?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  currentAddress?: string | null;
+
+  @IsOptional()
+  @Matches(MAP_URL_PATTERN, { message: MAP_URL_MESSAGE })
+  @MaxLength(500)
+  mapUrl?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(150)
+  ageAtDeath?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  worshipPlace?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  worshipKeeperClientId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  deathAnniversaryText?: string | null;
 
   @IsInt()
   @Min(0)

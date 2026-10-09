@@ -1,18 +1,11 @@
 'use client';
 
-import {
-  Banknote,
-  CalendarDays,
-  Gift,
-  HandHeart,
-  LoaderCircle,
-  PencilLine,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { Banknote, CalendarDays, Gift, HandHeart, PencilLine, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { heroIconButtonClass, heroOverlapClass, PageHero } from '@/components/layout/page-hero';
 import { MeritDonationDialog } from '@/components/merit/merit-donation-dialog';
 import { MeritEventDialog } from '@/components/merit/merit-event-dialog';
@@ -67,6 +60,7 @@ export function MeritEventView({
   familySlug: string;
   initial: MeritEventDetail;
 }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const showToast = useToast();
   const [event, setEvent] = useState(initial.event);
@@ -102,7 +96,15 @@ export function MeritEventView({
   async function removeEvent(): Promise<void> {
     const count = donations.length;
     const warning = count > 0 ? ` cùng ${count} lượt công đức đã ghi` : '';
-    if (!window.confirm(`Xóa sự kiện “${event.title}”${warning}? Không thể hoàn tác.`)) return;
+    if (
+      !(await confirm({
+        title: `Xóa sự kiện “${event.title}”${warning}?`,
+        message: 'Không thể hoàn tác.',
+        confirmLabel: 'Xóa',
+        tone: 'danger',
+      }))
+    )
+      return;
     setDeletingEvent(true);
     try {
       await deleteMeritEvent(familySlug, event.id);
@@ -154,7 +156,7 @@ export function MeritEventView({
                 onClick={() => void removeEvent()}
               >
                 {deletingEvent ? (
-                  <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  <InlineLoader className="size-4" />
                 ) : (
                   <Trash2 className="size-4" aria-hidden="true" />
                 )}

@@ -1,8 +1,9 @@
 'use client';
 
-import { LoaderCircle, Newspaper, RefreshCw } from 'lucide-react';
+import { Newspaper, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { PostCard } from '@/components/feed/post-card';
 import { PostComposer } from '@/components/feed/post-composer';
 import { heroIconButtonClass, heroOverlapClass, PageHero } from '@/components/layout/page-hero';
@@ -118,10 +119,11 @@ export function FamilyFeed({ familySlug }: { familySlug: string }) {
             className={heroIconButtonClass}
             aria-label="Làm mới bảng tin"
           >
-            <RefreshCw
-              className={refreshing ? 'size-4 animate-spin' : 'size-4'}
-              aria-hidden="true"
-            />
+            {refreshing ? (
+              <InlineLoader className="size-4" />
+            ) : (
+              <RefreshCw className="size-4" aria-hidden="true" />
+            )}
           </button>
         }
         overlap
@@ -174,7 +176,7 @@ export function FamilyFeed({ familySlug }: { familySlug: string }) {
       {posts && posts.length > 0 ? (
         <div ref={sentinelRef} className="grid place-items-center py-4 text-sm text-stone-500">
           {loadingMore ? (
-            <LoaderCircle className="size-6 animate-spin" aria-label="Đang tải thêm" />
+            <InlineLoader className="size-6" label="Đang tải thêm" />
           ) : nextCursor ? (
             <Button type="button" variant="ghost" onClick={() => void loadMore()}>
               Xem thêm bài viết

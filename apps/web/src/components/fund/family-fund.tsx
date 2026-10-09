@@ -3,7 +3,6 @@
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  LoaderCircle,
   PencilLine,
   Plus,
   ReceiptText,
@@ -13,6 +12,8 @@ import {
 } from 'lucide-react';
 import { Fragment, useRef, useState, type FormEvent } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { heroOverlapClass, PageHero } from '@/components/layout/page-hero';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -207,7 +208,7 @@ function EntryForm({
         ) : null}
         <Button type="submit" disabled={!valid || saving} className="sm:min-w-40">
           {saving ? (
-            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+            <InlineLoader className="size-4" />
           ) : (
             <Save className="size-4" aria-hidden="true" />
           )}
@@ -223,6 +224,7 @@ function EntryForm({
  * ledger every member can read.
  */
 export function FamilyFund({ familySlug, initial }: { familySlug: string; initial: FundLedger }) {
+  const confirm = useConfirm();
   const showToast = useToast();
   const [entries, setEntries] = useState(initial.entries);
   const [totals, setTotals] = useState(initial.totals);
@@ -265,7 +267,15 @@ export function FamilyFund({ familySlug, initial }: { familySlug: string; initia
   }
 
   async function remove(entry: FundEntry): Promise<void> {
-    if (!window.confirm(`Xóa khoản “${entry.content}” (${formatVnd(entry.amount)})?`)) return;
+    if (
+      !(await confirm({
+        title: `Xóa khoản “${entry.content}”?`,
+        message: `Số tiền ${formatVnd(entry.amount)} sẽ bị xóa khỏi sổ quỹ.`,
+        confirmLabel: 'Xóa',
+        tone: 'danger',
+      }))
+    )
+      return;
     setBusyId(entry.id);
     try {
       await deleteFundEntry(familySlug, entry.id);
@@ -442,7 +452,7 @@ export function FamilyFund({ familySlug, initial }: { familySlug: string; initia
                               onClick={() => void remove(entry)}
                             >
                               {busyId === entry.id ? (
-                                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                                <InlineLoader className="size-4" />
                               ) : (
                                 <Trash2 className="size-4" aria-hidden="true" />
                               )}
@@ -533,7 +543,7 @@ export function FamilyFund({ familySlug, initial }: { familySlug: string; initia
                               onClick={() => void remove(entry)}
                             >
                               {busyId === entry.id ? (
-                                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                                <InlineLoader className="size-4" />
                               ) : (
                                 <Trash2 className="size-4" aria-hidden="true" />
                               )}

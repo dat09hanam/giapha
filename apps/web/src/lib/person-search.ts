@@ -1,4 +1,5 @@
 import type { Person } from '@/types/family-tree';
+import { yearOf } from '@/lib/partial-date';
 
 export type PersonSearchEntry = {
   person: Person;
@@ -78,10 +79,9 @@ export function searchPeople(
 /** Search entries straight from the tree's people, for pickers outside the tree view. */
 export function searchEntriesFromPeople(people: readonly Person[]): PersonSearchEntry[] {
   const byId = new Map(people.map((person) => [person.id, person]));
-  const year = (value: string | null): string | null => value?.slice(0, 4) ?? null;
   return people.map((person) => {
-    const birth = year(person.birthDate);
-    const death = year(person.deathDate);
+    const birth = yearOf(person.birthDate)?.toString() ?? null;
+    const death = yearOf(person.deathDate)?.toString() ?? null;
     return {
       person,
       generation: person.generation ?? 1,

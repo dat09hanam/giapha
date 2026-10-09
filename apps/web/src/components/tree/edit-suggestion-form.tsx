@@ -1,8 +1,9 @@
 'use client';
 
-import { CheckCircle2, LoaderCircle, Send } from 'lucide-react';
+import { CheckCircle2, Send } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -135,7 +136,7 @@ export function EditSuggestionForm({
         </Button>
         <Button type="submit" disabled={submitting || !proposerName.trim() || !content.trim()}>
           {submitting ? (
-            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+            <InlineLoader className="size-4" />
           ) : (
             <Send className="size-4" aria-hidden="true" />
           )}

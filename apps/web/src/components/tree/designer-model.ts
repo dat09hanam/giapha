@@ -1,4 +1,4 @@
-import type { Gender } from "@/types/family-tree";
+import type { Gender, MaritalStatus } from "@/types/family-tree";
 
 export type DesignerGender = Gender;
 
@@ -10,8 +10,9 @@ export type DesignerMember = {
   nickname: string;
   courtesyName: string;
   gender: DesignerGender;
-  /** yyyy-mm-dd, as a native date input holds it. */
+  /** Free text, e.g. 15/03/1920, 1850 or khoảng 1850 (lib/partial-date). */
   birthDate: string;
+  /** Free text, like birthDate. */
   deathDate: string;
   /** DD/MM lunar anniversary, matching DeathAnniversaryPicker. */
   lunarDeathAnniversary: string;
@@ -22,6 +23,18 @@ export type DesignerMember = {
   biography: string;
   fatherId: string | null;
   motherId: string | null;
+  maritalStatus: MaritalStatus | "";
+  education: string;
+  occupation: string;
+  hometown: string;
+  currentAddress: string;
+  mapUrl: string;
+  /** Digits as typed; empty means work it out from the dates. */
+  ageAtDeath: string;
+  worshipPlace: string;
+  /** A member id in this draft, or "" for nobody. */
+  worshipKeeperId: string;
+  deathAnniversaryText: string;
   generation: number;
   orderInFamily: number;
   /** Keeps the existing delete-one-spouse/delete-descendant-branch behavior. */

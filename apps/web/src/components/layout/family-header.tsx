@@ -23,6 +23,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { LogoutButton } from '@/components/auth/logout-button';
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
@@ -121,11 +122,14 @@ export function BottomTab({
   label,
   active = false,
   disabled = false,
+  busy = false,
 }: {
   icon: LucideIcon;
   label: string;
   active?: boolean;
   disabled?: boolean;
+  /** Working on it, e.g. saving: the loading mark stands in for the icon. */
+  busy?: boolean;
 }) {
   return (
     <span
@@ -141,7 +145,11 @@ export function BottomTab({
         />
       ) : null}
       <span className="relative">
-        <Icon className="size-6" strokeWidth={active ? 2.4 : 1.9} aria-hidden="true" />
+        {busy ? (
+          <InlineLoader className="size-6" />
+        ) : (
+          <Icon className="size-6" strokeWidth={active ? 2.4 : 1.9} aria-hidden="true" />
+        )}
         {disabled ? (
           <span
             className="absolute -right-1.5 -top-1 size-2 rounded-full bg-amber-400 ring-2 ring-white"

@@ -11,6 +11,7 @@ import {
   RelationshipStatus,
   UserRole,
 } from "@prisma/client";
+import type { MaritalStatus } from "@prisma/client";
 
 import {
   computeBranchScope,
@@ -49,6 +50,16 @@ const managedPersonSelect = {
   biography: true,
   generation: true,
   orderInFamily: true,
+  maritalStatus: true,
+  education: true,
+  occupation: true,
+  hometown: true,
+  currentAddress: true,
+  mapUrl: true,
+  ageAtDeath: true,
+  worshipPlace: true,
+  worshipKeeperId: true,
+  deathAnniversaryText: true,
 } satisfies Prisma.PersonSelect;
 
 type ManagedPersonRecord = Prisma.PersonGetPayload<{
@@ -56,18 +67,23 @@ type ManagedPersonRecord = Prisma.PersonGetPayload<{
 }>;
 
 function mapManagedPerson(person: ManagedPersonRecord): PersonResponse {
-  return {
-    ...person,
-    birthDate: person.birthDate?.toISOString() ?? null,
-    deathDate: person.deathDate?.toISOString() ?? null,
-  };
+  return { ...person };
 }
 
-function nullableDate(
-  value: string | null | undefined,
-): Date | null | undefined {
-  if (value === undefined) return undefined;
-  return value === null ? null : new Date(value);
+/**
+ * The year in a free-text birth or death date ("938", "khoảng 1850",
+ * "15/03/1920"), if it has one; mirrors yearOf in the web's lib/partial-date.
+ */
+function yearOf(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const text = value.trim().replace(/^khoảng\s+/i, "");
+  const iso = /^(\d{4})-\d{2}-\d{2}/.exec(text);
+  const dated = /^(?:\d{1,2}[/.-]){1,2}(\d{1,4})$/.exec(text);
+  const year =
+    iso?.[1] ??
+    dated?.[1] ??
+    (/^\d{1,4}$/.test(text) ? text : /(?<!\d)(\d{3,4})(?!\d)/.exec(text)?.[1]);
+  return year && Number(year) > 0 ? Number(year) : null;
 }
 
 function nullableText(
@@ -75,6 +91,42 @@ function nullableText(
 ): string | null | undefined {
   if (value === undefined) return undefined;
   return value?.trim() || null;
+}
+
+const PROFILE_TEXT_FIELDS = [
+  "education",
+  "occupation",
+  "hometown",
+  "currentAddress",
+  "mapUrl",
+  "worshipPlace",
+  "deathAnniversaryText",
+] as const;
+
+type ProfileTextField = (typeof PROFILE_TEXT_FIELDS)[number];
+
+type ProfileFields = Partial<Record<ProfileTextField, string | null>> & {
+  maritalStatus?: MaritalStatus | null;
+  ageAtDeath?: number | null;
+};
+
+/**
+ * The profile, hometown and worship fields to write: all of them, or with
+ * `onlyGiven` just the ones the input carries (a partial update).
+ */
+function profileData(input: ProfileFields, onlyGiven = false): ProfileFields {
+  const data: ProfileFields = {};
+  for (const field of PROFILE_TEXT_FIELDS) {
+    if (onlyGiven && input[field] === undefined) continue;
+    data[field] = nullableText(input[field]) ?? null;
+  }
+  if (!onlyGiven || input.maritalStatus !== undefined) {
+    data.maritalStatus = input.maritalStatus ?? null;
+  }
+  if (!onlyGiven || input.ageAtDeath !== undefined) {
+    data.ageAtDeath = input.ageAtDeath ?? null;
+  }
+  return data;
 }
 
 function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
@@ -97,13 +149,11 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
         "Bản thiết kế tham chiếu trùng một thành viên đã lưu.",
       );
     }
-    if (
-      person.birthDate &&
-      person.deathDate &&
-      new Date(person.deathDate) < new Date(person.birthDate)
-    ) {
+    const bornIn = yearOf(person.birthDate);
+    const diedIn = yearOf(person.deathDate);
+    if (bornIn !== null && diedIn !== null && diedIn < bornIn) {
       throw new BadRequestException(
-        "Ngày mất của thành viên không được trước ngày sinh.",
+        "Năm mất của thành viên không được trước năm sinh.",
       );
     }
     peopleByClientId.set(person.clientId, person);
@@ -176,7 +226,11 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
       person.motherClientId ?? "",
     ].join("|");
     const namesakes = namesakesByKey.get(key) ?? [];
-    if (namesakes.some((otherId) => !couples.has(coupleKey(otherId, person.clientId)))) {
+    if (
+      namesakes.some(
+        (otherId) => !couples.has(coupleKey(otherId, person.clientId)),
+      )
+    ) {
       throw new BadRequestException(
         "Bản thiết kế có hai anh chị em ruột trùng họ tên.",
       );
@@ -313,6 +367,16 @@ export class FamilyTreeService {
           biography: true,
           generation: true,
           orderInFamily: true,
+          maritalStatus: true,
+          education: true,
+          occupation: true,
+          hometown: true,
+          currentAddress: true,
+          mapUrl: true,
+          ageAtDeath: true,
+          worshipPlace: true,
+          worshipKeeperId: true,
+          deathAnniversaryText: true,
           fatherId: true,
           motherId: true,
         },
@@ -336,19 +400,13 @@ export class FamilyTreeService {
 
     return {
       family,
-      people: people.map((person) => ({
-        ...person,
-        birthDate: person.birthDate?.toISOString() ?? null,
-        deathDate: person.deathDate?.toISOString() ?? null,
-      })),
+      people,
       relationships,
     };
   }
 
   /** The chi/nhánh roots this account manages; empty for the family head, who edits everything. */
-  async getEditScope(
-    access: FamilyAccess,
-  ): Promise<FamilyTreeEditScope> {
+  async getEditScope(access: FamilyAccess): Promise<FamilyTreeEditScope> {
     if (access.role === UserRole.MEMBER_PLUS) {
       return { fullAccess: true, rootPersonIds: [] };
     }
@@ -438,8 +496,8 @@ export class FamilyTreeService {
             nickname: nullableText(person.nickname) ?? null,
             courtesyName: nullableText(person.courtesyName) ?? null,
             gender: person.gender,
-            birthDate: nullableDate(person.birthDate) ?? null,
-            deathDate: nullableDate(person.deathDate) ?? null,
+            birthDate: nullableText(person.birthDate) ?? null,
+            deathDate: nullableText(person.deathDate) ?? null,
             lunarDeathDay: person.lunarDeathDay ?? null,
             lunarDeathMonth: person.lunarDeathMonth ?? null,
             isAlive: person.isAlive ?? !person.deathDate,
@@ -449,6 +507,7 @@ export class FamilyTreeService {
             biography: nullableText(person.biography) ?? null,
             generation: person.generation,
             orderInFamily: person.orderInFamily,
+            ...profileData(person),
           };
 
           if (person.databaseId && !mayEdit(person.databaseId)) {
@@ -501,6 +560,21 @@ export class FamilyTreeService {
             throw new BadRequestException(
               "Không thể ánh xạ người mẹ trong bản thiết kế.",
             );
+          }
+
+          const worshipKeeperId = person.worshipKeeperClientId
+            ? databaseIdByClientId.get(person.worshipKeeperClientId)
+            : null;
+          if (person.worshipKeeperClientId && !worshipKeeperId) {
+            throw new BadRequestException(
+              "Không thể ánh xạ người phụ trách cúng giỗ trong bản thiết kế.",
+            );
+          }
+          if (!person.databaseId || mayEdit(person.databaseId)) {
+            await transaction.person.updateMany({
+              where: { id: databaseId, familyId },
+              data: { worshipKeeperId },
+            });
           }
 
           if (person.databaseId && !mayMove(person.databaseId)) continue;
@@ -626,6 +700,12 @@ export class FamilyTreeService {
           fatherId,
           motherId,
         );
+        const worshipKeeperId = input.worshipKeeperId ?? null;
+        await this.validateWorshipKeeper(
+          transaction,
+          familyId,
+          worshipKeeperId,
+        );
 
         const person = await transaction.person.create({
           data: {
@@ -637,8 +717,8 @@ export class FamilyTreeService {
             nickname: nullableText(input.nickname) ?? null,
             courtesyName: nullableText(input.courtesyName) ?? null,
             gender: input.gender,
-            birthDate: nullableDate(input.birthDate),
-            deathDate: nullableDate(input.deathDate),
+            birthDate: nullableText(input.birthDate) ?? null,
+            deathDate: nullableText(input.deathDate) ?? null,
             lunarDeathDay: input.lunarDeathDay,
             lunarDeathMonth: input.lunarDeathMonth,
             isAlive: input.isAlive,
@@ -648,6 +728,8 @@ export class FamilyTreeService {
             biography: nullableText(input.biography) ?? null,
             generation: input.generation,
             orderInFamily: input.orderInFamily,
+            ...profileData(input),
+            worshipKeeperId,
           },
           select: managedPersonSelect,
         });
@@ -683,6 +765,13 @@ export class FamilyTreeService {
           fatherId,
           motherId,
         );
+        if (input.worshipKeeperId) {
+          await this.validateWorshipKeeper(
+            transaction,
+            familyId,
+            input.worshipKeeperId,
+          );
+        }
 
         const data: Prisma.PersonUpdateManyMutationInput = {
           ...(input.fatherId === undefined ? {} : { fatherId }),
@@ -700,10 +789,10 @@ export class FamilyTreeService {
           ...(input.gender === undefined ? {} : { gender: input.gender }),
           ...(input.birthDate === undefined
             ? {}
-            : { birthDate: nullableDate(input.birthDate) }),
+            : { birthDate: nullableText(input.birthDate) }),
           ...(input.deathDate === undefined
             ? {}
-            : { deathDate: nullableDate(input.deathDate) }),
+            : { deathDate: nullableText(input.deathDate) }),
           ...(input.lunarDeathDay === undefined
             ? {}
             : { lunarDeathDay: input.lunarDeathDay }),
@@ -729,6 +818,10 @@ export class FamilyTreeService {
           ...(input.orderInFamily === undefined
             ? {}
             : { orderInFamily: input.orderInFamily }),
+          ...profileData(input, true),
+          ...(input.worshipKeeperId === undefined
+            ? {}
+            : { worshipKeeperId: input.worshipKeeperId }),
         };
         const updated = await transaction.person.updateMany({
           where: { id: personId, familyId },
@@ -790,6 +883,24 @@ export class FamilyTreeService {
     };
   }
 
+  /** The anniversary keeper must be a member of the same Family. */
+  private async validateWorshipKeeper(
+    transaction: Prisma.TransactionClient,
+    familyId: string,
+    worshipKeeperId: string | null,
+  ): Promise<void> {
+    if (!worshipKeeperId) return;
+    const keeper = await transaction.person.findFirst({
+      where: { id: worshipKeeperId, familyId },
+      select: { id: true },
+    });
+    if (!keeper) {
+      throw new BadRequestException(
+        "Người phụ trách cúng giỗ phải là thành viên trong dòng họ.",
+      );
+    }
+  }
+
   /**
    * Person rows are referenced through Restrict foreign keys, so every inbound
    * link has to be cleared before they can be removed for good.
@@ -808,6 +919,10 @@ export class FamilyTreeService {
     await transaction.person.updateMany({
       where: { familyId, motherId: { in: personIds } },
       data: { motherId: null },
+    });
+    await transaction.person.updateMany({
+      where: { familyId, worshipKeeperId: { in: personIds } },
+      data: { worshipKeeperId: null },
     });
     await transaction.media.updateMany({
       where: { familyId, personId: { in: personIds } },

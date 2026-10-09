@@ -1,6 +1,7 @@
 import Image from 'next/image';
 
 import type { Gender } from '@/types/family-tree';
+import { yearOf } from '@/lib/partial-date';
 
 const DEFAULT_AVATAR_BY_GENDER: Record<Gender, string> = {
   MALE: '/images/avatars/default-male.png',
@@ -39,15 +40,8 @@ export function shouldUseElderAvatar(
   }
 
   if (generation <= ELDER_GENERATION_LIMIT) return true;
-  if (!birthDate) return false;
-
-  const birthYear = Number(birthDate.slice(0, 4));
-  return (
-    Number.isInteger(birthYear) &&
-    birthYear > 0 &&
-    birthYear <= currentYear &&
-    currentYear - birthYear >= ELDER_AGE
-  );
+  const bornIn = yearOf(birthDate);
+  return bornIn !== null && bornIn <= currentYear && currentYear - bornIn >= ELDER_AGE;
 }
 
 export function PersonAvatar({

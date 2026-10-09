@@ -16,6 +16,7 @@ import { displayPersonName } from '@/lib/person-name';
 import { backgroundTreeArea, fitPosterSheet, posterTreeRegion } from '@/lib/poster-geometry';
 import type { FamilyPoster } from '@/lib/poster-decorations';
 import type { FamilyTreeResponse, Gender } from '@/types/family-tree';
+import { yearOf } from '@/lib/partial-date';
 
 export type PersonNodeData = {
   name: string;
@@ -200,16 +201,16 @@ function viewerDimensions(
 const VIEWER_LINK_STYLE: CSSProperties = { stroke: '#7a1c1c', strokeWidth: 2 };
 
 function year(value: string | null): string {
-  return value ? new Date(value).getUTCFullYear().toString() : '?';
+  return String(yearOf(value) ?? '?');
 }
 
 function years(birthDate: string | null, deathDate: string | null): PersonNodeData['years'] {
-  if (!birthDate && !deathDate) return null;
+  if (!yearOf(birthDate) && !deathDate) return null;
   return { birth: year(birthDate), death: deathDate ? year(deathDate) : null };
 }
 
 function lifespan(birthDate: string | null, deathDate: string | null): string {
-  if (!birthDate && !deathDate) return 'Chưa rõ năm sinh';
+  if (!yearOf(birthDate) && !deathDate) return 'Chưa rõ năm sinh';
   return `${year(birthDate)} — ${deathDate ? year(deathDate) : 'nay'}`;
 }
 

@@ -1,9 +1,15 @@
 'use client';
 
 import {
+  Briefcase,
   CalendarDays,
+  Flame,
   Flower2,
+  GraduationCap,
+  HeartHandshake,
+  House,
   MapPin,
+  MapPinned,
   FilePenLine,
   MessagesSquare,
   Phone,
@@ -17,7 +23,15 @@ import { EditSuggestionForm } from '@/components/tree/edit-suggestion-form';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { familyMediaSrc } from '@/lib/media-api';
 import { displayPersonTitle } from '@/lib/person-name';
-import type { FamilyTreeRelationship, Gender, Person } from '@/types/family-tree';
+import type { FamilyTreeRelationship, Gender, MaritalStatus, Person } from '@/types/family-tree';
+import { sortKeyOf, formatPartialDate, yearOf } from '@/lib/partial-date';
+
+const MARITAL_STATUS_LABEL: Record<MaritalStatus, string> = {
+  SINGLE: 'Độc thân',
+  MARRIED: 'Đã kết hôn',
+  DIVORCED: 'Ly hôn',
+  WIDOWED: 'Goá',
+};
 
 const GENDER_LABEL: Record<Gender, string | null> = {
   MALE: 'Nam',
@@ -37,16 +51,10 @@ const HEADER_ACTION_CLASS =
   'inline-flex items-center gap-1.5 rounded-full border border-amber-900/15 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 transition hover:border-amber-700/50 hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700';
 
 /** `YYYY-MM-DD…` as `DD/MM/YYYY`; anything else as given. */
-function formatDate(value: string | null): string | null {
-  if (!value) return null;
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  return match ? `${match[3]}/${match[2]}/${match[1]}` : value;
-}
-
 function byFamilyOrder(a: Person, b: Person): number {
   const order = (a.orderInFamily ?? Infinity) - (b.orderInFamily ?? Infinity);
   if (order !== 0 && Number.isFinite(order)) return order;
-  return (a.birthDate ?? '9999').localeCompare(b.birthDate ?? '9999');
+  return (sortKeyOf(a.birthDate) ?? '9999').localeCompare(sortKeyOf(b.birthDate) ?? '9999');
 }
 
 function hasParentsIn(person: Person, byId: ReadonlyMap<string, Person>): boolean {
@@ -174,12 +182,21 @@ export function PersonDetailsDialog({
     .sort(byFamilyOrder);
 
   const genderLabel = GENDER_LABEL[person.gender];
-  const birth = formatDate(person.birthDate);
-  const death = formatDate(person.deathDate);
+  const birth = formatPartialDate(person.birthDate) || null;
+  const death = formatPartialDate(person.deathDate) || null;
   const lunarAnniversary =
-    person.lunarDeathDay && person.lunarDeathMonth
+    person.deathAnniversaryText ??
+    (person.lunarDeathDay && person.lunarDeathMonth
       ? `Ngày ${person.lunarDeathDay} tháng ${person.lunarDeathMonth} âm lịch`
-      : null;
+      : null);
+  const bornIn = yearOf(person.birthDate);
+  const diedIn = yearOf(person.deathDate);
+  const age =
+    person.ageAtDeath ??
+    (!person.isAlive && bornIn !== null && diedIn !== null && diedIn >= bornIn
+      ? diedIn - bornIn
+      : null);
+  const worshipKeeper = person.worshipKeeperId ? byId.get(person.worshipKeeperId) : undefined;
   const otherNames = [
     person.courtesyName ? `Tên tự: ${person.courtesyName}` : null,
     person.nickname ? `Tên thường gọi: ${person.nickname}` : null,
@@ -191,8 +208,69 @@ export function PersonDetailsDialog({
     lunarAnniversary
       ? { key: 'anniversary', icon: <Flower2 />, label: 'Ngày giỗ', value: lunarAnniversary }
       : null,
+    age !== null
+      ? {
+          key: 'age',
+          icon: <Flower2 />,
+          label: age < 60 ? 'Hưởng dương' : 'Hưởng thọ',
+          value: `${age} tuổi`,
+        }
+      : null,
+    person.worshipPlace
+      ? { key: 'worship', icon: <Flame />, label: 'Thờ cúng tại', value: person.worshipPlace }
+      : null,
+    worshipKeeper
+      ? {
+          key: 'keeper',
+          icon: <Flame />,
+          label: 'Người phụ trách cúng giỗ',
+          value: displayPersonTitle(worshipKeeper),
+        }
+      : null,
     person.burialPlace
       ? { key: 'burial', icon: <MapPin />, label: 'Nơi an táng', value: person.burialPlace }
+      : null,
+    person.hometown
+      ? { key: 'hometown', icon: <House />, label: 'Nguyên quán', value: person.hometown }
+      : null,
+    person.currentAddress || person.mapUrl
+      ? {
+          key: 'address',
+          icon: <MapPinned />,
+          label: 'Địa chỉ hiện tại',
+          value: (
+            <>
+              {person.currentAddress}
+              {person.mapUrl && /^https?:\/\//.test(person.mapUrl) ? (
+                <>
+                  {person.currentAddress ? ' · ' : null}
+                  <a
+                    href={person.mapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-brand-800 hover:underline"
+                  >
+                    Xem bản đồ
+                  </a>
+                </>
+              ) : null}
+            </>
+          ),
+        }
+      : null,
+    person.maritalStatus
+      ? {
+          key: 'marital',
+          icon: <HeartHandshake />,
+          label: 'Tình trạng hôn nhân',
+          value: MARITAL_STATUS_LABEL[person.maritalStatus],
+        }
+      : null,
+    person.occupation
+      ? { key: 'occupation', icon: <Briefcase />, label: 'Nghề nghiệp', value: person.occupation }
+      : null,
+    person.education
+      ? { key: 'education', icon: <GraduationCap />, label: 'Trình độ', value: person.education }
       : null,
     person.phone
       ? {

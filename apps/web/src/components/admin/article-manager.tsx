@@ -6,7 +6,6 @@ import {
   Eye,
   EyeOff,
   ImageMinus,
-  LoaderCircle,
   Newspaper,
   Pencil,
   Plus,
@@ -16,6 +15,8 @@ import {
 import Link from 'next/link';
 import { useRef, useState, type FormEvent } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { SectionCard } from '@/components/admin/admin-layout';
 import { Field } from '@/components/auth/form-fields';
 import { RichTextEditor } from '@/components/rich-text/rich-text-editor';
@@ -256,7 +257,7 @@ function ArticleEditor({
             disabled={saving || preparingCover || slugStatus === 'taken'}
           >
             {saving ? (
-              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              <InlineLoader className="size-4" />
             ) : (
               <Save className="size-4" aria-hidden="true" />
             )}
@@ -412,6 +413,7 @@ function ArticleEditor({
  * articles of the public site's two reading sections.
  */
 export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }) {
+  const confirm = useConfirm();
   const showToast = useToast();
   const [articles, setArticles] = useState<readonly AdminArticle[]>(initial);
   const [filter, setFilter] = useState<Filter>('ALL');
@@ -440,7 +442,15 @@ export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }
   }
 
   async function remove(article: AdminArticle): Promise<void> {
-    if (!window.confirm(`Xoá vĩnh viễn bài viết “${article.title}”?`)) return;
+    if (
+      !(await confirm({
+        title: `Xoá vĩnh viễn bài viết “${article.title}”?`,
+        message: 'Không thể hoàn tác.',
+        confirmLabel: 'Xoá',
+        tone: 'danger',
+      }))
+    )
+      return;
     setBusyId(article.id);
     try {
       await deleteArticle(article.id);

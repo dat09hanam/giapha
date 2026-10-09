@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { AccountEmailDialog } from '@/components/admin/account-email-dialog';
 import { SectionCard } from '@/components/admin/admin-layout';
 import { BranchRootPicker, type ClaimedBranch } from '@/components/admin/branch-root-picker';
@@ -70,6 +71,7 @@ export function FamilyAccountsPanel({
   /** Drawn in the dialog where the clan head picks who heads a branch. */
   tree: FamilyTreeResponse;
 }) {
+  const confirm = useConfirm();
   const showToast = useToast();
   const [accounts, setAccounts] = useState(initialAccounts);
   const [creating, setCreating] = useState(false);
@@ -164,13 +166,17 @@ export function FamilyAccountsPanel({
     });
   }
 
-  function resetPassword(account: FamilyAccount): void {
+  async function resetPassword(account: FamilyAccount): Promise<void> {
     if (
-      !window.confirm(
-        account.isShared
-          ? `Đặt lại mật khẩu dùng chung của ${account.displayName}? Mọi người đang dùng tài khoản này sẽ bị đăng xuất và cần mật khẩu mới để đăng nhập lại.`
-          : `Đặt lại mật khẩu cho ${account.displayName}? Mật khẩu cũ sẽ hết hiệu lực và người dùng phải đổi mật khẩu ở lần đăng nhập tới.`,
-      )
+      !(await confirm({
+        title: account.isShared
+          ? `Đặt lại mật khẩu dùng chung của ${account.displayName}?`
+          : `Đặt lại mật khẩu cho ${account.displayName}?`,
+        message: account.isShared
+          ? 'Mọi người đang dùng tài khoản này sẽ bị đăng xuất và cần mật khẩu mới để đăng nhập lại.'
+          : 'Mật khẩu cũ sẽ hết hiệu lực và người dùng phải đổi mật khẩu ở lần đăng nhập tới.',
+        confirmLabel: 'Đặt lại',
+      }))
     )
       return;
     void run(account.id, 'đặt lại mật khẩu', async () => {
@@ -191,8 +197,16 @@ export function FamilyAccountsPanel({
     });
   }
 
-  function remove(account: FamilyAccount): void {
-    if (!window.confirm(`Xóa tài khoản ${account.displayName} (${account.username})?`)) return;
+  async function remove(account: FamilyAccount): Promise<void> {
+    if (
+      !(await confirm({
+        title: `Xóa tài khoản ${account.displayName}?`,
+        message: `Tên đăng nhập ${account.username} sẽ không dùng được nữa.`,
+        confirmLabel: 'Xóa',
+        tone: 'danger',
+      }))
+    )
+      return;
     void run(account.id, 'xóa tài khoản', async () => {
       await deleteFamilyAccount(familySlug, account.id);
       setAccounts((current) => current.filter((entry) => entry.id !== account.id));
@@ -339,7 +353,7 @@ export function FamilyAccountsPanel({
                         size="sm"
                         variant="outline"
                         disabled={busy}
-                        onClick={() => resetPassword(account)}
+                        onClick={() => void resetPassword(account)}
                       >
                         <KeyRound className="size-3.5" aria-hidden="true" />
                         Đặt lại mật khẩu
@@ -377,7 +391,7 @@ export function FamilyAccountsPanel({
                         variant="outline"
                         className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
                         disabled={busy}
-                        onClick={() => remove(account)}
+                        onClick={() => void remove(account)}
                       >
                         <Trash2 className="size-3.5" aria-hidden="true" />
                         Xóa

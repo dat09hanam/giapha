@@ -1,5 +1,6 @@
 import { displayPersonName } from '@/lib/person-name';
 import type { FamilyTreeRelationship, Gender, Person } from '@/types/family-tree';
+import { compareDates } from '@/lib/partial-date';
 
 /**
  * Vietnamese kinship terms between two people on the tree, in the northern
@@ -52,9 +53,8 @@ function seniorityOf(a: Person, b: Person): Seniority {
   if (a.orderInFamily !== null && b.orderInFamily !== null && a.orderInFamily !== b.orderInFamily) {
     return a.orderInFamily < b.orderInFamily ? 'senior' : 'junior';
   }
-  if (a.birthDate && b.birthDate && a.birthDate !== b.birthDate) {
-    return a.birthDate < b.birthDate ? 'senior' : 'junior';
-  }
+  const birth = compareDates(a.birthDate, b.birthDate);
+  if (birth) return birth < 0 ? 'senior' : 'junior';
   return 'unknown';
 }
 

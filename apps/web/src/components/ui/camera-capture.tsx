@@ -1,8 +1,9 @@
 'use client';
 
-import { Camera, LoaderCircle, SwitchCamera, X } from 'lucide-react';
+import { Camera, SwitchCamera, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
 import { Button } from '@/components/ui/button';
 
 type Facing = 'user' | 'environment';
@@ -167,7 +168,7 @@ export function CameraCapture({
           {!ready && !error ? (
             <div className="absolute inset-0 grid place-items-center text-sm text-stone-300">
               <span className="flex items-center gap-2">
-                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                <InlineLoader className="size-4" />
                 Đang mở camera…
               </span>
             </div>

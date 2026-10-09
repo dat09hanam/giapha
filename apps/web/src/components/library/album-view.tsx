@@ -2,21 +2,25 @@
 
 import {
   ArrowLeft,
+  Check,
   ChevronLeft,
   ChevronRight,
   Download,
   FolderPen,
   FolderX,
   ImagePlus,
-  LoaderCircle,
+  Hourglass,
   PencilLine,
   Trash2,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { InlineLoader } from '@/components/ui/heritage-loader';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ItemEditDialog, itemMeta } from '@/components/library/item-details';
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
@@ -26,6 +30,7 @@ import { ZoomableImage } from '@/components/ui/zoomable-image';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { compressImage, makeThumbnail } from '@/lib/image-compress';
 import {
+  approveLibraryPhoto,
   deleteAlbum,
   deleteLibraryItem,
   MAX_PHOTO_BYTES,
@@ -69,7 +74,7 @@ function ToolButton({
         danger ? 'text-red-300 hover:bg-red-500/15' : 'text-white/80 hover:bg-white/10',
       )}
     >
-      <Icon className={cn('size-5', spin && 'animate-spin')} aria-hidden="true" />
+      {spin ? <InlineLoader className="size-5" /> : <Icon className="size-5" aria-hidden="true" />}
       {label}
     </button>
   );
@@ -155,6 +160,119 @@ function EditAlbumDialog({
  * One album as a photo viewer: the photo large, a strip of thumbnails to move between them, and
  * a download button. The clan head adds and manages photos from a row of tools underneath.
  */
+/**
+ * Photos members sent into the album. The clan head approves or turns each
+ * one down; a member sees only their own and may withdraw them.
+ */
+function PendingPhotosDialog({
+  familySlug,
+  photos,
+  canManage,
+  busyId,
+  onApprove,
+  onApproveAll,
+  onRemove,
+  onClose,
+}: {
+  familySlug: string;
+  photos: LibraryItem[];
+  canManage: boolean;
+  busyId: string | null;
+  onApprove: (item: LibraryItem) => void;
+  onApproveAll: () => void;
+  onRemove: (item: LibraryItem) => void;
+  onClose: () => void;
+}) {
+  return (
+    <SheetDialog
+      title={canManage ? 'Ảnh chờ duyệt' : 'Ảnh bạn đã gửi'}
+      onClose={onClose}
+      footer={
+        canManage && photos.length > 1 ? (
+          <Button type="button" onClick={onApproveAll} disabled={busyId !== null}>
+            <Check className="size-4" aria-hidden="true" />
+            Duyệt tất cả ({photos.length})
+          </Button>
+        ) : undefined
+      }
+    >
+      <p className="text-sm leading-6 text-stone-600">
+        {canManage
+          ? 'Thành viên gửi các ảnh này vào album. Ảnh chỉ hiện cho mọi người sau khi bạn duyệt.'
+          : 'Các ảnh này sẽ hiện trong album sau khi trưởng họ duyệt.'}
+      </p>
+      {photos.length === 0 ? (
+        <p className="py-6 text-center text-sm text-stone-500">Không còn ảnh nào chờ duyệt.</p>
+      ) : (
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {photos.map((photo) => {
+            const busy = busyId === photo.id;
+            return (
+              <li
+                key={photo.id}
+                className="overflow-hidden rounded-xl border border-gold-500/25 bg-white"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={familyMediaSrc(familySlug, photo.thumbUrl ?? photo.url)}
+                  alt={photo.title ?? 'Ảnh chờ duyệt'}
+                  loading="lazy"
+                  className="aspect-square w-full object-cover"
+                />
+                <div className="grid gap-2 p-2">
+                  {canManage && photo.uploadedBy ? (
+                    <p className="truncate text-xs text-stone-500" title={photo.uploadedBy}>
+                      Gửi bởi <span className="font-medium text-stone-700">{photo.uploadedBy}</span>
+                    </p>
+                  ) : null}
+                  {canManage ? (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={busyId !== null}
+                        onClick={() => onRemove(photo)}
+                        aria-label="Từ chối ảnh này"
+                      >
+                        <X className="size-4" aria-hidden="true" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={busyId !== null}
+                        onClick={() => onApprove(photo)}
+                      >
+                        {busy ? (
+                          <InlineLoader className="size-4" />
+                        ) : (
+                          <Check className="size-4" aria-hidden="true" />
+                        )}
+                        Duyệt
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId !== null}
+                      onClick={() => onRemove(photo)}
+                    >
+                      {busy ? <InlineLoader className="size-4" /> : null}
+                      Rút lại
+                    </Button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </SheetDialog>
+  );
+}
+
 export function AlbumView({
   familySlug,
   initial,
@@ -165,10 +283,14 @@ export function AlbumView({
   /** The tree's people, for tagging photos; empty for members, who cannot edit. */
   people: Person[];
 }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const showToast = useToast();
   const [album, setAlbum] = useState(initial.album);
   const [photos, setPhotos] = useState(initial.photos);
+  const [pendingPhotos, setPendingPhotos] = useState(initial.pendingPhotos);
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewBusyId, setReviewBusyId] = useState<string | null>(null);
   const [upload, setUpload] = useState<{ done: number; total: number; failed: number } | null>(
     null,
   );
@@ -198,26 +320,106 @@ export function AlbumView({
           height: image.height,
           thumbData: await makeThumbnail(file),
         });
-        setPhotos((current) => [...current, created]);
+        if (created.pending) setPendingPhotos((current) => [...current, created]);
+        else setPhotos((current) => [...current, created]);
       } catch {
         failed += 1;
       }
       setUpload({ done: index + 1, total: files.length, failed });
     }
     setUpload(null);
-    setAlbum((current) => ({ ...current, photoCount: current.photoCount + files.length - failed }));
+    if (canManage) {
+      setAlbum((current) => ({
+        ...current,
+        photoCount: current.photoCount + files.length - failed,
+      }));
+    }
     showToast(
       failed > 0
         ? {
             kind: 'error',
             message: `Không tải lên được ${failed} trên ${files.length} ảnh. Hãy thử lại.`,
           }
-        : { kind: 'success', message: `Đã thêm ${files.length} ảnh vào album.` },
+        : canManage
+          ? { kind: 'success', message: `Đã thêm ${files.length} ảnh vào album.` }
+          : {
+              kind: 'success',
+              message: `Đã gửi ${files.length} ảnh. Ảnh sẽ hiện trong album sau khi trưởng họ duyệt.`,
+            },
     );
   }
 
+  async function approve(item: LibraryItem): Promise<boolean> {
+    setReviewBusyId(item.id);
+    try {
+      const approved = await approveLibraryPhoto(familySlug, item.id);
+      setPendingPhotos((current) => current.filter((entry) => entry.id !== item.id));
+      setPhotos((current) => [...current, approved]);
+      setAlbum((current) => ({ ...current, photoCount: current.photoCount + 1 }));
+      return true;
+    } catch (error) {
+      showToast({ kind: 'error', message: getApiErrorMessage(error, 'duyệt ảnh') });
+      return false;
+    } finally {
+      setReviewBusyId(null);
+    }
+  }
+
+  async function approveAll(): Promise<void> {
+    const queue = [...pendingPhotos];
+    let approved = 0;
+    for (const item of queue) {
+      if (!(await approve(item))) break;
+      approved += 1;
+    }
+    if (approved > 0) showToast({ kind: 'success', message: `Đã duyệt ${approved} ảnh.` });
+    if (approved === queue.length) setReviewing(false);
+  }
+
+  /** The clan head turns a photo down; a member withdraws their own. */
+  async function removePending(item: LibraryItem): Promise<void> {
+    if (
+      !(await confirm(
+        canManage
+          ? {
+              title: 'Từ chối ảnh này?',
+              message: 'Ảnh sẽ bị xóa và không hiện trong album.',
+              confirmLabel: 'Từ chối',
+              tone: 'danger',
+            }
+          : {
+              title: 'Rút lại ảnh này?',
+              message: 'Ảnh sẽ bị xóa khỏi danh sách chờ duyệt.',
+              confirmLabel: 'Rút lại',
+              tone: 'danger',
+            },
+      ))
+    )
+      return;
+    setReviewBusyId(item.id);
+    try {
+      await deleteLibraryItem(familySlug, item.id);
+      setPendingPhotos((current) => current.filter((entry) => entry.id !== item.id));
+    } catch (error) {
+      showToast({
+        kind: 'error',
+        message: getApiErrorMessage(error, canManage ? 'từ chối ảnh' : 'rút lại ảnh'),
+      });
+    } finally {
+      setReviewBusyId(null);
+    }
+  }
+
   async function removePhoto(item: LibraryItem): Promise<void> {
-    if (!window.confirm('Xóa ảnh này khỏi album? Ảnh sẽ bị xóa vĩnh viễn.')) return;
+    if (
+      !(await confirm({
+        title: 'Xóa ảnh này khỏi album?',
+        message: 'Ảnh sẽ bị xóa vĩnh viễn.',
+        confirmLabel: 'Xóa',
+        tone: 'danger',
+      }))
+    )
+      return;
     try {
       await deleteLibraryItem(familySlug, item.id);
       const remaining = photos.filter((entry) => entry.id !== item.id);
@@ -231,11 +433,18 @@ export function AlbumView({
   }
 
   async function removeAlbum(): Promise<void> {
-    const warning =
-      photos.length > 0
-        ? `Xóa album “${album.title}” cùng ${photos.length} ảnh? Ảnh sẽ bị xóa vĩnh viễn.`
-        : `Xóa album “${album.title}”?`;
-    if (!window.confirm(warning)) return;
+    if (
+      !(await confirm({
+        title:
+          photos.length > 0
+            ? `Xóa album “${album.title}” cùng ${photos.length} ảnh?`
+            : `Xóa album “${album.title}”?`,
+        message: photos.length > 0 ? 'Ảnh sẽ bị xóa vĩnh viễn.' : undefined,
+        confirmLabel: 'Xóa',
+        tone: 'danger',
+      }))
+    )
+      return;
     try {
       await deleteAlbum(familySlug, album.id);
       router.push(libraryHref);
@@ -316,7 +525,7 @@ export function AlbumView({
           aria-label="Tải ảnh này xuống"
         >
           {downloading ? (
-            <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
+            <InlineLoader className="size-5" />
           ) : (
             <Download className="size-5" aria-hidden="true" />
           )}
@@ -361,7 +570,7 @@ export function AlbumView({
             </span>
             {canManage
               ? 'Album còn trống. Bấm “Thêm ảnh” để chọn nhiều ảnh một lúc.'
-              : 'Album chưa có ảnh nào.'}
+              : 'Album chưa có ảnh nào. Bấm “Gửi ảnh” để góp ảnh, trưởng họ sẽ duyệt.'}
           </div>
         )}
       </div>
@@ -411,73 +620,99 @@ export function AlbumView({
         </ul>
       ) : null}
 
-      {canManage ? (
-        <div className="shrink-0 border-t border-white/10 px-3 py-2">
-          {upload ? (
-            <div className="mb-2 grid gap-1.5" role="status" aria-live="polite">
-              <p className="text-xs text-white/70">
-                Đang tải ảnh lên {upload.done}/{upload.total}…
-              </p>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/15">
-                <div
-                  className="h-full rounded-full bg-white transition-[width] duration-300"
-                  style={{ width: `${Math.round((upload.done / upload.total) * 100)}%` }}
-                />
-              </div>
+      {/* Everyone may add photos; a member's wait for the clan head to approve them. */}
+      <div className="shrink-0 border-t border-white/10 px-3 py-2">
+        {upload ? (
+          <div className="mb-2 grid gap-1.5" role="status" aria-live="polite">
+            <p className="text-xs text-white/70">
+              Đang tải ảnh lên {upload.done}/{upload.total}…
+            </p>
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/15">
+              <div
+                className="h-full rounded-full bg-white transition-[width] duration-300"
+                style={{ width: `${Math.round((upload.done / upload.total) * 100)}%` }}
+              />
             </div>
-          ) : null}
-          <div className="flex gap-1 overflow-x-auto [scrollbar-width:none]">
-            <ToolButton
-              icon={uploading ? LoaderCircle : ImagePlus}
-              spin={uploading}
-              label="Thêm ảnh"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            />
-            {shown ? (
-              <>
-                <ToolButton
-                  icon={PencilLine}
-                  label="Sửa ảnh"
-                  onClick={() => setEditingPhoto(shown)}
-                  disabled={uploading}
-                />
-                <ToolButton
-                  icon={Trash2}
-                  label="Xóa ảnh"
-                  onClick={() => void removePhoto(shown)}
-                  disabled={uploading}
-                />
-              </>
-            ) : null}
-            <ToolButton
-              icon={FolderPen}
-              label="Sửa album"
-              onClick={() => setEditingAlbum(true)}
-              disabled={uploading}
-            />
-            <ToolButton
-              icon={FolderX}
-              label="Xóa album"
-              onClick={() => void removeAlbum()}
-              disabled={uploading}
-              danger
-            />
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(event) => {
-              const files = Array.from(event.target.files ?? []);
-              event.target.value = '';
-              void addPhotos(files);
-            }}
+        ) : null}
+        <div className="flex gap-1 overflow-x-auto [scrollbar-width:none]">
+          <ToolButton
+            icon={ImagePlus}
+            spin={uploading}
+            label={canManage ? 'Thêm ảnh' : 'Gửi ảnh'}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
           />
+          {pendingPhotos.length > 0 ? (
+            <ToolButton
+              icon={Hourglass}
+              label={`Chờ duyệt (${pendingPhotos.length})`}
+              onClick={() => setReviewing(true)}
+              disabled={uploading}
+            />
+          ) : null}
+          {canManage && shown ? (
+            <>
+              <ToolButton
+                icon={PencilLine}
+                label="Sửa ảnh"
+                onClick={() => setEditingPhoto(shown)}
+                disabled={uploading}
+              />
+              <ToolButton
+                icon={Trash2}
+                label="Xóa ảnh"
+                onClick={() => void removePhoto(shown)}
+                disabled={uploading}
+              />
+            </>
+          ) : null}
+          {canManage ? (
+            <>
+              <ToolButton
+                icon={FolderPen}
+                label="Sửa album"
+                onClick={() => setEditingAlbum(true)}
+                disabled={uploading}
+              />
+              <ToolButton
+                icon={FolderX}
+                label="Xóa album"
+                onClick={() => void removeAlbum()}
+                disabled={uploading}
+                danger
+              />
+            </>
+          ) : null}
         </div>
-      ) : null}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(event) => {
+            const files = Array.from(event.target.files ?? []);
+            event.target.value = '';
+            void addPhotos(files);
+          }}
+        />
+      </div>
+
+      <Presence>
+        {reviewing ? (
+          <PendingPhotosDialog
+            familySlug={familySlug}
+            photos={pendingPhotos}
+            canManage={canManage}
+            busyId={reviewBusyId}
+            onApprove={(item) => void approve(item)}
+            onApproveAll={() => void approveAll()}
+            onRemove={(item) => void removePending(item)}
+            onClose={() => setReviewing(false)}
+          />
+        ) : null}
+      </Presence>
 
       <Presence>
         {editingPhoto ? (
