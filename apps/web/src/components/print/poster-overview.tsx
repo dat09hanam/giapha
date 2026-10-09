@@ -5,6 +5,7 @@ import { PersonCard } from '@/components/tree/person-node';
 import { PosterSheet } from '@/components/tree/poster-art';
 import type { FamilyPoster } from '@/lib/poster-decorations';
 import {
+  cardBottomGap,
   toPosterElements,
   type FamilyLinkData,
   type PersonFlowNode,
@@ -15,7 +16,11 @@ import type { FamilyTreeResponse } from '@/types/family-tree';
 type Point = { x: number; y: number };
 
 /** Where each person-node handle sits on the card, as the canvas places them. */
-function handlePoint(node: PersonFlowNode, origin: Point, handleId: string | null | undefined): Point {
+function handlePoint(
+  node: PersonFlowNode,
+  origin: Point,
+  handleId: string | null | undefined,
+): Point {
   const left = node.position.x - origin.x;
   const top = node.position.y - origin.y;
   const { width, height } = node.data;
@@ -26,7 +31,7 @@ function handlePoint(node: PersonFlowNode, origin: Point, handleId: string | nul
       return { x: left + width, y: top + height / 2 };
     case 'child-source':
     case 'bracket-target':
-      return { x: left + width / 2, y: top + height };
+      return { x: left + width / 2, y: top + height - cardBottomGap(node.data) };
     default:
       return { x: left + width / 2, y: top };
   }
@@ -111,14 +116,23 @@ export function PosterOverview({
         aria-hidden="true"
       >
         {lines.map((line) => (
-          <path key={line.id} d={line.d} fill="none" stroke={line.stroke} strokeWidth={line.strokeWidth} />
+          <path
+            key={line.id}
+            d={line.d}
+            fill="none"
+            stroke={line.stroke}
+            strokeWidth={line.strokeWidth}
+          />
         ))}
       </svg>
       {people.map((node) => (
         <div
           key={node.id}
           className="absolute"
-          style={{ left: node.position.x - frame.position.x, top: node.position.y - frame.position.y }}
+          style={{
+            left: node.position.x - frame.position.x,
+            top: node.position.y - frame.position.y,
+          }}
         >
           <PersonCard data={node.data} />
         </div>

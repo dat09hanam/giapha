@@ -25,12 +25,18 @@ import type { FamilyTreeResponse, Person } from '@/types/family-tree';
 
 export type PaperSize = 'A4' | 'A3' | 'A2' | 'A1' | 'A0';
 /**
- * `rotated` prints on portrait paper with the text turned to stand on end: the generations run
+ * How the tree runs on the page. A bound book is always printed on portrait paper; only the
+ * tree's direction and the way its text stands change.
+ *
+ * `topDown` draws the eldest generation at the top. `leftToRight` draws it at the left, each
+ * generation a column further right, with level text.
+ *
+ * `rotated` prints with the text turned to stand on end: the generations run
  * left to right across the sheet, the eldest at the top, the "Đời n" labels along the top
  * edge. It is the top-down tree laid out on a landscape frame, mirrored so siblings run right
  * to left with the labels on the right, then turned a quarter round anticlockwise.
  */
-export type Orientation = 'landscape' | 'portrait' | 'rotated';
+export type Orientation = 'leftToRight' | 'topDown' | 'rotated';
 export type PaperOptions = { size: PaperSize; orientation: Orientation };
 
 /** Long and short sides in millimetres. */
@@ -54,9 +60,8 @@ const BRANCH_GAP = 48;
 const BAND_GAP = 28;
 
 /**
- * Portrait pages draw the tree top-down; landscape pages draw it left to right, the root at
- * the middle of the left edge and each generation a column further right. Text stays level
- * either way.
+ * A vertical tree runs top-down; a horizontal one runs left to right, the root at the middle
+ * of the left edge and each generation a column further right. Text stays level either way.
  */
 export type TreeDirection = 'vertical' | 'horizontal';
 
@@ -137,7 +142,8 @@ export type PageGeometry = {
 
 export function pageGeometry({ size, orientation }: PaperOptions): PageGeometry {
   const { long, short } = PAPER_SIZES[size];
-  const wide = orientation !== 'portrait';
+  // Only the rotated tree is laid out on a landscape frame, then turned onto portrait paper.
+  const wide = orientation === 'rotated';
   const widthMm = wide ? long : short;
   const heightMm = wide ? short : long;
   const width = widthMm * PX_PER_MM;
@@ -150,7 +156,7 @@ export function pageGeometry({ size, orientation }: PaperOptions): PageGeometry 
     height: height - 2 * margin - header - footer,
   };
   const rotated = orientation === 'rotated';
-  const direction: TreeDirection = orientation === 'landscape' ? 'horizontal' : 'vertical';
+  const direction: TreeDirection = orientation === 'leftToRight' ? 'horizontal' : 'vertical';
   // A mirrored tree keeps its "Đời n" labels in a gutter on the right.
   const tree: Rect =
     direction === 'vertical'
@@ -246,8 +252,8 @@ export function sheetOf(page: BookPage): SheetKind {
 
 export type Book = {
   /**
-   * Text pages (cover, introduction, contents, index) are always portrait; the chosen
-   * orientation applies to the tree: the overview poster and the chi pages.
+   * Every page is printed on portrait paper; the chosen orientation sets how the tree runs
+   * on the overview poster and the chi pages.
    */
   sheets: Record<SheetKind, PageGeometry>;
   pages: BookPage[];
@@ -412,7 +418,7 @@ type Band = { branches: number[]; width: number; firstGeneration: number; lastGe
 
 export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): Book {
   const geometry = pageGeometry(paper);
-  const textSheet = pageGeometry({ size: paper.size, orientation: 'portrait' });
+  const textSheet = pageGeometry({ size: paper.size, orientation: 'topDown' });
   const horizontal = geometry.direction === 'horizontal';
   // Everything below is laid out top-down, in "width" across a generation and "height" along
   // the generations; a horizontal page turns the finished drawing a quarter round.

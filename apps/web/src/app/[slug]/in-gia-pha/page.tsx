@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 
-import { PrintBookView } from '@/components/print/print-book-view';
+import { PrintStudio } from '@/components/print/print-studio';
 import { ApiErrorState } from '@/components/ui/api-error-state';
 import {
   ApiNotFoundError,
@@ -74,7 +74,7 @@ export default async function PrintFamilyBookPage({ params }: PrintPageProps) {
 
   return (
     <main>
-      <PrintBookView tree={book.tree} family={book.family} familySlug={slug} />
+      <PrintStudio tree={book.tree} family={book.family} familySlug={slug} />
     </main>
   );
 }

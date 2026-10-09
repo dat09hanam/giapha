@@ -254,23 +254,32 @@ export function FamilyHeader({
           {nav.map((item) => (
             <SideNavEntry key={item.key} item={item} slug={family.slug} pathname={pathname} />
           ))}
-          {managerLink ? (
-            <span className="mx-3 mt-2 h-px bg-white/10" aria-hidden="true" />
-          ) : null}
+          {managerLink ? <span className="mx-3 mt-2 h-px bg-white/10" aria-hidden="true" /> : null}
           {managerLink ? (
             <Link
               href={managerLink.href}
               aria-current={managerLink.active ? 'page' : undefined}
+              // A gilded button rather than a plain row, so the manager's own area stands out.
               className={cn(
-                'relative mt-1 flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition duration-200',
+                'group relative mt-1 flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-semibold transition duration-200',
                 managerLink.active
                   ? 'bg-paper text-brand-800 shadow-sm ring-1 ring-inset ring-gold-400/40'
-                  : 'text-gold-50/85 hover:bg-white/10 hover:text-white',
+                  : 'bg-gradient-to-r from-gold-400/25 to-gold-500/10 text-gold-50 shadow-[0_0_18px_rgba(212,175,55,0.18)] ring-1 ring-inset ring-gold-300/60 hover:from-gold-400/35 hover:to-gold-500/20 hover:text-white',
               )}
             >
               <PendingGlow className="rounded-xl bg-white/15" />
-              <managerLink.icon className="size-5 shrink-0" aria-hidden="true" />
-              {managerLink.label}
+              <managerLink.icon
+                className={cn('size-5 shrink-0', managerLink.active ? undefined : 'text-gold-300')}
+                aria-hidden="true"
+              />
+              <span className="min-w-0 flex-1 truncate">{managerLink.label}</span>
+              <ChevronRight
+                className={cn(
+                  'size-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5',
+                  managerLink.active ? 'text-brand-700/60' : 'text-gold-300/80',
+                )}
+                aria-hidden="true"
+              />
             </Link>
           ) : null}
         </nav>

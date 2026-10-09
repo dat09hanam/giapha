@@ -2,6 +2,8 @@ import type { CSSProperties } from 'react';
 import type { Edge, Node } from '@xyflow/react';
 
 import {
+  CHILD_BUS_OFFSET,
+  CHILD_BUS_STEP,
   computeGenerations,
   layoutFamily,
   type FamilyLayout,
@@ -61,6 +63,44 @@ export type FamilyEdge = Edge | FamilyLinkEdgeType;
 export const VIEWER_NODE_WIDTH = 288;
 const LANDSCAPE_RATIO = 9 / 16;
 /**
+ * Đời 1 cards are drawn as a wide scroll, so they keep this flatter shape in
+ * every tree and never take the taller crowded shape.
+ */
+const FOUNDER_CARD_RATIO = 0.3;
+/** The scroll's roller caps reach this share of its height below the lower red band. */
+const FOUNDER_SCROLL_BOTTOM_GAP = 63 / 480;
+/**
+ * The first generations are drawn this many times the size their row would
+ * otherwise get, so the founders and their children head the tree. Rows not
+ * listed keep their own sizes.
+ */
+const ROW_SCALE: Readonly<Record<number, number>> = { 1: 3, 2: 2, 3: 1.4 };
+/**
+ * Đời 2 and 3 wear a crest above their frame: 82% of the card's width, from a
+ * 635 × 88 image. The gap above those rows always makes room for it, plus this
+ * share of the usual row gap for the lines above it.
+ */
+const CREST_HEIGHT_RATIO = (0.82 * 88) / 635;
+const CREST_LINE_ROOM = 0.6;
+
+/** How far above the card's bottom edge its frame ends, and so where child lines start. */
+export function cardBottomGap(data: Pick<PersonNodeData, 'generation' | 'height'>): number {
+  return data.generation === 1 ? data.height * FOUNDER_SCROLL_BOTTOM_GAP : 0;
+}
+
+type ChildLinkEdge = FamilyLinkEdgeType & {
+  data: Extract<FamilyLinkData, { kind: 'child' }>;
+};
+
+function isChildLink(edge: FamilyEdge): edge is ChildLinkEdge {
+  return edge.type === 'familyLink' && (edge.data as FamilyLinkData | undefined)?.kind === 'child';
+}
+
+/** How far the card's crest stands above its top edge. */
+function crestHeight(generation: number, width: number): number {
+  return generation === 2 || generation === 3 ? width * CREST_HEIGHT_RATIO : 0;
+}
+/**
  * The tallest a crowded row's card may get relative to its width. Wide trees
  * leave spare height on the 16:9 sheet; taller cards in the crowded rows use
  * it, so their names can wrap onto more lines and read larger.
@@ -71,8 +111,6 @@ const MAX_CARD_RATIO = 1.1;
  * share of the busiest row's people. Other rows keep landscape cards.
  */
 const CROWDED_ROW_SHARE = 0.6;
-/** The Đời 1 crest stands above the founders' frames: 36px tall on a 288px card. */
-const CREST_RATIO = 36 / 288;
 const MIN_VIEWER_NODE_WIDTH = 160;
 /** Trees up to this size keep full-size cards; larger ones shrink step by step. */
 const FULL_SIZE_MEMBER_LIMIT = 12;
@@ -132,14 +170,19 @@ function viewerDimensions(
       .map(([generation, count]): [number, ViewerRow] => {
         const growth = Math.min(growthAbove, Math.sqrt(busiestRow / count));
         growthAbove = growth;
-        const width = Math.round(nodeWidth * growth);
-        const crowded = count >= busiestRow * CROWDED_ROW_SHARE;
+        const isFounderRow = generation === 1;
+        const rowScale = ROW_SCALE[generation] ?? 1;
+        const width = Math.round(nodeWidth * growth * rowScale);
+        const crowded = !isFounderRow && count >= busiestRow * CROWDED_ROW_SHARE;
+        const ratio = isFounderRow ? FOUNDER_CARD_RATIO : crowded ? crowdedRatio : LANDSCAPE_RATIO;
         return [
           generation,
           {
             ...landscapeRow,
+            spouseGap: landscapeRow.spouseGap * rowScale,
+            siblingGap: landscapeRow.siblingGap * rowScale,
             nodeWidth: width,
-            nodeHeight: Math.round(width * (crowded ? crowdedRatio : LANDSCAPE_RATIO)),
+            nodeHeight: Math.round(width * ratio),
             textScale: width / nodeWidth,
             crowded,
           },
@@ -247,9 +290,8 @@ function cardRatioFor(
   const landscapeHeights = rows
     .filter((row) => !row.crowded)
     .reduce((total, row) => total + row.nodeHeight, 0);
-  const crest = dimensions.rowForGeneration(1).nodeWidth * CREST_RATIO;
   const spacing = (rows.length - 1) * (dimensions.generationGap - dimensions.nodeHeight);
-  const ratio = (treeWidth / targetAspect - crest - spacing - landscapeHeights) / crowdedWidths;
+  const ratio = (treeWidth / targetAspect - spacing - landscapeHeights) / crowdedWidths;
   return Math.min(MAX_CARD_RATIO, Math.max(LANDSCAPE_RATIO, ratio));
 }
 
@@ -359,9 +401,15 @@ export function toPosterElements(
   const rowsHeight = rowHeights.reduce((total, height) => total + height, 0);
 
   const scale = Math.max(1, treeWidth / DECORATION_BASE_WIDTH);
-  const crestHeight = dimensions.rowForGeneration(1).nodeWidth * CREST_RATIO;
   const baseSpacing = dimensions.generationGap - dimensions.nodeHeight;
   const treeArea = posterTreeArea;
+  // The least gap above each row: Đời 2 and 3 need room for their crest.
+  const crestRoom = rowHeights.map((_, index) => {
+    const generation = index + 1;
+    const crest = crestHeight(generation, dimensions.rowForGeneration(generation).nodeWidth);
+    return crest > 0 ? crest + baseSpacing * CREST_LINE_ROOM : 0;
+  });
+  const crestExtra = crestRoom.reduce((total, room) => total + Math.max(0, room - baseSpacing), 0);
 
   // The smallest 16:9 sheet whose tree region holds the tree at its tightest spacing.
   const { width: frameWidth, height: frameHeight } = fitPosterSheet(
@@ -369,7 +417,7 @@ export function toPosterElements(
     scale,
     {
       width: treeWidth,
-      height: crestHeight + rowsHeight + (generationCount - 1) * baseSpacing,
+      height: rowsHeight + (generationCount - 1) * baseSpacing + crestExtra,
     },
     POSTER_RATIO,
   );
@@ -380,20 +428,48 @@ export function toPosterElements(
   const treeRoom = frameHeight - region.top - region.bottom;
   const neededSpacing =
     generationCount > 1
-      ? (treeRoom - crestHeight - rowsHeight) / (generationCount - 1)
+      ? (treeRoom - rowsHeight - crestExtra) / (generationCount - 1)
       : baseSpacing;
   const rowSpacing = Math.min(MAX_ROW_SPACING * scale, Math.max(baseSpacing, neededSpacing));
   const rowTops = rowHeights.map((_, index) =>
-    rowHeights.slice(0, index).reduce((total, height) => total + height + rowSpacing, 0),
+    rowHeights
+      .slice(0, index)
+      .reduce(
+        (total, height, above) => total + height + Math.max(rowSpacing, crestRoom[above + 1] ?? 0),
+        0,
+      ),
   );
 
   const people = personNodes.map((node) => ({
     ...node,
     position: {
       x: node.position.x,
-      y: crestHeight + (rowTops[node.data.generation - 1] ?? 0),
+      y: rowTops[node.data.generation - 1] ?? 0,
     },
   }));
+
+  // Each child line's bus runs midway through the clear space between the
+  // parents' frames and the child's crest (or card top), whatever the row sizes.
+  const generationOf = new Map(people.map((node) => [node.id, node.data.generation]));
+  const edgesWithBuses = edgesOnPoster.map((edge) => {
+    const generation = generationOf.get(edge.target);
+    if (!isChildLink(edge) || !generation || generation < 2) return edge;
+    const childTop = rowTops[generation - 1] ?? 0;
+    const parentRow = dimensions.rowForGeneration(generation - 1);
+    const gapTop =
+      (rowTops[generation - 2] ?? 0) +
+      parentRow.nodeHeight -
+      cardBottomGap({ generation: generation - 1, height: parentRow.nodeHeight });
+    const gapBottom =
+      childTop - crestHeight(generation, dimensions.rowForGeneration(generation).nodeWidth);
+    // Neighbouring sibling groups keep their step apart, around the middle.
+    const step = Math.round((edge.data.busOffset - CHILD_BUS_OFFSET) / CHILD_BUS_STEP);
+    const stagger = (step === 1 ? 1 : step === 2 ? -1 : 0) * CHILD_BUS_STEP;
+    return {
+      ...edge,
+      data: { ...edge.data, busOffset: childTop - (gapTop + gapBottom) / 2 - stagger },
+    };
+  });
 
   // The tree is centered in its region, which may sit off-center on the background.
   const regionCenter = (region.left + frameWidth - region.right) / 2;
@@ -414,5 +490,5 @@ export function toPosterElements(
     focusable: false,
   };
 
-  return { nodes: [frame, ...people], edges: edgesOnPoster };
+  return { nodes: [frame, ...people], edges: edgesWithBuses };
 }

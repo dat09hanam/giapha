@@ -8,7 +8,8 @@ import {
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 
 import { FITTED_LINE_HEIGHT, fitTextSize } from '@/lib/fit-text';
-import { VIEWER_NODE_WIDTH, type PersonFlowNode } from '@/lib/tree-layout';
+import { cardBottomGap, VIEWER_NODE_WIDTH, type PersonFlowNode } from '@/lib/tree-layout';
+import type { Gender } from '@/types/family-tree';
 
 /**
  * Nine-slice frames: the corners keep their carved shape while the card stays a
@@ -16,20 +17,77 @@ import { VIEWER_NODE_WIDTH, type PersonFlowNode } from '@/lib/tree-layout';
  * border widths are for a full-size card and scale with it.
  */
 const FRAMES = {
-  founder: { src: '/images/decorations/frame-doi-1.png', slice: 80, border: 30 },
+  /** Đời 2 and 3. */
+  elder: { src: '/images/decorations/frame-doi-1.png', slice: 80, border: 30 },
   descendant: { src: '/images/decorations/frame-doi-2.png', slice: 90, border: 33 },
 };
 
-function frameStyle(frame: (typeof FRAMES)[keyof typeof FRAMES], border: number): CSSProperties {
+/**
+ * The Đời 1 scroll, measured in its 1800 × 480 source pixels. It scales with
+ * the card's height so the dragon rollers never stretch; founder cards use its
+ * wide ratio (`FOUNDER_CARD_RATIO`) and only the paper and bands stretch sideways.
+ */
+const SCROLL = {
+  src: '/images/decorations/frame-doi-1-scroll.webp',
+  height: 480,
+  slice: { y: 175, x: 170 },
+  /** Where the paper starts, so the name stays clear of the bands and rollers. */
+  paper: { top: 130, bottom: 110, x: 180 },
+};
+
+type CardFrame = {
+  style: CSSProperties;
+  /** The text box inside the frame. */
+  inner: { width: number; height: number };
+};
+
+function cardFrame(
+  data: Pick<PersonFlowNode['data'], 'generation' | 'width' | 'height'>,
+): CardFrame {
+  if (data.generation === 1) {
+    const scale = data.height / SCROLL.height;
+    const px = (sourcePixels: number): number => sourcePixels * scale;
+    return {
+      style: {
+        borderStyle: 'solid',
+        borderWidth: `${px(SCROLL.paper.top)}px ${px(SCROLL.paper.x)}px ${px(SCROLL.paper.bottom)}px`,
+        borderImage: `url(${SCROLL.src}) ${SCROLL.slice.y} ${SCROLL.slice.x} fill / ${px(SCROLL.slice.y)}px ${px(SCROLL.slice.x)}px stretch`,
+      },
+      inner: {
+        width: data.width - 2 * px(SCROLL.paper.x),
+        height: data.height - px(SCROLL.paper.top) - px(SCROLL.paper.bottom),
+      },
+    };
+  }
+
+  const frame = data.generation <= 3 ? FRAMES.elder : FRAMES.descendant;
+  const border = Math.round((frame.border * data.width) / VIEWER_NODE_WIDTH);
   return {
-    borderStyle: 'solid',
-    borderWidth: border,
-    borderImage: `url(${frame.src}) ${frame.slice} fill / ${border}px stretch`,
+    style: {
+      borderStyle: 'solid',
+      borderWidth: border,
+      borderImage: `url(${frame.src}) ${frame.slice} fill / ${border}px stretch`,
+    },
+    inner: { width: data.width - 2 * border, height: data.height - 2 * border },
   };
 }
 
+/**
+ * Women's names are set in a muted blue so men and women read apart at a glance;
+ * everyone else keeps the brand red-brown.
+ */
+const NAME_COLORS: Record<Gender, { name: string; honorific: string }> = {
+  MALE: { name: 'text-brand-700', honorific: 'text-brand-700/75' },
+  FEMALE: { name: 'text-[#2f5f86]', honorific: 'text-[#2f5f86]/75' },
+  OTHER: { name: 'text-brand-700', honorific: 'text-brand-700/75' },
+  UNKNOWN: { name: 'text-brand-700', honorific: 'text-brand-700/75' },
+};
+
 const NAME_FONT_FAMILY = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 const HONORIFIC_SIZE = 11;
+/** Đời 1 lettering is heavier so it holds its own against the scroll's bold reds and golds. */
+const FOUNDER_TEXT = { nameWeight: 900, name: 'font-black', honorific: 'font-extrabold' };
+const DEFAULT_TEXT = { nameWeight: 700, name: 'font-bold', honorific: 'font-semibold' };
 
 /**
  * The name's font size: as large as fits the space inside the frame, so short
@@ -38,26 +96,24 @@ const HONORIFIC_SIZE = 11;
  */
 function nameFontSize(
   name: string,
-  width: number,
-  height: number,
-  border: number,
+  inner: CardFrame['inner'],
   textScale: number,
   hasHonorific: boolean,
+  weight: number,
 ): number {
-  const innerWidth = (width - 2 * border) * 0.9;
+  const innerWidth = inner.width * 0.9;
   const innerHeight =
-    (height - 2 * border) * 0.9 -
-    (hasHonorific ? HONORIFIC_SIZE * textScale * FITTED_LINE_HEIGHT : 0);
+    inner.height * 0.9 - (hasHonorific ? HONORIFIC_SIZE * textScale * FITTED_LINE_HEIGHT : 0);
   return fitTextSize({
     text: name,
     width: innerWidth,
     height: innerHeight,
-    font: `700 ${NAME_FONT_FAMILY}`,
+    font: `${weight} ${NAME_FONT_FAMILY}`,
     minSize: 10 * textScale,
     // One line should not fill more than about 40% of the frame's inside, nor
     // grow past what suits the card's width on squarer cards.
-    maxSize: Math.min((height - 2 * border) * 0.4, (width - 2 * border) * 0.22),
-    maxLines: height / width > 0.8 ? 4 : 3,
+    maxSize: Math.min(inner.height * 0.4, inner.width * 0.22),
+    maxLines: inner.height / inner.width > 0.8 ? 4 : 3,
     fallback: 18 * textScale,
   });
 }
@@ -98,19 +154,22 @@ export function PersonCard({
   highlighted?: boolean;
   children?: ReactNode;
 }) {
-  const isFounder = data.generation === 1;
-  const frame = isFounder ? FRAMES.founder : FRAMES.descendant;
-  const border = Math.round((frame.border * data.width) / VIEWER_NODE_WIDTH);
+  const hasCrest = data.generation === 2 || data.generation === 3;
+  const frame = cardFrame(data);
   const isBrowser = useIsBrowser();
+  const isFounder = data.generation === 1;
+  const text = isFounder ? FOUNDER_TEXT : DEFAULT_TEXT;
   const fittedSize = nameFontSize(
     data.name,
-    data.width,
-    data.height,
-    border,
+    frame.inner,
     data.textScale,
     Boolean(data.honorific),
+    text.nameWeight,
   );
   const nameSize = isBrowser ? fittedSize : 18 * data.textScale;
+  const colors = NAME_COLORS[data.gender];
+  // Đời 1's honorific is solid rather than faded.
+  const honorificColor = isFounder ? colors.name : colors.honorific;
 
   return (
     <div
@@ -124,8 +183,8 @@ export function PersonCard({
           className="pointer-events-none absolute -inset-3 animate-pulse rounded-2xl border-4 border-amber-400 bg-amber-300/25 shadow-[0_0_32px_8px_rgba(251,191,36,0.75)]"
         />
       ) : null}
-      {isFounder ? (
-        // The Đời 1 crest sits on the top edge of the frame.
+      {hasCrest ? (
+        // Đời 2 and 3 wear the crest on the top edge of their frame; it fits in the row gap above.
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src="/images/decorations/crest-doi-1.png"
@@ -138,11 +197,11 @@ export function PersonCard({
 
       <article
         className="absolute inset-0 flex flex-col items-center justify-center px-1 text-center drop-shadow-[0_6px_10px_rgba(80,55,10,0.18)]"
-        style={frameStyle(frame, border)}
+        style={frame.style}
       >
         {data.honorific ? (
           <p
-            className="max-w-full truncate font-semibold uppercase tracking-wider text-brand-700/75"
+            className={`max-w-full truncate uppercase tracking-wider ${text.honorific} ${honorificColor}`}
             style={{ fontSize: HONORIFIC_SIZE * data.textScale }}
             title={data.honorific}
           >
@@ -150,7 +209,7 @@ export function PersonCard({
           </p>
         ) : null}
         <h2
-          className="line-clamp-4 max-w-full text-balance font-bold text-brand-700"
+          className={`line-clamp-4 max-w-full text-balance ${text.name} ${colors.name}`}
           style={{
             fontFamily: NAME_FONT_FAMILY,
             fontSize: nameSize,
@@ -169,17 +228,26 @@ export function PersonCard({
 
 export function PersonNode({ id, data }: NodeProps<PersonFlowNode>) {
   const highlighted = useContext(HighlightedPersonContext) === id;
+  // Lines leave from the frame's lower band, not the scroll's roller caps below it.
+  const bottomHandleStyle = { bottom: cardBottomGap(data) };
   return (
     <PersonCard data={data} highlighted={highlighted}>
       <Handle id="parent-target" type="target" position={Position.Top} className={hiddenHandle} />
       <Handle id="spouse-target" type="target" position={Position.Left} className={hiddenHandle} />
       <Handle id="spouse-source" type="source" position={Position.Right} className={hiddenHandle} />
-      <Handle id="child-source" type="source" position={Position.Bottom} className={hiddenHandle} />
+      <Handle
+        id="child-source"
+        type="source"
+        position={Position.Bottom}
+        className={hiddenHandle}
+        style={bottomHandleStyle}
+      />
       <Handle
         id="bracket-target"
         type="target"
         position={Position.Bottom}
         className={hiddenHandle}
+        style={bottomHandleStyle}
       />
     </PersonCard>
   );

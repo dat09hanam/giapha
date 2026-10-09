@@ -38,8 +38,9 @@ export const BRACKET_INSET = 36;
 
 const BRACKET_DROP = 16;
 const BRACKET_STEP = 12;
-const CHILD_BUS_OFFSET = 30;
-const CHILD_BUS_STEP = 12;
+export const CHILD_BUS_OFFSET = 30;
+/** Neighbouring sibling groups' buses step apart by this much so they never merge. */
+export const CHILD_BUS_STEP = 12;
 
 /** A drawn marriage line between two people standing in the same row. */
 export type MarriageLink = {

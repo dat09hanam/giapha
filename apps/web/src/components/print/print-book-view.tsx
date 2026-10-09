@@ -1,7 +1,6 @@
 'use client';
 
-import { ArrowLeft, Printer } from 'lucide-react';
-import Link from 'next/link';
+import { Printer } from 'lucide-react';
 import {
   useDeferredValue,
   useEffect,
@@ -20,6 +19,7 @@ import {
   type CoverTemplate,
 } from '@/components/print/book-cover';
 import { BookSheet, type BookCover, type BookOverview } from '@/components/print/book-pages';
+import { PrintEndCard } from '@/components/print/print-end-card';
 import { Button } from '@/components/ui/button';
 import {
   buildPrintBook,
@@ -36,24 +36,25 @@ import { cn } from '@/lib/utils';
 import { formatDay, todayInVietnam } from '@/lib/vietnam-date';
 import type { FamilyDetails, FamilyTreeResponse } from '@/types/family-tree';
 
-const PAPER_CHOICES: { size: PaperSize; hint: string }[] = [
+/** A4 and up, for the book and the single tree sheet alike. */
+export const PAPER_CHOICES: { size: PaperSize; hint: string }[] = [
   { size: 'A4', hint: 'Máy in văn phòng' },
   { size: 'A3', hint: 'Máy in khổ lớn' },
   { size: 'A2', hint: 'Tiệm in' },
-  { size: 'A1', hint: 'Tiệm in' },
+  { size: 'A1', hint: 'Tiệm in, treo tường' },
   { size: 'A0', hint: 'Tiệm in, treo tường' },
 ];
 
 const ORIENTATIONS: { value: Orientation; label: string }[] = [
-  { value: 'landscape', label: 'Ngang · cây từ trái sang phải' },
-  { value: 'portrait', label: 'Dọc · cây từ trên xuống' },
-  { value: 'rotated', label: 'Dọc · cây ngang, chữ đứng' },
+  { value: 'topDown', label: 'Cây dọc - Từ trên xuống dưới' },
+  { value: 'leftToRight', label: 'Cây Ngang - Chữ Ngang' },
+  { value: 'rotated', label: 'Cây Ngang - Chữ Dọc' },
 ];
 
 const subscribeNever = (): (() => void) => () => {};
 
 /** The preview zoom that fits a page into the column, never above actual size. */
-function usePreviewZoom(pageWidthPx: number): [RefObject<HTMLDivElement | null>, number] {
+export function usePreviewZoom(pageWidthPx: number): [RefObject<HTMLDivElement | null>, number] {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   useEffect(() => {
@@ -66,10 +67,7 @@ function usePreviewZoom(pageWidthPx: number): [RefObject<HTMLDivElement | null>,
   return [ref, width ? Math.min(1, width / pageWidthPx) : 0.5];
 }
 
-/**
- * One named @page per sheet kind, so a single print holds portrait text pages, the landscape
- * overview and the chi pages in the chosen orientation.
- */
+/** One named @page per sheet kind; both are portrait, as a bound book's pages are. */
 function pageRules(sheets: Record<SheetKind, PageGeometry>): string {
   return Object.entries(sheets)
     .map(([kind, sheet]) => {
@@ -99,15 +97,18 @@ function Paper({ geometry, children }: { geometry: PageGeometry; children: React
 
 const THUMBNAIL_WIDTH = 92;
 
+
 type PrintBookViewProps = {
   tree: FamilyTreeResponse;
   family: FamilyDetails;
   familySlug: string;
+  /** The way back and the choice between a book and a single tree sheet. */
+  header: ReactNode;
 };
 
-export function PrintBookView({ tree, family, familySlug }: PrintBookViewProps) {
+export function PrintBookView({ tree, family, familySlug, header }: PrintBookViewProps) {
   const [size, setSize] = useState<PaperSize>('A4');
-  const [orientation, setOrientation] = useState<Orientation>('landscape');
+  const [orientation, setOrientation] = useState<Orientation>('topDown');
   const [template, setTemplate] = useState<CoverTemplate>('do-son');
   const laidOutSize = useDeferredValue(size);
   // Built in the browser only: the index's Vietnamese sort order could differ from the server's.
@@ -117,8 +118,8 @@ export function PrintBookView({ tree, family, familySlug }: PrintBookViewProps) 
     () =>
       isBrowser
         ? {
-            landscape: buildPrintBook(tree, { size: laidOutSize, orientation: 'landscape' }),
-            portrait: buildPrintBook(tree, { size: laidOutSize, orientation: 'portrait' }),
+            leftToRight: buildPrintBook(tree, { size: laidOutSize, orientation: 'leftToRight' }),
+            topDown: buildPrintBook(tree, { size: laidOutSize, orientation: 'topDown' }),
             rotated: buildPrintBook(tree, { size: laidOutSize, orientation: 'rotated' }),
           }
         : null,
@@ -158,6 +159,13 @@ export function PrintBookView({ tree, family, familySlug }: PrintBookViewProps) 
   );
 
   const stale = laidOutSize !== size;
+  const summary = book ? (
+    <>
+      <strong className="text-stone-900">{book.pages.length} trang</strong> khổ{' '}
+      {laidOutSize} · {book.treePageCount} trang phả đồ · mỗi trang tối đa{' '}
+      {book.sheets.tree.rows} đời, {book.sheets.tree.columns} thẻ mỗi đời
+    </>
+  ) : null;
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-stone-200/70 print:min-h-0 print:bg-white">
@@ -170,16 +178,7 @@ export function PrintBookView({ tree, family, familySlug }: PrintBookViewProps) 
       <div className="border-b border-stone-300 bg-[#fffdf8] print:hidden">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-end">
           <div className="min-w-0 flex-1 space-y-3">
-            <div className="flex items-center gap-3">
-              <Link
-                href={`/${encodeURIComponent(familySlug)}/gia-pha`}
-                className="inline-flex items-center gap-1 text-sm text-stone-600 hover:text-brand-900"
-              >
-                <ArrowLeft className="size-4" aria-hidden="true" />
-                Phả đồ
-              </Link>
-              <h1 className="text-lg font-semibold text-brand-950">In gia phả thành quyển</h1>
-            </div>
+            {header}
 
             <fieldset>
               <legend className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
@@ -252,35 +251,36 @@ export function PrintBookView({ tree, family, familySlug }: PrintBookViewProps) 
               </div>
             </fieldset>
 
-            <fieldset className="flex flex-wrap items-center gap-2">
-              <legend className="sr-only">Hướng giấy của trang tổng quát và các trang chi</legend>
-              <span className="text-xs font-medium uppercase tracking-wide text-stone-500">
+            <fieldset>
+              <legend className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
                 Hướng phần cây
-              </span>
-              {ORIENTATIONS.map((choice) => (
-                <button
-                  key={choice.value}
-                  type="button"
-                  aria-pressed={orientation === choice.value}
-                  onClick={() => setOrientation(choice.value)}
-                  className={cn(
-                    'rounded-lg border px-3 py-1 text-sm transition',
-                    orientation === choice.value
-                      ? 'border-brand-800 bg-brand-50 font-semibold text-brand-950'
-                      : 'border-stone-300 bg-white text-stone-700 hover:border-brand-700',
-                  )}
-                >
-                  {choice.label}
-                  {books && !stale ? (
-                    <span className="font-normal text-stone-500"> · {books[choice.value].pages.length} trang</span>
-                  ) : null}
-                </button>
-              ))}
+              </legend>
+              <div className="grid max-w-xl gap-2">
+                {ORIENTATIONS.map((choice) => (
+                  <button
+                    key={choice.value}
+                    type="button"
+                    aria-pressed={orientation === choice.value}
+                    onClick={() => setOrientation(choice.value)}
+                    className={cn(
+                      'flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition',
+                      orientation === choice.value
+                        ? 'border-brand-800 bg-brand-50 font-semibold text-brand-950'
+                        : 'border-stone-300 bg-white text-stone-700 hover:border-brand-700',
+                    )}
+                  >
+                    <span>{choice.label}</span>
+                    {books && !stale ? (
+                      <span className="shrink-0 font-normal text-stone-500">
+                        {books[choice.value].pages.length} trang
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
               {book ? (
-                <p className={cn('text-sm text-stone-600', stale && 'opacity-50')}>
-                  <strong className="text-stone-900">{book.pages.length} trang</strong> khổ {laidOutSize} ·{' '}
-                  {book.treePageCount} trang phả đồ · mỗi trang tối đa {book.sheets.tree.rows} đời,{' '}
-                  {book.sheets.tree.columns} thẻ mỗi đời
+                <p className={cn('mt-2 text-sm text-stone-600', stale && 'opacity-50')}>
+                  {summary}
                 </p>
               ) : null}
             </fieldset>
@@ -292,7 +292,7 @@ export function PrintBookView({ tree, family, familySlug }: PrintBookViewProps) 
               Xuất PDF / In
             </Button>
             <p className="text-[11px] leading-snug text-stone-500">
-              Bìa, giới thiệu, mục lục và tra cứu luôn in dọc; trang tổng quát và các trang chi in theo hướng đã chọn. Trong
+              Mọi trang đều in giấy dọc; lựa chọn trên chỉ đổi hướng cây ở trang tổng quát và các trang chi. Trong
               hộp thoại in: chọn <b>Lưu dưới dạng PDF</b>, lề <b>Không có</b> và bật{" "}
               <b>Đồ hoạ nền</b>.
             </p>
@@ -333,6 +333,7 @@ export function PrintBookView({ tree, family, familySlug }: PrintBookViewProps) 
         ) : (
           <p className="py-20 text-center text-sm text-stone-500">Đang dàn trang…</p>
         )}
+        {book ? <PrintEndCard summary={summary} disabled={stale} /> : null}
       </div>
     </div>
   );
