@@ -97,7 +97,7 @@ function ToolButton({
       )}
     >
       {spin ? <InlineLoader className="size-5" /> : <Icon className="size-5" aria-hidden="true" />}
-      {label}
+      <span className="max-w-full text-center sm:truncate">{label}</span>
     </button>
   );
 }
@@ -123,7 +123,9 @@ function BarButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition disabled:opacity-40 sm:px-6',
+        // Phones: buttons share the bar evenly, icon over a short label, so up to four fit
+        // without scrolling. From sm up: the original pill row.
+        'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1.5 text-[11px] font-medium leading-tight transition disabled:opacity-40 sm:h-10 sm:flex-none sm:shrink-0 sm:flex-row sm:gap-2 sm:rounded-full sm:px-6 sm:py-0 sm:text-sm',
         danger
           ? 'border-red-200 bg-red-50 text-red-800 hover:bg-red-100'
           : 'border-emerald-900/15 bg-emerald-50/60 text-stone-800 hover:bg-emerald-50',
@@ -1005,7 +1007,7 @@ export function AlbumView({
           <p className="hidden shrink-0 text-sm text-stone-600 sm:block" aria-live="polite">
             Đã chọn <span className="font-semibold text-stone-900">{selected.size}</span> ảnh
           </p>
-          <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto [scrollbar-width:none] sm:justify-center sm:gap-3">
+          <div className="flex min-w-0 flex-1 gap-1.5 sm:justify-center sm:gap-3 sm:overflow-x-auto sm:[scrollbar-width:none]">
             {selecting ? (
               <>
                 <BarButton icon={X} label="Bỏ chọn" onClick={() => setSelected(new Set())} />
