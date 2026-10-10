@@ -9,6 +9,7 @@ import {
   getFeedFirstPage,
   getFundLedger,
   getFamilyFeatures,
+  getFamilyStats,
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { requireSession } from '@/lib/session';
@@ -62,10 +63,20 @@ export default async function FamilyHomePage({ params }: FamilyHomePageProps) {
   }
 
   const features: FamilyFeatures | null = await getFamilyFeatures(slug).catch(() => null);
-  const [fund, posts] = await Promise.all([
+  const [fund, posts, stats] = await Promise.all([
     section(features?.fund ?? true, async () => (await getFundLedger(slug, sessionToken)).totals),
     section(features?.feed ?? true, async () => (await getFeedFirstPage(slug, sessionToken)).posts),
+    section(true, () => getFamilyStats(slug, sessionToken)),
   ]);
 
-  return <FamilyHome slug={slug} family={family} features={features} fund={fund} posts={posts} />;
+  return (
+    <FamilyHome
+      slug={slug}
+      family={family}
+      features={features}
+      fund={fund}
+      posts={posts}
+      stats={stats}
+    />
+  );
 }

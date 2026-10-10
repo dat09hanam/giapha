@@ -21,7 +21,13 @@ import type { FundLedger } from '@/lib/fund-api';
 import { familyMediaSrc } from '@/lib/media-api';
 import { formatVnd, vndInWords } from '@/lib/vietnamese-number';
 import { cn } from '@/lib/utils';
-import type { FamilyDetails, FamilyFeature, FamilyFeatures } from '@/types/family-tree';
+import { FamilyStats } from '@/components/family-home/family-stats';
+import type {
+  FamilyDetails,
+  FamilyFeature,
+  FamilyFeatures,
+  FamilyStats as FamilyStatsData,
+} from '@/types/family-tree';
 
 export type HomeSection<T> = { state: 'off' } | { state: 'error' } | { state: 'ok'; data: T };
 
@@ -31,6 +37,7 @@ export type FamilyHomeData = {
   features: FamilyFeatures | null;
   fund: HomeSection<FundLedger['totals']>;
   posts: HomeSection<FeedPost[]>;
+  stats: HomeSection<FamilyStatsData>;
 };
 
 const dayFormat = new Intl.DateTimeFormat('vi-VN', {
@@ -318,7 +325,7 @@ function FundSummary({ slug, fund }: { slug: string; fund: HomeSection<FundLedge
   );
 }
 
-export function FamilyHome({ slug, family, features, fund, posts }: FamilyHomeData) {
+export function FamilyHome({ slug, family, features, fund, posts, stats }: FamilyHomeData) {
   const panels = [
     posts.state !== 'off' ? <LatestPosts key="feed" slug={slug} posts={posts} /> : null,
     fund.state !== 'off' ? <FundSummary key="fund" slug={slug} fund={fund} /> : null,
@@ -328,6 +335,7 @@ export function FamilyHome({ slug, family, features, fund, posts }: FamilyHomeDa
     <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 sm:px-6 lg:gap-5 lg:px-8 lg:py-6">
       <Hero family={family} />
       <QuickLinks slug={slug} features={features} />
+      {stats.state === 'ok' ? <FamilyStats slug={slug} stats={stats.data} /> : null}
       <div className={cn('grid gap-4 lg:gap-5', panels.length === 2 && 'md:grid-cols-[1.4fr_1fr]')}>
         {panels}
       </div>

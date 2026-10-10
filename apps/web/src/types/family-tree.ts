@@ -17,6 +17,20 @@ export type FamilyFeature = 'feed' | 'fund' | 'merit' | 'library' | 'editSuggest
 
 export type FamilyFeatures = Record<FamilyFeature, boolean>;
 
+/** Counts shown on the family home; no personal details. */
+export type FamilyStats = {
+  members: number;
+  male: number;
+  female: number;
+  living: number;
+  deceased: number;
+  generations: number;
+  firstGeneration: number | null;
+  lastGeneration: number | null;
+  couples: number;
+  updatedAt: string | null;
+};
+
 export type FamilyDetails = FamilySummary & {
   deathAnniversaryDay: number | null;
   deathAnniversaryMonth: number | null;

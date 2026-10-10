@@ -12,7 +12,12 @@ import type { AlbumDetail, LibraryOverview } from '@/lib/library-api';
 import type { MeritEventDetail, MeritOverview } from '@/lib/merit-api';
 import type { AdminArticle, Article, ArticleCategory, ArticleSummary } from '@/types/article';
 import type { EditSuggestion } from '@/types/edit-suggestion';
-import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
+import type {
+  FamilyDetails,
+  FamilyFeatures,
+  FamilyStats,
+  FamilyTreeResponse,
+} from '@/types/family-tree';
 import type {
   FamilyPlanLimits,
   PlanCatalogEntry,
@@ -88,6 +93,14 @@ export const getFamilyTree = cache((slug: string, sessionToken?: string) =>
   getJson<FamilyTreeResponse>(
     `/families/${encodeURIComponent(slug)}/tree`,
     'tải cây gia phả',
+    sessionToken,
+  ),
+);
+
+export const getFamilyStats = cache((slug: string, sessionToken: string) =>
+  getJson<FamilyStats>(
+    `/families/${encodeURIComponent(slug)}/stats`,
+    'tải thống kê dòng họ',
     sessionToken,
   ),
 );

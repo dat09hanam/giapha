@@ -6,7 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { FamilyStatus, PosterDecorationKind, Prisma, UserRole } from '@prisma/client';
+import { FamilyStatus, Gender, PosterDecorationKind, Prisma, UserRole } from '@prisma/client';
 
 import { readFamilyFeaturesFor, type FamilyFeatures } from '../common/family-features.js';
 import { FAMILY_EXPIRED_MESSAGE, isFamilyExpired, planExpiry } from '../common/family-plan.js';
@@ -151,6 +151,22 @@ const familyPlanStateSelect = {
 
 type FamilyPlanState = Prisma.FamilyGetPayload<{ select: typeof familyPlanStateSelect }>;
 
+/** Counts only: what the family home shows visitors about the tree, no personal details. */
+export type FamilyStats = {
+  members: number;
+  male: number;
+  female: number;
+  living: number;
+  deceased: number;
+  /** Distinct generations recorded on the tree. */
+  generations: number;
+  firstGeneration: number | null;
+  lastGeneration: number | null;
+  couples: number;
+  /** When anyone on the tree was last added or edited. */
+  updatedAt: Date | null;
+};
+
 /** The limits a family's own managers need to warn before the API refuses. */
 export type FamilyPlanLimits = {
   planName: string;
@@ -188,6 +204,46 @@ export class FamiliesService {
       throw new ForbiddenException(FAMILY_EXPIRED_MESSAGE);
     }
     return toFamilySummary(family);
+  }
+
+  async getStats(familyId: string): Promise<FamilyStats> {
+    const [byGender, byAlive, byGeneration, couples, latest] = await Promise.all([
+      this.prisma.person.groupBy({
+        by: ['gender'],
+        where: { familyId },
+        _count: { _all: true },
+      }),
+      this.prisma.person.groupBy({
+        by: ['isAlive'],
+        where: { familyId },
+        _count: { _all: true },
+      }),
+      this.prisma.person.groupBy({
+        by: ['generation'],
+        where: { familyId, generation: { not: null } },
+      }),
+      this.prisma.relationship.count({ where: { familyId } }),
+      this.prisma.person.aggregate({ where: { familyId }, _max: { updatedAt: true } }),
+    ]);
+    const genderCount = (gender: Gender): number =>
+      byGender.find((row) => row.gender === gender)?._count._all ?? 0;
+    const aliveCount = (alive: boolean): number =>
+      byAlive.find((row) => row.isAlive === alive)?._count._all ?? 0;
+    const generations = byGeneration
+      .map((row) => row.generation)
+      .filter((generation): generation is number => generation !== null);
+    return {
+      members: byGender.reduce((total, row) => total + row._count._all, 0),
+      male: genderCount(Gender.MALE),
+      female: genderCount(Gender.FEMALE),
+      living: aliveCount(true),
+      deceased: aliveCount(false),
+      generations: generations.length,
+      firstGeneration: generations.length ? Math.min(...generations) : null,
+      lastGeneration: generations.length ? Math.max(...generations) : null,
+      couples,
+      updatedAt: latest._max.updatedAt,
+    };
   }
 
   async getPlanLimits(familyId: string): Promise<FamilyPlanLimits> {

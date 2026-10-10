@@ -20,7 +20,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <AuthShell
       eyebrow="Tài khoản Gia Phả"
       title="Chào mừng trở lại"
-      description="Đăng nhập bằng tài khoản Admin, Trưởng họ hoặc Thành viên."
+      description="Đăng nhập bằng tài khoản Trưởng họ hoặc Thành viên."
       footer="Tài khoản dòng họ được cấp khi Admin tạo gia phả."
       fullScreen
     >

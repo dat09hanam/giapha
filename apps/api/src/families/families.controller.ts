@@ -34,6 +34,7 @@ import {
   type AdminFamilyListItem,
   type CreatedFamilyResult,
   type FamilyPlanLimits,
+  type FamilyStats,
   type FamilySlugCheck,
   type FamilySummary,
 } from './families.service.js';
@@ -66,6 +67,18 @@ export class FamiliesController {
   @Get(':slug')
   getFamily(@Param('slug', FamilySlugPipe) slug: string): Promise<FamilySummary> {
     return this.families.getPublicFamily(slug);
+  }
+
+  @Get(':slug/stats')
+  @UseGuards(SessionAuthGuard, FamilyAccessGuard)
+  @Header('Cache-Control', 'no-store')
+  getStats(
+    @Param('slug', FamilySlugPipe) _slug: string,
+    @Req() request: AuthRequest,
+  ): Promise<FamilyStats> {
+    if (!request.familyAccess)
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
+    return this.families.getStats(request.familyAccess.familyId);
   }
 
   @Get(':slug/plan-limits')
