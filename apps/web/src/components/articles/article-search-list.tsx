@@ -7,19 +7,12 @@ import { ArticleCard } from '@/components/articles/article-card';
 import { foldVietnamese } from '@/lib/person-search';
 import type { ArticleSummary } from '@/types/article';
 
-/**
- * The cards of a section with a search box over them. Every published article is already on
- * the page, so typing filters in place: each word must appear in the title or summary, with or
- * without diacritics ("van khan ram" finds "Văn khấn rằm"). The query is kept in `?q=` so a
- * search can be shared or reloaded.
- */
 export function ArticleSearchList({
   articles,
   label,
   initialQuery,
 }: {
   articles: readonly ArticleSummary[];
-  /** The section's name, for the placeholder and messages. */
   label: string;
   initialQuery: string;
 }) {

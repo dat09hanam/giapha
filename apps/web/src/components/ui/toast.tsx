@@ -22,7 +22,6 @@ type ToastInput = {
 
 type Toast = ToastInput & { id: number };
 
-/** Errors stay long enough to be read and acted on; confirmations can go sooner. */
 const DURATION_BY_KIND: Record<ToastKind, number> = {
   success: 4000,
   error: 7000,

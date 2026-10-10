@@ -47,7 +47,6 @@ function MemberPickerDialog({
         />
         <input
           type="search"
-          // The list is long; typing a name is the quickest way in.
           autoFocus
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
@@ -95,10 +94,6 @@ function MemberPickerDialog({
   );
 }
 
-/**
- * Picks one member of the draft, e.g. who keeps a death anniversary: a field
- * that opens a searchable list. `value` is a member id, or '' for nobody.
- */
 export function MemberPicker({
   id,
   label,

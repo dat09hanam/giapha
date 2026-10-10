@@ -2,12 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PosterBackgroundMode, type PosterDecorationKind, type Prisma } from '@prisma/client';
 
@@ -28,7 +23,6 @@ import {
   type PosterDecorationResponse,
 } from './poster-decoration.types.js';
 
-/** Decorations are drawn large on the poster, so they get more room than avatars. */
 const MAX_DECORATION_BYTES = 4 * 1024 * 1024;
 const DECORATION_FOLDER = 'poster-decorations';
 
@@ -39,12 +33,10 @@ type InsetFields = Pick<
   'insetTop' | 'insetRight' | 'insetBottom' | 'insetLeft'
 >;
 
-/** Whether two edges in tenths of a percent add up past `limit`, ignoring float noise. */
 function sumOver(a: number, b: number, limit: number): boolean {
   return Math.round((a + b) * 10) > limit * 10;
 }
 
-/** Opposite edges together must leave at least this much of the art free. */
 const MIN_FREE_PERCENT = 20;
 
 function insetFields(insets: PosterInsetsDto | null | undefined): InsetFields {
@@ -78,7 +70,6 @@ type NameFields = Pick<
   | 'nameColor'
 >;
 
-/** The name area may be a thin band, but opposite edges must still leave this much free. */
 const MIN_NAME_PERCENT = 5;
 
 function nameFields(area: PosterNameAreaDto | null | undefined): NameFields {
@@ -177,7 +168,6 @@ type ImageFields = Pick<Prisma.PosterDecorationUncheckedCreateInput, 'background
   LeftTextFields &
   RightTextFields;
 
-/** Drawing options of an uploaded background; built-in ones are drawn by fixed code. */
 function imageFields(
   input: {
     backgroundMode?: PosterBackgroundMode;
@@ -193,18 +183,12 @@ function imageFields(
     ...nameFields(input.nameArea),
     ...leftTextFields(input.leftTextArea),
     ...rightTextFields(input.rightTextArea),
-    // Uploaded sheets usually include their own frame, so they stretch to the edges by default.
     ...(input.backgroundMode !== undefined || isCreate
       ? { backgroundMode: input.backgroundMode ?? PosterBackgroundMode.STRETCH }
       : {}),
   };
 }
 
-/**
- * The platform-wide phả đồ decoration library. Built-in rows are drawn by the
- * web app and can be renamed, reordered or hidden but never deleted; uploaded
- * rows carry their own image.
- */
 @Injectable()
 export class PosterDecorationsService {
   private readonly directory: string;
@@ -290,7 +274,6 @@ export class PosterDecorationsService {
     }
   }
 
-  /** Families showing a deleted decoration simply stop showing it (foreign key SET NULL). */
   async remove(id: string): Promise<void> {
     const existing = await this.prisma.posterDecoration.findUnique({
       where: { id },
@@ -337,7 +320,6 @@ export class PosterDecorationsService {
 
   private async removeImage(fileName: string): Promise<void> {
     if (!STORED_FILE_NAME.test(fileName)) return;
-    // force: an already-missing file is the outcome the caller wanted.
     await rm(join(this.directory, fileName), { force: true });
   }
 }

@@ -56,7 +56,6 @@ function PersonSlot({
   );
 }
 
-/** Pick two people and read how they are related and what they call each other. */
 export function KinshipDialog({
   entries,
   graph,

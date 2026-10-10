@@ -39,7 +39,6 @@ export function detailsOf(item: LibraryItem): ItemDetailsValue {
   };
 }
 
-/** What the API takes: empty fields are sent as null so they are cleared. */
 export function detailsPayload(value: ItemDetailsValue) {
   return {
     title: value.title.trim() || null,
@@ -52,7 +51,6 @@ export function detailsPayload(value: ItemDetailsValue) {
 const inputClass =
   'w-full rounded-xl border border-stone-200 bg-white px-3 text-base outline-none transition placeholder:text-stone-400 focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 sm:text-sm';
 
-/** Title, description, date and the person on the tree the item is about. */
 export function ItemDetailsFields({
   value,
   onChange,
@@ -153,7 +151,6 @@ export function ItemDetailsFields({
   );
 }
 
-/** Edits a photo's or a document's details. */
 export function ItemEditDialog({
   familySlug,
   item,
@@ -218,7 +215,6 @@ export function ItemEditDialog({
   );
 }
 
-/** "12/03/2025 · Cụ Nguyễn Văn An": the date and person under a photo or a document. */
 export function itemMeta(item: LibraryItem): string {
   return [
     item.takenOn ? formatDay(item.takenOn) : null,
@@ -228,10 +224,6 @@ export function itemMeta(item: LibraryItem): string {
     .join(' · ');
 }
 
-/**
- * Photos full screen with their caption. Swipe or the arrows move between
- * them; the clan head can edit or delete the one shown.
- */
 export function LibraryLightbox({
   items,
   familySlug,
@@ -271,7 +263,7 @@ export function LibraryLightbox({
       role="dialog"
       aria-modal="true"
       aria-label="Xem ảnh"
-      className="ui-backdrop fixed inset-0 z-[80] flex flex-col bg-black/95 text-white"
+      className="ui-backdrop fixed inset-0 z-[80] flex flex-col bg-stone-950/40 text-white backdrop-blur-2xl"
       onTouchStart={(event) => {
         touchStartX.current = event.touches[0]?.clientX ?? null;
       }}
@@ -321,7 +313,6 @@ export function LibraryLightbox({
         </div>
       </div>
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-2">
-        {/* Family media is served by the API behind the session cookie, so next/image does not apply. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={item.id}

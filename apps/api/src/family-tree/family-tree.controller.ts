@@ -8,28 +8,24 @@ import {
   Req,
   UnauthorizedException,
   UseGuards,
-} from "@nestjs/common";
-import { UserRole } from "@prisma/client";
+} from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 
-import type {
-  AuthRequest,
-  FamilyAccess,
-} from "../common/auth/auth.types.js";
-import { FamilyAccessGuard } from "../common/auth/family-access.guard.js";
-import { FamilyRoles } from "../common/auth/family-roles.decorator.js";
-import { SessionAuthGuard } from "../common/auth/session-auth.guard.js";
-import { FamilySlugPipe } from "../common/pipes/family-slug.pipe.js";
-// Runtime import is required for Nest's emitted DTO validation metadata.
+import type { AuthRequest, FamilyAccess } from '../common/auth/auth.types.js';
+import { FamilyAccessGuard } from '../common/auth/family-access.guard.js';
+import { FamilyRoles } from '../common/auth/family-roles.decorator.js';
+import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
+import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { SaveFamilyTreeDesignDto } from "./dto/save-family-tree-design.dto.js";
-import { FamilyTreeService } from "./family-tree.service.js";
+import { SaveFamilyTreeDesignDto } from './dto/save-family-tree-design.dto.js';
+import { FamilyTreeService } from './family-tree.service.js';
 import type {
   FamilyTreeEditScope,
   FamilyTreeResponse,
   SaveFamilyTreeDesignResponse,
-} from "./family-tree.types.js";
+} from './family-tree.types.js';
 
-@Controller("families/:slug/tree")
+@Controller('families/:slug/tree')
 @UseGuards(SessionAuthGuard, FamilyAccessGuard)
 @FamilyRoles(UserRole.MEMBER_PLUS, UserRole.MEMBER)
 export class FamilyTreeController {
@@ -40,25 +36,23 @@ export class FamilyTreeController {
 
   @Get()
   getTree(
-    @Param("slug", FamilySlugPipe) _slug: string,
+    @Param('slug', FamilySlugPipe) _slug: string,
     @Req() request: AuthRequest,
   ): Promise<FamilyTreeResponse> {
     return this.familyTreeService.getTree(this.getFamilyId(request));
   }
 
-  /** Who may edit what in the designer: everything, or the chi/nhánh rooted at these people. */
-  @Get("scope")
+  @Get('scope')
   getEditScope(
-    @Param("slug", FamilySlugPipe) _slug: string,
+    @Param('slug', FamilySlugPipe) _slug: string,
     @Req() request: AuthRequest,
   ): Promise<FamilyTreeEditScope> {
     return this.familyTreeService.getEditScope(this.getAccess(request));
   }
 
-  /** Branch managers (MEMBER accounts given a chi/nhánh) save too; the service holds them to it. */
-  @Post("design")
+  @Post('design')
   saveDesign(
-    @Param("slug", FamilySlugPipe) _slug: string,
+    @Param('slug', FamilySlugPipe) _slug: string,
     @Body() input: SaveFamilyTreeDesignDto,
     @Req() request: AuthRequest,
   ): Promise<SaveFamilyTreeDesignResponse> {
@@ -71,9 +65,7 @@ export class FamilyTreeController {
 
   private getAccess(request: AuthRequest): FamilyAccess {
     if (!request.familyAccess) {
-      throw new UnauthorizedException(
-        "Bạn cần đăng nhập để thực hiện thao tác này.",
-      );
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
     }
 
     return request.familyAccess;

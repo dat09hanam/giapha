@@ -20,7 +20,6 @@ import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilyAccessGuard } from '../common/auth/family-access.guard.js';
 import { FamilyRoles } from '../common/auth/family-roles.decorator.js';
 import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
-// Runtime imports are required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { CreatePersonDto } from './dto/create-person.dto.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports

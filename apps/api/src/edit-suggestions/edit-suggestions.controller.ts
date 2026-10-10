@@ -19,7 +19,6 @@ import { FamilyRoles } from '../common/auth/family-roles.decorator.js';
 import { RequiresFamilyFeature } from '../common/auth/family-feature.decorator.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
-// Runtime imports are required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { CreateEditSuggestionDto } from './dto/create-edit-suggestion.dto.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -30,10 +29,6 @@ import type {
   EditSuggestionResponse,
 } from './edit-suggestions.types.js';
 
-/**
- * Any member of the family may propose a change to a Person; only the clan
- * head (MEMBER_PLUS) reads the suggestions and marks them handled.
- */
 @Controller('families/:slug')
 @UseGuards(SessionAuthGuard, FamilyAccessGuard)
 @FamilyRoles(UserRole.MEMBER_PLUS)

@@ -54,8 +54,6 @@ const nodeTypes = {
   posterFrame: PosterFrame,
 } satisfies NodeTypes;
 
-/** Zooms to a searched person with room around the card to see their parents and children. */
-/** Light controls on the wood strip on phones; paper controls from sm. */
 const toolbarButtonClass =
   'inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-white/10 px-3 text-sm font-medium text-white ring-1 ring-inset ring-gold-300/35 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:bg-[var(--card)] sm:text-brand-800 sm:ring-gold-700/45 sm:hover:bg-gold-50 sm:focus-visible:ring-brand-700';
 
@@ -66,17 +64,10 @@ const MAX_ZOOM = 2;
 type Rect = { x: number; y: number; width: number; height: number };
 type LandscapeMode = 'off' | 'on' | 'leaving';
 
-/** The poster's starting view: the whole sheet, centred in the canvas. */
 function viewportForPoster(poster: Rect, width: number, height: number): Viewport {
   return getViewportForBounds(poster, width, height, MIN_ZOOM, MAX_ZOOM, 0.01);
 }
 
-/**
- * Shows the poster once React Flow is ready and again whenever the canvas
- * width changes (resize, rotation, landscape view). Height-only changes, such
- * as a phone's address bar or keyboard, keep the viewer's place. Sizes come
- * from the element's layout box, which a CSS rotation leaves untouched.
- */
 function useShowPoster(surface: RefObject<HTMLDivElement | null>, poster: Rect | null) {
   const { setViewport } = useReactFlow();
   const panZoomReady = useStore((state) => state.panZoom !== null);
@@ -114,7 +105,6 @@ type FamilyTreeProps = {
   tree: FamilyTreeResponse;
   family: { name: string; poster: FamilyPoster; features: FamilyFeatures };
   familySlug: string;
-  /** The title, search and Xưng hô bar above the sheet; Gia phả mẫu leaves it out. */
   showToolbar?: boolean;
 };
 
@@ -133,7 +123,6 @@ const QUICK_SECTIONS = [
   { feature: 'library', label: 'Album', path: 'tu-lieu', icon: Images },
 ] as const;
 
-/** One wide shortcut card under the poster: an icon badge, a title and a line under it. */
 function ShortcutCard({
   icon: Icon,
   title,
@@ -156,10 +145,6 @@ function ShortcutCard({
   );
 }
 
-/**
- * Desktops show the home page's shortcuts under the poster: full screen, printing, and the
- * family's other sections. Phones reach these from the toolbar and the bottom bar instead.
- */
 function DesktopShortcuts({
   familySlug,
   features,
@@ -221,7 +206,6 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const closeDetails = useCallback(() => setSelectedId(null), []);
-  /** Open kinship dialog and the person it starts from; undefined while closed. */
   const [kinshipFromId, setKinshipFromId] = useState<string | null | undefined>(undefined);
   const closeKinship = useCallback(() => setKinshipFromId(undefined), []);
   const openKinshipFrom = useCallback((personId: string) => {
@@ -233,7 +217,6 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
     [tree.people, tree.relationships],
   );
 
-  // Generations as the layout numbered them, so the popup matches the cards.
   const generations = useMemo(
     () =>
       new Map(
@@ -268,7 +251,6 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
     const frame = nodes.find((node) => node.type === 'posterFrame');
     return frame ? { ...frame.position, width: frame.data.width, height: frame.data.height } : null;
   }, [nodes]);
-  // Panning stops at the sheet's edges so nobody gets lost in the empty canvas.
   const translateExtent = useMemo<CoordinateExtent | undefined>(
     () =>
       poster
@@ -282,10 +264,6 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
   const surfaceRef = useRef<HTMLDivElement>(null);
   const { showPoster, shown } = useShowPoster(surfaceRef, poster);
 
-  // "Xem ngang": the canvas fills the screen. On an upright phone it is also
-  // turned 90° with CSS, since iOS lets no page lock the screen to landscape;
-  // a phone that is physically turned just gets the full screen. "leaving"
-  // plays the way back before the canvas returns to the page.
   const [landscapeMode, setLandscapeMode] = useState<LandscapeMode>('off');
   const landscape = landscapeMode !== 'off';
   const leaving = landscapeMode === 'leaving';
@@ -297,7 +275,6 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
     setLandscapeMode(reducedMotion ? 'off' : 'leaving');
   }, []);
   const finishLeaving = useCallback((event: AnimationEvent<HTMLDivElement>) => {
-    // Only the box's own animation; cards and dialogs inside animate too.
     if (event.target === event.currentTarget) {
       setLandscapeMode((mode) => (mode === 'leaving' ? 'off' : mode));
     }
@@ -323,21 +300,15 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
     );
   }
 
-  // From sm up the canvas is a 16:9 sheet as large as fits below the search
-  // bar (h-10) and its gap (gap-3), 3.25rem.
   const layoutVars = {
     '--poster-width': 'min(100%, calc((100vh - 4rem - 2rem - 3.25rem) * 16 / 9))',
   } as CSSProperties;
 
   return (
-    // On phones the canvas takes the whole screen between the search bar and the
-    // bottom tab bar (4rem), the sheet fitted edge to edge; dvh follows the
-    // collapsing address bar.
     <div
       className="box-border flex h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] flex-col items-center bg-paper sm:h-auto sm:min-h-[calc(100vh-4rem)] sm:justify-center sm:gap-3 sm:p-4"
       style={layoutVars}
     >
-      {/* A wood strip on phones, as every family section opens; a plain toolbar from sm. */}
       {showToolbar ? (
         <div className="heritage-hero flex w-full shrink-0 items-center justify-center gap-2 rounded-none border-x-0 px-3 py-2.5 sm:max-w-[var(--poster-width)] sm:border-0 sm:bg-none sm:p-0 sm:shadow-none">
           <h1 className="sr-only shrink-0 font-display text-2xl font-bold text-brand-800 sm:not-sr-only sm:mr-auto">
@@ -375,7 +346,6 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
           )}
         />
       ) : null}
-      {/* Dialogs live inside this box so that, turned sideways, they turn with the tree. */}
       <div
         className={cn(
           'overflow-hidden',
@@ -441,7 +411,6 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
             <Minimize2 className="size-5" aria-hidden="true" />
           </button>
         ) : (
-          // Only upright screens need it; landscape ones already show the sheet whole.
           <button
             type="button"
             onClick={() => setLandscapeMode('on')}

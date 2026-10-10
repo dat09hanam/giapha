@@ -6,7 +6,6 @@ export const dynamic = 'force-dynamic';
 
 type PrayerListPageProps = { searchParams: Promise<{ q?: string | string[] }> };
 
-/** Mẫu bài cúng: the published prayers, with a search box; `?q=` opens it pre-filled. */
 export default async function ArticlesPage({ searchParams }: PrayerListPageProps) {
   const { q } = await searchParams;
   return (

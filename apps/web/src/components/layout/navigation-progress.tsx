@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 
 type Phase = 'idle' | 'loading' | 'done';
 
-/** A link this tab follows to another page of the app, rather than a hash, a new tab or a download. */
 function isPageLink(event: MouseEvent): boolean {
   if (event.defaultPrevented || event.button !== 0) return false;
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
@@ -17,17 +16,11 @@ function isPageLink(event: MouseEvent): boolean {
   return next.pathname !== window.location.pathname || next.search !== window.location.search;
 }
 
-/**
- * A thin gold bar across the top from the moment a link is followed until the
- * next page is in, so a slow server never leaves a tap looking ignored.
- */
 export function NavigationProgress() {
   const pathname = usePathname();
   const [phase, setPhase] = useState<Phase>('idle');
 
   useEffect(() => {
-    // Bubble phase: a link whose click handler cancelled it (e.g. "unsaved
-    // changes") has defaultPrevented set by now and starts nothing.
     const onClick = (event: MouseEvent): void => {
       if (isPageLink(event)) setPhase('loading');
     };
@@ -41,7 +34,6 @@ export function NavigationProgress() {
 
   useEffect(() => {
     if (phase === 'idle') return;
-    // Finish the sweep then hide; give up quietly if a navigation never lands.
     const timer = window.setTimeout(() => setPhase('idle'), phase === 'done' ? 450 : 15000);
     return () => window.clearTimeout(timer);
   }, [phase]);

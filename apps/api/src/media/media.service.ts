@@ -16,7 +16,6 @@ import {
 import type { UploadFamilyMediaDto } from './dto/upload-family-media.dto.js';
 import type { UploadedMediaResponse } from './media.types.js';
 
-/** Avatars only; keeping this small also keeps the JSON request body small. */
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 const MEDIA_URL_PREFIX = '/media/';
@@ -36,7 +35,6 @@ export class MediaService {
     return this.storeImage(familyId, input.contentType, input.data, MAX_IMAGE_BYTES);
   }
 
-  /** Decodes, checks and writes one image (or, with allowPdf, a PDF) under the family's folder. */
   async storeImage(
     familyId: string,
     contentType: string,
@@ -56,10 +54,6 @@ export class MediaService {
     return { fileName, url: `${MEDIA_URL_PREFIX}${fileName}`, sizeBytes: bytes.length };
   }
 
-  /**
-   * Removes files whose only owner is gone, such as a deleted feed post's
-   * photos. Best effort: a file that cannot be removed is left behind.
-   */
   async removeOwnedFiles(familyId: string, urls: readonly string[]): Promise<void> {
     await Promise.all(
       urls.map(async (url) => {
@@ -92,10 +86,6 @@ export class MediaService {
     }
   }
 
-  /**
-   * Removes an upload once nothing points at it. The reference check lives here
-   * rather than in the caller so a stale client can never orphan a live avatar.
-   */
   async deleteImage(familyId: string, fileName: string): Promise<void> {
     if (!STORED_FILE_NAME.test(fileName)) {
       throw new NotFoundException('Không tìm thấy tệp ảnh.');
@@ -119,11 +109,9 @@ export class MediaService {
       );
     }
 
-    // force: an already-missing file is the outcome the caller wanted.
     await rm(join(this.familyDirectory(familyId), fileName), { force: true });
   }
 
-  /** Files are grouped per family so one tenant can never read another tenant's directory. */
   private familyDirectory(familyId: string): string {
     return join(this.root, familyId);
   }

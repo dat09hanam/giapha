@@ -26,7 +26,6 @@ export function SectionIcon({
   return <Icon className={className} aria-hidden="true" />;
 }
 
-/** A cover, or the section's emblem on paper when the article has none. */
 function Cover({ article, className }: { article: ArticleSummary; className: string }) {
   const src = articleCoverSrc(article.coverUrl);
   if (!src) {
@@ -39,7 +38,6 @@ function Cover({ article, className }: { article: ArticleSummary; className: str
     );
   }
   return (
-    // API covers are served from another origin, which next/image is not set up for.
     // eslint-disable-next-line @next/next/no-img-element
     <img src={src} alt="" className={`${className} object-cover`} loading="lazy" />
   );
@@ -53,7 +51,6 @@ export function ArticleCard({ article }: { article: ArticleSummary }) {
         href={articleHref(article.category, article.slug)}
         className="group flex h-full overflow-hidden rounded-2xl sm:flex-col border border-gold-500/30 bg-[var(--card)] shadow-[0_14px_30px_-26px_rgba(74,46,18,0.6)] transition hover:-translate-y-0.5 hover:border-gold-500/70 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
       >
-        {/* Phones show a slim row, a small thumbnail beside the title, so the list scrolls fast. */}
         <Cover
           article={article}
           className="aspect-[4/3] w-28 shrink-0 sm:aspect-[16/9] sm:w-full"

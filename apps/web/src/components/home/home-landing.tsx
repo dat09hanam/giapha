@@ -21,13 +21,14 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+import { PricingTable } from '@/components/pricing/pricing-table';
 import { SITE_BRAND } from '@/lib/site-brand';
+import type { PricingPlan } from '@/types/pricing';
 
 import { HomeFooter } from './home-footer';
 import { HomeHeader } from './home-header';
 import styles from './home.module.css';
 
-/** One line per section, so the page can be taken in before scrolling. */
 const overview = [
   {
     icon: LayoutGrid,
@@ -184,7 +185,7 @@ function Eyebrow({ children }: { children: string }) {
   );
 }
 
-export function HomeLanding() {
+export function HomeLanding({ pricingPlans }: { pricingPlans: readonly PricingPlan[] }) {
   return (
     <main className={styles.home} id="top">
       <HomeHeader />
@@ -309,6 +310,19 @@ export function HomeLanding() {
           ))}
         </div>
       </section>
+
+      {pricingPlans.length > 0 ? (
+        <section className={styles.pricing} id="bang-gia" aria-labelledby="pricing-title">
+          <Eyebrow>Bảng giá dịch vụ</Eyebrow>
+          <h2 id="pricing-title">
+            Chọn gói <em>phù hợp</em> với dòng họ của bạn
+          </h2>
+          <p className={styles.pricingLead}>
+            Lưu giữ cội nguồn, kết nối các thế hệ với những tính năng thiết thực và dễ sử dụng.
+          </p>
+          <PricingTable plans={pricingPlans} />
+        </section>
+      ) : null}
 
       <section className={styles.faq} id="hoi-dap" aria-labelledby="faq-title">
         <div>

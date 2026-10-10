@@ -2,11 +2,9 @@ import { BadRequestException } from '@nestjs/common';
 
 type ImageFormat = {
   extension: string;
-  /** Verified against the decoded bytes so a mislabelled upload is rejected. */
   matches: (bytes: Buffer) => boolean;
 };
 
-/** Raster formats only: SVG is excluded because it can carry script. */
 const IMAGE_FORMATS: Record<string, ImageFormat> = {
   'image/jpeg': {
     extension: 'jpg',
@@ -27,7 +25,6 @@ const IMAGE_FORMATS: Record<string, ImageFormat> = {
 
 export const IMAGE_CONTENT_TYPES = Object.keys(IMAGE_FORMATS);
 
-/** Library documents may also be PDFs, such as a scanned genealogy book. */
 export const DOCUMENT_FORMATS: Record<string, ImageFormat> = {
   ...IMAGE_FORMATS,
   'application/pdf': {
@@ -43,11 +40,9 @@ export const CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
   pdf: 'application/pdf',
 };
 
-/** Server-generated names only: `<uuid>.<extension>`, never anything from the client. */
 export const STORED_FILE_NAME =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp|pdf)$/;
 
-/** Decodes a base64 upload and checks its size and real format; images unless told otherwise. */
 export function decodeImage(
   contentType: string,
   data: string,

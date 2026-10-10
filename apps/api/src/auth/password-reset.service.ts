@@ -22,14 +22,11 @@ import type {
 import { hashPassword, validateOwnPassword } from './password.js';
 
 const CODE_TTL_MS = 10 * 60 * 1000;
-/** A new code is not mailed again sooner than this, so the form cannot flood an inbox. */
 const RESEND_COOLDOWN_MS = 2 * 60 * 1000;
-/** Wrong guesses one code survives; six digits leave a guess no real chance within this. */
 const MAX_ATTEMPTS = 5;
 
 const INVALID_CODE_MESSAGE = 'Mã xác nhận không đúng hoặc đã hết hạn. Hãy yêu cầu mã mới.';
 
-/** Bound to the account, so a code's digest says nothing outside it. */
 function hashCode(userId: string, code: string): string {
   return createHash('sha256').update(`${userId}:${code}`).digest('hex');
 }
@@ -40,13 +37,8 @@ function digestsMatch(left: string, right: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-/** Where the code went, with the email masked so the answer does not hand it out in full. */
 export type PasswordResetRequested = { sentTo: string };
 
-/**
- * Quên mật khẩu: a six-digit code mailed to the account's email replaces the password. The request
- * says plainly when no account matches, and names the (masked) email the code went to otherwise.
- */
 @Injectable()
 export class PasswordResetService {
   constructor(
@@ -79,13 +71,11 @@ export class PasswordResetService {
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true },
     });
-    // The last code is still on its way and still valid; mailing another would flood the inbox.
     if (latest && Date.now() - latest.createdAt.getTime() < RESEND_COOLDOWN_MS) return answer;
 
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
     const now = new Date();
     const created = await this.prisma.$transaction(async (transaction) => {
-      // Only the newest code works, so the older ones are dropped: one row per account at most.
       await transaction.passwordResetCode.deleteMany({ where: { userId: user.id } });
       return transaction.passwordResetCode.create({
         data: {
@@ -127,28 +117,21 @@ export class PasswordResetService {
 <p>Thân mến,<br><strong>${SITE_BRAND.name}</strong><br><em>${SITE_BRAND.tagline}</em></p>`,
       });
     } catch {
-      // The code never reached anyone; drop it so the cooldown does not block a retry.
       await this.prisma.passwordResetCode.delete({ where: { id: created.id } });
       throw new ServiceUnavailableException('Không gửi được email lúc này. Vui lòng thử lại sau.');
     }
     return answer;
   }
 
-  /**
-   * Checks the mailed code without using it, so the form asks for a new password only after a
-   * right code. A wrong guess still counts against the code's attempts.
-   */
   async verify(input: VerifyPasswordResetDto): Promise<void> {
     await this.checkCode(input);
   }
 
-  /** Replaces the password and signs the account out everywhere; the code is checked again. */
   async confirm(input: ConfirmPasswordResetDto): Promise<void> {
     const { user, pending } = await this.checkCode(input);
     const password = validateOwnPassword(input.newPassword);
     const passwordHash = await hashPassword(password);
     await this.prisma.$transaction(async (transaction) => {
-      // Claimed first by deleting it: a second request racing with the same code finds it gone.
       const claimed = await transaction.passwordResetCode.deleteMany({ where: { id: pending.id } });
       if (claimed.count === 0) throw new BadRequestException(INVALID_CODE_MESSAGE);
       await transaction.passwordResetCode.deleteMany({ where: { userId: user.id } });
@@ -160,7 +143,6 @@ export class PasswordResetService {
     });
   }
 
-  /** The account and its live code when `code` matches it; a wrong guess uses up one attempt. */
   private async checkCode(input: VerifyPasswordResetDto) {
     const user = await this.findAccount(input.login);
     if (!user || user.deletedAt || user.status !== UserStatus.ACTIVE) {
@@ -202,10 +184,6 @@ export class PasswordResetService {
   }
 }
 
-/**
- * `nguyen***@gmail.com`: the first six characters and the domain, enough for the owner to
- * recognise. A shorter name keeps at least its last character hidden.
- */
 function maskEmail(email: string): string {
   const at = email.lastIndexOf('@');
   const local = email.slice(0, at);

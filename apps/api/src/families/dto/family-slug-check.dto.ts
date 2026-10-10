@@ -1,6 +1,5 @@
 import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
-/** The create form's inputs that decide a Family's slug, checked while the admin types. */
 export class FamilySlugCheckQueryDto {
   @IsString()
   @MinLength(2)

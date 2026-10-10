@@ -5,7 +5,6 @@ import type {
   RichTextRun,
 } from '@/types/rich-text';
 
-/** The colours the editor offers; the API accepts any `#rrggbb`. */
 export const RICH_TEXT_COLORS: readonly { value: string; label: string }[] = [
   { value: '#7c1f18', label: 'Đỏ son' },
   { value: '#c4432c', label: 'Đỏ cam' },
@@ -20,7 +19,6 @@ export const EMPTY_RICH_TEXT: RichTextDocument = { version: 1, blocks: [] };
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
-/** Older plain-text introductions become one paragraph per line, so they open in the editor. */
 export function plainToRichText(text: string | null): RichTextDocument {
   if (!text?.trim()) return EMPTY_RICH_TEXT;
   return {
@@ -39,10 +37,6 @@ export function richTextIsEmpty(document: RichTextDocument): boolean {
     ),
   );
 }
-
-// ---------------------------------------------------------------------------------------------
-// Document → HTML, only to seed the editor. Text is escaped and colours are checked, so nothing
-// typed can become markup.
 
 function escapeHtml(text: string): string {
   return text
@@ -64,7 +58,6 @@ function runToHtml(run: RichTextRun): string {
 
 function lineToHtml(line: RichTextRun[]): string {
   const html = line.map(runToHtml).join('');
-  // An empty line still needs a <br> to hold the caret.
   return html || '<br>';
 }
 
@@ -86,13 +79,8 @@ export function richTextToEditorHtml(document: RichTextDocument): string {
     .join('');
 }
 
-// ---------------------------------------------------------------------------------------------
-// Editor DOM → document. Reads only the formatting the toolbar can make; anything else in the
-// DOM is kept as plain text.
-
 type Marks = Omit<RichTextRun, 'text'>;
 
-/** `rgb(124, 31, 24)` or `#7C1F18` → `#7c1f18`; anything else is dropped. */
 function normalizeColor(value: string | null | undefined): string | undefined {
   if (!value) return undefined;
   const trimmed = value.trim().toLowerCase();
@@ -130,7 +118,6 @@ function marksOf(element: HTMLElement, inherited: Marks): Marks {
 
 function collectRuns(node: Node, marks: Marks, runs: RichTextRun[]): void {
   if (node.nodeType === Node.TEXT_NODE) {
-    // The editor shows text with pre-wrap, but a stray newline from the DOM is just a space.
     const text = (node.textContent ?? '').replace(/\n/g, ' ');
     if (text) runs.push({ text, ...marks });
     return;
@@ -144,7 +131,6 @@ function collectRuns(node: Node, marks: Marks, runs: RichTextRun[]): void {
   node.childNodes.forEach((child) => collectRuns(child, next, runs));
 }
 
-/** Joins neighbours styled alike and drops a lone trailing line break the browser adds. */
 function tidyLine(runs: RichTextRun[]): RichTextRun[] {
   const result: RichTextRun[] = [];
   for (const run of runs) {
@@ -197,9 +183,7 @@ const INLINE_TAGS = new Set([
 ]);
 const BLOCK_TAGS_IN_DOM = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'BLOCKQUOTE', 'UL', 'OL']);
 
-/** Reads `container`'s children as a run of blocks, descending into wrappers that hold blocks. */
 function readBlocks(container: Node, blocks: RichTextBlock[]): void {
-  // Text typed straight into a container, outside any block, gathers into one paragraph.
   let loose: Node[] = [];
   const flushLoose = (): void => {
     if (loose.length === 0) return;
@@ -216,7 +200,6 @@ function readBlocks(container: Node, blocks: RichTextBlock[]): void {
     }
     flushLoose();
     const align = alignOf(node);
-    // Browsers sometimes wrap a list or paragraphs in a <div> or <p>; read what is inside.
     const wrapsBlocks = [...node.children].some((child) => BLOCK_TAGS_IN_DOM.has(child.tagName));
     switch (node.tagName) {
       case 'H1':
@@ -254,7 +237,6 @@ export function editorDomToRichText(root: HTMLElement): RichTextDocument {
   const blocks: RichTextBlock[] = [];
   readBlocks(root, blocks);
 
-  // Trailing empty paragraphs are where the caret sat, not content.
   while (blocks.length > 0) {
     const last = blocks.at(-1)!;
     if ('items' in last || last.content.some((run) => run.text.trim())) break;

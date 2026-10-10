@@ -28,10 +28,6 @@ function fieldsOf(value: string): Fields {
   };
 }
 
-/**
- * What the typed fields save as, and why any of them is left out. A month needs
- * a year and a day needs a month, so an ancestor may have only a year.
- */
 function resolve(fields: Fields): { value: string; problem: string | null } {
   const latestYear = Number(todayInVietnam().slice(0, 4));
   const year = fields.year ? Number(fields.year) : null;
@@ -89,7 +85,6 @@ function PartialDateDialog({
   const baseId = useId();
   const [fields, setFields] = useState<Fields>(() => fieldsOf(value));
   const { value: result, problem } = resolve(fields);
-  // Free text with no year (e.g. "Giáp Tý") cannot be shown in the boxes.
   const unreadable = Boolean(value.trim()) && parsePartialDate(value).year === null;
   const hasInput = Boolean(fields.day || fields.month || fields.year);
 
@@ -127,7 +122,6 @@ function PartialDateDialog({
             type="text"
             inputMode="numeric"
             autoComplete="off"
-            // Most often only the year is known, so start there.
             autoFocus={box.key === 'year'}
             maxLength={box.length}
             placeholder={box.label}
@@ -165,7 +159,6 @@ function PartialDateDialog({
         )}
       </label>
 
-      {/* Only a reason to fix the boxes, or a hint while they are empty. */}
       {problem || !hasInput ? (
         <p
           className="rounded-xl bg-paper-deep/40 px-3 py-2.5 text-center text-sm"
@@ -186,12 +179,6 @@ function PartialDateDialog({
   );
 }
 
-/**
- * A birth or death date field that opens three number boxes (ngày, tháng, năm), any of
- * which may stay empty from the left, and an "Ước chừng" box that writes
- * "khoảng …". `value` and `onChange` use the free-text form of lib/partial-date:
- * `15/03/1920`, `03/1920`, `1920`, optionally "khoảng …", or '' for none.
- */
 export function PartialDatePicker({
   id,
   title,
@@ -201,7 +188,6 @@ export function PartialDatePicker({
   className,
 }: {
   id?: string;
-  /** The popup's heading, e.g. "Ngày sinh". */
   title: string;
   value: string;
   onChange: (value: string) => void;

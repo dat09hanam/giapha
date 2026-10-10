@@ -11,33 +11,20 @@ import { FITTED_LINE_HEIGHT, fitTextSize } from '@/lib/fit-text';
 import { cardBottomGap, VIEWER_NODE_WIDTH, type PersonFlowNode } from '@/lib/tree-layout';
 import type { Gender } from '@/types/family-tree';
 
-/**
- * Nine-slice frames: the corners keep their carved shape while the card stays a
- * fixed 16:9 at every screen size. Slice values are in source-image pixels;
- * border widths are for a full-size card and scale with it.
- */
 const FRAMES = {
-  /** Đời 2 and 3. */
   elder: { src: '/images/decorations/frame-doi-1.png', slice: 80, border: 30 },
   descendant: { src: '/images/decorations/frame-doi-2.png', slice: 90, border: 33 },
 };
 
-/**
- * The Đời 1 scroll, measured in its 1800 × 480 source pixels. It scales with
- * the card's height so the dragon rollers never stretch; founder cards use its
- * wide ratio (`FOUNDER_CARD_RATIO`) and only the paper and bands stretch sideways.
- */
 const SCROLL = {
   src: '/images/decorations/frame-doi-1-scroll.webp',
   height: 480,
   slice: { y: 175, x: 170 },
-  /** Where the paper starts, so the name stays clear of the bands and rollers. */
   paper: { top: 130, bottom: 110, x: 180 },
 };
 
 type CardFrame = {
   style: CSSProperties;
-  /** The text box inside the frame. */
   inner: { width: number; height: number };
 };
 
@@ -72,10 +59,6 @@ function cardFrame(
   };
 }
 
-/**
- * Women's names are set in a muted blue so men and women read apart at a glance;
- * everyone else keeps the brand red-brown.
- */
 const NAME_COLORS: Record<Gender, { name: string; honorific: string }> = {
   MALE: { name: 'text-brand-700', honorific: 'text-brand-700/75' },
   FEMALE: { name: 'text-[#2f5f86]', honorific: 'text-[#2f5f86]/75' },
@@ -85,15 +68,9 @@ const NAME_COLORS: Record<Gender, { name: string; honorific: string }> = {
 
 const NAME_FONT_FAMILY = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 const HONORIFIC_SIZE = 11;
-/** Đời 1 lettering is heavier so it holds its own against the scroll's bold reds and golds. */
 const FOUNDER_TEXT = { nameWeight: 900, name: 'font-black', honorific: 'font-extrabold' };
 const DEFAULT_TEXT = { nameWeight: 700, name: 'font-bold', honorific: 'font-semibold' };
 
-/**
- * The name's font size: as large as fits the space inside the frame, so short
- * names read big and long ones wrap instead of overflowing. Taller cards allow
- * one more line.
- */
 function nameFontSize(
   name: string,
   inner: CardFrame['inner'],
@@ -110,8 +87,6 @@ function nameFontSize(
     height: innerHeight,
     font: `${weight} ${NAME_FONT_FAMILY}`,
     minSize: 10 * textScale,
-    // One line should not fill more than about 40% of the frame's inside, nor
-    // grow past what suits the card's width on squarer cards.
     maxSize: Math.min(inner.height * 0.4, inner.width * 0.22),
     maxLines: inner.height / inner.width > 0.8 ? 4 : 3,
     fallback: 18 * textScale,
@@ -120,11 +95,6 @@ function nameFontSize(
 
 const subscribeNever = (): (() => void) => () => {};
 
-/**
- * False while rendering on the server and during hydration, true afterwards.
- * Text can only be measured in the browser, and the server's estimate must be
- * replaced rather than kept by hydration, which leaves mismatched styles as-is.
- */
 function useIsBrowser(): boolean {
   return useSyncExternalStore(
     subscribeNever,
@@ -133,18 +103,10 @@ function useIsBrowser(): boolean {
   );
 }
 
-/**
- * The person the viewer searched for. Kept out of node data so highlighting
- * does not hand React Flow new nodes, which would re-measure and re-fit them.
- */
 export const HighlightedPersonContext = createContext<string | null>(null);
 
 const hiddenHandle = '!size-1 !min-h-0 !min-w-0 !border-0 !bg-transparent';
 
-/**
- * The framed card itself, with no React Flow handles, so the printed poster can draw the same
- * card. `children` go inside the card box; the canvas puts its handles there.
- */
 export function PersonCard({
   data,
   highlighted = false,
@@ -168,7 +130,6 @@ export function PersonCard({
   );
   const nameSize = isBrowser ? fittedSize : 18 * data.textScale;
   const colors = NAME_COLORS[data.gender];
-  // Đời 1's honorific is solid rather than faded.
   const honorificColor = isFounder ? colors.name : colors.honorific;
 
   return (
@@ -184,7 +145,6 @@ export function PersonCard({
         />
       ) : null}
       {hasCrest ? (
-        // Đời 2 and 3 wear the crest on the top edge of their frame; it fits in the row gap above.
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src="/images/decorations/crest-doi-1.png"
@@ -228,7 +188,6 @@ export function PersonCard({
 
 export function PersonNode({ id, data }: NodeProps<PersonFlowNode>) {
   const highlighted = useContext(HighlightedPersonContext) === id;
-  // Lines leave from the frame's lower band, not the scroll's roller caps below it.
   const bottomHandleStyle = { bottom: cardBottomGap(data) };
   return (
     <PersonCard data={data} highlighted={highlighted}>

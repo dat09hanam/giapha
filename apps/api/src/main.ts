@@ -12,7 +12,6 @@ import { validationExceptionFactory } from './common/validation/validation-error
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    // Base64 image uploads and large tree designs exceed Fastify's 1 MB default.
     new FastifyAdapter({ bodyLimit: 6 * 1024 * 1024 }),
     { bufferLogs: true },
   );

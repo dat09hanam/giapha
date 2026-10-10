@@ -13,7 +13,6 @@ function subscribe(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-/** The name this phone posts under; every composer and comment box updates together. */
 export function useViewerName(): string {
   return useSyncExternalStore(subscribe, readViewerName, () => '');
 }

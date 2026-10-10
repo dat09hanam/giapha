@@ -44,12 +44,7 @@ export function shouldUseElderAvatar(
   return bornIn !== null && bornIn <= currentYear && currentYear - bornIn >= ELDER_AGE;
 }
 
-export function PersonAvatar({
-  gender,
-  generation,
-  birthDate,
-  className,
-}: PersonAvatarProps) {
+export function PersonAvatar({ gender, generation, birthDate, className }: PersonAvatarProps) {
   const elderAvatar = shouldUseElderAvatar(generation, birthDate)
     ? ELDER_AVATAR_BY_GENDER[gender]
     : undefined;

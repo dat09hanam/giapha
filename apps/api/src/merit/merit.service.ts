@@ -5,14 +5,12 @@ import { formatCalendarDay, parseCalendarDay } from '../common/validation/calend
 import { PrismaService } from '../database/prisma.service.js';
 import type { SaveMeritDonationDto, SaveMeritEventDto } from './merit.dto.js';
 
-/** An event lists its newest donations; totals always cover every donation. */
 const DONATION_LIMIT = 2000;
 
 const EVENT_NOT_FOUND = 'Không tìm thấy sự kiện công đức này.';
 const DONATION_NOT_FOUND = 'Không tìm thấy lượt công đức này.';
 
 export type MeritTotals = {
-  /** Sum of cash donations, whole đồng. */
   cashAmount: number;
   cashCount: number;
   itemCount: number;
@@ -22,7 +20,6 @@ export type MeritEventResponse = {
   id: string;
   title: string;
   description: string | null;
-  /** `YYYY-MM-DD`, or null when the occasion has no fixed day. */
   heldOn: string | null;
   createdAt: string;
   updatedAt: string;
@@ -37,7 +34,6 @@ export type MeritDonationResponse = {
   amount: number | null;
   itemContent: string | null;
   note: string | null;
-  /** `YYYY-MM-DD`. */
   donatedOn: string;
   createdAt: string;
   updatedAt: string;
@@ -45,7 +41,6 @@ export type MeritDonationResponse = {
 
 export type MeritOverviewResponse = {
   events: MeritEventResponse[];
-  /** Whether this viewer is the clan head, who records donations. */
   canManage: boolean;
 };
 
@@ -106,7 +101,6 @@ function toEventResponse(event: EventRecord, totals: MeritTotals): MeritEventRes
     id: event.id,
     title: event.title,
     description: event.description,
-    // DATE columns come back as midnight UTC, so the ISO date is the stored day.
     heldOn: event.heldOn ? formatCalendarDay(event.heldOn) : null,
     createdAt: event.createdAt.toISOString(),
     updatedAt: event.updatedAt.toISOString(),
@@ -120,7 +114,6 @@ function toDonationResponse(donation: DonationRecord): MeritDonationResponse {
     eventId: donation.eventId,
     donorName: donation.donorName,
     kind: donation.kind,
-    // Amounts are capped far below 2^53, so a number is exact.
     amount: donation.amount === null ? null : Number(donation.amount),
     itemContent: donation.itemContent,
     note: donation.note,
@@ -130,7 +123,6 @@ function toDonationResponse(donation: DonationRecord): MeritDonationResponse {
   };
 }
 
-/** Collapses runs of whitespace; an empty result is null. */
 function cleanText(value: string | null | undefined): string | null {
   const text = value?.trim().replace(/\s+/g, ' ');
   return text ? text : null;
@@ -143,7 +135,6 @@ function cleanEvent(input: SaveMeritEventDto): {
 } {
   const title = cleanText(input.title);
   if (!title) throw new BadRequestException('Vui lòng nhập tên sự kiện.');
-  // Line breaks in a description are kept; only its ends are trimmed.
   const description = input.description?.trim() || null;
   return {
     title,
@@ -216,7 +207,6 @@ export class MeritService {
     const [donations, totals] = await Promise.all([
       this.prisma.meritDonation.findMany({
         where: { familyId, eventId },
-        // Newest day first; donations of the same day in the order they were written, newest first.
         orderBy: [{ donatedOn: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
         take: DONATION_LIMIT,
       }),
@@ -239,7 +229,6 @@ export class MeritService {
     eventId: string,
     input: SaveMeritEventDto,
   ): Promise<MeritEventResponse> {
-    // The family filter makes another family's event indistinguishable from a missing one.
     const { count } = await this.prisma.meritEvent.updateMany({
       where: { id: eventId, familyId },
       data: cleanEvent(input),
@@ -252,7 +241,6 @@ export class MeritService {
     return toEventResponse(event, totals);
   }
 
-  /** Removes the event and, through the foreign key, every donation recorded for it. */
   async removeEvent(familyId: string, eventId: string): Promise<void> {
     const { count } = await this.prisma.meritEvent.deleteMany({ where: { id: eventId, familyId } });
     if (count === 0) throw new NotFoundException(EVENT_NOT_FOUND);

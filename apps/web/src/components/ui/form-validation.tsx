@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 
 type ValidatedElement = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
-/** Marks the element holding a field's error text; `Field` renders one, others get one added. */
 const FIELD_ERROR_ATTRIBUTE = 'data-field-error';
 
 function isValidated(target: EventTarget | null): target is ValidatedElement {
@@ -15,7 +14,6 @@ function isValidated(target: EventTarget | null): target is ValidatedElement {
   );
 }
 
-/** What is wrong with a field, in Vietnamese; null when the field is valid. */
 function vietnameseMessage(field: ValidatedElement): string | null {
   const { validity } = field;
   const type = field instanceof HTMLInputElement ? field.type : '';
@@ -55,13 +53,8 @@ function vietnameseMessage(field: ValidatedElement): string | null {
   return null;
 }
 
-/** Error slots this component added itself, removed again once the field is fixed. */
 const addedSlots = new WeakMap<ValidatedElement, HTMLElement>();
 
-/**
- * Where a field's error goes: the slot `Field` renders, else a new line at the end of the label
- * around the input (each raw input here sits in a grid label), else right after the input.
- */
 function errorSlot(field: ValidatedElement): HTMLElement {
   const own = field
     .closest('[data-field]')
@@ -80,10 +73,6 @@ function errorSlot(field: ValidatedElement): HTMLElement {
   return slot;
 }
 
-/**
- * Fields showing an error now. Kept apart from `aria-invalid`, which a component may also set for
- * its own reasons (UsernameField marks a taken name).
- */
 const flagged = new WeakSet<ValidatedElement>();
 
 function showError(field: ValidatedElement, message: string): void {
@@ -108,23 +97,13 @@ function clearError(field: ValidatedElement): void {
   if (own) own.textContent = '';
 }
 
-/**
- * Flags a field with a check the browser cannot make itself (two passwords that differ), shown like
- * any other: red text under the field, cleared once the field is edited.
- */
 export function reportFieldError(field: ValidatedElement, message: string): void {
   field.setCustomValidity(message);
   field.reportValidity();
 }
 
-/**
- * Shows the browser's form checks as red Vietnamese text right under each field, on every page,
- * instead of the browser's own bubble (worded in the browser's language). Nothing shows under a
- * field until it fails; the text updates as the field is edited and goes once it is valid.
- */
 export function FormValidation() {
   useEffect(() => {
-    // One submit fires `invalid` for every failing field at once; only the first gets focus.
     let focusTaken = false;
 
     function onInvalid(event: Event): void {
@@ -144,7 +123,6 @@ export function FormValidation() {
     function onEdit(event: Event): void {
       const field = event.target;
       if (!isValidated(field)) return;
-      // A check set by code (reportFieldError) is made again on the next submit, not while typing.
       field.setCustomValidity('');
       if (!flagged.has(field)) return;
       const message = vietnameseMessage(field);
@@ -159,7 +137,6 @@ export function FormValidation() {
       }
     }
 
-    // `invalid` and `reset` do not bubble, so they are caught on the way down.
     document.addEventListener('invalid', onInvalid, true);
     document.addEventListener('input', onEdit, true);
     document.addEventListener('change', onEdit, true);

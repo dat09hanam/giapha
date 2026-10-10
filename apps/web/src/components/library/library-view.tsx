@@ -68,7 +68,6 @@ function NewAlbumDialog({ familySlug, onClose }: { familySlug: string; onClose: 
         title: title.trim(),
         description: description.trim() || null,
       });
-      // Straight into the new album to add its photos.
       router.push(`/${encodeURIComponent(familySlug)}/tu-lieu/${album.id}`);
     } catch (error) {
       showToast({ kind: 'error', message: getApiErrorMessage(error, 'tạo album') });
@@ -124,7 +123,6 @@ function NewAlbumDialog({ familySlug, onClose }: { familySlug: string; onClose: 
 type PickedFile = {
   file: File;
   isPdf: boolean;
-  /** Object URL of the picked image, for the preview. */
   previewUrl: string | null;
 };
 
@@ -355,7 +353,6 @@ function DocumentRow({
   return (
     <li className="flex items-start gap-1 px-2 py-2 sm:px-3">
       {isPdf ? (
-        // A PDF opens in the browser's own viewer, in a new tab.
         <a
           href={familyMediaSrc(familySlug, item.url)}
           target="_blank"
@@ -421,10 +418,6 @@ function DocumentRow({
   );
 }
 
-/**
- * Album và tư liệu: photo albums, and documents such as scanned genealogy
- * books and royal decrees. Every member browses; the clan head keeps it.
- */
 export function LibraryView({
   familySlug,
   initial,
@@ -432,7 +425,6 @@ export function LibraryView({
 }: {
   familySlug: string;
   initial: LibraryOverview;
-  /** The tree's people, for tagging documents; empty for members, who cannot edit. */
   people: Person[];
 }) {
   const confirm = useConfirm();
@@ -446,7 +438,6 @@ export function LibraryView({
   const canManage = initial.canManage;
   const pendingTotal = initial.albums.reduce((sum, album) => sum + album.pendingCount, 0);
   const entries = useMemo(() => searchEntriesFromPeople(people), [people]);
-  // The lightbox pages through the image documents; PDFs open on their own.
   const imageDocuments = documents.filter((item) => item.contentType !== 'application/pdf');
 
   useEffect(() => {

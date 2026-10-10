@@ -2,11 +2,9 @@ import { apiFetch } from '@/lib/api-error';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
-/** Cash (tiền mặt) or goods (hiện vật). */
 export type MeritDonationKind = 'CASH' | 'ITEM';
 
 export type MeritTotals = {
-  /** Sum of cash donations, whole đồng. */
   cashAmount: number;
   cashCount: number;
   itemCount: number;
@@ -16,7 +14,6 @@ export type MeritEvent = {
   id: string;
   title: string;
   description: string | null;
-  /** `YYYY-MM-DD`, or null when the occasion has no fixed day. */
   heldOn: string | null;
   createdAt: string;
   updatedAt: string;
@@ -28,12 +25,9 @@ export type MeritDonation = {
   eventId: string;
   donorName: string;
   kind: MeritDonationKind;
-  /** CASH only: whole đồng. */
   amount: number | null;
-  /** ITEM only: what was given. */
   itemContent: string | null;
   note: string | null;
-  /** `YYYY-MM-DD`. */
   donatedOn: string;
   createdAt: string;
   updatedAt: string;
@@ -65,7 +59,6 @@ export type MeritDonationInput = {
   donatedOn: string;
 };
 
-/** Matches the API's cap. */
 export const MAX_MERIT_AMOUNT = 10_000_000_000_000;
 
 const JSON_HEADERS = { Accept: 'application/json', 'Content-Type': 'application/json' };

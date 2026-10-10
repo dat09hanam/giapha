@@ -14,9 +14,7 @@ import type {
   EditSuggestionResponse,
 } from './edit-suggestions.types.js';
 
-/** A shared account can be used by anyone in the clan; this caps how much an unread queue can grow. */
 const MAX_PENDING_PER_FAMILY = 200;
-/** The review list shows the most recent suggestions; older closed ones drop off. */
 const LIST_LIMIT = 300;
 
 const SUGGESTION_SELECT = {
@@ -79,7 +77,6 @@ export class EditSuggestionsService {
     return { ...created, createdAt: created.createdAt.toISOString() };
   }
 
-  /** Newest first; the web app groups them by status. */
   async list(familyId: string): Promise<EditSuggestionResponse[]> {
     const records = await this.prisma.editSuggestion.findMany({
       where: { familyId },
@@ -95,7 +92,6 @@ export class EditSuggestionsService {
     suggestionId: string,
     status: SuggestionStatus,
   ): Promise<EditSuggestionResponse> {
-    // The family filter makes another family's suggestion indistinguishable from a missing one.
     const { count } = await this.prisma.editSuggestion.updateMany({
       where: { id: suggestionId, familyId },
       data: {

@@ -30,7 +30,6 @@ const KINDS: readonly { value: MeritDonationKind; label: string; Icon: typeof Ba
 
 const digitsOf = (text: string): number => Number(text.replace(/\D/g, '')) || 0;
 
-/** An amount field in đồng that groups digits as typed and reads the amount out in words. */
 function AmountField({
   id,
   label,
@@ -71,11 +70,6 @@ function AmountField({
   );
 }
 
-/**
- * Records one donation to an event, or edits `editing`. Cash asks for an amount; goods ask what
- * was given, in one free-text field; either may have a note. While adding, "Lưu và nhập tiếp"
- * keeps the dialog open, since the clan head usually copies a whole list in one sitting.
- */
 export function MeritDonationDialog({
   familySlug,
   eventId,
@@ -158,7 +152,6 @@ export function MeritDonationDialog({
             }.`,
       });
       if (keepOpen) {
-        // The day and kind stay: a list is usually copied from one occasion.
         setDonorName('');
         setAmountText('');
         setItemContent('');
@@ -182,7 +175,6 @@ export function MeritDonationDialog({
       footer={
         <>
           {editing ? (
-            // Deleting lives here, since the list has no room for a button per row.
             <Button
               type="button"
               variant="ghost"

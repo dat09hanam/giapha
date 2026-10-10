@@ -4,7 +4,6 @@ import { CloudMotif } from '@/components/layout/page-hero';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-/** The title strip at the top of an admin page: what it is, whose it is, and quick links. */
 export function AdminPageHeader({
   eyebrow,
   title,
@@ -17,7 +16,6 @@ export function AdminPageHeader({
   actions?: ReactNode;
 }) {
   return (
-    // The same wood-and-gold banner the family sections open with (see PageHero).
     <header className="heritage-hero relative isolate flex min-w-0 flex-col gap-4 overflow-hidden rounded-2xl px-5 py-6 text-white sm:flex-row sm:items-end sm:justify-between sm:gap-5 sm:px-8 sm:py-8">
       <CloudMotif className="pointer-events-none absolute -right-8 -top-3 -z-10 w-72 text-white/10" />
       <div className="min-w-0">
@@ -31,7 +29,6 @@ export function AdminPageHeader({
           {description}
         </p>
       </div>
-      {/* Phones: the actions share one row in equal columns. */}
       {actions ? (
         <div className="grid auto-cols-fr grid-flow-col gap-2 sm:flex sm:shrink-0 sm:flex-wrap sm:gap-3">
           {actions}
@@ -41,10 +38,6 @@ export function AdminPageHeader({
   );
 }
 
-/**
- * One admin section: a header with a small icon, title and short description,
- * then its content, and an optional action bar along the bottom.
- */
 export function SectionCard({
   icon,
   title,
@@ -57,9 +50,7 @@ export function SectionCard({
   icon: ReactNode;
   title: string;
   description?: ReactNode;
-  /** Buttons beside the title, such as "add". */
   actions?: ReactNode;
-  /** The bar along the bottom, such as save and reset. */
   footer?: ReactNode;
   children: ReactNode;
   className?: string;

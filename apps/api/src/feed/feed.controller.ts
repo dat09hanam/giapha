@@ -23,7 +23,6 @@ import { FamilyRoles } from '../common/auth/family-roles.decorator.js';
 import { RequiresFamilyFeature } from '../common/auth/family-feature.decorator.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
-// Runtime imports are required for Nest's emitted DTO validation metadata.
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 import {
   CreateFeedCommentDto,
@@ -42,11 +41,6 @@ import type {
   FeedReactionSummary,
 } from './feed.types.js';
 
-/**
- * The family news feed. Every member may post, comment, reply and react;
- * a device edits or deletes its own posts and comments, and the clan head
- * (MEMBER_PLUS) may delete any of them.
- */
 @Controller('families/:slug/feed')
 @RequiresFamilyFeature('feed')
 @UseGuards(SessionAuthGuard, FamilyAccessGuard)
@@ -107,12 +101,10 @@ export class FeedController {
     @Body() input: CreateFeedCommentDto,
     @Req() request: AuthRequest,
   ): Promise<FeedCommentResponse> {
-    return this.feed.createComment(
-      this.familyId(request),
-      requireFeedKeyHash(request),
-      postId,
-      { ...input, authorName: await this.nameFor(request, input.authorName) },
-    );
+    return this.feed.createComment(this.familyId(request), requireFeedKeyHash(request), postId, {
+      ...input,
+      authorName: await this.nameFor(request, input.authorName),
+    });
   }
 
   @Patch('comments/:commentId')
@@ -201,14 +193,11 @@ export class FeedController {
     return request.familyAccess.familyId;
   }
 
-  /** The account's own name for a personal account; otherwise the name the phone typed. */
   private async nameFor(request: AuthRequest, typed: string): Promise<string> {
     if (!request.familyAccess || !request.auth) {
       throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
     }
-    return (
-      (await this.feed.personalName(request.familyAccess, request.auth.displayName)) ?? typed
-    );
+    return (await this.feed.personalName(request.familyAccess, request.auth.displayName)) ?? typed;
   }
 
   private actor(request: AuthRequest): FeedActor {

@@ -10,7 +10,6 @@ import { setViewerName, useViewerName } from '@/components/feed/use-viewer-name'
 import type { FeedComment, FeedReactionType } from '@/lib/feed-api';
 import { cn } from '@/lib/utils';
 
-/** Top-level comments shown before "Xem các bình luận trước". */
 const COLLAPSED_COMMENTS = 2;
 
 export type ReplyTarget = { id: string; name: string };
@@ -145,7 +144,6 @@ function CommentItem({
   );
 }
 
-/** Top-level comments with their replies indented below, Facebook-style. */
 export function CommentList({
   comments,
   actions,
@@ -174,7 +172,6 @@ export function CommentList({
       ) : null}
       {shown.map((comment) => {
         const replies = repliesOf(comment.id);
-        // One reply shows straight away; longer threads wait for a tap.
         const repliesOpen = replies.length <= 1 || openReplies.has(comment.id);
         return (
           <div key={comment.id} className="grid gap-2">
@@ -204,7 +201,6 @@ export function CommentList({
   );
 }
 
-/** "Viết bình luận…" with the name asked for once, and a reply banner when answering someone. */
 export const CommentComposer = forwardRef<
   HTMLTextAreaElement,
   {
@@ -229,7 +225,6 @@ export const CommentComposer = forwardRef<
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
-    // A keyboard's Enter sends, as on Facebook; phones keep Enter for new lines.
     if (event.key === 'Enter' && !event.shiftKey && matchMedia('(hover: hover)').matches) {
       event.preventDefault();
       void submit();

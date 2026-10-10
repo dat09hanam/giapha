@@ -57,13 +57,10 @@ export type LibraryItemResponse = {
   takenOn: string | null;
   createdAt: string;
   person: { id: string; name: string; honorific: string | null } | null;
-  /** Sent by a member and not yet approved by the clan head. */
   pending: boolean;
-  /** Who sent a pending photo, for the clan head reviewing it. */
   uploadedBy: string | null;
 };
 
-/** Who is asking: the clan head keeps the library; a member may only send photos for review. */
 export type LibraryViewer = { userId: string; canManage: boolean };
 
 export type AlbumSummaryResponse = {
@@ -74,29 +71,24 @@ export type AlbumSummaryResponse = {
   cover: { url: string; width: number | null; height: number | null } | null;
   createdAt: string;
   updatedAt: string;
-  /** Photos waiting for approval; counted for the clan head only, 0 for members. */
   pendingCount: number;
 };
 
 export type LibraryOverviewResponse = {
   albums: AlbumSummaryResponse[];
   documents: LibraryItemResponse[];
-  /** Whether this viewer is the clan head, who keeps the library. */
   canManage: boolean;
 };
 
 export type AlbumDetailResponse = {
   album: AlbumSummaryResponse;
   photos: LibraryItemResponse[];
-  /** Waiting for approval: every one for the clan head, a member's own for a member. */
   pendingPhotos: LibraryItemResponse[];
   canManage: boolean;
 };
 
-/** Only live items: deletedAt is legacy and always null for library rows. */
 const LIVE = { deletedAt: null } as const;
 
-/** What everyone sees: live and approved. */
 const SHOWN = { ...LIVE, status: MediaStatus.ACTIVE } as const;
 
 function toItem(item: ItemRecord): LibraryItemResponse {
@@ -208,12 +200,10 @@ export class LibraryService {
       where: { familyId, albumId: album.id },
       select: { fileUrl: true, thumbUrl: true },
     });
-    // Its photos go with it (Cascade); then their files.
     await this.prisma.album.delete({ where: { id: album.id } });
     await this.media.removeOwnedFiles(familyId, photos.flatMap(fileUrlsOf));
   }
 
-  /** The clan head's photos go straight in; a member's wait for the clan head to approve them. */
   async addPhoto(
     familyId: string,
     albumId: string,
@@ -221,7 +211,6 @@ export class LibraryService {
     viewer: LibraryViewer,
   ): Promise<LibraryItemResponse> {
     const album = await this.findAlbum(familyId, albumId);
-    // Only the clan head tags people; a member's photo is just the photo and its caption.
     const details = await this.itemDetails(
       familyId,
       viewer.canManage ? input : { ...input, personId: null },
@@ -243,14 +232,12 @@ export class LibraryService {
       if (status === MediaStatus.PENDING) return create;
       const [item] = await this.prisma.$transaction([
         create,
-        // Recently filled albums come first.
         this.prisma.album.update({ where: { id: album.id }, data: { updatedAt: new Date() } }),
       ]);
       return item;
     });
   }
 
-  /** Puts a member's photo into its album for everyone. */
   async approvePhoto(familyId: string, itemId: string): Promise<LibraryItemResponse> {
     const item = await this.prisma.media.findFirst({
       where: { id: itemId, familyId, ...LIVE, status: MediaStatus.PENDING },
@@ -260,7 +247,6 @@ export class LibraryService {
     const [approved] = await this.prisma.$transaction([
       this.prisma.media.update({
         where: { id: item.id },
-        // It joins the album now, so it sorts after the photos already there.
         data: { status: MediaStatus.ACTIVE, createdAt: new Date() },
         select: ITEM_SELECT,
       }),
@@ -298,7 +284,6 @@ export class LibraryService {
     if (item.kind === MediaKind.DOCUMENT && sent('title') && !details.title) {
       throw new BadRequestException('Vui lòng nhập tên tư liệu.');
     }
-    // Only the fields sent change; null clears one.
     const data = Object.fromEntries(
       Object.entries(details).filter(([key]) => sent(key)),
     ) as Partial<typeof details>;
@@ -310,10 +295,6 @@ export class LibraryService {
     return toItem(updated);
   }
 
-  /**
-   * The clan head removes anything, including turning down a pending photo; a
-   * member may only withdraw a photo of their own that is still pending.
-   */
   async deleteItem(familyId: string, itemId: string, viewer: LibraryViewer): Promise<void> {
     const item = await this.findItem(familyId, itemId);
     if (!viewer.canManage) {
@@ -329,7 +310,6 @@ export class LibraryService {
     );
   }
 
-  /** Stores the file and its thumbnail, then the row; files are removed again if anything fails. */
   private async storeItem(
     familyId: string,
     input: UploadPhotoDto | CreateDocumentDto,
@@ -373,7 +353,6 @@ export class LibraryService {
     }
   }
 
-  /** Title, description, day and person, checked; the person must belong to this family. */
   private async itemDetails(
     familyId: string,
     input: UpdateLibraryItemDto,
@@ -405,7 +384,6 @@ export class LibraryService {
     return { title, description: input.description?.trim() || null };
   }
 
-  /** Albums with their photo count and cover (the first photo added). */
   private async summaries(
     familyId: string,
     albums: ReadonlyArray<{

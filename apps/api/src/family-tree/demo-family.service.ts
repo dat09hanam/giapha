@@ -7,11 +7,6 @@ import type { FamilyTreeResponse } from './family-tree.types.js';
 
 export type DemoFamilySummary = { id: string; slug: string; name: string };
 
-/**
- * The one family the platform admin marked as the public sample (Gia phả mẫu). It is the only
- * family whose tree is readable without signing in, so it is looked up by that mark alone,
- * never by a slug the visitor sends.
- */
 @Injectable()
 export class DemoFamilyService {
   constructor(
@@ -24,7 +19,6 @@ export class DemoFamilyService {
     return { id: family.id, slug: family.slug, name: family.name };
   }
 
-  /** The sample tree, without phone numbers, home addresses or member-only photo links. */
   async getDemoTree(): Promise<FamilyTreeResponse> {
     const family = await this.findDemoFamily();
     const tree = await this.familyTree.getTree(family.id);

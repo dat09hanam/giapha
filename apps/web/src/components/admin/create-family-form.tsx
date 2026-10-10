@@ -19,10 +19,6 @@ import { SectionCard } from '@/components/admin/admin-layout';
 import { Field } from '@/components/auth/form-fields';
 import { useToast } from '@/components/ui/toast';
 
-/**
- * The path the API tries first, mirrored for the preview: "Họ Nguyễn" on 15/03 → "ho-nguyen-15-03".
- * The API owns the final value and appends the origin when this one is taken.
- */
 function previewSlug(name: string, deathAnniversary: string): string {
   const base = foldVietnamese(name)
     .replace(/[^a-z0-9]+/g, '-')
@@ -33,7 +29,6 @@ function previewSlug(name: string, deathAnniversary: string): string {
 
 type SlugStatus = 'empty' | 'checking' | 'free' | 'taken' | 'unknown';
 
-/** Waits for a pause in typing before asking the API about the path. */
 const SLUG_CHECK_DELAY_MS = 350;
 
 function slugStatusMessage(
@@ -64,7 +59,6 @@ export function CreateFamilyForm() {
   const [deathAnniversary, setDeathAnniversary] = useState('');
   const [ancestryOrigin, setAncestryOrigin] = useState('');
   const [headEmail, setHeadEmail] = useState('');
-  /** The latest answer and the inputs it was for; a null result means the check failed. */
   const [slugCheck, setSlugCheck] = useState<{
     key: string;
     result: FamilySlugCheck | null;
@@ -208,7 +202,6 @@ export function CreateFamilyForm() {
               aria-invalid={slugStatus === 'taken'}
               className={cn(
                 'cursor-default bg-gold-50/70 text-stone-600 focus:ring-0',
-                // `!`: the unlayered `* { border-color }` in globals.css outranks plain utilities.
                 slugStatus === 'free' && 'border-2 border-emerald-600!',
                 slugStatus === 'taken' && 'border-2 border-red-600!',
               )}
@@ -248,10 +241,7 @@ export function CreateFamilyForm() {
             role="status"
           >
             <div className="flex items-start gap-3">
-              <CheckCircle2
-                className="mt-0.5 size-5 shrink-0 text-brand-700"
-                aria-hidden="true"
-              />
+              <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-brand-700" aria-hidden="true" />
               <div>
                 <p className="font-semibold text-brand-950">Đã tạo {created.family.name}</p>
                 <p className="text-sm text-brand-800">
@@ -307,8 +297,8 @@ export function CreateFamilyForm() {
                 <KeyRound className="mt-1 size-4 shrink-0 text-brand-700" aria-hidden="true" />
                 <span>
                   <strong className="font-medium text-brand-950">Tài khoản Trưởng họ</strong> để
-                  quản lý thông tin, thành viên và trang trí phả đồ. Mật khẩu do hệ thống tự sinh
-                  và phải được đổi ở lần đăng nhập đầu tiên.
+                  quản lý thông tin, thành viên và trang trí phả đồ. Mật khẩu do hệ thống tự sinh và
+                  phải được đổi ở lần đăng nhập đầu tiên.
                 </span>
               </li>
               <li className="flex gap-3">

@@ -23,13 +23,11 @@ import { formatVnd, vndInWords } from '@/lib/vietnamese-number';
 import { cn } from '@/lib/utils';
 import type { FamilyDetails, FamilyFeature, FamilyFeatures } from '@/types/family-tree';
 
-/** A home page block: switched off by the platform, failed to load, or its data. */
 export type HomeSection<T> = { state: 'off' } | { state: 'error' } | { state: 'ok'; data: T };
 
 export type FamilyHomeData = {
   slug: string;
   family: FamilyDetails;
-  /** Null when the switches could not be read: show every section, as the navigation does. */
   features: FamilyFeatures | null;
   fund: HomeSection<FundLedger['totals']>;
   posts: HomeSection<FeedPost[]>;
@@ -42,7 +40,6 @@ const dayFormat = new Intl.DateTimeFormat('vi-VN', {
   year: 'numeric',
 });
 
-/** "Họ Nguyễn" → "Gia phả Họ Nguyễn"; a name that already says "Gia phả" is kept. */
 function familyTitle(name: string): string {
   return /^gia\s+phả\s/i.test(name) ? name : `Gia phả ${name}`;
 }
@@ -51,7 +48,6 @@ function isOn(features: FamilyFeatures | null, feature: FamilyFeature): boolean 
   return features?.[feature] ?? true;
 }
 
-/** A post has no title, so its first line stands in for one and the rest is the excerpt. */
 function postHeadline(content: string): { title: string; excerpt: string } {
   const [first = '', ...rest] = content.trim().split(/\n+/);
   return { title: first || 'Bài viết có hình ảnh', excerpt: rest.join(' ') };
@@ -107,12 +103,10 @@ function PanelMessage({ children }: { children: ReactNode }) {
   return <p className="px-4 py-10 text-center text-sm text-stone-500">{children}</p>;
 }
 
-/** "Gia phả Họ Nguyễn" → "Họ Nguyễn", so the cover does not say "Gia phả" twice. */
 function clanName(name: string): string {
   return name.replace(/^gia\s+phả\s+/i, '').trim() || name;
 }
 
-/** The family's cover: the ancestral gate over lotus ponds, with the clan's name. */
 function Hero({ family }: { family: FamilyDetails }) {
   return (
     <section
@@ -324,7 +318,6 @@ function FundSummary({ slug, fund }: { slug: string; fund: HomeSection<FundLedge
   );
 }
 
-/** A family's home: a welcome, shortcuts, and the latest of its sections at a glance. */
 export function FamilyHome({ slug, family, features, fund, posts }: FamilyHomeData) {
   const panels = [
     posts.state !== 'off' ? <LatestPosts key="feed" slug={slug} posts={posts} /> : null,

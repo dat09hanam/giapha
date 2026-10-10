@@ -10,7 +10,6 @@ import { SITE_BRAND } from '@/lib/site-brand';
 
 import './globals.css';
 
-// Self-hosted by Next at build time; the CSS reads them through these variables (globals.css).
 const sans = Be_Vietnam_Pro({
   subsets: ['vietnamese', 'latin'],
   weight: ['400', '500', '600', '700'],
@@ -25,9 +24,6 @@ const serif = Noto_Serif({
   display: 'swap',
 });
 
-// Every page's tab shows the brand alone, so the title lives in the root layout's <head>
-// below rather than in metadata: Next streams metadata and drops the old <title> on each
-// navigation, which flashed the URL in the tab. Pages must not set a title of their own.
 export const metadata: Metadata = {
   description: SITE_BRAND.description,
 };

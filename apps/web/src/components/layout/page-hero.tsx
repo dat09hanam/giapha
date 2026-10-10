@@ -4,21 +4,14 @@ import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 
-/** A hero's main action: red lacquer against the dark wood banner. */
 export const heroButtonClass =
   'inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-gold-300/25 bg-brand-700 px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-800 disabled:opacity-60 lg:h-10 lg:px-4';
 
-/** A compact icon action on the wood banner. */
 export const heroIconButtonClass =
   'grid size-9 place-items-center rounded-full border border-gold-300/30 bg-white/10 text-gold-50 transition hover:bg-white/20 disabled:opacity-60 lg:size-10';
 
-/**
- * Pulls the first card up over an `overlap` hero, inset from the screen edge, as in the
- * family sections' phone design. From lg the first card returns to the normal document flow.
- */
 export const heroOverlapClass = 'relative -mt-10 mx-3 sm:mx-5 lg:mx-0 lg:mt-0';
 
-/** Tường vân: the curling cloud of temple carvings, drawn in the current colour. */
 export function CloudMotif({ className }: { className?: string }) {
   return (
     <svg
@@ -39,11 +32,6 @@ export function CloudMotif({ className }: { className?: string }) {
   );
 }
 
-/**
- * The top of every family section. A dark-wood banner carries a serif title, an optional line,
- * actions on the right, and the section's own controls. With `overlap`, it leaves room for the
- * first card to rise over it (`heroOverlapClass`) on compact screens.
- */
 export function PageHero({
   title,
   icon: Icon,
@@ -54,10 +42,8 @@ export function PageHero({
   children,
 }: {
   title: ReactNode;
-  /** Shown beside the title from lg, as in the sidebar. */
   icon?: LucideIcon;
   description?: ReactNode;
-  /** A link back to the section this page belongs to. */
   back?: { href: string; label: string };
   actions?: ReactNode;
   overlap?: boolean;

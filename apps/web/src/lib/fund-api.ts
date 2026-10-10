@@ -8,9 +8,7 @@ export type FundEntry = {
   id: string;
   content: string;
   kind: FundEntryKind;
-  /** Whole đồng, always positive. */
   amount: number;
-  /** The day the money moved, `YYYY-MM-DD`. */
   occurredOn: string;
   createdAt: string;
   updatedAt: string;
@@ -29,7 +27,6 @@ export type FundEntryInput = {
   occurredOn: string;
 };
 
-/** Matches the API's cap. */
 export const MAX_FUND_AMOUNT = 10_000_000_000_000;
 
 function entriesUrl(slug: string, entryId?: string): string {

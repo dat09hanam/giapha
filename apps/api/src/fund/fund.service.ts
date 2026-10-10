@@ -5,7 +5,6 @@ import { formatCalendarDay, parseCalendarDay } from '../common/validation/calend
 import { PrismaService } from '../database/prisma.service.js';
 import type { SaveFundEntryDto } from './fund.dto.js';
 
-/** The ledger lists the newest lines; totals always cover every line. */
 const LIST_LIMIT = 1000;
 
 export type FundEntryResponse = {
@@ -13,7 +12,6 @@ export type FundEntryResponse = {
   content: string;
   kind: FundEntryKind;
   amount: number;
-  /** `YYYY-MM-DD`. */
   occurredOn: string;
   createdAt: string;
   updatedAt: string;
@@ -22,7 +20,6 @@ export type FundEntryResponse = {
 export type FundResponse = {
   entries: FundEntryResponse[];
   totals: { income: number; expense: number; balance: number };
-  /** Whether this viewer is the clan head, who records the ledger. */
   canManage: boolean;
 };
 
@@ -41,9 +38,7 @@ function toResponse(entry: EntryRecord): FundEntryResponse {
     id: entry.id,
     content: entry.content,
     kind: entry.kind,
-    // Amounts are capped far below 2^53, so a number is exact.
     amount: Number(entry.amount),
-    // DATE columns come back as midnight UTC, so the ISO date is the stored day.
     occurredOn: formatCalendarDay(entry.occurredOn),
     createdAt: entry.createdAt.toISOString(),
     updatedAt: entry.updatedAt.toISOString(),
@@ -74,7 +69,6 @@ export class FundService {
     const [entries, sums] = await Promise.all([
       this.prisma.fundEntry.findMany({
         where: { familyId },
-        // Newest day first; lines of the same day in the order they were written, newest first.
         orderBy: [{ occurredOn: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
         take: LIST_LIMIT,
       }),
@@ -106,7 +100,6 @@ export class FundService {
     entryId: string,
     input: SaveFundEntryDto,
   ): Promise<FundEntryResponse> {
-    // The family filter makes another family's line indistinguishable from a missing one.
     const { count } = await this.prisma.fundEntry.updateMany({
       where: { id: entryId, familyId },
       data: cleanInput(input),

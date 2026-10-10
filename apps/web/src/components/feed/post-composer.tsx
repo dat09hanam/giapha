@@ -5,11 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { InlineLoader } from '@/components/ui/heritage-loader';
 import { NameAvatar } from '@/components/feed/feed-format';
-import {
-  isViewerNameFixed,
-  setViewerName,
-  useViewerName,
-} from '@/components/feed/use-viewer-name';
+import { isViewerNameFixed, setViewerName, useViewerName } from '@/components/feed/use-viewer-name';
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
 import { useToast } from '@/components/ui/toast';
@@ -30,7 +26,6 @@ function ComposerDialog({
   onCreated,
 }: {
   familySlug: string;
-  /** Photos picked from the feed's photo button, before the dialog opened. */
   initialFiles: File[];
   onClose: () => void;
   onCreated: (post: FeedPost) => void;
@@ -49,10 +44,8 @@ function ComposerDialog({
   const initialFilesRef = useRef(initialFiles);
   useEffect(() => {
     if (initialFilesRef.current.length > 0) void addPhotos(initialFilesRef.current);
-    // Only the files the dialog opened with, once.
   }, []);
 
-  // Previews of photos that were never posted.
   useEffect(
     () => () => imagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl)),
     [],
@@ -256,7 +249,6 @@ function ComposerDialog({
   );
 }
 
-/** "Bạn đang nghĩ gì?" at the top of the feed; opens the post dialog. */
 export function PostComposer({
   familySlug,
   onCreated,
@@ -267,9 +259,7 @@ export function PostComposer({
   className?: string;
 }) {
   const viewerName = useViewerName();
-  // The open dialog and the photos it starts with.
   const [open, setOpen] = useState<File[] | null>(null);
-  // Clicked straight from the tap: iOS only opens the photo picker from a user gesture.
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (

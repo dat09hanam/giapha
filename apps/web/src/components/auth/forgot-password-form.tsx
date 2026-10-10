@@ -14,22 +14,14 @@ import { MIN_PASSWORD_LENGTH } from '@/lib/password';
 import { Field } from './form-fields';
 import { PasswordField } from './password-field';
 
-/** Matches the API's cooldown between two codes for one account. */
 const RESEND_COOLDOWN_SECONDS = 120;
 
-/**
- * Quên mật khẩu in three steps: the username or email asks for a code mailed to the account's
- * email, the code is checked, then a new password replaces the forgotten one.
- */
 export function ForgotPasswordForm() {
   const router = useRouter();
   const showToast = useToast();
   const [login, setLogin] = useState('');
-  /** Set once a code was requested; the form then asks for it. */
   const [codeSentTo, setCodeSentTo] = useState<string | null>(null);
-  /** The masked email the API says the code went to. */
   const [sentToEmail, setSentToEmail] = useState('');
-  /** Set once the API accepted the code; the form then asks for the new password. */
   const [verifiedCode, setVerifiedCode] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [resendIn, setResendIn] = useState(0);

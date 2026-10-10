@@ -2,27 +2,16 @@ import { displayPersonName } from '@/lib/person-name';
 import type { FamilyTreeRelationship, Gender, Person } from '@/types/family-tree';
 import { compareDates } from '@/lib/partial-date';
 
-/**
- * Vietnamese kinship terms between two people on the tree, in the northern
- * convention. Rank between collateral lines follows the branch (the older
- * sibling's line is senior), not the people's own ages.
- */
-
 export type Kinship = {
-  /** What the second person is to the first, e.g. "chú ruột (bên nội)". */
   relation: string;
-  /** How the first person addresses the second, e.g. "chú". */
   term: string;
-  /** Ids linking the two people, first person first. */
   path: string[];
   commonAncestorId: string | null;
-  /** Caveats, such as a missing birth order that leaves bác/chú undecided. */
   notes: string[];
 };
 
 export type KinshipGraph = {
   byId: ReadonlyMap<string, Person>;
-  /** Current and widowed marriages; divorces are left out. */
   spousesById: ReadonlyMap<string, readonly string[]>;
 };
 
@@ -48,7 +37,6 @@ function byGender(gender: Gender, male: string, female: string, unknown: string)
   return unknown;
 }
 
-/** Whether `a`'s line ranks above `b`'s among siblings: birth order first, then birth date. */
 function seniorityOf(a: Person, b: Person): Seniority {
   if (a.orderInFamily !== null && b.orderInFamily !== null && a.orderInFamily !== b.orderInFamily) {
     return a.orderInFamily < b.orderInFamily ? 'senior' : 'junior';
@@ -60,7 +48,6 @@ function seniorityOf(a: Person, b: Person): Seniority {
 
 type AncestorStep = { distance: number; child: string | null };
 
-/** Every ancestor on the tree with its nearest distance; fathers are walked before mothers. */
 function ancestorsOf(graph: KinshipGraph, id: string): Map<string, AncestorStep> {
   const found = new Map<string, AncestorStep>([[id, { distance: 0, child: null }]]);
   const queue = [id];
@@ -78,7 +65,6 @@ function ancestorsOf(graph: KinshipGraph, id: string): Map<string, AncestorStep>
   return found;
 }
 
-/** Ids from the start person up to `ancestorId`, both included. */
 function pathUp(ancestors: ReadonlyMap<string, AncestorStep>, ancestorId: string): string[] {
   const path: string[] = [];
   for (let id: string | null = ancestorId; id; id = ancestors.get(id)?.child ?? null) path.push(id);
@@ -87,12 +73,10 @@ function pathUp(ancestors: ReadonlyMap<string, AncestorStep>, ancestorId: string
 
 const DESCENDANT_TERMS = ['con', 'cháu', 'chắt', 'chút', 'chít'];
 
-/** Who is the father's side and who the mother's: the gender of the parent on the path. */
 function sideOf(person: Person | undefined): string {
   return person?.gender === 'FEMALE' ? 'ngoại' : 'nội';
 }
 
-/** The kinship of `toId` to `fromId` through their nearest common ancestor, if any. */
 function bloodKinship(graph: KinshipGraph, fromId: string, toId: string): Kinship | null {
   const fromAncestors = ancestorsOf(graph, fromId);
   const toAncestors = ancestorsOf(graph, toId);
@@ -123,7 +107,6 @@ function bloodKinship(graph: KinshipGraph, fromId: string, toId: string): Kinshi
     notes,
   });
 
-  // `to` is a direct ancestor.
   if (down === 0) {
     const side = sideOf(graph.byId.get(fromPath[1]!));
     if (up === 1) {
@@ -139,7 +122,6 @@ function bloodKinship(graph: KinshipGraph, fromId: string, toId: string): Kinshi
     return result(`tổ tiên ${up} đời trên (bên ${side})`, 'cụ');
   }
 
-  // `to` is a direct descendant.
   if (up === 0) {
     const side = sideOf(graph.byId.get(toPath[down - 1]!));
     if (down === 1) return result(byGender(to.gender, 'con trai', 'con gái', 'con'), 'con');
@@ -147,14 +129,12 @@ function bloodKinship(graph: KinshipGraph, fromId: string, toId: string): Kinshi
     return term ? result(`${term} ${side}`, term) : result(`hậu duệ ${down} đời dưới`, 'cháu');
   }
 
-  // Collateral: compare the two children of the common ancestor that start each line.
   const fromBranch = graph.byId.get(fromPath[up - 1]!)!;
   const toBranch = graph.byId.get(toPath[down - 1]!)!;
   const generationGap = up - down;
 
   if (generationGap < 0) {
     const gap = -generationGap;
-    // A sibling's child is a cháu, not a con; further down the terms match direct descendants.
     const term = gap === 1 ? 'cháu' : DESCENDANT_TERMS[gap - 1];
     if (!term) return result(`hậu duệ ${gap} đời dưới`, 'cháu');
     return result(`${term} ${up === 1 ? 'ruột' : 'họ'}`, term);
@@ -192,7 +172,6 @@ function bloodKinship(graph: KinshipGraph, fromId: string, toId: string): Kinshi
     return result(relation, term);
   }
 
-  // `to` is in an elder generation: bác/chú/cô on the father's line, bác/cậu/dì on the mother's.
   const lineal = graph.byId.get(fromPath[generationGap]!)!;
   const paternal = lineal.gender !== 'FEMALE';
   const junior = paternal
@@ -226,7 +205,6 @@ const SPOUSE_TERMS: Record<string, string> = {
   chị: 'anh',
 };
 
-/** What one calls the spouse of someone one calls `term`: chú → thím, anh → chị, con → con. */
 function spouseTerm(term: string): string {
   const alternatives = term.split('/').map((option) =>
     option
@@ -241,10 +219,6 @@ function spouseWord(person: Person): string {
   return byGender(person.gender, 'chồng', 'vợ', 'vợ/chồng');
 }
 
-/**
- * How `fromId` stands to `toId`: by blood first, then through either one's
- * marriage. Someone who married in calls relatives as their spouse does.
- */
 export function findKinship(graph: KinshipGraph, fromId: string, toId: string): Kinship | null {
   const from = graph.byId.get(fromId);
   const to = graph.byId.get(toId);
@@ -266,7 +240,6 @@ export function findKinship(graph: KinshipGraph, fromId: string, toId: string): 
   const blood = bloodKinship(graph, fromId, toId);
   if (blood) return blood;
 
-  // `to` married one of `from`'s blood relatives.
   for (const spouseId of toSpouses) {
     const link = bloodKinship(graph, fromId, spouseId);
     if (link) {
@@ -279,7 +252,6 @@ export function findKinship(graph: KinshipGraph, fromId: string, toId: string): 
     }
   }
 
-  // `from` married into `to`'s family.
   for (const spouseId of fromSpouses) {
     const link = bloodKinship(graph, spouseId, toId);
     if (link) {
@@ -292,7 +264,6 @@ export function findKinship(graph: KinshipGraph, fromId: string, toId: string): 
     }
   }
 
-  // Both married in, e.g. the wives of two brothers.
   for (const fromSpouseId of fromSpouses) {
     for (const toSpouseId of toSpouses) {
       const link = bloodKinship(graph, fromSpouseId, toSpouseId);

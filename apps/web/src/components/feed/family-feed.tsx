@@ -30,10 +30,6 @@ function PostSkeleton() {
   );
 }
 
-/**
- * The family's news feed: everyone posts, comments, replies and reacts.
- * Loaded in the browser, since what is "mine" depends on this device's key.
- */
 export function FamilyFeed({ familySlug }: { familySlug: string }) {
   const [posts, setPosts] = useState<FeedPost[] | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -76,7 +72,6 @@ export function FamilyFeed({ familySlug }: { familySlug: string }) {
     }
   }, [familySlug, loadingMore, nextCursor]);
 
-  // The next page loads as the reader nears the end of the list.
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel || !nextCursor) return;

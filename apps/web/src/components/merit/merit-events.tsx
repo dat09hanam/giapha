@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 import { formatVnd } from '@/lib/vietnamese-number';
 import { formatDay } from '@/lib/vietnam-date';
 
-/** "12.500.000 ₫ · 3 hiện vật", leaving out what the event has none of. */
 export function meritTotalsLine(totals: MeritTotals): string {
   const parts: string[] = [];
   if (totals.cashCount > 0) parts.push(formatVnd(totals.cashAmount));
@@ -21,7 +20,6 @@ export function meritTotalsLine(totals: MeritTotals): string {
   return parts.length > 0 ? parts.join(' · ') : 'Chưa có lượt công đức';
 }
 
-/** Công đức: the family's events, each opening onto its donors. */
 export function MeritEvents({
   familySlug,
   initial,
@@ -106,7 +104,6 @@ export function MeritEvents({
               );
             })}
           </ul>
-          {/* Desktops list the events as a table, each row opening its donors. */}
           <table className="hidden w-full text-sm lg:table">
             <thead className="bg-paper text-left text-xs font-semibold uppercase tracking-wide text-stone-500">
               <tr>
@@ -178,7 +175,6 @@ export function MeritEvents({
             familySlug={familySlug}
             editing={null}
             onClose={() => setCreating(false)}
-            // Straight into the new event to record its donations.
             onSaved={(event) => router.push(href(event.id))}
           />
         ) : null}

@@ -53,7 +53,6 @@ export type FeedImageUpload = {
 
 export type ReactionTarget = { kind: 'post' | 'comment'; id: string };
 
-/** Matches the API's limits. */
 export const MAX_POST_IMAGES = 4;
 export const MAX_FEED_IMAGE_BYTES = 1024 * 1024;
 
@@ -61,7 +60,6 @@ function feedUrl(slug: string, path = ''): string {
   return `${API_URL}/families/${encodeURIComponent(slug)}/feed${path}`;
 }
 
-/** Every call carries this device's key, which tells the API whose posts are whose. */
 function request<T>(url: string, init: RequestInit, action: string): Promise<T> {
   return apiFetch<T>(
     url,

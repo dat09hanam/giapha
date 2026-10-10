@@ -8,16 +8,13 @@ import { cn } from '@/lib/utils';
 type Channel = {
   key: string;
   label: string;
-  /** What the visitor sees: the number, address or page name. */
   value: string;
   href: string;
   icon: ReactNode;
-  /** The channel's own colour, for its icon tile. */
   tint: string;
   external?: true;
 };
 
-/** Every way to reach the team, in the order a visitor should try them; unset pages are left out. */
 function channels(): Channel[] {
   const list: (Channel | null)[] = [
     {
@@ -82,10 +79,6 @@ function channels(): Channel[] {
   return list.filter((channel): channel is Channel => channel !== null);
 }
 
-/**
- * The team's contact channels as tappable cards: hotline, Zalo, social pages and email. Used in
- * the "Liên hệ tạo gia phả" popup, and anywhere else a visitor is asked to get in touch.
- */
 export function SocialContact({ className }: { className?: string }) {
   return (
     <div className={cn('grid gap-4', className)}>
@@ -98,7 +91,10 @@ export function SocialContact({ className }: { className?: string }) {
               className="flex items-center gap-3 rounded-xl border border-gold-500/30 bg-[var(--card)] p-3 transition hover:border-gold-500/70 hover:bg-gold-50"
             >
               <span
-                className={cn('grid size-11 shrink-0 place-items-center rounded-full', channel.tint)}
+                className={cn(
+                  'grid size-11 shrink-0 place-items-center rounded-full',
+                  channel.tint,
+                )}
               >
                 {channel.icon}
               </span>

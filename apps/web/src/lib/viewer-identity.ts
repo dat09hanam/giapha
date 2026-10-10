@@ -1,23 +1,5 @@
-/**
- * Who is using this phone, per signed-in account. Members share one family
- * account, so each device remembers the name its owner typed and keeps a
- * random key the API uses to recognise the posts, comments and reactions it
- * made. Both are stored per account: signing out of the clan head's account
- * and into the members' one on the same phone starts with neither the head's
- * name nor the right to edit the head's posts.
- *
- * The scope is set by <ViewerIdentityScope> around the family pages, before
- * anything below it renders. Values live in localStorage; if storage is
- * blocked the key lasts for the visit.
- */
-
 type ViewerScope = {
-  /** The signed-in account's id, or "guest". */
   accountId: string;
-  /**
-   * A personal account's own name (the clan head, a branch manager), always used as is;
-   * null for the members' shared account, where each phone types its own.
-   */
   accountName: string | null;
 };
 
@@ -31,7 +13,6 @@ export function setViewerScope(next: ViewerScope): void {
 const nameKey = (): string => `giapha:viewer-name:${scope.accountId}`;
 const deviceKeyKey = (): string => `giapha:device-key:${scope.accountId}`;
 
-/** True when the name comes from the signed-in account and cannot be typed over. */
 export function isViewerNameFixed(): boolean {
   return scope.accountName !== null;
 }
@@ -49,9 +30,7 @@ export function saveViewerName(name: string): void {
   if (scope.accountName !== null) return;
   try {
     window.localStorage.setItem(nameKey(), name.trim());
-  } catch {
-    // Blocked storage: the name is simply asked for again next time.
-  }
+  } catch {}
 }
 
 function randomKey(): string {

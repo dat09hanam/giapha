@@ -40,7 +40,6 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
   let profile: FamilyManagerProfile;
   let family: FamilyDetails;
   let decorations: PosterDecoration[];
-  // The other tabs still work if only the suggestions fail to load.
   let suggestions: EditSuggestion[] | ApiRequestError;
   let accounts: FamilyAccount[];
   let usernameSuffix: string;
@@ -57,7 +56,6 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
         throw error;
       }),
       getFamilyAccounts(profile.family.slug, sessionToken),
-      // The clan head picks a branch root on the tree.
       getFamilyTree(profile.family.slug, sessionToken),
       getFamilyUsernameSuffix(profile.family.slug, sessionToken),
     ]);
@@ -81,7 +79,6 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
   const familyPath = `/${encodeURIComponent(profile.family.slug)}`;
   return (
     <main className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:gap-8 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
-      {/* The family's name is on the bottom bar's menu and the tree; this page keeps only its one shortcut. */}
       <h1 className="sr-only">Quản trị {family.name}</h1>
       <Tabs
         label="Khu vực quản trị dòng họ"

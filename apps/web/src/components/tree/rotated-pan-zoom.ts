@@ -6,7 +6,6 @@ import { useReactFlow, useStoreApi, type Viewport, type XYPosition } from '@xyfl
 type Rect = { x: number; y: number; width: number; height: number };
 
 const PORTRAIT_QUERY = '(orientation: portrait)';
-/** Finger travel, in screen pixels, past which a touch is a drag rather than a tap. */
 const TAP_SLOP = 8;
 
 function subscribePortrait(onChange: () => void): () => void {
@@ -15,7 +14,6 @@ function subscribePortrait(onChange: () => void): () => void {
   return () => query.removeEventListener('change', onChange);
 }
 
-/** Whether the screen is upright; false on the server. */
 export function useIsPortrait(): boolean {
   return useSyncExternalStore(
     subscribePortrait,
@@ -24,11 +22,6 @@ export function useIsPortrait(): boolean {
   );
 }
 
-/**
- * Touch points in the surface's own coordinates. The surface is turned 90°
- * clockwise, so its x axis runs down the screen and its y axis right to left;
- * its top-left corner lands on the top-right of its on-screen box.
- */
 function localPoints(event: TouchEvent<HTMLElement>): XYPosition[] {
   const rect = event.currentTarget.getBoundingClientRect();
   return Array.from(event.touches, (touch) => ({
@@ -41,7 +34,6 @@ function midpoint(a: XYPosition, b: XYPosition): XYPosition {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
 
-/** Keeps the sheet covering the canvas, or centred along an axis where it is smaller. */
 function clampToPoster(viewport: Viewport, poster: Rect, width: number, height: number): Viewport {
   const clampAxis = (offset: number, start: number, size: number, canvas: number): number => {
     const scaled = size * viewport.zoom;
@@ -58,12 +50,6 @@ function clampToPoster(viewport: Viewport, poster: Rect, width: number, height: 
   };
 }
 
-/**
- * Pan and pinch-zoom for a canvas shown turned sideways with CSS. React Flow
- * reads touches in screen axes, which a rotation scrambles, so while `enabled`
- * its own panning is switched off and these handlers drive the viewport.
- * Spread the returned handlers onto the element wrapping <ReactFlow>.
- */
 export function useRotatedPanZoom(enabled: boolean, poster: Rect | null) {
   const { getViewport, setViewport } = useReactFlow();
   const store = useStoreApi();
@@ -92,7 +78,6 @@ export function useRotatedPanZoom(enabled: boolean, poster: Rect | null) {
       const start = gesture.current;
       if (!enabled || !start || !poster) return;
       const points = localPoints(event);
-      // A finger was added or lifted: carry on from here.
       if (points.length !== start.points.length) {
         begin(event);
         return;
@@ -111,12 +96,10 @@ export function useRotatedPanZoom(enabled: boolean, poster: Rect | null) {
         dragged.current = true;
         const [a0, b0] = start.points as [XYPosition, XYPosition];
         const [a, b] = points as [XYPosition, XYPosition];
-        // Never smaller than the whole sheet fitted to the canvas.
         const minZoom = Math.min(width / poster.width, height / poster.height);
         const scale =
           Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, Math.hypot(a0.x - b0.x, a0.y - b0.y));
         const zoom = Math.min(maxZoom, Math.max(minZoom, from.zoom * scale));
-        // The canvas point under the fingers' midpoint stays under it.
         const startMid = midpoint(a0, b0);
         const mid = midpoint(a, b);
         next = {
@@ -137,7 +120,6 @@ export function useRotatedPanZoom(enabled: boolean, poster: Rect | null) {
     [begin, enabled],
   );
 
-  /** A drag that ends over a card must not open it. */
   const onClickCapture = useCallback(
     (event: MouseEvent<HTMLElement>) => {
       if (!enabled || !dragged.current) return;

@@ -1,6 +1,5 @@
-import type { Gender } from "@/types/family-tree";
+import type { Gender } from '@/types/family-tree';
 
-/** The fields of a person the family layout needs; designer and viewer both fit it. */
 export type LayoutPerson = {
   id: string;
   name: string;
@@ -24,40 +23,34 @@ export type LayoutInput = {
 
 export type LayoutDimensions = {
   nodeWidth: number;
-  /** Optional card width and gaps per generation row; defaults to the above. */
   rowForGeneration?: (generation: number) => RowDimensions;
   spouseGap: number;
   siblingGap: number;
   generationGap: number;
 };
 
-export type RowDimensions = Pick<LayoutDimensions, "nodeWidth" | "spouseGap" | "siblingGap">;
+export type RowDimensions = Pick<LayoutDimensions, 'nodeWidth' | 'spouseGap' | 'siblingGap'>;
 
-/** Horizontal inset of a marriage bracket drawn below non-adjacent spouses. */
 export const BRACKET_INSET = 36;
 
 const BRACKET_DROP = 16;
 const BRACKET_STEP = 12;
 export const CHILD_BUS_OFFSET = 30;
-/** Neighbouring sibling groups' buses step apart by this much so they never merge. */
 export const CHILD_BUS_STEP = 12;
 
-/** A drawn marriage line between two people standing in the same row. */
 export type MarriageLink = {
   husbandId: string;
   wifeId: string;
   leftId: string;
   rightId: string;
-  /** Adjacent spouses get a straight line; others a bracket below the row. */
   adjacent: boolean;
   drop: number;
 };
 
-/** A line from the middle of a couple's marriage line (or one parent) to a child. */
 export type ChildLink = {
   childId: string;
   sourceId: string;
-  sourceHandle: "spouse-source" | "child-source";
+  sourceHandle: 'spouse-source' | 'child-source';
   offsetX: number;
   offsetY: number;
   busOffset: number;
@@ -80,12 +73,11 @@ type Couple = {
 type DesignerMember = LayoutPerson;
 type DesignerDraft = LayoutInput;
 
-/** Birth order within a row: generation, then order in the family, then name. */
 export function sortMembers(left: LayoutPerson, right: LayoutPerson): number {
   return (
     left.generation - right.generation ||
     left.orderInFamily - right.orderInFamily ||
-    left.name.localeCompare(right.name, "vi")
+    left.name.localeCompare(right.name, 'vi')
   );
 }
 
@@ -94,10 +86,9 @@ type ChildGroup = { key: string; junction: number; left: number; children: strin
 type UnitLayout = { minX: number; width: number; groups: ChildGroup[] };
 
 function coupleKey(husbandId: string, wifeId: string): string {
-  return husbandId + "|" + wifeId;
+  return husbandId + '|' + wifeId;
 }
 
-/** Orders a spouse group when it is not a simple one-center star. */
 function orderLinearMembers(
   members: readonly DesignerMember[],
   draft: DesignerDraft,
@@ -107,8 +98,7 @@ function orderLinearMembers(
     draft.relationships
       .filter(
         (relationship) =>
-          membersById.has(relationship.husbandId) &&
-          membersById.has(relationship.wifeId),
+          membersById.has(relationship.husbandId) && membersById.has(relationship.wifeId),
       )
       .map((relationship) => relationship.wifeId),
   );
@@ -134,15 +124,7 @@ function orderLinearMembers(
   return ordered;
 }
 
-/**
- * Lays the tree out branch by branch. Spouses (and co-parents) form a unit that
- * stands in one row; each couple's children are grouped under the middle of
- * that couple's marriage line, and every unit reserves its descendants' width.
- */
-export function layoutFamily(
-  draft: LayoutInput,
-  dimensions: LayoutDimensions,
-): FamilyLayout {
+export function layoutFamily(draft: LayoutInput, dimensions: LayoutDimensions): FamilyLayout {
   const {
     nodeWidth: NODE_WIDTH,
     spouseGap: SPOUSE_GAP,
@@ -175,10 +157,7 @@ export function layoutFamily(
 
   const couples = new Map<string, Couple>();
   draft.relationships.forEach((relationship) => {
-    if (
-      !membersById.has(relationship.husbandId) ||
-      !membersById.has(relationship.wifeId)
-    ) {
+    if (!membersById.has(relationship.husbandId) || !membersById.has(relationship.wifeId)) {
       return;
     }
     join(relationship.husbandId, relationship.wifeId);
@@ -190,7 +169,6 @@ export function layoutFamily(
       order: relationship.wifeOrder,
     });
   });
-  // Parents of the same child stand together even without a saved marriage.
   draft.people.forEach((child) => {
     if (
       !child.fatherId ||
@@ -224,7 +202,6 @@ export function layoutFamily(
     unitCouples.set(unitId, [...(unitCouples.get(unitId) ?? []), couple]);
   });
 
-  /** Star units put the shared spouse in the middle: Vợ 1 right, Vợ 2 left, ... */
   function arrangeUnit(unitId: string): DesignerMember[] {
     const members = unitMembers.get(unitId)!;
     const unitCoupleList = [...(unitCouples.get(unitId) ?? [])].sort(
@@ -240,7 +217,7 @@ export function layoutFamily(
     const center = [...members].sort(
       (left, right) =>
         (partnerCounts.get(right.id) ?? 0) - (partnerCounts.get(left.id) ?? 0) ||
-        Number(right.gender === "MALE") - Number(left.gender === "MALE") ||
+        Number(right.gender === 'MALE') - Number(left.gender === 'MALE') ||
         sortMembers(left, right),
     )[0]!;
     const isStar = unitCoupleList.every(
@@ -267,7 +244,6 @@ export function layoutFamily(
     members.forEach((member, index) => memberIndex.set(member.id, index)),
   );
 
-  /** Spouses share a row, so a whole unit uses its first member's row sizes. */
   function unitRow(unitId: string): RowDimensions {
     const generation = arrangedUnits.get(unitId)?.[0]?.generation ?? 1;
     return rowForGeneration?.(generation) ?? defaultRow;
@@ -294,7 +270,6 @@ export function layoutFamily(
       });
   });
 
-  /** Which child group of the parents' unit a person belongs to. */
   function childGroupKey(child: DesignerMember): { key: string; junction: number } | null {
     const fatherId = child.fatherId && membersById.has(child.fatherId) ? child.fatherId : null;
     const motherId = child.motherId && membersById.has(child.motherId) ? child.motherId : null;
@@ -305,19 +280,19 @@ export function layoutFamily(
       };
     }
     const parentId = fatherId ?? motherId;
-    return parentId ? { key: "single:" + parentId, junction: centerOffset(parentId) } : null;
+    return parentId ? { key: 'single:' + parentId, junction: centerOffset(parentId) } : null;
   }
 
-  // The unit member born into the tree decides which parents the unit hangs under.
   const unitKeys = new Map<string, DesignerMember>();
   const childUnitIds = new Map<string, string[]>();
   arrangedUnits.forEach((members, unitId) => {
-    const bloodMember = [...members].sort(sortMembers).find((member) =>
-      [member.fatherId, member.motherId].some(
-        (parentId) =>
-          parentId && membersById.has(parentId) && findUnit(parentId) !== unitId,
-      ),
-    );
+    const bloodMember = [...members]
+      .sort(sortMembers)
+      .find((member) =>
+        [member.fatherId, member.motherId].some(
+          (parentId) => parentId && membersById.has(parentId) && findUnit(parentId) !== unitId,
+        ),
+      );
     unitKeys.set(unitId, bloodMember ?? members[0]!);
     if (!bloodMember) return;
 
@@ -344,7 +319,6 @@ export function layoutFamily(
   const claimedUnitIds = new Set<string>();
   const unitLayouts = new Map<string, UnitLayout>();
 
-  /** Gap between sibling units, taken from the row they stand in. */
   function siblingGapOf(children: readonly string[]): number {
     return children[0] ? unitRow(children[0]).siblingGap : SIBLING_GAP;
   }
@@ -367,7 +341,7 @@ export function layoutFamily(
     const groupsByKey = new Map<string, ChildGroup>();
     children.forEach((childId) => {
       const group = childGroupKey(unitKeys.get(childId)!) ?? {
-        key: "orphan",
+        key: 'orphan',
         junction: ownWidth(unitId) / 2,
       };
       const existing = groupsByKey.get(group.key);
@@ -375,11 +349,7 @@ export function layoutFamily(
       else groupsByKey.set(group.key, { ...group, left: 0, children: [childId] });
     });
 
-    // Center each couple's children under it, then push apart any overlap and
-    // shift the row back so the pushes do not drag the branch to one side.
-    const groups = [...groupsByKey.values()].sort(
-      (left, right) => left.junction - right.junction,
-    );
+    const groups = [...groupsByKey.values()].sort((left, right) => left.junction - right.junction);
     let previousRight = Number.NEGATIVE_INFINITY;
     let displacement = 0;
     groups.forEach((group) => {
@@ -409,7 +379,6 @@ export function layoutFamily(
   rootUnitIds.forEach((unitId) => {
     if (!claimedUnitIds.has(unitId)) measure(unitId);
   });
-  // Units caught in an inconsistent parent cycle still need a place on the canvas.
   [...arrangedUnits.keys()].sort(compareUnits).forEach((unitId) => {
     if (claimedUnitIds.has(unitId)) return;
     rootUnitIds.push(unitId);
@@ -472,15 +441,14 @@ export function layoutFamily(
     const group = childGroupKey(child);
     if (!group) return [];
 
-    const busOffset =
-      CHILD_BUS_OFFSET + CHILD_BUS_STEP * ((groupIndexes.get(group.key) ?? 0) % 3);
+    const busOffset = CHILD_BUS_OFFSET + CHILD_BUS_STEP * ((groupIndexes.get(group.key) ?? 0) % 3);
     const couple = couples.get(group.key);
     if (!couple) {
       return [
         {
           childId: child.id,
-          sourceId: group.key.slice("single:".length),
-          sourceHandle: "child-source" as const,
+          sourceId: group.key.slice('single:'.length),
+          sourceHandle: 'child-source' as const,
           offsetX: 0,
           offsetY: 0,
           busOffset,
@@ -493,32 +461,27 @@ export function layoutFamily(
     return [
       drop === undefined
         ? {
-          childId: child.id,
-          sourceId: leftId,
-          sourceHandle: "spouse-source" as const,
-          offsetX: unitRow(findUnit(leftId)).spouseGap / 2,
-          offsetY: 0,
-          busOffset,
-        }
+            childId: child.id,
+            sourceId: leftId,
+            sourceHandle: 'spouse-source' as const,
+            offsetX: unitRow(findUnit(leftId)).spouseGap / 2,
+            offsetY: 0,
+            busOffset,
+          }
         : {
-          childId: child.id,
-          sourceId: leftId,
-          sourceHandle: "child-source" as const,
-          offsetX: (centerOffset(rightId) - centerOffset(leftId)) / 2,
-          offsetY: drop,
-          busOffset,
-        },
+            childId: child.id,
+            sourceId: leftId,
+            sourceHandle: 'child-source' as const,
+            offsetX: (centerOffset(rightId) - centerOffset(leftId)) / 2,
+            offsetY: drop,
+            busOffset,
+          },
     ];
   });
 
   return { positions, marriages, childLinks };
 }
 
-/**
- * Generation (1-based row) of every person. Spouses and co-parents share a row,
- * children sit below all their parents, and a parent-less ancestor added above
- * someone deep in the tree is seated just above its nearest child.
- */
 export function computeGenerations(
   people: readonly LayoutPerson[],
   relationships: readonly LayoutRelationship[],
@@ -543,14 +506,10 @@ export function computeGenerations(
   }
 
   draft.relationships.forEach((relationship) => {
-    if (
-      peopleById.has(relationship.husbandId) &&
-      peopleById.has(relationship.wifeId)
-    ) {
+    if (peopleById.has(relationship.husbandId) && peopleById.has(relationship.wifeId)) {
       joinGroups(relationship.husbandId, relationship.wifeId);
     }
   });
-  // A father and mother always share a row, even without a saved marriage.
   draft.people.forEach((person) => {
     if (
       person.fatherId &&
@@ -584,9 +543,7 @@ export function computeGenerations(
   });
 
   const generations = new Map<string, number>();
-  const queue = [...groupIds].filter(
-    (groupId) => (indegrees.get(groupId) ?? 0) === 0,
-  );
+  const queue = [...groupIds].filter((groupId) => (indegrees.get(groupId) ?? 0) === 0);
   const originalRoots = new Set(queue);
   queue.forEach((groupId) => generations.set(groupId, 1));
 
@@ -595,18 +552,13 @@ export function computeGenerations(
     const generation = generations.get(groupId) ?? 1;
 
     (childGroups.get(groupId) ?? new Set<string>()).forEach((childGroup) => {
-      generations.set(
-        childGroup,
-        Math.max(generations.get(childGroup) ?? 1, generation + 1),
-      );
+      generations.set(childGroup, Math.max(generations.get(childGroup) ?? 1, generation + 1));
       const remainingParents = (indegrees.get(childGroup) ?? 1) - 1;
       indegrees.set(childGroup, remainingParents);
       if (remainingParents === 0) queue.push(childGroup);
     });
   }
 
-  // A parent added above someone deep in the tree (an in-law's father, say)
-  // has no ancestors of its own; seat it one row above its nearest child.
   for (let index = queue.length - 1; index >= 0; index -= 1) {
     const groupId = queue[index]!;
     if (!originalRoots.has(groupId)) continue;
@@ -622,10 +574,7 @@ export function computeGenerations(
     if (!generations.has(groupId)) {
       const existingGeneration = draft.people
         .filter((person) => findGroup(person.id) === groupId)
-        .reduce(
-          (lowest, person) => Math.min(lowest, person.generation),
-          Number.MAX_SAFE_INTEGER,
-        );
+        .reduce((lowest, person) => Math.min(lowest, person.generation), Number.MAX_SAFE_INTEGER);
       generations.set(
         groupId,
         Number.isFinite(existingGeneration) ? Math.max(1, existingGeneration) : 1,
@@ -634,10 +583,6 @@ export function computeGenerations(
   });
 
   return new Map(
-    draft.people.map((person) => [
-      person.id,
-      generations.get(findGroup(person.id)) ?? 1,
-    ]),
+    draft.people.map((person) => [person.id, generations.get(findGroup(person.id)) ?? 1]),
   );
 }
-

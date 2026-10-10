@@ -23,10 +23,6 @@ import { cn } from '@/lib/utils';
 import { formatVnd, vndInWords } from '@/lib/vietnamese-number';
 import { formatDay } from '@/lib/vietnam-date';
 
-/**
- * Oldest first, so a donor keeps their number (STT) as new donations are added; on the same day,
- * in the order they were written.
- */
 function inOrder(a: MeritDonation, b: MeritDonation): number {
   return a.donatedOn.localeCompare(b.donatedOn) || a.createdAt.localeCompare(b.createdAt);
 }
@@ -52,7 +48,6 @@ function totalsAfter(
   return next;
 }
 
-/** One Công đức event: its totals, the clan head's tools, and the list of donors. */
 export function MeritEventView({
   familySlug,
   initial,
@@ -244,7 +239,6 @@ export function MeritEventView({
             </thead>
             <tbody className="divide-y divide-line">
               {rows.map((donation, index) => {
-                // The clan head taps a row to edit or delete it, so no column goes to buttons.
                 const edit = canManage
                   ? (): void => setDonationDialog({ editing: donation })
                   : undefined;
@@ -307,7 +301,6 @@ export function MeritEventView({
       <Presence>
         {donationDialog ? (
           <MeritDonationDialog
-            // A fresh form for each donation being edited.
             key={donationDialog.editing?.id ?? 'new'}
             familySlug={familySlug}
             eventId={event.id}

@@ -19,7 +19,6 @@ import type { FamilyDetails } from '@/types/family-tree';
 const PREVIEW_WIDTH = 1920;
 const PREVIEW_HEIGHT = 1080;
 
-/** The full sheet at 1920 × 1080, scaled down to the width of its container. */
 function PosterPreview({ poster, familyName }: { poster: FamilyPoster; familyName: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -114,7 +113,6 @@ function BackgroundPicker({
   );
 }
 
-/** Lets the family head pick the phả đồ background from the platform library. */
 export function FamilyPosterForm({
   family,
   decorations,
@@ -136,7 +134,6 @@ export function FamilyPosterForm({
   const [submitting, setSubmitting] = useState(false);
   const isDirty = value !== saved || leftText !== savedLeftText || rightText !== savedRightText;
 
-  // The family's current pick stays resolvable even if the ADMIN has since hidden it.
   const byId = useMemo(() => {
     const current = family.poster.background ? [family.poster.background] : [];
     return new Map([...current, ...decorations].map((decoration) => [decoration.id, decoration]));

@@ -14,10 +14,6 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { createDemoFamily } from '@/lib/family-api';
 import { foldVietnamese } from '@/lib/person-search';
 
-/**
- * The sample family's path, from its name: "Họ Nguyễn" → "ho-nguyen-mau". Not `gia-pha-mau`
- * itself, which is the page that shows the sample and is reserved.
- */
 function demoSlug(name: string): string {
   const base = foldVietnamese(name)
     .replace(/[^a-z0-9]+/g, '-')
@@ -27,7 +23,6 @@ function demoSlug(name: string): string {
   return `${base || 'dong-ho'}-mau`;
 }
 
-/** Creates Gia phả mẫu, shown while there is none; the tab then switches to editing it. */
 export function CreateDemoFamilyForm() {
   const router = useRouter();
   const showToast = useToast();
@@ -42,7 +37,6 @@ export function CreateDemoFamilyForm() {
     try {
       const body = await createDemoFamily({ name, slug, deathAnniversary });
       showToast({ kind: 'success', message: `Đã tạo gia phả mẫu ${body.family.name}.` });
-      // The tab is rendered on the server; reloading it swaps this form for the editor.
       router.refresh();
     } catch (error: unknown) {
       showToast({ kind: 'error', message: getApiErrorMessage(error, 'tạo gia phả mẫu') });

@@ -45,19 +45,13 @@ import type { FamilyTreeResponse } from '@/types/family-tree';
 
 type Credential = {
   accountId: string;
-  /** A new account's password shows beside the form; a reset one under that account in the list. */
   source: 'created' | 'reset';
   displayName: string;
   username: string;
   password: string;
-  /** The shared account's password is handed to the whole clan and never forced to change. */
   isShared: boolean;
 };
 
-/**
- * The clan head's accounts tab: member accounts, their passwords, and the chi/nhánh each one
- * manages in the designer. A branch may not overlap one already given out; the API says which.
- */
 export function FamilyAccountsPanel({
   familySlug,
   initialAccounts,
@@ -66,9 +60,7 @@ export function FamilyAccountsPanel({
 }: {
   familySlug: string;
   initialAccounts: FamilyAccount[];
-  /** Appended by the API to every username created here, e.g. `HoPham1503`. */
   usernameSuffix: string;
-  /** Drawn in the dialog where the clan head picks who heads a branch. */
   tree: FamilyTreeResponse;
 }) {
   const confirm = useConfirm();
@@ -79,14 +71,11 @@ export function FamilyAccountsPanel({
   const usernameStatus = useUsernameCheck(familySlug, username);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [credential, setCredential] = useState<Credential | null>(null);
-  /** The account whose email the dialog is editing. */
   const [editingEmail, setEditingEmail] = useState<FamilyAccount | null>(null);
   const [copied, setCopied] = useState(false);
   const credentialRef = useRef<HTMLDivElement>(null);
-  /** The account whose "giao chi" tree dialog is open. */
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const assigning = accounts.find((account) => account.id === assigningId) ?? null;
-  /** Every root given out, so the dialog can grey out branches that would overlap them. */
   const claimed = useMemo<ClaimedBranch[]>(
     () =>
       accounts.flatMap((account) =>
@@ -98,7 +87,6 @@ export function FamilyAccountsPanel({
     [accounts, assigningId],
   );
 
-  // Keeps the password in view: the account list can push either spot off screen.
   useEffect(() => {
     credentialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [credential]);
@@ -107,11 +95,7 @@ export function FamilyAccountsPanel({
     setAccounts((current) => current.map((account) => (account.id === next.id ? next : account)));
   }
 
-  function reveal(
-    account: FamilyAccount,
-    newPassword: string,
-    source: Credential['source'],
-  ): void {
+  function reveal(account: FamilyAccount, newPassword: string, source: Credential['source']): void {
     setCredential({
       accountId: account.id,
       source,
@@ -265,8 +249,8 @@ export function FamilyAccountsPanel({
               autoComplete="off"
             />
             <p className="text-xs leading-5 text-stone-500">
-              Hệ thống tự sinh mật khẩu. Người dùng phải đổi sang mật khẩu riêng ở lần đăng nhập
-              đầu tiên.
+              Hệ thống tự sinh mật khẩu. Người dùng phải đổi sang mật khẩu riêng ở lần đăng nhập đầu
+              tiên.
             </p>
             <Button
               type="submit"
@@ -358,7 +342,6 @@ export function FamilyAccountsPanel({
                         <KeyRound className="size-3.5" aria-hidden="true" />
                         Đặt lại mật khẩu
                       </Button>
-                      {/* The shared account has no email: anyone could reset it to their own. */}
                       {account.isShared ? null : (
                         <Button
                           type="button"
@@ -437,7 +420,6 @@ export function FamilyAccountsPanel({
                           </button>
                         </span>
                       ))}
-                      {/* A shared account may only lose a branch given before this rule. */}
                       {assigningId === account.id || account.isShared ? null : (
                         <Button
                           type="button"
@@ -506,7 +488,6 @@ export function FamilyAccountsPanel({
   );
 }
 
-/** A generated password, shown once, with the note on who should receive it. */
 function CredentialCard({
   title,
   credential,

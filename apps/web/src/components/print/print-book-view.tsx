@@ -13,11 +13,7 @@ import {
   type RefObject,
 } from 'react';
 
-import {
-  BookCoverArt,
-  COVER_TEMPLATES,
-  type CoverTemplate,
-} from '@/components/print/book-cover';
+import { BookCoverArt, COVER_TEMPLATES, type CoverTemplate } from '@/components/print/book-cover';
 import { BookSheet, type BookCover, type BookOverview } from '@/components/print/book-pages';
 import { PrintEndCard } from '@/components/print/print-end-card';
 import { Button } from '@/components/ui/button';
@@ -36,7 +32,6 @@ import { cn } from '@/lib/utils';
 import { formatDay, todayInVietnam } from '@/lib/vietnam-date';
 import type { FamilyDetails, FamilyTreeResponse } from '@/types/family-tree';
 
-/** A4 and up, for the book and the single tree sheet alike. */
 export const PAPER_CHOICES: { size: PaperSize; hint: string }[] = [
   { size: 'A4', hint: 'Máy in văn phòng' },
   { size: 'A3', hint: 'Máy in khổ lớn' },
@@ -53,7 +48,6 @@ const ORIENTATIONS: { value: Orientation; label: string }[] = [
 
 const subscribeNever = (): (() => void) => () => {};
 
-/** The preview zoom that fits a page into the column, never above actual size. */
 export function usePreviewZoom(pageWidthPx: number): [RefObject<HTMLDivElement | null>, number] {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -67,7 +61,6 @@ export function usePreviewZoom(pageWidthPx: number): [RefObject<HTMLDivElement |
   return [ref, width ? Math.min(1, width / pageWidthPx) : 0.5];
 }
 
-/** One named @page per sheet kind; both are portrait, as a bound book's pages are. */
 function pageRules(sheets: Record<SheetKind, PageGeometry>): string {
   return Object.entries(sheets)
     .map(([kind, sheet]) => {
@@ -77,7 +70,6 @@ function pageRules(sheets: Record<SheetKind, PageGeometry>): string {
     .join('\n');
 }
 
-/** A rotated page turned a quarter round, anticlockwise, onto its portrait paper. */
 function Paper({ geometry, children }: { geometry: PageGeometry; children: ReactNode }) {
   if (!geometry.rotated) return children;
   return (
@@ -87,7 +79,11 @@ function Paper({ geometry, children }: { geometry: PageGeometry; children: React
     >
       <div
         className="absolute left-0"
-        style={{ top: `${geometry.widthMm}mm`, transform: 'rotate(-90deg)', transformOrigin: '0 0' }}
+        style={{
+          top: `${geometry.widthMm}mm`,
+          transform: 'rotate(-90deg)',
+          transformOrigin: '0 0',
+        }}
       >
         {children}
       </div>
@@ -97,12 +93,10 @@ function Paper({ geometry, children }: { geometry: PageGeometry; children: React
 
 const THUMBNAIL_WIDTH = 92;
 
-
 type PrintBookViewProps = {
   tree: FamilyTreeResponse;
   family: FamilyDetails;
   familySlug: string;
-  /** The way back and the choice between a book and a single tree sheet. */
   header: ReactNode;
 };
 
@@ -111,9 +105,11 @@ export function PrintBookView({ tree, family, familySlug, header }: PrintBookVie
   const [orientation, setOrientation] = useState<Orientation>('topDown');
   const [template, setTemplate] = useState<CoverTemplate>('do-son');
   const laidOutSize = useDeferredValue(size);
-  // Built in the browser only: the index's Vietnamese sort order could differ from the server's.
-  const isBrowser = useSyncExternalStore(subscribeNever, () => true, () => false);
-  // Both orientations, so each choice can say how many pages it would take.
+  const isBrowser = useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false,
+  );
   const books = useMemo(
     () =>
       isBrowser
@@ -127,7 +123,9 @@ export function PrintBookView({ tree, family, familySlug, header }: PrintBookVie
   );
   const book = books?.[orientation] ?? null;
   const [previewRef, zoom] = usePreviewZoom(
-    book ? (Math.max(paperOf(book.sheets.tree).widthMm, paperOf(book.sheets.text).widthMm) * 96) / 25.4 : 1123,
+    book
+      ? (Math.max(paperOf(book.sheets.tree).widthMm, paperOf(book.sheets.text).widthMm) * 96) / 25.4
+      : 1123,
   );
 
   const cover = useMemo<BookCover>(
@@ -161,18 +159,20 @@ export function PrintBookView({ tree, family, familySlug, header }: PrintBookVie
   const stale = laidOutSize !== size;
   const summary = book ? (
     <>
-      <strong className="text-stone-900">{book.pages.length} trang</strong> khổ{' '}
-      {laidOutSize} · {book.treePageCount} trang phả đồ · mỗi trang tối đa{' '}
-      {book.sheets.tree.rows} đời, {book.sheets.tree.columns} thẻ mỗi đời
+      <strong className="text-stone-900">{book.pages.length} trang</strong> khổ {laidOutSize} ·{' '}
+      {book.treePageCount} trang phả đồ · mỗi trang tối đa {book.sheets.tree.rows} đời,{' '}
+      {book.sheets.tree.columns} thẻ mỗi đời
     </>
   ) : null;
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-stone-200/70 print:min-h-0 print:bg-white">
       {book ? (
-        <style>{pageRules(book.sheets) +
+        <style>
+          {pageRules(book.sheets) +
             `
-@media print { html, body { background: #fff !important; } .book-page { break-after: page; } .book-page:last-child { break-after: auto; } }`}</style>
+@media print { html, body { background: #fff !important; } .book-page { break-after: page; } .book-page:last-child { break-after: auto; } }`}
+        </style>
       ) : null}
 
       <div className="border-b border-stone-300 bg-[#fffdf8] print:hidden">
@@ -244,7 +244,9 @@ export function PrintBookView({ tree, family, familySlug, header }: PrintBookVie
                         height={(THUMBNAIL_WIDTH * 297) / 210}
                       />
                     </span>
-                    <span className="mt-1 block text-xs font-semibold text-stone-800">{choice.name}</span>
+                    <span className="mt-1 block text-xs font-semibold text-stone-800">
+                      {choice.name}
+                    </span>
                     <span className="block text-[11px] text-stone-500">{choice.hint}</span>
                   </button>
                 ))}
@@ -287,14 +289,19 @@ export function PrintBookView({ tree, family, familySlug, header }: PrintBookVie
           </div>
 
           <div className="space-y-1.5 lg:w-72">
-            <Button type="button" className="w-full" disabled={!book || stale} onClick={() => window.print()}>
+            <Button
+              type="button"
+              className="w-full"
+              disabled={!book || stale}
+              onClick={() => window.print()}
+            >
               <Printer className="size-4" aria-hidden="true" />
               Xuất PDF / In
             </Button>
             <p className="text-[11px] leading-snug text-stone-500">
-              Mọi trang đều in giấy dọc; lựa chọn trên chỉ đổi hướng cây ở trang tổng quát và các trang chi. Trong
-              hộp thoại in: chọn <b>Lưu dưới dạng PDF</b>, lề <b>Không có</b> và bật{" "}
-              <b>Đồ hoạ nền</b>.
+              Mọi trang đều in giấy dọc; lựa chọn trên chỉ đổi hướng cây ở trang tổng quát và các
+              trang chi. Trong hộp thoại in: chọn <b>Lưu dưới dạng PDF</b>, lề <b>Không có</b> và
+              bật <b>Đồ hoạ nền</b>.
             </p>
           </div>
         </div>

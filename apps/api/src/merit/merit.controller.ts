@@ -22,7 +22,6 @@ import { FamilyRoles } from '../common/auth/family-roles.decorator.js';
 import { RequiresFamilyFeature } from '../common/auth/family-feature.decorator.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
-// Runtime import is required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { SaveMeritDonationDto, SaveMeritEventDto } from './merit.dto.js';
 import {
@@ -33,7 +32,6 @@ import {
   type MeritOverviewResponse,
 } from './merit.service.js';
 
-/** Công đức: every member reads the events and donors; only the clan head (MEMBER_PLUS) writes. */
 @Controller('families/:slug/merit')
 @RequiresFamilyFeature('merit')
 @UseGuards(SessionAuthGuard, FamilyAccessGuard)

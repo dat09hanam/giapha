@@ -19,10 +19,6 @@ type ChangePasswordPageProps = {
   searchParams: Promise<{ next?: string | string[] }>;
 };
 
-/**
- * Where an account signs in to first when its password was given by someone else (a new account,
- * or one the clan head reset); every other page sends it here until it sets its own.
- */
 export default async function ChangePasswordPage({ searchParams }: ChangePasswordPageProps) {
   const { next } = await searchParams;
   const nextPath = typeof next === 'string' ? next : null;

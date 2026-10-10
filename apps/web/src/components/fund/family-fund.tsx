@@ -42,13 +42,11 @@ const FILTERS: readonly { value: Filter; label: string }[] = [
   { value: 'EXPENSE', label: 'Chi' },
 ];
 
-/** `2026-10-05` → `Tháng 10/2026`. */
 function monthLabel(day: string): string {
   const [year, month] = day.split('-');
   return `Tháng ${Number(month)}/${year}`;
 }
 
-/** Newest day first; on the same day, the line written last first, as the API orders them. */
 function byDay(a: FundEntry, b: FundEntry): number {
   return b.occurredOn.localeCompare(a.occurredOn) || b.createdAt.localeCompare(a.createdAt);
 }
@@ -73,7 +71,6 @@ function totalsAfter(
   return { income, expense, balance: income - expense };
 }
 
-/** The three fields the clan head fills in: what, which way, how much. */
 function EntryForm({
   editing,
   saving,
@@ -103,7 +100,6 @@ function EntryForm({
     if (done && !editing) {
       setContent('');
       setAmountText('');
-      // The day stays: several lines are often written for the same day.
     }
   }
 
@@ -219,10 +215,6 @@ function EntryForm({
   );
 }
 
-/**
- * Quỹ họ: the balance in figures and in words, the clan head's form, and the
- * ledger every member can read.
- */
 export function FamilyFund({ familySlug, initial }: { familySlug: string; initial: FundLedger }) {
   const confirm = useConfirm();
   const showToast = useToast();
@@ -342,7 +334,6 @@ export function FamilyFund({ familySlug, initial }: { familySlug: string; initia
       {canManage ? (
         <div ref={formRef} className="mx-3 sm:mx-0">
           <EntryForm
-            // A fresh form for each line being edited, and an empty one after.
             key={editing?.id ?? 'new'}
             editing={editing}
             saving={saving}
@@ -465,7 +456,6 @@ export function FamilyFund({ familySlug, initial }: { familySlug: string; initia
                 );
               })}
             </ul>
-            {/* Desktops have room for the ledger as a table. */}
             <table className="hidden w-full text-sm lg:table">
               <thead className="bg-paper text-left text-xs font-semibold uppercase tracking-wide text-stone-500">
                 <tr>

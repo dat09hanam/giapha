@@ -27,9 +27,7 @@ import {
   type PosterVerticalTextArea,
 } from '@/lib/poster-decorations';
 
-/** Size of the grab zone around an edge or corner, in screen pixels. */
 const GRAB = 14;
-/** Shown in the name area while the ADMIN edits; families see their own name. */
 const SAMPLE_NAME = 'Dòng họ Nguyễn';
 const SAMPLE_LEFT_TEXT = 'Tổ tiên công đức thiên niên thịnh';
 const SAMPLE_RIGHT_TEXT = 'Tử hiếu tôn hiền vạn đại vinh';
@@ -50,7 +48,6 @@ const AREA_NAMES: Record<AreaKey, string> = {
   rightText: 'Vùng chữ dọc phải',
 };
 
-/** The smallest width and height each area may have, in percent of the sheet (the API's limits). */
 const MIN_SIZE: Record<AreaKey, number> = {
   tree: 100 - MAX_OPPOSITE_INSETS_PERCENT,
   name: MIN_NAME_AREA_PERCENT,
@@ -89,7 +86,6 @@ const AREA_STYLE: Record<AreaKey, { label: string; dot: string; outline: string;
 type Point = { x: number; y: number };
 type Edge = keyof PosterInsets;
 
-/** What a drag does: draw a new area, move the whole area, or pull some of its edges. */
 type DragMode = { kind: 'draw' } | { kind: 'move' } | { kind: 'resize'; edges: readonly Edge[] };
 
 type Drag = { mode: DragMode; start: Point; before: PosterInsets | null };
@@ -102,7 +98,6 @@ function insetsOf(area: PosterInsets): PosterInsets {
   return { top: area.top, right: area.right, bottom: area.bottom, left: area.left };
 }
 
-/** Area edges are kept to a tenth of a percent, as the API stores them. */
 function toTenth(value: number): number {
   return Math.round(value * 10) / 10;
 }
@@ -116,7 +111,6 @@ function insetsBetween(start: Point, end: Point): PosterInsets {
   };
 }
 
-/** Pulls the chosen edges to the pointer, keeping the area at least `minSize`. */
 function resized(
   before: PosterInsets,
   edges: readonly Edge[],
@@ -133,7 +127,6 @@ function resized(
   return next;
 }
 
-/** Shifts the whole area by the pointer's travel, keeping it on the sheet. */
 function moved(before: PosterInsets, start: Point, point: Point): PosterInsets {
   const spareX = before.left + before.right;
   const spareY = before.top + before.bottom;
@@ -142,7 +135,6 @@ function moved(before: PosterInsets, start: Point, point: Point): PosterInsets {
   return { top, right: toTenth(spareX - left), bottom: toTenth(spareY - top), left };
 }
 
-/** How far each arrow key nudges an area, in percent of the sheet. */
 const ARROW_STEPS: Record<string, Point | undefined> = {
   ArrowUp: { x: 0, y: -0.1 },
   ArrowDown: { x: 0, y: 0.1 },
@@ -165,7 +157,6 @@ const HANDLES: { edges: readonly Edge[]; cursor: string; label: string }[] = [
   { edges: ['bottom', 'left'], cursor: 'nesw-resize', label: 'Kéo góc dưới trái' },
 ];
 
-/** Where an edge or corner grab zone sits over an area; no edges gives its inner body. */
 function handleStyle(insets: PosterInsets, edges: readonly Edge[]): CSSProperties {
   const half = GRAB / 2;
   const style: CSSProperties = {};
@@ -189,13 +180,6 @@ function handleStyle(insets: PosterInsets, edges: readonly Edge[]): CSSPropertie
   return style;
 }
 
-/**
- * The background drawn at the sheet's 16:9, where the ADMIN marks the area
- * the tree is placed in plus the family name and two vertical text areas:
- * drag on the art to draw the chosen area, drag its edges or corners to resize
- * it, and drag inside it to move it. The sheet is stretched to any tree's
- * size, so areas are kept in percent and line up with the art at every size.
- */
 export function PosterAreaEditor({
   background,
   treeArea,
@@ -272,9 +256,7 @@ export function PosterAreaEditor({
   function startDrag(event: PointerEvent<HTMLElement>, area: AreaKey, mode: DragMode): void {
     if (event.button !== 0) return;
     event.stopPropagation();
-    // The sheet keeps receiving the pointer even when it leaves a small handle.
     boxRef.current?.setPointerCapture(event.pointerId);
-    // Focus the sheet so the arrow keys nudge the area just picked.
     boxRef.current?.focus({ preventScroll: true });
     setActive(area);
     setDrag({ area, mode, start: pointAt(event), before: areas[area] });
@@ -294,13 +276,11 @@ export function PosterAreaEditor({
   function handlePointerUp(event: PointerEvent<HTMLDivElement>): void {
     if (!drag) return;
     const next = dragTo(drag, pointAt(event));
-    // A click or a sliver drawn by mistake keeps the previous area.
     const keep = drag.mode.kind === 'draw' && tooSmall(next, MIN_SIZE[drag.area]);
     setArea(drag.area, keep ? drag.before : next);
     setDrag(null);
   }
 
-  /** Arrow keys move the chosen area one step; with Shift they pull its right or bottom edge. */
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
     const step = ARROW_STEPS[event.key];
     const before = areas[active];
@@ -444,7 +424,6 @@ export function PosterAreaEditor({
           />
         ) : null}
 
-        {/* The chosen area goes last so its handles sit above any area it overlaps. */}
         {AREA_KEYS.filter((key) => key !== active)
           .concat(active)
           .map((key) => {

@@ -15,10 +15,6 @@ import { UserStatus } from '@prisma/client';
 
 const USERNAME_PREFIX_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.@-]*$/;
 
-/**
- * What the clan head types, e.g. `adminchi1`; the API appends the family's suffix
- * (`HoPham1503`) to make the username.
- */
 export class UsernameCheckQueryDto {
   @IsString()
   @MinLength(3)
@@ -39,7 +35,6 @@ export class CreateFamilyAccountDto {
   @MaxLength(191)
   displayName!: string;
 
-  /** Optional; lets the member sign in with it and receive a Quên mật khẩu code. */
   @IsOptional()
   @IsEmail({}, { message: 'Email không hợp lệ.' })
   @MaxLength(191)
@@ -57,7 +52,6 @@ export class UpdateFamilyAccountDto {
   @IsIn([UserStatus.ACTIVE, UserStatus.SUSPENDED])
   status?: UserStatus;
 
-  /** A new email, or an empty string to remove it. Left out, the email stays as it is. */
   @IsOptional()
   @IsString()
   @ValidateIf((input: UpdateFamilyAccountDto) => input.email !== '')

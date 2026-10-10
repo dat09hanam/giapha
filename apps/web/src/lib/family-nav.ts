@@ -1,10 +1,5 @@
 import type { FamilyFeature, FamilyFeatures } from '@/types/family-tree';
 
-/**
- * Top-level paths owned by the platform rather than a family. Every other first
- * segment is a family slug (`/{slug}`), which draws its own family header in
- * place of the site header. Add new top-level routes here.
- */
 const PLATFORM_SEGMENTS = new Set([
   '',
   'admin',
@@ -21,7 +16,6 @@ export function isFamilyRoute(pathname: string): boolean {
   return !PLATFORM_SEGMENTS.has(firstSegment);
 }
 
-/** `/admin/{slug}`: the clan head's admin pages, which wear the family's navigation. */
 export function isFamilyAdminRoute(pathname: string): boolean {
   const [, first, second] = pathname.split('/');
   return first === 'admin' && Boolean(second);
@@ -33,15 +27,11 @@ export type FamilyNavKey =
 export type FamilyNavItem = {
   key: FamilyNavKey;
   label: string;
-  /** Path under `/{slug}`; empty is the family's home. Null while the section is still being built. */
   path: string | null;
-  /** The switch the platform admin turns this section off with; none for sections always shown. */
   feature?: FamilyFeature;
-  /** Listed in the phone's Menu sheet rather than given a tab of its own in the bottom bar. */
   menuOnly?: true;
 };
 
-/** The family sections, in menu order. Give a section its `path` once its page exists. */
 export const FAMILY_NAV: readonly FamilyNavItem[] = [
   { key: 'home', label: 'Trang chủ', path: '' },
   { key: 'tree', label: 'Gia phả', path: 'gia-pha' },
@@ -52,13 +42,11 @@ export const FAMILY_NAV: readonly FamilyNavItem[] = [
   { key: 'announcements', label: 'Thông báo', path: null },
 ];
 
-/** The sections a family shows: those the platform admin has not switched off. */
 export function familyNav(features: FamilyFeatures | null): readonly FamilyNavItem[] {
   if (!features) return FAMILY_NAV;
   return FAMILY_NAV.filter((item) => !item.feature || features[item.feature]);
 }
 
-/** The switches the platform admin manages, in the order the admin lists them. */
 export const FAMILY_FEATURE_CHOICES: readonly {
   feature: FamilyFeature;
   label: string;
@@ -96,7 +84,6 @@ export const FAMILY_FEATURE_CHOICES: readonly {
   },
 ];
 
-/** Whether  is in this section: its page or one below it, e.g. an album in Album. */
 export function isInSection(pathname: string, href: string, path: string): boolean {
   return pathname === href || (path !== '' && pathname.startsWith(`${href}/`));
 }

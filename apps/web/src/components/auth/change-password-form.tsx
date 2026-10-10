@@ -12,7 +12,6 @@ import { MIN_PASSWORD_LENGTH } from '@/lib/password';
 import { safeReturnPath } from '@/lib/return-path';
 import { PasswordField } from './password-field';
 
-/** Replaces the signed-in account's password, then goes on to `next` or the usual landing page. */
 export function ChangePasswordForm({ next }: { next: string | null }) {
   const router = useRouter();
   const showToast = useToast();

@@ -10,14 +10,12 @@ import { cn } from '@/lib/utils';
 const MAX_RESULTS = 8;
 
 const TONES = {
-  /** On the tree page's toolbar; the list floats over the poster. */
   page: {
     input:
       'border-transparent bg-white text-stone-900 shadow-sm placeholder:text-stone-400 focus:border-brand-400 focus:ring-brand-400/30 sm:border-line',
     clear: 'text-stone-400 hover:bg-stone-100 hover:text-stone-800',
     list: 'absolute inset-x-0 top-full z-20 shadow-xl',
   },
-  /** Inside a light dialog; the list stays in the flow so a scrolling dialog does not clip it. */
   light: {
     input:
       'border-amber-900/20 bg-white text-stone-900 placeholder:text-stone-400 focus:border-amber-600 focus:ring-amber-600/30',
@@ -146,7 +144,6 @@ export function PersonSearch({
                 id={`${listId}-${index}`}
                 role="option"
                 aria-selected={index === activeIndex}
-                // Keep focus in the input so the list does not close before the click lands.
                 onMouseDown={(event) => event.preventDefault()}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => choose(result)}

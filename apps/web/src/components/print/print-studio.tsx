@@ -22,7 +22,6 @@ type PrintStudioProps = {
   familySlug: string;
 };
 
-/** The print page: a bound book of the whole gia phả, or the phả đồ alone on one sheet. */
 export function PrintStudio({ tree, family, familySlug }: PrintStudioProps) {
   const [mode, setMode] = useState<PrintMode>('book');
 

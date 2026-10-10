@@ -21,13 +21,14 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   ImagePlus,
   Info,
   MessageSquareQuote,
   HeartHandshake,
   Lock,
-  MapPin,
   Network,
   PencilLine,
   Plus,
@@ -104,18 +105,14 @@ type RelationshipChoice = {
   icon: LucideIcon;
 };
 
-/** Steps of the "Thêm quan hệ" dialog after the menu choice. */
 type AdditionState = { step: 'choose' } | { step: 'mother'; kind: RelationshipKind };
 
 type DesignerNodeData = {
   member: DesignerMember;
   generation: number;
-  /** "Vợ 2" and so on, shown only when a husband has more than one wife. */
   spouseLabel: string | null;
-  /** Resolved here because the node itself has no access to the family slug. */
   avatarSrc: string | null;
   selected: boolean;
-  /** False outside a branch manager's chi/nhánh: the card can be viewed but not changed. */
   editable: boolean;
   onSelect: (memberId: string) => void;
   onAddRelationship: (memberId: string) => void;
@@ -211,7 +208,6 @@ const genderLabels: Record<DesignerGender, string> = {
   UNKNOWN: 'Chưa xác định giới tính',
 };
 
-/** Stands in for a missing photo on every avatar circle in the designer. */
 function GenderAvatarFallback({
   gender,
   generation,
@@ -287,7 +283,6 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
           )}
         >
           {data.avatarSrc ? (
-            // Avatars are served by the API, outside next/image's loader.
             // eslint-disable-next-line @next/next/no-img-element
             <img src={data.avatarSrc} alt="" className="size-full object-cover" draggable={false} />
           ) : (
@@ -327,7 +322,6 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
             data.selected ? 'bg-brand-100/80 text-brand-950' : 'bg-amber-50/70',
           )}
           onClick={(event) => {
-            // Not a tap on the card: that would also open the member form on phones.
             event.stopPropagation();
             data.onAddRelationship(data.member.id);
           }}
@@ -353,7 +347,6 @@ function DesignerPersonNode({ data }: NodeProps<DesignerFlowNode>) {
         position={Position.Bottom}
         className="!size-2 !border-0 !bg-amber-700"
       />
-      {/* Anchors the marriage bracket for a wife not standing beside her husband. */}
       <Handle
         id="bracket-target"
         type="target"
@@ -455,10 +448,6 @@ function createMember(gender: DesignerGender, generation = 1, orderInFamily = 1)
   };
 }
 
-/**
- * The placeholder name of a newly added member: "Thành viên thứ n", where n
- * is the member's position in the tree, skipping numbers already in use.
- */
 function nextMemberName(people: readonly DesignerMember[]): string {
   const names = new Set(people.map((person) => person.name));
   let number = people.length + 1;
@@ -624,7 +613,6 @@ function updateMember(
   };
 }
 
-/** Adds a marriage (with the husband's next wife order) unless it exists. */
 function withMarriage(draft: DesignerDraft, husbandId: string, wifeId: string): DesignerDraft {
   if (
     draft.relationships.some(
@@ -685,7 +673,6 @@ function buildDesignPayload(
         mapUrl: trimmedOrNull(member.mapUrl),
         ageAtDeath: member.ageAtDeath ? Number(member.ageAtDeath) : null,
         worshipPlace: trimmedOrNull(member.worshipPlace),
-        // A keeper removed from the draft is dropped rather than sent dangling.
         worshipKeeperClientId:
           member.worshipKeeperId && currentIds.has(member.worshipKeeperId)
             ? member.worshipKeeperId
@@ -790,7 +777,6 @@ function removeMembers(draft: DesignerDraft, removedIds: ReadonlySet<string>): D
 const fieldClassName =
   'h-11 min-w-0 rounded-xl border bg-white px-3 text-base sm:text-sm outline-none transition focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15';
 
-/** The eldest son is "Con trưởng"; everyone else is a son or a daughter. */
 function childRole(children: readonly DesignerMember[], child: DesignerMember): string {
   if (child.gender === 'FEMALE') return 'Con gái';
   if (child.gender !== 'MALE') return 'Con';
@@ -799,18 +785,12 @@ function childRole(children: readonly DesignerMember[], child: DesignerMember): 
     : 'Con trai';
 }
 
-/** Years from birth to death, when both dates name a year. */
 function computedAgeAtDeath(member: DesignerMember): number | null {
   const bornIn = yearOf(member.birthDate);
   const diedIn = yearOf(member.deathDate);
   return bornIn === null || diedIn === null || diedIn < bornIn ? null : diedIn - bornIn;
 }
 
-/**
- * "Mùng 5 tháng Giêng năm Canh Ngọ" from the lunar anniversary and the death
- * year. The can chi follows the solar year, so a death just before Tết may
- * need correcting by hand.
- */
 function anniversaryText(member: DesignerMember): string {
   const { day, month } = parseLunarAnniversary(member.lunarDeathAnniversary);
   if (!day || !month) return '';
@@ -827,7 +807,6 @@ function CountBadge({ count }: { count: number }) {
   ) : null;
 }
 
-/** One relative in the Quan hệ tab: tap the name to open them, arrows to reorder. */
 function RelativeRow({
   member,
   role,
@@ -843,25 +822,30 @@ function RelativeRow({
 }) {
   const name = member.name.trim() || 'Chưa đặt tên';
   return (
-    <li className="flex items-center gap-3 rounded-xl border border-gold-500/25 bg-white p-2.5">
-      {order === undefined ? null : (
-        <span className="grid size-7 shrink-0 place-items-center rounded-lg border border-gold-500/40 text-xs font-semibold tabular-nums text-wood-700">
-          {order}
+    <li className="flex items-center gap-2.5 rounded-xl border border-gold-500/25 bg-white p-2.5">
+      <span className="relative shrink-0">
+        <span
+          className={cn(
+            'grid size-9 place-items-center rounded-full text-sm font-semibold ring-1',
+            genderStyles[member.gender],
+          )}
+          aria-hidden="true"
+        >
+          {member.name.trim().split(/\s+/).pop()?.charAt(0).toUpperCase() || '?'}
         </span>
-      )}
-      <span
-        className={cn(
-          'grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold ring-1',
-          genderStyles[member.gender],
+        {order === undefined ? null : (
+          <span
+            className="absolute -left-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-700 px-1 text-[11px] font-semibold tabular-nums text-white ring-2 ring-white"
+            aria-label={'Thứ ' + order}
+          >
+            {order}
+          </span>
         )}
-        aria-hidden="true"
-      >
-        {member.name.trim().split(/\s+/).pop()?.charAt(0).toUpperCase() || '?'}
       </span>
       <span className="grid min-w-0 flex-1 gap-1">
         <button
           type="button"
-          className="truncate text-left text-sm font-semibold text-brand-950 underline-offset-2 hover:underline"
+          className="line-clamp-2 wrap-break-word text-left text-sm font-semibold leading-5 text-brand-950 underline-offset-2 hover:underline"
           title={name}
           onClick={onOpen}
         >
@@ -918,8 +902,6 @@ function DesignerTextField({
   placeholder?: string;
 }) {
   if (type === 'partialDate') {
-    // Birth and death dates: a popup with day, month and year boxes; old
-    // ancestors often have only a year.
     return (
       <div className="grid gap-1.5">
         <label className="text-sm font-medium text-brand-950" htmlFor={id}>
@@ -964,7 +946,6 @@ function validateMemberForSave(member: DesignerMember): string | null {
   return null;
 }
 
-/** Tree-wide rules that single-member validation cannot see. */
 function validateDraftForSave(draft: DesignerDraft): { memberId: string; message: string } | null {
   const peopleById = new Map(draft.people.map((person) => [person.id, person]));
 
@@ -1032,9 +1013,7 @@ export function FamilyTreeDesigner({
   familyName: string;
   familySlug: string;
   initialTree: FamilyTreeResponse;
-  /** A branch manager edits only their chi/nhánh; the API enforces the same rule on save. */
   editScope?: TreeEditScope;
-  /** Opens on this person, e.g. from an edit suggestion, with the suggestion shown beside the form. */
   focus?: { personId: string; suggestion: EditSuggestion | null } | null;
 }) {
   const initialDraft = useMemo(() => createInitialDraft(initialTree), [initialTree]);
@@ -1052,7 +1031,6 @@ export function FamilyTreeDesigner({
           )) ??
       initialDraft.protectedMemberId,
   );
-  /** Null for the clan head; otherwise recomputed as the draft grows, so new relatives count. */
   const branchScope = useMemo<BranchScope | null>(
     () =>
       editScope.fullAccess
@@ -1066,7 +1044,6 @@ export function FamilyTreeDesigner({
   );
   const canEditMember = (memberId: string): boolean =>
     !branchScope || branchScope.editable.has(memberId);
-  /** Parents and new wives would land outside the branch for its roots and for spouses who married in. */
   function choiceBlockedReason(kind: RelationshipKind, target: DesignerMember): string | null {
     const ruleReason = relationshipChoiceBlockedReason(kind, target);
     if (ruleReason || !branchScope) return ruleReason;
@@ -1086,30 +1063,20 @@ export function FamilyTreeDesigner({
   const [deletedPersonIds, setDeletedPersonIds] = useState<string[]>([]);
   const [avatarCropSource, setAvatarCropSource] = useState<File | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
-  /**
-   * Photos cropped but not committed yet, keyed by member. Nothing reaches the
-   * media folder until "Lưu tất cả" succeeds, so an abandoned edit leaves no file.
-   */
   const [pendingAvatars, setPendingAvatars] = useState<
     ReadonlyMap<string, { file: File; previewUrl: string }>
   >(() => new Map());
-  /** Uploads discarded while a saved person still points at them. */
   const [pendingMediaCleanup, setPendingMediaCleanup] = useState<string[]>([]);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [savingAll, setSavingAll] = useState(false);
-  /**
-   * Serialised payload as of the last successful save. `null` means nothing has
-   * ever been persisted, so the untouched starter card still counts as a change.
-   */
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(() =>
     initialTree.people.length > 0 ? JSON.stringify(buildDesignPayload(initialDraft, [])) : null,
   );
   const showToast = useToast();
   const confirm = useConfirm();
   const router = useRouter();
-  /** Below lg the member form is a bottom sheet, opened by tapping a card. */
   const [editorOpen, setEditorOpen] = useState(focusMemberId !== null);
-  /** The suggestion being worked on, until it is marked handled or hidden. */
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [suggestion, setSuggestion] = useState(focusMemberId ? (focus?.suggestion ?? null) : null);
   const [suggestionHandled, setSuggestionHandled] = useState(false);
   const [markingSuggestion, setMarkingSuggestion] = useState(false);
@@ -1171,7 +1138,6 @@ export function FamilyTreeDesigner({
   const selectedAge = selectedMember?.ageAtDeath
     ? Number(selectedMember.ageAtDeath)
     : selectedComputedAge;
-  // Vietnamese obituaries say "hưởng dương" for those who die young.
   const selectedAgeLabel = selectedAge !== null && selectedAge < 60 ? 'Hưởng dương' : 'Hưởng thọ';
   const worshipKeeperChoices = useMemo(
     () => [...draft.people].filter((member) => member.id !== selectedMemberId).sort(sortMembers),
@@ -1189,8 +1155,6 @@ export function FamilyTreeDesigner({
       JSON.stringify(designPayload) !== savedSnapshot,
     [designPayload, pendingAvatars, savedSnapshot],
   );
-  // Object URLs for crops the visitor never saved would otherwise outlive the
-  // page on a client-side navigation.
   const pendingAvatarsRef = useRef(pendingAvatars);
   pendingAvatarsRef.current = pendingAvatars;
   useEffect(
@@ -1243,7 +1207,6 @@ export function FamilyTreeDesigner({
 
   function chooseRelationship(kind: RelationshipKind): void {
     if (!relationshipTarget) return;
-    // Disabled choices stay in the menu and keep it open.
     if (choiceBlockedReason(kind, relationshipTarget)) return;
 
     if (needsMotherChoice(draft, relationshipTarget, kind)) {
@@ -1282,7 +1245,6 @@ export function FamilyTreeDesigner({
       if (!target || relationshipChoiceBlockedReason(kind, target)) {
         return current;
       }
-      // Every kind of relative gets the same numbered placeholder name.
       const named = { ...member, name: nextMemberName(current.people) };
       const withMember = { ...current, people: [...current.people, named] };
 
@@ -1412,15 +1374,10 @@ export function FamilyTreeDesigner({
     );
   }
 
-  /** A death date and "còn sống" cannot both hold, so each one clears the other. */
   function patchDeathDate(value: string): void {
     patchWithAnniversaryText(value ? { deathDate: value, isAlive: false } : { deathDate: value });
   }
 
-  /**
-   * Applies a change to the death date or lunar anniversary, and keeps "cách
-   * gọi ngày giỗ" in step while it is empty or still the filled-in wording.
-   */
   function patchWithAnniversaryText(patch: Partial<DesignerMember>): void {
     if (!selectedMember) return;
     const filled = anniversaryText(selectedMember);
@@ -1430,25 +1387,6 @@ export function FamilyTreeDesigner({
       follows
         ? { ...patch, deathAnniversaryText: anniversaryText({ ...selectedMember, ...patch }) }
         : patch,
-    );
-  }
-
-  function locateOnMap(): void {
-    if (!('geolocation' in navigator)) {
-      showToast({ kind: 'error', message: 'Trình duyệt không hỗ trợ định vị.' });
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) =>
-        patchSelectedMember({
-          mapUrl: `https://www.google.com/maps?q=${coords.latitude.toFixed(6)},${coords.longitude.toFixed(6)}`,
-        }),
-      () =>
-        showToast({
-          kind: 'error',
-          message: 'Không lấy được vị trí. Hãy cho phép truy cập vị trí rồi thử lại.',
-        }),
-      { enableHighAccuracy: true, timeout: 15000 },
     );
   }
 
@@ -1489,11 +1427,6 @@ export function FamilyTreeDesigner({
     setAvatarCropSource(file);
   }
 
-  /**
-   * Drops the file behind an avatar the visitor replaced or removed. The API
-   * refuses while a saved person still references it, so those are queued and
-   * retried after the next successful save.
-   */
   function discardAvatarFile(avatarUrl: string): void {
     if (!avatarUrl.startsWith('/media/')) return;
 
@@ -1531,7 +1464,6 @@ export function FamilyTreeDesigner({
     if (previous) discardAvatarFile(previous);
   }
 
-  /** Saves pending edits first, so "handled" never covers changes that were not kept. */
   async function resolveSuggestion(): Promise<void> {
     if (!suggestion || markingSuggestion) return;
     setMarkingSuggestion(true);
@@ -1547,7 +1479,6 @@ export function FamilyTreeDesigner({
     }
   }
 
-  /** Leaving with unsaved changes waits for the visitor to confirm, then follows the link. */
   function confirmLeave(event: MouseEvent<HTMLAnchorElement>): void {
     if (!hasUnsavedChanges) return;
     event.preventDefault();
@@ -1596,8 +1527,6 @@ export function FamilyTreeDesigner({
     setSavingAll(true);
 
     try {
-      // Staged photos become real files only now, so an abandoned crop never
-      // leaves anything behind in the media folder.
       const uploadedAvatars = new Map<string, string>();
       const replacedAvatarUrls: string[] = [];
       try {
@@ -1628,8 +1557,6 @@ export function FamilyTreeDesigner({
         result.savedPeople.map((person) => [person.clientId, person.databaseId]),
       );
 
-      // Snapshot what the server now holds, not the live branch: the user may
-      // have kept editing while the request was in flight.
       setSavedSnapshot(
         JSON.stringify({
           people: payload.people.map((person) => ({
@@ -1647,7 +1574,6 @@ export function FamilyTreeDesigner({
       pendingAvatars.forEach((pending) => URL.revokeObjectURL(pending.previewUrl));
       setPendingAvatars(new Map());
 
-      // Nothing saved points at these any more, so the files can go now.
       for (const avatarUrl of [...pendingMediaCleanup, ...replacedAvatarUrls]) {
         void deleteFamilyMedia(familySlug, avatarUrl).catch(() => undefined);
       }
@@ -1674,8 +1600,6 @@ export function FamilyTreeDesigner({
   }
 
   return (
-    // From lg the designer is exactly one screen: the page never scrolls, only
-    // the member panel does, whatever height the header wraps to.
     <main className="min-h-[calc(100vh-4rem)] bg-paper-deep lg:flex lg:h-dvh lg:min-h-0 lg:flex-col lg:overflow-hidden">
       <header className="heritage-hero hidden shrink-0 rounded-none border-x-0 border-t-0 text-gold-50 lg:block">
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
@@ -1684,7 +1608,7 @@ export function FamilyTreeDesigner({
               <Network className="size-5" aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <h1 className="truncate font-serif text-xl font-semibold sm:text-2xl">
+              <h1 className="truncate font-display text-xl font-semibold sm:text-2xl">
                 Thiết kế gia phả
               </h1>
               <p className="truncate text-xs text-gold-100/70">{familyName}</p>
@@ -1732,11 +1656,32 @@ export function FamilyTreeDesigner({
         </div>
       </header>
 
-      <div className="grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[minmax(0,1fr)]">
+      <div
+        className={cn(
+          'grid lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden lg:transition-[grid-template-columns] lg:duration-500 lg:ease-in-out motion-reduce:transition-none',
+          panelCollapsed
+            ? 'lg:grid-cols-[minmax(0,1fr)_0rem]'
+            : 'lg:grid-cols-[minmax(0,1fr)_22rem]',
+        )}
+      >
         <section
           className="relative h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] overflow-hidden bg-paper lg:h-auto lg:border-r lg:border-gold-500/30"
           aria-label="Canvas thiết kế cây gia phả"
         >
+          <button
+            type="button"
+            className="absolute right-0 top-4 z-10 hidden h-11 w-8 place-items-center rounded-l-xl border border-r-0 border-gold-500/40 bg-[var(--card)] text-stone-600 shadow-sm transition hover:bg-gold-50 hover:text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 lg:grid"
+            onClick={() => setPanelCollapsed((collapsed) => !collapsed)}
+            aria-expanded={!panelCollapsed}
+            aria-label={panelCollapsed ? 'Mở thông tin thành viên' : 'Thu gọn thông tin thành viên'}
+            title={panelCollapsed ? 'Mở thông tin thành viên' : 'Thu gọn thông tin thành viên'}
+          >
+            {panelCollapsed ? (
+              <ChevronLeft className="size-5" aria-hidden="true" />
+            ) : (
+              <ChevronRight className="size-5" aria-hidden="true" />
+            )}
+          </button>
           <ReactFlow
             key={memberCount}
             nodes={nodes}
@@ -1764,7 +1709,6 @@ export function FamilyTreeDesigner({
             proOptions={{ hideAttribution: true }}
           >
             <Background variant={BackgroundVariant.Lines} gap={32} size={0.7} color="#dfcda7" />
-            {/* Phones pinch to zoom and have "Toàn cây" in the bottom bar. */}
             <Controls position="bottom-left" showInteractive={false} className="max-lg:!hidden" />
             <Panel
               position="top-left"
@@ -1779,7 +1723,7 @@ export function FamilyTreeDesigner({
           <button
             type="button"
             data-presence={editorSheet.state}
-            className="ui-backdrop fixed inset-0 z-[44] bg-brand-950/40 data-[presence=closed]:pointer-events-none lg:hidden"
+            className="ui-backdrop fixed inset-0 z-[44] bg-brand-950/40 backdrop-blur-[2px] data-[presence=closed]:pointer-events-none lg:hidden"
             aria-label="Đóng thông tin thành viên"
             tabIndex={-1}
             onClick={() => setEditorOpen(false)}
@@ -1792,6 +1736,8 @@ export function FamilyTreeDesigner({
               ? 'ui-sheet-below-lg fixed inset-x-0 bottom-0 z-[45] max-h-[85dvh] rounded-t-3xl pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl'
               : 'hidden',
             'lg:static lg:z-auto lg:block lg:h-auto lg:min-h-0 lg:max-h-none lg:rounded-none lg:pb-5 lg:shadow-none',
+            'lg:w-[22rem] lg:transition-[opacity,visibility] lg:duration-500 lg:ease-in-out motion-reduce:transition-none',
+            panelCollapsed && 'lg:invisible lg:opacity-0',
           )}
           aria-label="Thông tin thành viên"
           data-sheet={editorSheet.state}
@@ -1814,8 +1760,6 @@ export function FamilyTreeDesigner({
               )}
             >
               {selectedAvatarSrc ? (
-                // Avatars come from the API or a local crop, so next/image's
-                // loader does not apply.
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={selectedAvatarSrc}
@@ -1914,7 +1858,6 @@ export function FamilyTreeDesigner({
                 panelId="designer-member-panel"
               />
 
-              {/* A disabled fieldset locks every control for someone outside the manager's branch. */}
               <fieldset
                 id="designer-member-panel"
                 role="tabpanel"
@@ -1927,8 +1870,6 @@ export function FamilyTreeDesigner({
                       <div className="flex items-center gap-4">
                         <span className="grid size-24 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-gold-500/40 bg-gold-50">
                           {selectedAvatarSrc ? (
-                            // Avatars come from the API or a local crop, so next/image's
-                            // loader does not apply.
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={selectedAvatarSrc}
@@ -2076,37 +2017,41 @@ export function FamilyTreeDesigner({
                         onChange={(value) => patchSelectedMember({ phone: value })}
                       />
 
-                      <fieldset className="grid gap-1.5">
-                        <legend className="mb-1.5 text-sm font-medium text-brand-950">
+                      <div className="grid gap-1.5">
+                        <label
+                          htmlFor="designer-member-marital-status"
+                          className="text-sm font-medium text-brand-950"
+                        >
                           Tình trạng hôn nhân
-                        </legend>
-                        <div className="grid grid-cols-2 gap-2">
-                          {(
-                            Object.entries(MARITAL_STATUS_LABELS) as Array<[MaritalStatus, string]>
-                          ).map(([status, statusLabel]) => {
-                            const selected = selectedMember.maritalStatus === status;
-                            return (
-                              <button
-                                key={status}
-                                type="button"
-                                aria-pressed={selected}
-                                // Tapping the chosen one again clears it.
-                                onClick={() =>
-                                  patchSelectedMember({ maritalStatus: selected ? '' : status })
-                                }
-                                className={cn(
-                                  'h-11 truncate whitespace-nowrap rounded-xl border px-2 text-sm font-medium transition',
-                                  selected
-                                    ? 'border-brand-700 bg-brand-700 text-white shadow-sm'
-                                    : 'border-stone-200 bg-white text-stone-700 hover:border-brand-700/40 hover:bg-gold-50',
-                                )}
+                        </label>
+                        <div className="relative">
+                          <select
+                            id="designer-member-marital-status"
+                            value={selectedMember.maritalStatus}
+                            onChange={(event) =>
+                              patchSelectedMember({
+                                maritalStatus: event.currentTarget.value as MaritalStatus | '',
+                              })
+                            }
+                            className={cn(fieldClassName, 'w-full appearance-none pr-10')}
+                          >
+                            <option value="">Chưa chọn</option>
+                            {(
+                              Object.entries(MARITAL_STATUS_LABELS) as Array<
+                                [MaritalStatus, string]
                               >
+                            ).map(([status, statusLabel]) => (
+                              <option key={status} value={status}>
                                 {statusLabel}
-                              </button>
-                            );
-                          })}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown
+                            className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-stone-500"
+                            aria-hidden="true"
+                          />
                         </div>
-                      </fieldset>
+                      </div>
 
                       <DesignerTextField
                         id="designer-member-education"
@@ -2127,7 +2072,7 @@ export function FamilyTreeDesigner({
                       />
                     </EditorSection>
 
-                    <EditorSection number={3} title="Quê quán & địa chỉ" collapsible>
+                    <EditorSection number={3} title="Quê quán & địa chỉ">
                       <DesignerTextField
                         id="designer-member-hometown"
                         label="Nguyên quán"
@@ -2147,47 +2092,9 @@ export function FamilyTreeDesigner({
                         placeholder="Số nhà, đường, thôn..."
                         onChange={(value) => patchSelectedMember({ currentAddress: value })}
                       />
-
-                      <div className="grid gap-1.5">
-                        <label
-                          className="text-sm font-medium text-brand-950"
-                          htmlFor="designer-member-map-url"
-                        >
-                          Link Google Map
-                        </label>
-                        <div className="flex gap-2">
-                          <input
-                            id="designer-member-map-url"
-                            type="url"
-                            inputMode="url"
-                            value={selectedMember.mapUrl}
-                            maxLength={500}
-                            placeholder="Dán link..."
-                            onChange={(event) =>
-                              patchSelectedMember({ mapUrl: event.currentTarget.value })
-                            }
-                            className={cn(fieldClassName, 'flex-1')}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="h-11 shrink-0"
-                            onClick={locateOnMap}
-                          >
-                            <MapPin className="size-4" aria-hidden="true" />
-                            Định vị
-                          </Button>
-                        </div>
-                        {selectedMember.mapUrl &&
-                        !/^https?:\/\/\S+$/.test(selectedMember.mapUrl.trim()) ? (
-                          <p className="text-xs text-red-700">
-                            Link phải bắt đầu bằng http:// hoặc https://.
-                          </p>
-                        ) : null}
-                      </div>
                     </EditorSection>
 
-                    <EditorSection number={4} title="Tiểu sử" collapsible>
+                    <EditorSection number={4} title="Tiểu sử">
                       <label className="sr-only" htmlFor="designer-member-biography">
                         Tiểu sử
                       </label>

@@ -1,27 +1,14 @@
 import type { FamilyPoster } from '@/lib/poster-decorations';
 
-/**
- * Where the tree sits on the phả đồ sheet. Shared by the tree layout and the
- * poster drawing.
- *
- * The background is the sheet's whole decoration. When the ADMIN marked a
- * tree area on it (its `insets`), the sheet is sized so the tree fills exactly
- * that area at any tree size. Otherwise the tree sits inside the frame band
- * with a small margin.
- */
 export const POSTER_GEOMETRY = {
-  /** Margin kept free along the sheet edge when no tree area is marked, at decoration scale 1. */
   band: 40,
-  /** Margin between the frame band and the tree, at decoration scale 1. */
   margin: 60,
 } as const;
 
 const g = POSTER_GEOMETRY;
 
-/** Distances in from each edge of the sheet. */
 export type Edges = { top: number; right: number; bottom: number; left: number };
 
-/** The background's tree area as fractions of the sheet in from each edge; null when none. */
 export function backgroundTreeArea(poster: FamilyPoster): Edges | null {
   const insets = poster.background?.insets;
   if (!insets) return null;
@@ -33,7 +20,6 @@ export function backgroundTreeArea(poster: FamilyPoster): Edges | null {
   };
 }
 
-/** Where the tree is drawn, as pixel distances in from each edge of the sheet. */
 export function posterTreeRegion(
   width: number,
   height: number,
@@ -52,10 +38,6 @@ export function posterTreeRegion(
   return { top: edge, right: edge, bottom: edge, left: edge };
 }
 
-/**
- * Smallest sheet at `ratio` whose tree region holds a tree of the given size.
- * Extra room from the ratio goes to the caller to spread rows.
- */
 export function fitPosterSheet(
   treeArea: Edges | null,
   scale: number,

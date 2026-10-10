@@ -9,12 +9,6 @@ import { ARTICLE_SECTIONS, articleCoverSrc } from '@/lib/article-api';
 import { SITE_BRAND } from '@/lib/site-brand';
 import type { ArticleCategory } from '@/types/article';
 
-/*
- * The page bodies of /mau-bai-cung and /thu-vien, so each route file stays a one-liner. The
- * tab title stays the brand (see the root layout); search engines get the article's title
- * through Open Graph and its summary as the description.
- */
-
 const RELATED_COUNT = 3;
 
 export function sectionMetadata(category: ArticleCategory): Metadata {

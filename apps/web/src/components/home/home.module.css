@@ -1,4 +1,3 @@
-/* The header and footer carry the palette too, so they can stand alone on other public pages. */
 .home,
 .header,
 .footer {
@@ -14,29 +13,24 @@
   --line: #e6d7b8;
   --ink: #2c221e;
   --muted: #6f6258;
-  /* Raster artwork cut from the ink-wash paintings in /images/decorations. */
   --paper-texture: url('/images/home/paper-texture.webp');
 }
 
 .home {
   min-height: 100vh;
-  /* clip, not hidden: hidden would make this the scroll box and stop the sticky header. */
   overflow-x: clip;
   background: var(--paper) var(--paper-texture) repeat;
   color: var(--ink);
 }
 
-/* Menu links glide to their section instead of jumping. */
 :global(html):has(.home) {
   scroll-behavior: smooth;
 }
 
-/* Land each section below the sticky header rather than under it. */
 .home [id] {
   scroll-margin-top: 104px;
 }
 
-/* The landing page owns its full-width masthead. */
 :global(body):has(.home) > :global(header) {
   display: none;
 }
@@ -72,14 +66,11 @@
   margin: 0;
 }
 
-/* Header: a parchment scroll hung across the page, with a tassel at each end */
-
 .header {
   position: sticky;
   top: 0;
   z-index: 30;
   padding: 0 max(56px, calc((100% - 1320px) / 2)) 10px;
-  /* The rod the scroll hangs from, running out to both edges. */
   background: linear-gradient(90deg, transparent, var(--gold) 6%, var(--gold) 94%, transparent)
     center 18px / 100% 1px no-repeat;
 }
@@ -93,7 +84,6 @@
   background: url('/images/home/header-tassel.webp') center top / contain no-repeat;
   content: '';
   pointer-events: none;
-  /* Swing from the hook on the rod, not from the middle of the tassel. */
   transform-origin: 50% 0;
   animation: tasselSway 7s ease-in-out infinite;
   will-change: transform;
@@ -105,12 +95,10 @@
 
 .header::after {
   right: max(16px, calc((100% - 1320px) / 2 - 36px));
-  /* A different period and phase, so the two tassels never swing in lockstep. */
   animation-duration: 8.6s;
   animation-delay: -3.2s;
 }
 
-/* Uneven steps read as gusts of wind: a strong push, a settle, a light breeze, then still. */
 @keyframes tasselSway {
   0%,
   100% {
@@ -156,11 +144,9 @@
   align-items: center;
   gap: 20px;
   min-height: 84px;
-  /* The same inset on both ends, so the login button sits as far in as the logo. */
   padding: 0 22px;
   border: 1px solid rgb(197 160 89 / 55%);
   border-top: 0;
-  /* Flush with the top of the window, so only the lower corners are rounded. */
   border-radius: 0 0 22px 22px;
   background:
     url('/images/home/header-cloud.webp') left -120px top 6px / 180px auto no-repeat,
@@ -275,7 +261,6 @@
   justify-content: center;
   flex: 1 1 auto;
   gap: 6px;
-  /* Items share the width left over, so the menu never pushes the buttons out of the bar. */
   padding: 10px 8px 14px;
   color: var(--ink);
   font-size: 14.5px;
@@ -289,7 +274,6 @@
   transition: color 0.2s ease;
 }
 
-/* Short rules between items, like the ruled columns of a scroll. */
 .navLinks a + a::before {
   position: absolute;
   top: 26%;
@@ -318,7 +302,6 @@
   transform: scaleX(1);
 }
 
-/* The hollow diamond sitting on the active item's rule. */
 .navLinks a[aria-current] span::after {
   position: absolute;
   bottom: 6px;
@@ -397,8 +380,6 @@
   background: var(--green-dark);
 }
 
-/* Hero */
-
 .hero {
   position: relative;
   isolation: isolate;
@@ -412,7 +393,6 @@
 
 .heroArt {
   position: absolute;
-  /* Pushed past the edges so the painting's own red frame stays out of view. */
   top: -3%;
   right: -2%;
   z-index: -2;
@@ -523,8 +503,6 @@
   background: var(--green-dark);
 }
 
-/* Overview strip: one line per section */
-
 .overview {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -595,8 +573,6 @@
   color: var(--brown);
 }
 
-/* Shared section heading */
-
 .steps {
   padding: 64px max(16px, calc((100% - 1240px) / 2));
   text-align: center;
@@ -606,8 +582,6 @@
   margin-top: 12px;
   font-size: clamp(26px, 3vw, 34px);
 }
-
-/* Features, the full-width foot of the introduction */
 
 .featureGrid {
   position: relative;
@@ -663,8 +637,6 @@
   line-height: 1.55;
 }
 
-/* Steps */
-
 .steps {
   border-top: 1px solid var(--line);
   background:
@@ -687,7 +659,6 @@
   padding: 0 8px;
 }
 
-/* The thread joining one step to the next. */
 .stepList li + li::before {
   position: absolute;
   top: 26px;
@@ -724,8 +695,6 @@
   line-height: 1.6;
 }
 
-/* Introduction */
-
 .intro {
   position: relative;
   display: grid;
@@ -748,7 +717,6 @@
   height: min(100%, 620px);
   object-fit: cover;
   object-position: left top;
-  /* Fade the photo into the paper on the right and at the foot. */
   mask-image:
     linear-gradient(90deg, #000 40%, transparent 100%),
     linear-gradient(180deg, #000 70%, transparent 100%);
@@ -762,7 +730,6 @@
   position: relative;
 }
 
-/* Leave the bamboo photo room where the gutter is narrow. */
 @media (min-width: 901px) {
   .introCopy {
     padding-left: max(0px, calc(170px - max(16px, (100vw - 1240px) / 2)));
@@ -792,8 +759,6 @@
   height: auto;
   filter: drop-shadow(0 30px 40px rgb(74 46 18 / 22%));
 }
-
-/* Reasons */
 
 .reasons {
   position: relative;
@@ -838,7 +803,91 @@
   font-size: 16px;
 }
 
-/* FAQ */
+.pricing {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 72px max(16px, calc((100% - 1280px) / 2)) 82px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  background:
+    linear-gradient(
+      180deg,
+      rgb(255 252 242 / 28%),
+      rgb(255 252 242 / 78%) 46%,
+      rgb(255 252 242 / 96%)
+    ),
+    var(--paper-texture);
+}
+
+.pricing::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0 0 auto;
+  height: min(470px, 76%);
+  background: url('/images/home/mountains-strip.webp') top center / max(1120px, 100%) auto no-repeat;
+  content: '';
+  opacity: 0.7;
+  mix-blend-mode: multiply;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 48%,
+    rgb(0 0 0 / 72%) 68%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(to bottom, #000 0%, #000 48%, rgb(0 0 0 / 72%) 68%, transparent 100%);
+  pointer-events: none;
+}
+
+.pricing::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    url('/images/home/hoa-sen.webp') left -54px top 86px / clamp(120px, 16vw, 230px) auto no-repeat,
+    url('/images/home/hoa-sen.webp') right -54px top 86px / clamp(120px, 16vw, 230px) auto no-repeat;
+  content: '';
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.pricing > * {
+  position: relative;
+  z-index: 1;
+}
+
+.pricing > h2 {
+  margin-top: 12px;
+  font-size: clamp(26px, 3vw, 36px);
+}
+
+.pricing > h2 em {
+  color: var(--green);
+  font-style: italic;
+}
+
+.pricing .pricingLead {
+  max-width: 620px;
+  margin: 10px auto 20px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .pricing {
+    padding-block: 56px 64px;
+  }
+
+  .pricing::after {
+    background-position:
+      left -54px top 150px,
+      right -54px top 150px;
+    opacity: 0.11;
+  }
+}
 
 .faq {
   display: grid;
@@ -878,8 +927,6 @@
   line-height: 1.65;
 }
 
-/* Footer: an ink-wash landscape above a deep green band, joined by a gold curve */
-
 .footer {
   position: relative;
   color: #eae3d2;
@@ -891,15 +938,9 @@
   display: grid;
   justify-items: center;
   gap: 12px;
-  /* Never shorter than the picture (366 / 2172 of the width), so it is never cut at the top. */
   min-height: 16.85vw;
   padding: 40px 16px 64px;
   text-align: center;
-  /* The cream upper half of footer.png, its gold rule on this band's bottom edge. The whole
-     strip spans the width, pinned to the foot: `cover` would scale this 6:1 strip up to the
-     band's height and crop away the pine and pavilion at the sides on tablets and laptops.
-     Above the picture the band's cream carries on, the same colour as its sky. */
-  /* The top fades from the section above's paper into the picture, so no edge shows. */
   background:
     linear-gradient(rgb(252 247 237), rgb(252 247 237 / 0%) 48px),
     url('/images/home/footer-top.webp') center bottom / 100% auto no-repeat #f4e9d2;
@@ -985,16 +1026,11 @@
 
 .footerMain {
   position: relative;
-  /* The two picture layers below sit behind the text without escaping this box. */
   isolation: isolate;
   padding: 44px max(24px, calc((100% - 1240px) / 2)) 14px;
   background: rgb(12 59 41);
 }
 
-/* The text is written on the painting itself, not on flat green. The green lower half of
-   footer.png is a 6:1 strip, far wider than this block, so it is drawn twice: enlarged to fill
-   the whole block (its misty hills and forest behind the columns), and again whole across the
-   foot so the lotus corners and gold waves stay uncropped, fading in at its top. */
 .footerMain::before,
 .footerMain::after {
   position: absolute;
@@ -1005,9 +1041,6 @@
 
 .footerMain::before {
   inset: 0;
-  /* Only the strip's upper part, its texture, hills and forest: at 155% of the block's height
-     the gold line (77% down the strip) always falls below the block, however tall the columns
-     make it. At that size the 6:1 strip is far wider than any screen, so the sides never show. */
   background: url('/images/home/footer-bottom.webp') center top / auto 155% no-repeat;
 }
 
@@ -1032,7 +1065,6 @@
   padding: 8px 18px;
 }
 
-/* Gold rules with a diamond between the columns. */
 .footerGrid > * + *::before {
   position: absolute;
   top: 0;
@@ -1127,7 +1159,6 @@
 }
 
 .footerSocial a {
-  /* The word inside the Zalo mark, against the bubble drawn in currentColor. */
   --zalo-ink: var(--green-dark);
   display: grid;
   width: 46px;
@@ -1220,8 +1251,6 @@
   position: relative;
   display: grid;
   justify-items: center;
-  /* Room for the picture's lotus corners: the columns stay above them, this row sits under the
-     gold wave and between the two clumps. */
   margin-top: max(96px, 8vw);
   padding-inline: max(0px, calc(15vw - max(24px, (100vw - 1240px) / 2)));
   font-size: 13.5px;
@@ -1255,7 +1284,6 @@
   text-decoration-color: currentColor !important;
 }
 
-/* The bamboo photo's attribution (CC BY 4.0), kept beside the photo itself. */
 .photoCredit {
   position: absolute;
   bottom: 8px;
@@ -1268,8 +1296,6 @@
   color: inherit;
   text-decoration: underline !important;
 }
-
-/* Responsive */
 
 @media (max-width: 1100px) {
   .footerGrid {
@@ -1317,7 +1343,6 @@
   }
 }
 
-/* Too narrow for the full menu: it folds behind the menu button. */
 @media (max-width: 1240px) {
   .menuToggle {
     display: grid;
@@ -1502,7 +1527,6 @@
     padding-block: 48px;
   }
 
-  /* On a phone the artwork would sit under the text, so only light touches stay. */
   .steps {
     background:
       url('/images/home/sun-clouds.webp') right -120px top -20px / 360px auto no-repeat,
@@ -1576,11 +1600,8 @@
     font-size: 18px;
   }
 
-  /* Phones get the portrait version of the footer picture, split the same way. */
   .footerCta {
     gap: 10px;
-    /* The whole picture across the width, so the sun, pine, pavilion and the gold curve all
-       show; the text sits in its cream sky, which the band's colour carries on above it. */
     min-height: 49.8vw;
     padding: 28px 16px 46vw;
     background:
@@ -1610,12 +1631,10 @@
   }
 
   .footerMain {
-    /* Keeps the last row above the picture's lotus clumps. */
     padding-bottom: 34vw;
     background: rgb(12 58 39);
   }
 
-  /* The portrait version of the strip across the foot; its pale top edge fades out. */
   .footerMain::after {
     height: 100vw;
     background: url('/images/home/footer-mb-bottom.webp') center bottom / 100% auto no-repeat;
@@ -1632,7 +1651,6 @@
   }
 }
 
-/* Too narrow for the label: the login button keeps only its icon. */
 @media (max-width: 480px) {
   .loginAction {
     width: 40px;
@@ -1665,9 +1683,6 @@
   }
 }
 
-/* The phones' and tablets' tab bar (PublicBottomNav, shown below lg): the page ends above it,
-   and the header drops its menu button, the bar being the menu, and keeps a labelled sign-in
-   button even on the narrowest phones. */
 @media (max-width: 1023px) {
   :global(body):has(.bottomNav) {
     padding-bottom: calc(4rem + env(safe-area-inset-bottom));
@@ -1689,7 +1704,6 @@
   }
 }
 
-/* Narrow phones: the brand and the labelled sign-in button share one row, so both tighten. */
 @media (max-width: 480px) {
   .headerBar {
     gap: 8px;
@@ -1715,7 +1729,6 @@
   }
 }
 
-/* The smallest phones (320px): a smaller seal and name keep the row from overlapping. */
 @media (max-width: 359px) {
   .brandSeal {
     width: 38px;

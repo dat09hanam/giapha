@@ -2,15 +2,12 @@ import { readAsBase64 } from '@/lib/media-api';
 
 export type CompressedImage = {
   contentType: 'image/jpeg';
-  /** Base64 without the data-URL prefix, as the API expects. */
   data: string;
   width: number;
   height: number;
-  /** Object URL for a preview; revoke it when the image is dropped. */
   previewUrl: string;
 };
 
-/** Long edge (as a share of the largest allowed) and quality, tried until the photo fits. */
 const ATTEMPTS = [
   { edge: 1, quality: 0.82 },
   { edge: 1, quality: 0.68 },
@@ -43,7 +40,6 @@ function encode(image: HTMLImageElement, edge: number, quality: number) {
   canvas.height = height;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Trình duyệt không xử lý được ảnh.');
-  // White under transparent PNGs, which JPEG would otherwise turn black.
   context.fillStyle = '#fff';
   context.fillRect(0, 0, width, height);
   context.drawImage(image, 0, 0, width, height);
@@ -57,11 +53,6 @@ function encode(image: HTMLImageElement, edge: number, quality: number) {
   });
 }
 
-/**
- * Shrinks a phone photo to a JPEG under `maxBytes` before it is posted, so
- * several fit in one request and the feed loads fast on mobile data. Browsers
- * apply the photo's EXIF rotation when drawing it.
- */
 export async function compressImage(
   file: File,
   maxBytes: number,
@@ -89,7 +80,6 @@ export async function compressImage(
   throw new Error('Ảnh quá lớn, hãy chọn ảnh khác.');
 }
 
-/** A small JPEG for grids and lists: about 480 px on the long edge. */
 export async function makeThumbnail(file: Blob): Promise<string> {
   const image = await loadImage(file);
   const { blob } = await encode(image, 480, 0.72);

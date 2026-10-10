@@ -72,7 +72,6 @@ export default async function FamilyPage({ params }: FamilyPageProps) {
     tree = loaded.tree;
     let platformFeatures: FamilyFeatures;
     [family, platformFeatures] = await Promise.all([getFamily(slug), getPlatformFeatures()]);
-    // Only the clan head prints the gia phả; everyone else sees no print button.
     features = { ...platformFeatures, printBook: platformFeatures.printBook && loaded.isClanHead };
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {

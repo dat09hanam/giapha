@@ -28,10 +28,6 @@ const footerValues = [
   },
 ];
 
-/**
- * The public site's footer: a call to get in touch, the brand, its values and the contact
- * details. Shared by the home page, Mẫu bài cúng and Thư viện.
- */
 export function HomeFooter() {
   return (
     <footer className={styles.footer} id="lien-he">
@@ -150,7 +146,9 @@ export function HomeFooter() {
         </div>
 
         <div className={styles.footerBottom}>
-          <p>© {new Date().getFullYear()} {SITE_BRAND.name}. Giữ gìn cội nguồn. Kết nối muôn đời.</p>
+          <p>
+            © {new Date().getFullYear()} {SITE_BRAND.name}. Giữ gìn cội nguồn. Kết nối muôn đời.
+          </p>
         </div>
       </div>
     </footer>

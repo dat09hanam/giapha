@@ -20,13 +20,10 @@ import { FamilyRoles } from '../common/auth/family-roles.decorator.js';
 import { PlatformAdminGuard } from '../common/auth/platform-admin.guard.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
-// Runtime import is required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { CreateFamilyDto } from './dto/create-family.dto.js';
-// Runtime import is required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { FamilySlugCheckQueryDto } from './dto/family-slug-check.dto.js';
-// Runtime import is required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { UpdateFamilyDto } from './dto/update-family.dto.js';
 import {
@@ -47,7 +44,6 @@ export class FamiliesController {
     return this.families.createFamily(input);
   }
 
-  /** Declared before `:slug`, which reserves `slug-check` (see FamilySlugPipe). */
   @Get('slug-check')
   @UseGuards(SessionAuthGuard, PlatformAdminGuard)
   @Header('Cache-Control', 'no-store')

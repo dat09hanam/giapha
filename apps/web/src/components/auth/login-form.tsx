@@ -19,7 +19,6 @@ export function LoginForm({ initialError = null }: { initialError?: string | nul
   const showToast = useToast();
   const [submitting, setSubmitting] = useState(false);
 
-  // Surfaces the reason a guard bounced the visitor back to the login page.
   useEffect(() => {
     if (initialError) showToast({ kind: 'error', message: initialError });
   }, [initialError, showToast]);
@@ -34,11 +33,7 @@ export function LoginForm({ initialError = null }: { initialError?: string | nul
         username: String(form.get('username') ?? ''),
         password: String(form.get('password') ?? ''),
       });
-      // A page the visitor was sent here from; anything else lands on the account's usual page.
-      const next = safeReturnPath(
-        profile,
-        new URLSearchParams(window.location.search).get('next'),
-      );
+      const next = safeReturnPath(profile, new URLSearchParams(window.location.search).get('next'));
       router.replace(
         profile.mustChangePassword && next
           ? changePasswordHref(next)

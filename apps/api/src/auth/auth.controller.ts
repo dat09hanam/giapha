@@ -24,7 +24,6 @@ import {
   sessionCookie,
 } from '../common/auth/session-token.js';
 import { AuthService, type AuthProfile, type AuthResult } from './auth.service.js';
-// Runtime imports are required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -55,7 +54,6 @@ export class AuthController {
     return this.finishAuthentication(await this.authService.login(input), reply);
   }
 
-  /** Mails a one-time code and names the masked email; `404` when no account matches. */
   @Post('password-reset')
   @UseGuards(AuthThrottleGuard)
   @HttpCode(HttpStatus.OK)
@@ -63,7 +61,6 @@ export class AuthController {
     return this.passwordReset.request(input);
   }
 
-  /** Checks the mailed code before the form asks for a new password; nothing changes yet. */
   @Post('password-reset/verify')
   @UseGuards(AuthThrottleGuard)
   @HttpCode(HttpStatus.NO_CONTENT)

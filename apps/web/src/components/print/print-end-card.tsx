@@ -5,15 +5,10 @@ import type { ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 
-/**
- * Closes the preview, so a reader who has scrolled through every page can print from there
- * instead of scrolling back up to the toolbar.
- */
 export function PrintEndCard({
   summary,
   disabled = false,
 }: {
-  /** What is about to be printed, such as the page count and paper. */
   summary: ReactNode;
   disabled?: boolean;
 }) {

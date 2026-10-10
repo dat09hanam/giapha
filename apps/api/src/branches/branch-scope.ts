@@ -2,18 +2,10 @@ export type ScopePerson = { id: string; fatherId: string | null; motherId: strin
 export type ScopeRelationship = { husbandId: string; wifeId: string };
 
 export type BranchScope = {
-  /** The roots and every descendant through either parent. */
   lineage: Set<string>;
-  /** The lineage plus the spouses married into it: everyone a branch manager may edit. */
   editable: Set<string>;
 };
 
-/**
- * The people a chi/nhánh covers. Spouses are editable but do not extend the branch, so a man who
- * married in does not bring children from another marriage with him.
- *
- * The web designer mirrors this rule in `apps/web/src/lib/branch-scope.ts`; change both together.
- */
 export function computeBranchScope(
   people: readonly ScopePerson[],
   relationships: readonly ScopeRelationship[],

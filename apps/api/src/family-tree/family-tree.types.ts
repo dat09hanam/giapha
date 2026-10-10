@@ -1,6 +1,5 @@
-import type { Gender, MaritalStatus, RelationshipStatus } from "@prisma/client";
+import type { Gender, MaritalStatus, RelationshipStatus } from '@prisma/client';
 
-/** The profile, hometown and worship fields every person response carries. */
 export type PersonProfile = {
   maritalStatus: MaritalStatus | null;
   education: string | null;
@@ -95,7 +94,6 @@ export type SaveFamilyTreeDesignResponse = {
   deletedPersonCount: number;
 };
 
-/** The chi/nhánh roots an account may edit in the designer; the family head has full access. */
 export type FamilyTreeEditScope = {
   fullAccess: boolean;
   rootPersonIds: string[];

@@ -7,14 +7,10 @@ import { REACTION_BY_TYPE, REACTIONS } from '@/components/feed/feed-format';
 import type { FeedReactionSummary, FeedReactionType } from '@/lib/feed-api';
 import { cn } from '@/lib/utils';
 
-/** How long a finger rests on "Thích" before the reaction bar opens. */
 const LONG_PRESS_MS = 450;
-/** How long a mouse hovers on "Thích" before the reaction bar opens. */
 const HOVER_OPEN_MS = 550;
-/** How long the bar waits after the mouse leaves, so a slightly wide path does not close it. */
 const HOVER_CLOSE_MS = 300;
 
-/** The summary as it will be once this device's reaction becomes `next`. */
 export function applyReaction(
   summary: FeedReactionSummary,
   next: FeedReactionType | null,
@@ -39,7 +35,6 @@ export function applyReaction(
   return { counts, total, mine: next, names: names.slice(0, 3) };
 }
 
-/** The emoji of the most chosen reactions, overlapping, as under a Facebook post. */
 export function ReactionIcons({
   summary,
   max = 3,
@@ -66,17 +61,12 @@ export function ReactionIcons({
   );
 }
 
-/** "Bình và 3 người khác" beside the reaction icons. */
 export function reactionNamesText(summary: FeedReactionSummary): string {
   const [first] = summary.names;
   if (!first) return String(summary.total);
   return summary.total > 1 ? `${first} và ${summary.total - 1} người khác` : first;
 }
 
-/**
- * The "Thích" button. A tap likes or takes the reaction back; holding it (or
- * hovering with a mouse) opens the bar of seven reactions.
- */
 export function ReactionButton({
   mine,
   onChange,
@@ -131,7 +121,6 @@ export function ReactionButton({
       className={cn('relative', variant === 'post' ? 'flex flex-1' : 'inline-flex')}
       onMouseEnter={() => {
         if (!matchMedia('(hover: hover)').matches) return;
-        // Back over the button or the bar before it closed: keep it.
         clearHoverTimer();
         if (!pickerOpen) {
           hoverTimer.current = window.setTimeout(() => setPickerOpen(true), HOVER_OPEN_MS);
@@ -146,8 +135,6 @@ export function ReactionButton({
       }}
     >
       {pickerOpen ? (
-        // pb-2 is part of the bar, so the pointer crossing from the button to
-        // the emoji never leaves it and the bar stays open.
         <span
           className={cn(
             'absolute bottom-full z-30 pb-2',
@@ -197,7 +184,6 @@ export function ReactionButton({
         onPointerCancel={clearPress}
         onContextMenu={(event) => event.preventDefault()}
         onClick={() => {
-          // The press that opened the bar is not also a tap.
           if (openedByPress.current) {
             openedByPress.current = false;
             return;

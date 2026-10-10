@@ -42,7 +42,6 @@ const CLOSED_BADGE: Record<
   DISMISSED: { label: 'Đã bỏ qua', className: 'bg-stone-200 text-stone-700', icon: XCircle },
 };
 
-/** Fixed to Vietnam time so the server render and the browser agree. */
 const dateFormat = new Intl.DateTimeFormat('vi-VN', {
   day: '2-digit',
   month: '2-digit',
@@ -52,7 +51,6 @@ const dateFormat = new Intl.DateTimeFormat('vi-VN', {
   timeZone: 'Asia/Ho_Chi_Minh',
 });
 
-/** The designer, opened on this suggestion's person with the suggestion beside the form. */
 function designerHref(familySlug: string, suggestion: EditSuggestion): string {
   const query = new URLSearchParams({ person: suggestion.person.id, suggestion: suggestion.id });
   return `/${encodeURIComponent(familySlug)}/thiet_ke?${query.toString()}`;
@@ -184,11 +182,6 @@ function SuggestionCard({
   );
 }
 
-/**
- * The clan head's inbox of changes members proposed. "Chỉnh sửa thông tin"
- * opens the designer on that person; afterwards the suggestion is marked
- * handled there or here.
- */
 export function EditSuggestionsPanel({
   familySlug,
   initialSuggestions,
@@ -213,7 +206,6 @@ export function EditSuggestionsPanel({
     try {
       const updated = await updateEditSuggestionStatus(familySlug, id, status);
       setSuggestions((current) => current.map((entry) => (entry.id === id ? updated : entry)));
-      // Refreshes the pending count on the tab; this list keeps its own state.
       router.refresh();
     } catch (error: unknown) {
       showToast({ kind: 'error', message: getApiErrorMessage(error, 'cập nhật đề xuất') });

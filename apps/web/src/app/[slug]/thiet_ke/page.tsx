@@ -9,7 +9,6 @@ import type { EditSuggestion } from '@/types/edit-suggestion';
 
 type FamilyDesignerPageProps = {
   params: Promise<{ slug: string }>;
-  /** `person` opens the designer on that member; `suggestion` shows the edit proposed for them. */
   searchParams: Promise<{ person?: string | string[]; suggestion?: string | string[] }>;
 };
 
@@ -37,7 +36,6 @@ export default async function FamilyDesignerPage({
     const [tree, editScope, suggestions] = await Promise.all([
       getFamilyTree(profile.family.slug, profile.sessionToken),
       getTreeEditScope(profile.family.slug, profile.sessionToken),
-      // The suggestion is a reading aid; the designer still opens without it.
       suggestionId && profile.role === 'MEMBER_PLUS'
         ? getEditSuggestions(profile.family.slug, profile.sessionToken).catch(() => null)
         : null,

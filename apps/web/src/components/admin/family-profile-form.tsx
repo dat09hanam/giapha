@@ -43,16 +43,10 @@ function familyToValues(family: FamilyDetails): FamilyProfileValues {
   };
 }
 
-/** The saved introduction, or an older plain-text one turned into paragraphs. */
 function introductionOf(family: FamilyDetails): RichTextDocument {
   return family.introduction ?? plainToRichText(family.description);
 }
 
-/**
- * A one-line address that wraps instead of scrolling sideways, so a long
- * thôn – xã – huyện – tỉnh reads in full. It spans both columns from md and
- * grows with its text; Enter does not add a line break.
- */
 function AddressField({
   id,
   label,
@@ -73,10 +67,8 @@ function AddressField({
       <span className="text-sm font-medium text-brand-950">{label}</span>
       <textarea
         id={id}
-        // Browsers without field-sizing (older iOS, Firefox) show two lines.
         rows={2}
         value={value}
-        // A pasted line break becomes a space; the value stays one line.
         onChange={(event) => onChange(event.currentTarget.value.replace(/\s*\n\s*/g, ' '))}
         onKeyDown={(event) => {
           if (event.key === 'Enter') event.preventDefault();
@@ -97,7 +89,6 @@ export function FamilyProfileForm({ family }: { family: FamilyDetails }) {
   const [submitting, setSubmitting] = useState(false);
   const [introduction, setIntroduction] = useState(() => introductionOf(family));
   const [savedIntroduction, setSavedIntroduction] = useState(() => introductionOf(family));
-  // Remounts the editor with the saved document after a reset or a save.
   const [editorKey, setEditorKey] = useState(0);
   const showToast = useToast();
 

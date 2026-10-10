@@ -37,7 +37,6 @@ import {
 } from '@/lib/feed-api';
 import { cn } from '@/lib/utils';
 
-/** Longer posts fold after this many characters until "Xem thêm". */
 const FOLD_AT = 280;
 
 export function PostCard({
@@ -66,7 +65,6 @@ export function PostCard({
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
-  // Always the latest post, for updates that land after another one.
   const postRef = useRef(post);
   postRef.current = post;
 
@@ -153,7 +151,6 @@ export function PostCard({
       deleteFeedComment(familySlug, comment.id)
         .then(() => {
           const current = postRef.current;
-          // Its replies go with it, on the server and here.
           onChange({
             ...current,
             comments: current.comments.filter(

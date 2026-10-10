@@ -42,11 +42,6 @@ function isSlugConflict(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 }
 
-/**
- * Mẫu bài cúng and Thư viện: platform-wide articles the platform ADMIN writes for the public
- * site. Not family data, so nothing here is scoped to a tenant; visitors only ever see
- * published articles.
- */
 @Injectable()
 export class ArticlesService {
   private readonly directory: string;
@@ -137,7 +132,6 @@ export class ArticlesService {
             ? {}
             : {
                 isPublished: input.isPublished,
-                // The first publication date stays, so re-showing an article keeps its place.
                 ...(input.isPublished && !existing.publishedAt ? { publishedAt: new Date() } : {}),
               }),
         },
@@ -163,7 +157,6 @@ export class ArticlesService {
     if (existing.coverFile) await this.removeCover(existing.coverFile);
   }
 
-  /** A cover image; drafts' covers too, so the ADMIN can preview them. */
   async readCover(id: string): Promise<{ bytes: Buffer; contentType: string }> {
     const record = await this.prisma.article.findUnique({
       where: { id },

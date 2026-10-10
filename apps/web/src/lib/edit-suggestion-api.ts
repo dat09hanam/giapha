@@ -3,7 +3,6 @@ import type { EditSuggestion, SuggestionStatus } from '@/types/edit-suggestion';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
-/** Matches the API's limit on a suggestion's text. */
 export const MAX_SUGGESTION_CONTENT_LENGTH = 2000;
 
 export type CreateEditSuggestionInput = {

@@ -5,17 +5,13 @@ import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 
-/** Side of the square preview the visitor drags the photo inside. */
 const VIEWPORT = 288;
-/** Side of the exported square, comfortably sharp for an avatar. */
 const OUTPUT = 512;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.2;
-/** Fine straightening, in degrees either way, on top of quarter turns. */
 const MAX_TILT = 45;
 
-/** Where the photo's center sits relative to the viewport's center, in viewport pixels. */
 type Pan = { x: number; y: number };
 
 type Source = { image: HTMLImageElement; width: number; height: number };
@@ -24,24 +20,15 @@ function radians(degrees: number): number {
   return (degrees * Math.PI) / 180;
 }
 
-/**
- * How far the viewport reaches from its center along the photo's own axes when
- * the photo is turned by `degrees`: a turned square needs a larger box.
- */
 function viewportReach(degrees: number): number {
   const angle = radians(degrees);
   return (VIEWPORT / 2) * (Math.abs(Math.cos(angle)) + Math.abs(Math.sin(angle)));
 }
 
-/** The photo's scale: at zoom 1 its shorter side just covers the turned viewport. */
 function photoScale(source: Source, degrees: number, zoom: number): number {
   return ((2 * viewportReach(degrees)) / Math.min(source.width, source.height)) * zoom;
 }
 
-/**
- * Keeps the photo covering the whole viewport: the viewport's center, seen in
- * the photo's own (turned) axes, may only move as far as the photo has room.
- */
 function clampPan(pan: Pan, source: Source, degrees: number, zoom: number): Pan {
   const angle = radians(degrees);
   const cos = Math.cos(angle);
@@ -51,7 +38,6 @@ function clampPan(pan: Pan, source: Source, degrees: number, zoom: number): Pan 
   const roomX = Math.max(0, (source.width * scale) / 2 - reach);
   const roomY = Math.max(0, (source.height * scale) / 2 - reach);
 
-  // The viewport center relative to the photo center, turned back into photo axes.
   const localX = -pan.x * cos - pan.y * sin;
   const localY = pan.x * sin - pan.y * cos;
   const clampedX = Math.min(roomX, Math.max(-roomX, localX));
@@ -109,9 +95,6 @@ export function ImageCropper({
   const rotation = quarterTurns * 90 + tilt;
 
   useEffect(() => {
-    // The cleanup revokes the URL, which aborts an in-flight decode and fires
-    // onerror. Without this flag a re-run (React StrictMode) would report the
-    // superseded load as a failure while the new one succeeds.
     let cancelled = false;
     const objectUrl = URL.createObjectURL(file);
     const image = new Image();
@@ -143,7 +126,6 @@ export function ImageCropper({
     const clampedZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
     const ratio = clampedZoom / zoom;
     setZoom(clampedZoom);
-    // Zoom around the middle of the viewport so the framing stays put.
     setPan((current) =>
       clampPan({ x: current.x * ratio, y: current.y * ratio }, source, rotation, clampedZoom),
     );
@@ -156,7 +138,6 @@ export function ImageCropper({
     const clampedTilt = Math.min(MAX_TILT, Math.max(-MAX_TILT, nextTilt));
     setQuarterTurns(turns);
     setTilt(clampedTilt);
-    // Turning about the viewport center: the photo's center swings around it.
     const delta = radians(turns * 90 + clampedTilt - rotation);
     setPan((current) =>
       clampPan(
@@ -217,10 +198,8 @@ export function ImageCropper({
     }
 
     const scale = photoScale(source, rotation, zoom);
-    // JPEG has no transparency, so flatten onto white instead of black.
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, OUTPUT, OUTPUT);
-    // Draw exactly as previewed: viewport center, then pan, turn and scale.
     context.translate(OUTPUT / 2, OUTPUT / 2);
     context.scale(OUTPUT / VIEWPORT, OUTPUT / VIEWPORT);
     context.translate(pan.x, pan.y);
@@ -317,7 +296,6 @@ export function ImageCropper({
             </span>
           )}
           {tilt !== 0 ? (
-            // A grid to line up horizons and shoulders while straightening.
             <span
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.35)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.35)_1px,transparent_1px)] bg-size-[33.333%_33.333%]"

@@ -23,6 +23,7 @@ export default tseslint.config(
     rules: {
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs['core-web-vitals'].rules,
+      'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },
 );

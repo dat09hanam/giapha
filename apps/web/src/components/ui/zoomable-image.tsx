@@ -6,7 +6,6 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { cn } from '@/lib/utils';
 
 const MAX_SCALE = 5;
-/** How far a double tap or the zoom button goes in. */
 const STEP_SCALE = 2.5;
 const SWIPE_DISTANCE = 50;
 const DOUBLE_TAP_MS = 300;
@@ -16,12 +15,6 @@ type Point = { x: number; y: number };
 
 const FITTED: View = { scale: 1, x: 0, y: 0 };
 
-/**
- * A photo that fits its box and can be zoomed: pinch or double tap on touch screens, the wheel
- * or a double click with a mouse, and dragged about while zoomed. At its fitted size a
- * horizontal swipe calls `onSwipe` instead, so a viewer can still page through photos. Give it a
- * fresh `key` per photo so each one opens fitted.
- */
 export function ZoomableImage({
   src,
   alt,
@@ -30,7 +23,6 @@ export function ZoomableImage({
 }: {
   src: string;
   alt: string;
-  /** 1 for a swipe to the next photo (right to left), -1 for the previous one. */
   onSwipe?: (direction: 1 | -1) => void;
   className?: string;
 }) {
@@ -39,22 +31,18 @@ export function ZoomableImage({
   const [view, setView] = useState<View>(FITTED);
   const viewRef = useRef<View>(FITTED);
   const pointers = useRef(new Map<number, Point>());
-  // Where the current gesture started: the view then, and the pointers then.
   const gesture = useRef<{ view: View; mid: Point; distance: number; moved: boolean } | null>(null);
   const lastTap = useRef<{ time: number; point: Point } | null>(null);
   const lastPointerType = useRef('mouse');
-  // Fingers and the mouse are followed directly; only taps and buttons animate.
   const [tracking, setTracking] = useState(false);
   const zoomed = view.scale > 1.01;
 
-  /** A point relative to the middle of the box, where the image's transform is centred. */
   function fromCentre(clientX: number, clientY: number): Point {
     const box = boxRef.current?.getBoundingClientRect();
     if (!box) return { x: 0, y: 0 };
     return { x: clientX - box.left - box.width / 2, y: clientY - box.top - box.height / 2 };
   }
 
-  /** Keeps the zoomed image covering the box, so it cannot be dragged off into empty space. */
   function clamp(next: View): View {
     const box = boxRef.current;
     const image = imageRef.current;
@@ -75,7 +63,6 @@ export function ZoomableImage({
     setView(clamped);
   }
 
-  /** Zooms from `from` to `scale`, keeping the image point under `at` where it is. */
   function zoomAround(from: View, scale: number, at: Point): View {
     const ratio = scale / from.scale;
     return { scale, x: at.x - (at.x - from.x) * ratio, y: at.y - (at.y - from.y) * ratio };
@@ -86,7 +73,6 @@ export function ZoomableImage({
     apply(current.scale > 1.01 ? FITTED : zoomAround(current, STEP_SCALE, at));
   }
 
-  // The wheel needs a non-passive listener to keep the page from scrolling while it zooms.
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
@@ -101,7 +87,6 @@ export function ZoomableImage({
     };
     box.addEventListener('wheel', onWheel, { passive: false });
     return () => box.removeEventListener('wheel', onWheel);
-    // apply/fromCentre read refs only, so the listener added once never goes stale.
   }, []);
 
   function startGesture(): void {
@@ -121,7 +106,6 @@ export function ZoomableImage({
     lastPointerType.current = event.pointerType;
     pointers.current.set(event.pointerId, fromCentre(event.clientX, event.clientY));
     setTracking(true);
-    // Each added finger restarts the gesture from where the view is now.
     startGesture();
   }
 
@@ -133,7 +117,6 @@ export function ZoomableImage({
     if (!a) return;
 
     if (b && start.distance > 0) {
-      // Pinch: scale by how far the fingers spread, around and along with their midpoint.
       const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
       const scale = Math.min(
         MAX_SCALE,
@@ -152,7 +135,6 @@ export function ZoomableImage({
     const dx = a.x - start.mid.x;
     const dy = a.y - start.mid.y;
     if (Math.hypot(dx, dy) > 6) start.moved = true;
-    // One finger or the mouse drags a zoomed photo; a fitted one is left for the swipe.
     if (start.view.scale > 1.01)
       apply({ ...start.view, x: start.view.x + dx, y: start.view.y + dy });
   }
@@ -167,7 +149,6 @@ export function ZoomableImage({
       const dx = point.x - start.mid.x;
       const dy = point.y - start.mid.y;
       if (!start.moved) {
-        // Two taps close together zoom in on that spot, or back out.
         const now = Date.now();
         const previous = lastTap.current;
         if (
@@ -190,7 +171,6 @@ export function ZoomableImage({
         onSwipe(dx < 0 ? 1 : -1);
       }
     }
-    // A finger lifted from a pinch: the one left carries on dragging from here.
     startGesture();
     if (pointers.current.size === 0) setTracking(false);
   }
@@ -208,11 +188,9 @@ export function ZoomableImage({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       onDoubleClick={(event) => {
-        // Touch screens double tap through the pointer handlers; some also send a dblclick.
         if (lastPointerType.current === 'mouse') toggleAt(fromCentre(event.clientX, event.clientY));
       }}
     >
-      {/* Family media is served by the API behind the session cookie, so next/image does not apply. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={imageRef}

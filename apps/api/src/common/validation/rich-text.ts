@@ -1,19 +1,11 @@
 import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 
-/**
- * Formatted text as a small structured document rather than HTML: blocks of styled text runs.
- * Clients render it element by element, so nothing a writer types can become markup or script.
- * The web app keeps the matching types in `src/types/rich-text.ts`.
- */
-
 const MAX_BLOCKS = 400;
 const MAX_LIST_ITEMS = 200;
 const MAX_RUNS_PER_LINE = 200;
 const MAX_RUN_LENGTH = 5000;
-/** All the text of one document, roughly forty printed pages. */
 const MAX_TOTAL_LENGTH = 50_000;
-/** `description`, the plain-text copy, is a 5,000 character column field elsewhere. */
 const MAX_PLAIN_LENGTH = 5000;
 
 const textRunSchema = z
@@ -23,7 +15,6 @@ const textRunSchema = z
     italic: z.literal(true).optional(),
     underline: z.literal(true).optional(),
     strike: z.literal(true).optional(),
-    /** `#rrggbb` only, so it can go straight into a style without escaping. */
     color: z
       .string()
       .regex(/^#[0-9a-fA-F]{6}$/)
@@ -69,7 +60,6 @@ function sameMarks(a: RichTextRun, b: RichTextRun): boolean {
   );
 }
 
-/** Drops empty runs and joins neighbours styled alike, so equal text compares equal. */
 function normalizeLine(line: RichTextRun[]): RichTextRun[] {
   const result: RichTextRun[] = [];
   for (const run of line) {
@@ -93,11 +83,6 @@ function blockLines(block: RichTextBlock): RichTextRun[][] {
   return 'items' in block ? block.items : [block.content];
 }
 
-/**
- * Checks a document a client sent and returns it normalised, or null when it holds no text at
- * all. Anything outside the shape above is refused with `message`; `subject` names the text in
- * the too-long error.
- */
 export function parseRichText(
   value: unknown,
   message: string,
@@ -111,7 +96,6 @@ export function parseRichText(
       ? { ...block, items: block.items.map(normalizeLine) }
       : { ...block, content: normalizeLine(block.content) },
   );
-  // Trailing empty paragraphs are where the cursor sat, not content.
   while (blocks.length > 0 && blockLines(blocks.at(-1)!).every((line) => !lineText(line).trim())) {
     blocks.pop();
   }
@@ -128,13 +112,11 @@ export function parseRichText(
   return { version: 1, blocks };
 }
 
-/** A stored document back out, or null if the column holds something else. */
 export function readRichText(value: unknown): RichTextDocument | null {
   const parsed = documentSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
 }
 
-/** The document's words without formatting: one line per paragraph or list item. */
 export function richTextToPlain(document: RichTextDocument): string {
   const text = document.blocks
     .flatMap((block) =>

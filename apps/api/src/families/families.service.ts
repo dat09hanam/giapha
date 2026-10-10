@@ -37,7 +37,6 @@ import {
   type FamilyLocator,
 } from './family-credentials.js';
 
-/** The phả đồ sheet: the chosen library background (null shows plain paper) carries all decoration. */
 export type FamilyPoster = {
   background: PosterDecorationResponse | null;
   leftText: string | null;
@@ -49,7 +48,6 @@ export type FamilySummary = {
   slug: string;
   name: string;
   description: string | null;
-  /** The formatted introduction; null when the clan head has not written one. */
   introduction: RichTextDocument | null;
   deathAnniversaryDay: number | null;
   deathAnniversaryMonth: number | null;
@@ -58,7 +56,6 @@ export type FamilySummary = {
   poster: FamilyPoster;
 };
 
-/** One email belongs to one account, since Quên mật khẩu finds the account by it. */
 const EMAIL_TAKEN_MESSAGE = 'Email Trưởng họ đã được dùng cho tài khoản khác. Hãy dùng email khác.';
 
 const familySummarySelect = {
@@ -91,12 +88,10 @@ function toFamilySummary(record: FamilySummaryRecord): FamilySummary {
   };
 }
 
-/** The slug a new Family would get; `withOrigin` when its name and anniversary were already taken. */
 export type FamilySlugCheck = { slug: string; available: boolean; withOrigin: boolean };
 
 export type CreatedFamilyResult = {
   family: FamilySummary & { deathAnniversary: string; isDemo: boolean };
-  /** Null for the sample family, which the platform admin edits directly. */
   accounts: {
     memberPlus: { role: 'MEMBER_PLUS'; username: string; password: string };
     member: { role: 'MEMBER'; username: string; password: string };
@@ -144,7 +139,6 @@ export class FamiliesService {
 
     try {
       const family = await this.prisma.$transaction(async (transaction) => {
-        // Only one sample family: the admin edits the existing one instead of adding another.
         if (
           isDemo &&
           (await transaction.family.count({ where: { isDemo: true, deletedAt: null } }))
@@ -163,7 +157,6 @@ export class FamiliesService {
           },
           select: familySummarySelect,
         });
-        // The sample family gets no accounts: the platform admin edits it directly.
         if (isDemo) return created;
         await transaction.user.createMany({
           data: [
@@ -207,7 +200,6 @@ export class FamiliesService {
             },
       };
     } catch (error: unknown) {
-      // Reached only when another request took the same locator between the check and the insert.
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         if (String(error.meta?.target ?? '').includes('email')) {
           throw new ConflictException(EMAIL_TAKEN_MESSAGE);
@@ -220,14 +212,12 @@ export class FamiliesService {
     }
   }
 
-  /** What `createFamily` would choose for these inputs, so the form can flag a clash as it is typed. */
   async checkFamilySlug(input: FamilySlugCheckQueryDto): Promise<FamilySlugCheck> {
     const { candidates, free } = await this.findFreeLocator(
       normalizeFamilyName(input.name),
       parseDeathAnniversary(input.deathAnniversary),
       input.ancestryOrigin?.trim() || null,
     );
-    // Nothing free: report the most specific path tried, which the admin can still change.
     const shown = free ?? candidates[candidates.length - 1]!;
     return { slug: shown.slug, available: free !== null, withOrigin: shown !== candidates[0] };
   }
@@ -246,10 +236,6 @@ export class FamiliesService {
     );
   }
 
-  /**
-   * The first free locator: name and death anniversary, then with the origin appended. Soft-deleted
-   * Families and accounts still hold theirs, so an old link never points at another clan.
-   */
   private async findFreeLocator(
     name: string,
     anniversary: DeathAnniversary,
@@ -286,10 +272,6 @@ export class FamiliesService {
     return { candidates, free: free ?? null };
   }
 
-  /**
-   * The introduction and its plain-text `description`. A formatted introduction wins; a plain
-   * `description` alone (older clients) clears the formatting so the two never disagree.
-   */
   private introductionChange(
     input: UpdateFamilyDto,
   ): Pick<Prisma.FamilyUpdateManyMutationInput, 'introduction' | 'description'> {
@@ -358,7 +340,6 @@ export class FamiliesService {
     );
   }
 
-  /** A new family starts with the first active background. */
   private async defaultPosterDecorations(): Promise<{ posterBackgroundId?: string }> {
     const first = await this.prisma.posterDecoration.findFirst({
       where: { kind: PosterDecorationKind.BACKGROUND, isActive: true },
@@ -368,7 +349,6 @@ export class FamiliesService {
     return first ? { posterBackgroundId: first.id } : {};
   }
 
-  /** The background the family head sent, checked to be an active library background. */
   private async posterBackgroundChange(
     input: UpdateFamilyDto,
   ): Promise<{ posterBackgroundId?: string | null }> {

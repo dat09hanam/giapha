@@ -31,7 +31,6 @@ export function familyNameKey(value: string): string {
   return key;
 }
 
-/** Accent-free kebab-case capped at `maxLength`: "Họ Nguyễn" → "ho-nguyen". */
 function slugPart(value: string, maxLength: number): string {
   return asciiWords(value)
     .join('-')
@@ -40,10 +39,6 @@ function slugPart(value: string, maxLength: number): string {
     .replace(/^-+|-+$/g, '');
 }
 
-/**
- * The most specific place of an origin such as "Thanh Lộc, Can Lộc, Hà Tĩnh" (its first
- * comma-separated part), so a disambiguated path stays short.
- */
 function originPlace(origin: string): string {
   return origin.split(',')[0] ?? '';
 }
@@ -53,11 +48,6 @@ export type FamilyLocator = {
   usernames: { memberPlus: string; member: string };
 };
 
-/**
- * The Family's path and initial usernames, in order of preference: name and death anniversary
- * ("ho-nguyen-15-03"), then with the origin's place appended ("ho-nguyen-15-03-thanh-loc").
- * Each part is capped so the slug stays within its 100-character column.
- */
 export function familyLocatorCandidates(
   familyName: string,
   anniversary: DeathAnniversary,

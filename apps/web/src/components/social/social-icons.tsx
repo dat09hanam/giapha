@@ -1,5 +1,3 @@
-/** Brand marks lucide does not ship; drawn at the icon set's 24px grid. */
-
 type IconProps = { size?: number };
 
 export function FacebookIcon({ size = 18 }: IconProps) {
@@ -26,7 +24,6 @@ export function TiktokIcon({ size = 18 }: IconProps) {
   );
 }
 
-/** The word "Zalo" in a chat bubble, as the app's own mark reads. */
 export function ZaloIcon({ size = 20 }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">

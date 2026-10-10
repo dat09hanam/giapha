@@ -24,7 +24,6 @@ import { FamilyAccessGuard } from '../common/auth/family-access.guard.js';
 import { FamilyRoles } from '../common/auth/family-roles.decorator.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
-// Runtime import is required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import {
   CreateFamilyAccountDto,
@@ -38,7 +37,6 @@ import {
   type FamilyAccountWithPassword,
 } from './family-accounts.service.js';
 
-/** Member accounts and their chi/nhánh assignments, managed by the family head (MEMBER_PLUS). */
 @Controller('families/:slug/accounts')
 @UseGuards(SessionAuthGuard, FamilyAccessGuard)
 @FamilyRoles(UserRole.MEMBER_PLUS)
@@ -53,7 +51,6 @@ export class FamilyAccountsController {
     return this.accounts.list(this.familyId(request));
   }
 
-  /** What the API appends to every username the clan head creates, e.g. `HoPham1503`. */
   @Get('username-suffix')
   async usernameSuffix(
     @Param('slug', FamilySlugPipe) _slug: string,

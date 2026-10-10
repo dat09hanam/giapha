@@ -17,14 +17,9 @@ type PrintTreeViewProps = {
   tree: FamilyTreeResponse;
   family: FamilyDetails;
   familySlug: string;
-  /** The way back and the choice between a book and a single tree sheet. */
   header: ReactNode;
 };
 
-/**
- * The whole phả đồ on a single sheet, drawn as the viewer shows it: the family's decorated
- * background, its name and couplets, every card and line. Nothing else is printed.
- */
 export function PrintTreeView({ tree, family, familySlug, header }: PrintTreeViewProps) {
   const [size, setSize] = useState<PaperSize>('A3');
   const paper = { widthMm: PAPER_SIZES[size].long, heightMm: PAPER_SIZES[size].short };

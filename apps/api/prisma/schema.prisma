@@ -45,7 +45,6 @@ enum RelationshipStatus {
   WIDOWED
 }
 
-/// Only sheet backgrounds remain: each one is the sheet's whole decoration.
 enum PosterDecorationKind {
   BACKGROUND
 }
@@ -53,7 +52,6 @@ enum PosterDecorationKind {
 enum PosterBackgroundMode {
   TILE
   COVER
-  /// Fills the sheet exactly; for full-sheet art that already includes its frame.
   STRETCH
 }
 
@@ -62,7 +60,6 @@ enum FundEntryKind {
   EXPENSE
 }
 
-/// How a merit donation was given: money, or goods such as incense, fruit or a bell.
 enum MeritDonationKind {
   CASH
   ITEM
@@ -92,7 +89,6 @@ enum MediaKind {
 enum MediaStatus {
   ACTIVE
   HIDDEN
-  /// A member's photo waiting for the clan head to approve it into the album.
   PENDING
 }
 
@@ -101,21 +97,15 @@ model Family {
   slug                  String            @unique @db.VarChar(100)
   name                  String            @db.VarChar(191)
   description           String?           @db.Text
-  /// The clan head's formatted introduction (Giới thiệu), as the structured document the API
-  /// validates (see common/validation/rich-text.ts); `description` keeps its plain text.
   introduction          Json?
   status                FamilyStatus      @default(ACTIVE)
   deathAnniversaryDay   Int?              @db.UnsignedTinyInt
   deathAnniversaryMonth Int?              @db.UnsignedTinyInt
   address               String?           @db.VarChar(255)
   ancestryOrigin        String?           @db.VarChar(255)
-  /// Phả đồ background chosen by the family head from the platform library; null shows plain paper.
   posterBackgroundId    String?           @db.Char(36)
-  /// Family-specific couplet text written vertically in the background's left and right text areas.
   posterLeftText        String?           @db.VarChar(191)
   posterRightText       String?           @db.VarChar(191)
-  /// The sample family the public home page shows to visitors (Xem gia phả mẫu). The platform
-  /// admin sets it when creating a family; at most one family carries it at a time.
   isDemo                Boolean           @default(false)
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
@@ -146,15 +136,11 @@ model User {
   username           String              @unique @db.VarChar(191)
   passwordHash       String              @db.VarChar(255)
   displayName        String              @db.VarChar(191)
-  /// Where a forgotten password's one-time code is sent; set for the clan head when the family is
-  /// created. Stored lower-case; one email belongs to one account, so Quên mật khẩu also accepts it.
   email              String?             @unique @db.VarChar(191)
   role               UserRole
   familyId           String?             @db.Char(36)
   status             UserStatus          @default(ACTIVE)
-  /// Set when someone else chose the password; the owner must replace it before using the app.
   mustChangePassword Boolean             @default(false)
-  /// The family's shared member account (password = username); its password is never reset.
   isShared           Boolean             @default(false)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
@@ -169,8 +155,6 @@ model User {
   @@index([deletedAt])
 }
 
-/// A one-time code mailed for a forgotten password. Only its SHA-256 digest is stored; a code
-/// works once, until `expiresAt`, and stops after too many wrong guesses.
 model PasswordResetCode {
   id         String    @id @default(uuid()) @db.Char(36)
   userId     String    @db.Char(36)
@@ -207,9 +191,7 @@ model Person {
   nickname             String?          @db.VarChar(191)
   courtesyName         String?          @db.VarChar(191)
   gender               Gender           @default(UNKNOWN)
-  /// Free text: old ancestors often have only a year ("1850", "khoảng 1850", "03/1920").
   birthDate            String?          @db.VarChar(100)
-  /// Free text, like birthDate.
   deathDate            String?          @db.VarChar(100)
   lunarDeathDay        Int?             @db.UnsignedTinyInt
   lunarDeathMonth      Int?             @db.UnsignedTinyInt
@@ -223,16 +205,12 @@ model Person {
   maritalStatus        MaritalStatus?
   education            String?          @db.VarChar(191)
   occupation           String?          @db.VarChar(191)
-  /// Nguyên quán as free text; administrative units are renamed and merged too often for a list.
   hometown             String?          @db.VarChar(255)
   currentAddress       String?          @db.VarChar(255)
   mapUrl               String?          @db.VarChar(500)
-  /// Hưởng thọ / hưởng dương typed by the family; null means work it out from the dates.
   ageAtDeath           Int?             @db.UnsignedTinyInt
   worshipPlace         String?          @db.VarChar(255)
-  /// The relative who keeps the death anniversary, in the same Family.
   worshipKeeperId      String?          @db.Char(36)
-  /// How the anniversary reads on the view page, e.g. "20 tháng Chạp năm Canh Ngọ".
   deathAnniversaryText String?          @db.VarChar(191)
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
@@ -277,10 +255,6 @@ model Relationship {
   @@index([familyId, wifeId])
 }
 
-/// The family library (Album và tư liệu): a photo in an album, or a document such as a scanned
-/// genealogy, a royal decree or a PDF. Only the clan head adds, edits or removes items; every member
-/// views them. personId names the Person the item is about. Items are deleted outright together with
-/// their files; deletedAt is legacy and always null.
 model Media {
   id           String      @id @default(uuid()) @db.Char(36)
   familyId     String      @db.Char(36)
@@ -288,7 +262,6 @@ model Media {
   albumId      String?     @db.Char(36)
   kind         MediaKind   @default(PHOTO)
   fileUrl      String      @db.VarChar(500)
-  /// A small JPEG for grids and lists; null for PDFs.
   thumbUrl     String?     @db.VarChar(500)
   contentType  String      @default("image/jpeg") @db.VarChar(100)
   sizeBytes    Int         @default(0) @db.UnsignedInt
@@ -296,10 +269,8 @@ model Media {
   height       Int?        @db.UnsignedSmallInt
   title        String?     @db.VarChar(191)
   description  String?     @db.Text
-  /// When the photo was taken or the document dated, if known.
   takenOn      DateTime?   @db.Date
   status       MediaStatus @default(ACTIVE)
-  /// The account that sent it; kept for a member's pending photos so they can see and withdraw them.
   uploadedById String?     @db.Char(36)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -318,14 +289,12 @@ model Media {
   @@index([deletedAt])
 }
 
-/// A photo album in the family library, e.g. "Giỗ tổ 2025". Its cover is its first photo.
 model Album {
   id          String   @id @default(uuid()) @db.Char(36)
   familyId    String   @db.Char(36)
   title       String   @db.VarChar(191)
   description String?  @db.Text
   createdAt   DateTime @default(now())
-  /// Moves when photos are added, so recently filled albums come first.
   updatedAt   DateTime @updatedAt
   family      Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
   media       Media[]
@@ -334,36 +303,24 @@ model Album {
   @@index([familyId, updatedAt])
 }
 
-/// Platform-wide phả đồ decoration library, managed by the platform ADMIN. Not tenant-owned:
-/// every Family chooses from the same library.
 model PosterDecoration {
   id                   String                @id @default(uuid()) @db.Char(36)
   kind                 PosterDecorationKind
   name                 String                @db.VarChar(100)
-  /// Server-generated `<uuid>.<ext>` under the decoration media folder.
   imageFile            String?               @db.VarChar(64)
   isActive             Boolean               @default(true)
   sortOrder            Int                   @default(0)
   backgroundMode       PosterBackgroundMode?
-  /// The area the tree is placed in, set by the ADMIN as percent of the art's height or
-  /// width in from each edge. Null: the tree sits inside the frame band.
   insetTop             Float?
   insetRight           Float?
   insetBottom          Float?
   insetLeft            Float?
-  /// Where the family name is written, as percent in from each edge of the art; all four or
-  /// none. Null writes no name.
   nameInsetTop         Float?
   nameInsetRight       Float?
   nameInsetBottom      Float?
   nameInsetLeft        Float?
-  /// How far the name's middle rises above its ends, in percent of the name area's height;
-  /// negative bends it down.
   nameCurve            Int                   @default(0) @db.TinyInt
-  /// Name color as `#rrggbb`.
   nameColor            String                @default("#ffd83a") @db.VarChar(7)
-  /// Optional vertical-text areas on the left and right of uploaded artwork. Each area is either
-  /// fully configured or absent; colors use `#rrggbb`.
   leftTextInsetTop     Float?
   leftTextInsetRight   Float?
   leftTextInsetBottom  Float?
@@ -381,9 +338,6 @@ model PosterDecoration {
   @@index([kind, isActive, sortOrder])
 }
 
-/// A family member account the family head put in charge of one chi/nhánh: rootPersonId and every
-/// descendant (through either parent) plus their spouses. A root belongs to at most one manager, and the
-/// service keeps one manager's branch from sitting inside another's.
 model BranchManager {
   id           String   @id @default(uuid()) @db.Char(36)
   familyId     String   @db.Char(36)
@@ -398,9 +352,6 @@ model BranchManager {
   @@index([userId])
 }
 
-/// A change to a Person proposed by a family member for the clan head to review. Members share one
-/// account, so the proposer types their own name. The head applies any change in the designer and
-/// then marks the suggestion resolved or dismissed.
 model EditSuggestion {
   id           String           @id @default(uuid()) @db.Char(36)
   familyId     String           @db.Char(36)
@@ -417,9 +368,6 @@ model EditSuggestion {
   @@index([familyId, personId])
 }
 
-/// A post on the family's news feed (Bảng tin). Everyone signs in with the family's shared account,
-/// so the author types a name, and authorKeyHash (SHA-256 of a random key the posting device keeps)
-/// is what lets that device edit or delete the post. The clan head may delete any post.
 model FeedPost {
   id            String         @id @default(uuid()) @db.Char(36)
   familyId      String         @db.Char(36)
@@ -437,7 +385,6 @@ model FeedPost {
   @@index([familyId, createdAt])
 }
 
-/// A photo in a post, stored under the family's media folder like avatars.
 model FeedImage {
   id        String   @id @default(uuid()) @db.Char(36)
   familyId  String   @db.Char(36)
@@ -453,8 +400,6 @@ model FeedImage {
   @@index([familyId, url])
 }
 
-/// A comment on a post, or a reply when parentId names a top-level comment. Replies to replies stay
-/// one level deep, like Facebook, and keep the name they answer in replyToName.
 model FeedComment {
   id            String         @id @default(uuid()) @db.Char(36)
   familyId      String         @db.Char(36)
@@ -477,7 +422,6 @@ model FeedComment {
   @@index([parentId])
 }
 
-/// One device's reaction to a post or a comment (exactly one of postId and commentId is set).
 model FeedReaction {
   id             String           @id @default(uuid()) @db.Char(36)
   familyId       String           @db.Char(36)
@@ -496,16 +440,12 @@ model FeedReaction {
   @@index([familyId])
 }
 
-/// One line of the family fund ledger (Quỹ họ). Only the clan head writes it; every member reads
-/// it. The balance is always computed from the whole ledger, never stored.
 model FundEntry {
   id         String        @id @default(uuid()) @db.Char(36)
   familyId   String        @db.Char(36)
   content    String        @db.VarChar(500)
   kind       FundEntryKind
-  /// Whole đồng, always positive; kind says which way it moved.
   amount     BigInt        @db.UnsignedBigInt
-  /// The day the money moved, as the clan head records it; the ledger is ordered by it.
   occurredOn DateTime      @db.Date
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
@@ -514,14 +454,11 @@ model FundEntry {
   @@index([familyId, occurredOn])
 }
 
-/// An occasion the family collects merit donations for (Công đức), e.g. rebuilding the ancestral
-/// hall or a death anniversary. Only the clan head writes it; every member reads it.
 model MeritEvent {
   id          String          @id @default(uuid()) @db.Char(36)
   familyId    String          @db.Char(36)
   title       String          @db.VarChar(191)
   description String?         @db.VarChar(1000)
-  /// The day the occasion is held; optional, since a collection can run without a fixed day.
   heldOn      DateTime?       @db.Date
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
@@ -532,20 +469,14 @@ model MeritEvent {
   @@index([familyId, createdAt])
 }
 
-/// One person's merit donation to an event. CASH sets amount; ITEM describes the goods in
-/// itemContent. Either may carry a note. A CHECK constraint in the migrations enforces the pairing.
-/// The donor is a typed name, since donors are often in-laws or friends outside the tree.
 model MeritDonation {
   id          String            @id @default(uuid()) @db.Char(36)
   familyId    String            @db.Char(36)
   eventId     String            @db.Char(36)
   donorName   String            @db.VarChar(100)
   kind        MeritDonationKind
-  /// CASH only: whole đồng, positive.
   amount      BigInt?           @db.UnsignedBigInt
-  /// ITEM only: what was given, in the clan head's words, e.g. "1 chuông đồng, 2 mâm ngũ quả".
   itemContent String?           @db.VarChar(500)
-  /// Where the donor is from, their branch, or anything else the clan head notes.
   note        String?           @db.VarChar(500)
   donatedOn   DateTime          @db.Date
   createdAt   DateTime          @default(now())
@@ -556,42 +487,101 @@ model MeritDonation {
   @@index([familyId, eventId, donatedOn])
 }
 
-/// A section of every family's space that the platform admin switches on or off for the whole
-/// platform. A feature without a row is on.
 model PlatformFeature {
   key       String   @id @db.VarChar(50)
   enabled   Boolean  @default(true)
   updatedAt DateTime @updatedAt
 }
 
-/// Which public section of the platform's own site an article belongs to.
 enum ArticleCategory {
-  /// Mẫu bài cúng: offering prayers for anniversaries, festivals and family rites.
   PRAYER
-  /// Thư viện: longer reading about genealogy and family traditions.
   LIBRARY
 }
 
-/// A platform-wide article written by the platform ADMIN for the public site, not family data:
-/// it has no familyId and every visitor may read it once published.
 model Article {
   id          String          @id @default(uuid()) @db.Char(36)
   category    ArticleCategory
-  /// The article's path under its section, e.g. `/mau-bai-cung/{slug}`; unique per section.
   slug        String          @db.VarChar(160)
   title       String          @db.VarChar(200)
-  /// One or two sentences for listing cards and the page's meta description.
   summary     String?         @db.VarChar(500)
-  /// The body as the structured rich-text document the API validates, never HTML.
   content     Json
-  /// Server-generated `<uuid>.<ext>` under the article media folder.
   coverFile   String?         @db.VarChar(64)
   isPublished Boolean         @default(false)
-  /// Set the first time the article is published, and kept when it is later hidden and shown.
   publishedAt DateTime?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
   @@unique([category, slug])
   @@index([category, isPublished, publishedAt])
+}
+
+enum PricingPlanTone {
+  WOOD
+  JADE
+  GOLD
+  LACQUER
+}
+
+enum PricingFeatureStyle {
+  NORMAL
+  BOLD
+  STRIKETHROUGH
+}
+
+model PricingPlan {
+  id            String                @id @default(uuid()) @db.Char(36)
+  name          String                @db.VarChar(60)
+  description   String?               @db.VarChar(200)
+  price         Int                   @default(0)
+  billingPeriod String?               @db.VarChar(20)
+  icon          String                @default("sprout") @db.VarChar(30)
+  tone          PricingPlanTone       @default(WOOD)
+  badge         String?               @db.VarChar(40)
+  isFeatured    Boolean               @default(false)
+  ctaLabel      String                @db.VarChar(40)
+  ctaHref       String                @db.VarChar(255)
+  isActive      Boolean               @default(true)
+  sortOrder     Int                   @default(0)
+  features      PricingPlanFeature[]
+  registrations ServiceRegistration[]
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model PricingPlanFeature {
+  id        String              @id @default(uuid()) @db.Char(36)
+  planId    String              @db.Char(36)
+  plan      PricingPlan         @relation(fields: [planId], references: [id], onDelete: Cascade)
+  text      String              @db.VarChar(160)
+  style     PricingFeatureStyle @default(NORMAL)
+  sortOrder Int                 @default(0)
+
+  @@index([planId, sortOrder])
+}
+
+enum ServiceRegistrationStatus {
+  NEW
+  CONTACTED
+  COMPLETED
+  CANCELLED
+}
+
+model ServiceRegistration {
+  id        String                    @id @default(uuid()) @db.Char(36)
+  planId    String?                   @db.Char(36)
+  plan      PricingPlan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
+  planName  String                    @db.VarChar(60)
+  fullName  String                    @db.VarChar(100)
+  email     String                    @db.VarChar(191)
+  phone     String                    @db.VarChar(30)
+  consentAt DateTime
+  status    ServiceRegistrationStatus @default(NEW)
+  adminNote String?                   @db.VarChar(1000)
+  createdAt DateTime                  @default(now())
+  updatedAt DateTime                  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([planId])
 }

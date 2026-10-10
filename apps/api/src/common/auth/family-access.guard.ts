@@ -42,8 +42,6 @@ export class FamilyAccessGuard implements CanActivate {
       where: { slug, status: FamilyStatus.ACTIVE, deletedAt: null },
       select: { id: true, slug: true, isDemo: true },
     });
-    // The platform admin keeps out of every family's data except the sample family (Gia phả
-    // mẫu), which has no accounts of its own: there the admin stands in for its clan head.
     if (platformAdmin) {
       if (!family?.isDemo) throw new ForbiddenException(ADMIN_REFUSED_MESSAGE);
     } else if (!family || family.id !== request.auth.familyId) {

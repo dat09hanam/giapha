@@ -18,32 +18,26 @@ export const articleSelect = {
 
 export type ArticleRecord = Prisma.ArticleGetPayload<{ select: typeof articleSelect }>;
 
-/** A card in a public listing. */
 export type ArticleSummaryResponse = {
   id: string;
   category: ArticleCategory;
   slug: string;
   title: string;
-  /** The ADMIN's summary, or the start of the article when they left it blank. */
   summary: string;
-  /** API-relative cover path, versioned so caches refresh on change; null without a cover. */
   coverUrl: string | null;
   publishedAt: string | null;
 };
 
-/** A published article as a visitor reads it. */
 export type ArticleResponse = ArticleSummaryResponse & {
   content: RichTextDocument;
   updatedAt: string;
 };
 
-/** Everything the platform ADMIN edits, drafts included. */
 export type AdminArticleResponse = {
   id: string;
   category: ArticleCategory;
   slug: string;
   title: string;
-  /** Exactly what the ADMIN typed; null when left blank. */
   summary: string | null;
   content: RichTextDocument;
   coverUrl: string | null;
@@ -60,7 +54,6 @@ function contentOf(record: ArticleRecord): RichTextDocument {
   return readRichText(record.content) ?? EMPTY_DOCUMENT;
 }
 
-/** The opening prose, skipping headings and lists, which read badly run together. */
 function excerpt(document: RichTextDocument): string {
   const text = document.blocks
     .flatMap((block) =>

@@ -3,7 +3,6 @@ import type { NodeProps } from '@xyflow/react';
 import { PosterSheet } from '@/components/tree/poster-art';
 import type { PosterFrameNode } from '@/lib/tree-layout';
 
-/** The decorated sheet behind the tree; decoration never takes pans or clicks. */
 export function PosterFrame({ data }: NodeProps<PosterFrameNode>) {
   return (
     <div

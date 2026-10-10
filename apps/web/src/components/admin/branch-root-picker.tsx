@@ -23,12 +23,10 @@ import { cn } from '@/lib/utils';
 import type { FamilyTreeResponse, Person } from '@/types/family-tree';
 import { yearOf } from '@/lib/partial-date';
 
-/** Why a card cannot be picked, or null when it can. */
 type Blocked = { kind: 'assigned' | 'inside' | 'contains'; owner: string };
 
 type PickerNodeData = {
   person: Person;
-  /** Already a root of the account being edited. */
   current: boolean;
   blocked: Blocked | null;
   selected: boolean;
@@ -121,11 +119,6 @@ function PickerPersonNode({ data }: NodeProps<PickerFlowNode>) {
 
 const nodeTypes = { pickerPerson: PickerPersonNode } satisfies NodeTypes;
 
-/**
- * Marks who cannot root a new branch: roots already given out, people inside those branches, and
- * their ancestors (and the ancestors' spouses), whose branch would swallow one already given out.
- * Mirrors the overlap rule the API enforces; the API still has the final word.
- */
 function blockedPeople(
   tree: FamilyTreeResponse,
   claimed: readonly ClaimedBranch[],
@@ -185,13 +178,10 @@ function blockedPeople(
   return blocked;
 }
 
-/** The family tree in a dialog; the clan head taps the card of the person who heads the branch. */
 export function BranchRootPicker(props: {
   tree: FamilyTreeResponse;
   accountName: string;
-  /** This account's current roots. */
   currentRootIds: readonly string[];
-  /** Roots of this account's other branches and of every other account. */
   claimed: readonly ClaimedBranch[];
   saving: boolean;
   onConfirm: (personId: string) => void;
@@ -319,8 +309,6 @@ function BranchRootPickerDialog({
               edges={edges}
               nodeTypes={nodeTypes}
               edgeTypes={familyEdgeTypes}
-              // Without a click handler React Flow sets pointer-events: none on every node,
-              // which would swallow taps on the cards.
               onNodeClick={(_, node) => {
                 if (!node.data.current && !node.data.blocked) setSelectedId(node.id);
               }}

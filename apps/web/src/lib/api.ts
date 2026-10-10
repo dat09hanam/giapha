@@ -12,6 +12,7 @@ import type { MeritEventDetail, MeritOverview } from '@/lib/merit-api';
 import type { AdminArticle, Article, ArticleCategory, ArticleSummary } from '@/types/article';
 import type { EditSuggestion } from '@/types/edit-suggestion';
 import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
+import type { PricingPlan, ServiceRegistration } from '@/types/pricing';
 
 const API_URL = (process.env.API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
@@ -61,17 +62,14 @@ export const getFamily = cache((slug: string) =>
   getJson<FamilyDetails>(`/families/${encodeURIComponent(slug)}`, 'tải thông tin dòng họ'),
 );
 
-/** Which family sections the platform admin has switched on, for every family. */
 export const getPlatformFeatures = cache(() =>
   getJson<FamilyFeatures>('/platform-features', 'tải danh sách chức năng'),
 );
 
 export type DemoFamily = { id: string; slug: string; name: string };
 
-/** The public sample family (Gia phả mẫu); 404 until the platform admin marks one. */
 export const getDemoFamily = cache(() => getJson<DemoFamily>('/demo-family', 'tải gia phả mẫu'));
 
-/** The sample family's tree, readable without signing in; phones and photos are left out. */
 export const getDemoFamilyTree = cache(() =>
   getJson<FamilyTreeResponse>('/demo-family/tree', 'tải cây gia phả mẫu'),
 );
@@ -84,7 +82,6 @@ export const getFamilyTree = cache((slug: string, sessionToken?: string) =>
   ),
 );
 
-/** Everything for the clan head; a branch manager gets the roots of their chi/nhánh. */
 export const getTreeEditScope = cache((slug: string, sessionToken: string) =>
   getJson<TreeEditScope>(
     `/families/${encodeURIComponent(slug)}/tree/scope`,
@@ -93,7 +90,6 @@ export const getTreeEditScope = cache((slug: string, sessionToken: string) =>
   ),
 );
 
-/** Member accounts and the chi/nhánh each manages; clan head (MEMBER_PLUS) only. */
 export const getFamilyAccounts = cache((slug: string, sessionToken: string) =>
   getJson<FamilyAccount[]>(
     `/families/${encodeURIComponent(slug)}/accounts`,
@@ -102,7 +98,6 @@ export const getFamilyAccounts = cache((slug: string, sessionToken: string) =>
   ),
 );
 
-/** What the API appends to every username the clan head creates, e.g. `HoPham1503`. */
 export const getFamilyUsernameSuffix = cache((slug: string, sessionToken: string) =>
   getJson<{ suffix: string }>(
     `/families/${encodeURIComponent(slug)}/accounts/username-suffix`,
@@ -115,7 +110,6 @@ export const getAuthProfile = cache((sessionToken: string) =>
   getJson<AuthProfile>('/auth/me', 'tải thông tin tài khoản', sessionToken),
 );
 
-/** Album và tư liệu: albums with covers, and documents; every member may read them. */
 export const getLibrary = cache((slug: string, sessionToken: string) =>
   getJson<LibraryOverview>(
     `/families/${encodeURIComponent(slug)}/library`,
@@ -132,17 +126,14 @@ export const getAlbum = cache((slug: string, albumId: string, sessionToken: stri
   ),
 );
 
-/** Quỹ họ: the ledger with totals; every member may read it. */
 export const getFundLedger = cache((slug: string, sessionToken: string) =>
   getJson<FundLedger>(`/families/${encodeURIComponent(slug)}/fund`, 'tải quỹ họ', sessionToken),
 );
 
-/** The first page of Bảng tin, newest first; read-only, so no device key is sent. */
 export const getFeedFirstPage = cache((slug: string, sessionToken: string) =>
   getJson<FeedPage>(`/families/${encodeURIComponent(slug)}/feed`, 'tải bảng tin', sessionToken),
 );
 
-/** Công đức: the events with their totals; every member may read them. */
 export const getMeritOverview = cache((slug: string, sessionToken: string) =>
   getJson<MeritOverview>(
     `/families/${encodeURIComponent(slug)}/merit`,
@@ -151,7 +142,6 @@ export const getMeritOverview = cache((slug: string, sessionToken: string) =>
   ),
 );
 
-/** One Công đức event with its donors. */
 export const getMeritEvent = cache((slug: string, eventId: string, sessionToken: string) =>
   getJson<MeritEventDetail>(
     `/families/${encodeURIComponent(slug)}/merit/events/${encodeURIComponent(eventId)}`,
@@ -160,7 +150,6 @@ export const getMeritEvent = cache((slug: string, eventId: string, sessionToken:
   ),
 );
 
-/** The family's edit suggestions, newest first; clan head (MEMBER_PLUS) only. */
 export const getEditSuggestions = cache((slug: string, sessionToken: string) =>
   getJson<EditSuggestion[]>(
     `/families/${encodeURIComponent(slug)}/suggestions`,
@@ -169,23 +158,31 @@ export const getEditSuggestions = cache((slug: string, sessionToken: string) =>
   ),
 );
 
-/** Active decorations for family heads; the platform ADMIN also gets hidden ones and usage. */
 export const getPosterDecorations = cache(
   <T extends PosterDecoration = PosterDecoration>(sessionToken: string) =>
     getJson<T[]>('/poster-decorations', 'tải thư viện hình nền', sessionToken),
 );
 
-/** The published articles of Mẫu bài cúng or Thư viện, newest first; readable by anyone. */
 export const getArticles = cache((category: ArticleCategory) =>
   getJson<ArticleSummary[]>(`/articles?category=${category}`, 'tải danh sách bài viết'),
 );
 
-/** One published article; 404 for a draft or an unknown path. */
 export const getArticle = cache((category: ArticleCategory, slug: string) =>
   getJson<Article>(`/articles/${category}/${encodeURIComponent(slug)}`, 'tải bài viết'),
 );
 
-/** Every article, drafts included; platform ADMIN only. */
 export const getAdminArticles = cache((sessionToken: string) =>
   getJson<AdminArticle[]>('/articles/admin', 'tải danh sách bài viết', sessionToken),
+);
+
+export const getPricingPlans = cache(() =>
+  getJson<PricingPlan[]>('/pricing-plans', 'tải bảng giá dịch vụ'),
+);
+
+export const getAdminPricingPlans = cache((sessionToken: string) =>
+  getJson<PricingPlan[]>('/pricing-plans/admin', 'tải danh sách gói dịch vụ', sessionToken),
+);
+
+export const getServiceRegistrations = cache((sessionToken: string) =>
+  getJson<ServiceRegistration[]>('/service-registrations', 'tải danh sách đăng ký', sessionToken),
 );

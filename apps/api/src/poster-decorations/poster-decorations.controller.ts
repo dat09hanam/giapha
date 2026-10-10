@@ -19,7 +19,6 @@ import type { FastifyReply } from 'fastify';
 import type { AuthRequest } from '../common/auth/auth.types.js';
 import { PlatformAdminGuard } from '../common/auth/platform-admin.guard.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
-// Runtime import is required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import {
   CreatePosterDecorationDto,
@@ -37,7 +36,6 @@ export class PosterDecorationsController {
     @Inject(PosterDecorationsService) private readonly decorations: PosterDecorationsService,
   ) {}
 
-  /** Signed-in users see the active library; the platform ADMIN sees everything with usage. */
   @Get()
   @UseGuards(SessionAuthGuard)
   list(
@@ -70,14 +68,11 @@ export class PosterDecorationsController {
     return this.decorations.remove(id);
   }
 
-  /** Decoration art is shared platform artwork, not family data, so it is served publicly. */
   @Get(':id/image')
   async image(@Param('id', ParseUUIDPipe) id: string, @Res() reply: FastifyReply): Promise<void> {
     const { bytes, contentType } = await this.decorations.readImage(id);
     await reply
-      // Helmet defaults to `same-origin`, which would stop the web app's <img>.
       .header('Cross-Origin-Resource-Policy', 'cross-origin')
-      // The URL carries `?v=<updatedAt>`, so a cached copy never goes stale.
       .header('Cache-Control', 'public, max-age=31536000, immutable')
       .type(contentType)
       .send(bytes);

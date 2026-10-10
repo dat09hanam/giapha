@@ -24,15 +24,11 @@ export type PersonNodeData = {
   gender: Gender;
   birthDate: string | null;
   lifespan: string;
-  /** Birth and death years, or null when neither date is known. */
   years: { birth: string; death: string | null } | null;
   generation: number;
-  /** Card size in canvas pixels. */
   width: number;
   height: number;
-  /** Text size relative to the tree's base card; sparse rows read larger. */
   textScale: number;
-  /** Resolved photo URL, or null for the gender placeholder. */
   avatarSrc: string | null;
 };
 
@@ -42,7 +38,6 @@ export type PosterFrameNode = Node<
   {
     width: number;
     height: number;
-    /** Size of the decoration relative to a 1600px-wide tree. */
     scale: number;
     settings: FamilyPoster;
     familyName: string;
@@ -60,31 +55,14 @@ export type FamilyLinkEdgeType = Edge<FamilyLinkData, 'familyLink'>;
 
 export type FamilyEdge = Edge | FamilyLinkEdgeType;
 
-/** Framed 16:9 cards are 288 × 162 at full size; busy trees shrink them. */
 export const VIEWER_NODE_WIDTH = 288;
 const LANDSCAPE_RATIO = 9 / 16;
-/**
- * Đời 1 cards are drawn as a wide scroll, so they keep this flatter shape in
- * every tree and never take the taller crowded shape.
- */
 const FOUNDER_CARD_RATIO = 0.3;
-/** The scroll's roller caps reach this share of its height below the lower red band. */
 const FOUNDER_SCROLL_BOTTOM_GAP = 63 / 480;
-/**
- * The first generations are drawn this many times the size their row would
- * otherwise get, so the founders and their children head the tree. Rows not
- * listed keep their own sizes.
- */
 const ROW_SCALE: Readonly<Record<number, number>> = { 1: 3, 2: 2, 3: 1.4 };
-/**
- * Đời 2 and 3 wear a crest above their frame: 82% of the card's width, from a
- * 635 × 88 image. The gap above those rows always makes room for it, plus this
- * share of the usual row gap for the lines above it.
- */
 const CREST_HEIGHT_RATIO = (0.82 * 88) / 635;
 const CREST_LINE_ROOM = 0.6;
 
-/** How far above the card's bottom edge its frame ends, and so where child lines start. */
 export function cardBottomGap(data: Pick<PersonNodeData, 'generation' | 'height'>): number {
   return data.generation === 1 ? data.height * FOUNDER_SCROLL_BOTTOM_GAP : 0;
 }
@@ -97,44 +75,23 @@ function isChildLink(edge: FamilyEdge): edge is ChildLinkEdge {
   return edge.type === 'familyLink' && (edge.data as FamilyLinkData | undefined)?.kind === 'child';
 }
 
-/** How far the card's crest stands above its top edge. */
 function crestHeight(generation: number, width: number): number {
   return generation === 2 || generation === 3 ? width * CREST_HEIGHT_RATIO : 0;
 }
-/**
- * The tallest a crowded row's card may get relative to its width. Wide trees
- * leave spare height on the 16:9 sheet; taller cards in the crowded rows use
- * it, so their names can wrap onto more lines and read larger.
- */
 const MAX_CARD_RATIO = 1.1;
-/**
- * A row is crowded, and may use taller cards, when it holds at least this
- * share of the busiest row's people. Other rows keep landscape cards.
- */
 const CROWDED_ROW_SHARE = 0.6;
 const MIN_VIEWER_NODE_WIDTH = 160;
-/** Trees up to this size keep full-size cards; larger ones shrink step by step. */
 const FULL_SIZE_MEMBER_LIMIT = 12;
 const SHRINK_PER_MEMBER = 2;
 
-/** A sparse row's cards may grow up to this multiple of the base card. */
 const MAX_ROW_GROWTH = 2;
 
 export type ViewerRow = RowDimensions & {
   nodeHeight: number;
   textScale: number;
-  /** Nearly as busy as the busiest row: its cards may be taller than landscape. */
   crowded: boolean;
 };
 
-/**
- * Busy trees get smaller cards so names stay legible once the whole poster is
- * fitted to the screen. The busiest row keeps the base size and sparser rows
- * grow so their names read larger, but a generation is never larger than the
- * one above it, so cards shrink steadily from the ancestors down instead of
- * jumping in size. Rows keep landscape cards unless they are crowded; crowded
- * rows use `crowdedRatio`.
- */
 type ViewerDimensions = Omit<LayoutDimensions, 'rowForGeneration'> & {
   nodeHeight: number;
   rowForGeneration: (generation: number) => ViewerRow;
@@ -214,10 +171,6 @@ function lifespan(birthDate: string | null, deathDate: string | null): string {
   return `${year(birthDate)} — ${deathDate ? year(deathDate) : 'nay'}`;
 }
 
-/**
- * Marriage lines plus child lines that leave from the middle of each couple's
- * marriage line. Handle ids match the designer and viewer person nodes.
- */
 export function familyEdges(layout: FamilyLayout, style: CSSProperties): FamilyEdge[] {
   const marriageEdges = layout.marriages.map<FamilyEdge>((marriage) => {
     const id = 'spouse-' + marriage.husbandId + '-' + marriage.wifeId;
@@ -263,11 +216,6 @@ export function familyEdges(layout: FamilyLayout, style: CSSProperties): FamilyE
   return [...marriageEdges, ...childEdges];
 }
 
-/**
- * The crowded rows' card shape (height ÷ width) at which the laid-out tree's
- * width ÷ height matches `targetAspect`, between landscape and slightly taller
- * than square. The other rows stay landscape and count as they are.
- */
 function cardRatioFor(
   people: readonly LayoutPerson[],
   positions: ReadonlyMap<string, { x: number; y: number }>,
@@ -299,7 +247,6 @@ function cardRatioFor(
 export function toFlowElements(
   tree: FamilyTreeResponse,
   familySlug: string,
-  /** Width ÷ height of the space the tree is drawn in; shapes the cards to fill it. */
   targetAspect?: number,
 ): {
   nodes: PersonFlowNode[];
@@ -325,8 +272,6 @@ export function toFlowElements(
     ...person,
     generation: generations.get(person.id) ?? 1,
   }));
-  // Card heights do not move anything sideways, so lay out once with the
-  // widths, then pick the card shape that best fills the target space.
   const widthDimensions = viewerDimensions(people);
   const layout = layoutFamily({ people, relationships }, widthDimensions);
   const dimensions = targetAspect
@@ -363,26 +308,17 @@ export function toFlowElements(
 }
 
 const POSTER_RATIO = 16 / 9;
-/** Largest gap between rows at decoration scale 1; it grows with the sheet. */
 const MAX_ROW_SPACING = 420;
-/** Trees wider than this get proportionally larger decoration. */
 const DECORATION_BASE_WIDTH = 1600;
 
 const POSTER_LINK_STYLE: CSSProperties = { stroke: '#7a1c1c', strokeWidth: 2.5 };
 
-/**
- * The tree drawn as a traditional phả đồ on the family's background, inside
- * the tree area the ADMIN marked on it (or inside the frame band). Rows are
- * spread vertically so the tree fills that area.
- */
 export function toPosterElements(
   tree: FamilyTreeResponse,
   family: { name: string; poster: FamilyPoster },
   familySlug: string,
 ): { nodes: PosterFlowNode[]; edges: FamilyEdge[] } {
   const posterTreeArea = backgroundTreeArea(family.poster);
-  // The tree region's own shape on the 16:9 sheet; without a marked area the
-  // frame band leaves roughly the sheet's shape.
   const regionAspect = posterTreeArea
     ? (POSTER_RATIO * (1 - posterTreeArea.left - posterTreeArea.right)) /
       (1 - posterTreeArea.top - posterTreeArea.bottom)
@@ -404,7 +340,6 @@ export function toPosterElements(
   const scale = Math.max(1, treeWidth / DECORATION_BASE_WIDTH);
   const baseSpacing = dimensions.generationGap - dimensions.nodeHeight;
   const treeArea = posterTreeArea;
-  // The least gap above each row: Đời 2 and 3 need room for their crest.
   const crestRoom = rowHeights.map((_, index) => {
     const generation = index + 1;
     const crest = crestHeight(generation, dimensions.rowForGeneration(generation).nodeWidth);
@@ -412,7 +347,6 @@ export function toPosterElements(
   });
   const crestExtra = crestRoom.reduce((total, room) => total + Math.max(0, room - baseSpacing), 0);
 
-  // The smallest 16:9 sheet whose tree region holds the tree at its tightest spacing.
   const { width: frameWidth, height: frameHeight } = fitPosterSheet(
     treeArea,
     scale,
@@ -424,8 +358,6 @@ export function toPosterElements(
   );
   const region = posterTreeRegion(frameWidth, frameHeight, scale, treeArea);
 
-  // Stretch the space between rows (never squeeze it) into the room the ratio left.
-  // The tree starts at the top of its region; spare height goes below it.
   const treeRoom = frameHeight - region.top - region.bottom;
   const neededSpacing =
     generationCount > 1
@@ -449,8 +381,6 @@ export function toPosterElements(
     },
   }));
 
-  // Each child line's bus runs midway through the clear space between the
-  // parents' frames and the child's crest (or card top), whatever the row sizes.
   const generationOf = new Map(people.map((node) => [node.id, node.data.generation]));
   const edgesWithBuses = edgesOnPoster.map((edge) => {
     const generation = generationOf.get(edge.target);
@@ -463,7 +393,6 @@ export function toPosterElements(
       cardBottomGap({ generation: generation - 1, height: parentRow.nodeHeight });
     const gapBottom =
       childTop - crestHeight(generation, dimensions.rowForGeneration(generation).nodeWidth);
-    // Neighbouring sibling groups keep their step apart, around the middle.
     const step = Math.round((edge.data.busOffset - CHILD_BUS_OFFSET) / CHILD_BUS_STEP);
     const stagger = (step === 1 ? 1 : step === 2 ? -1 : 0) * CHILD_BUS_STEP;
     return {
@@ -472,7 +401,6 @@ export function toPosterElements(
     };
   });
 
-  // The tree is centered in its region, which may sit off-center on the background.
   const regionCenter = (region.left + frameWidth - region.right) / 2;
 
   const frame: PosterFrameNode = {

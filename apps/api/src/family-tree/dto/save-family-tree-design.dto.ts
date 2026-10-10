@@ -1,5 +1,5 @@
-import { Type } from "class-transformer";
-import { Gender, MaritalStatus } from "@prisma/client";
+import { Type } from 'class-transformer';
+import { Gender, MaritalStatus } from '@prisma/client';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -16,16 +16,10 @@ import {
   Min,
   MinLength,
   ValidateNested,
-} from "class-validator";
+} from 'class-validator';
 
-import {
-  MAP_URL_MESSAGE,
-  MAP_URL_PATTERN,
-} from "../../common/validation/map-url.js";
-import {
-  AVATAR_URL_MESSAGE,
-  AVATAR_URL_PATTERN,
-} from "../../common/validation/avatar-url.js";
+import { MAP_URL_MESSAGE, MAP_URL_PATTERN } from '../../common/validation/map-url.js';
+import { AVATAR_URL_MESSAGE, AVATAR_URL_PATTERN } from '../../common/validation/avatar-url.js';
 
 export class FamilyTreeDesignPersonDto {
   @IsString()
@@ -211,6 +205,6 @@ export class SaveFamilyTreeDesignDto {
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(500)
-  @IsUUID("4", { each: true })
+  @IsUUID('4', { each: true })
   deletedPersonIds?: string[];
 }

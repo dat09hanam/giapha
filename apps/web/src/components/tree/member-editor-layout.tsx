@@ -9,11 +9,9 @@ export type EditorTab<T extends string> = {
   value: T;
   label: string;
   icon: ReactNode;
-  /** A count after the label, e.g. how many relatives; hidden when zero. */
   count?: number;
 };
 
-/** The member editor's tab row: underlined, every tab one equal column. */
 export function EditorTabs<T extends string>({
   tabs,
   value,
@@ -72,20 +70,15 @@ export function EditorTabs<T extends string>({
   );
 }
 
-/**
- * One numbered card of the member editor ("1 · Ảnh & vai vế"). Collapsible
- * cards fold away with the chevron in their header.
- */
 export function EditorSection({
   number,
   title,
   badge,
-  collapsible = false,
+  collapsible = true,
   children,
 }: {
   number?: number;
   title: string;
-  /** Something small on the right of the header, e.g. a count or a hint. */
   badge?: ReactNode;
   collapsible?: boolean;
   children: ReactNode;
@@ -103,7 +96,7 @@ export function EditorSection({
 
   return (
     <section className="overflow-hidden rounded-2xl border border-gold-500/25 bg-white/80 shadow-sm">
-      <h3 className="border-b border-gold-500/20">
+      <h3 className={cn(open && 'border-b border-gold-500/20')}>
         {collapsible ? (
           <button
             type="button"
@@ -135,7 +128,6 @@ export function EditorSection({
   );
 }
 
-/** A short grey line under a field. */
 export function FieldHint({ children }: { children: ReactNode }) {
   return <p className="-mt-2.5 text-xs leading-5 text-stone-500">{children}</p>;
 }

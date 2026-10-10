@@ -5,7 +5,6 @@ import { RichTextView } from '@/components/rich-text/rich-text-view';
 import { plainToRichText, richTextIsEmpty } from '@/lib/rich-text';
 import type { FamilyDetails } from '@/types/family-tree';
 
-/** Where the home page's links to the introduction land. */
 export const FAMILY_ABOUT_ANCHOR = 'gioi-thieu';
 
 function anniversaryOf(family: FamilyDetails): string | null {
@@ -29,10 +28,6 @@ function Fact({ icon, label, value }: { icon: ReactNode; label: string; value: s
   );
 }
 
-/**
- * The family's public facts and the introduction written by the clan head, as a section of
- * its home page.
- */
 export function FamilyAbout({ family }: { family: FamilyDetails }) {
   const introduction = family.introduction ?? plainToRichText(family.description);
   const anniversary = anniversaryOf(family);

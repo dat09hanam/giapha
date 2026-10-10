@@ -4,30 +4,22 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-} from "@nestjs/common";
-import {
-  FamilyStatus,
-  Prisma,
-  RelationshipStatus,
-  UserRole,
-} from "@prisma/client";
-import type { MaritalStatus } from "@prisma/client";
+} from '@nestjs/common';
+import { FamilyStatus, Prisma, RelationshipStatus, UserRole } from '@prisma/client';
+import type { MaritalStatus } from '@prisma/client';
 
-import {
-  computeBranchScope,
-  type BranchScope,
-} from "../branches/branch-scope.js";
-import type { FamilyAccess } from "../common/auth/auth.types.js";
-import { PrismaService } from "../database/prisma.service.js";
-import type { CreatePersonDto } from "./dto/create-person.dto.js";
-import type { SaveFamilyTreeDesignDto } from "./dto/save-family-tree-design.dto.js";
-import type { UpdatePersonDto } from "./dto/update-person.dto.js";
+import { computeBranchScope, type BranchScope } from '../branches/branch-scope.js';
+import type { FamilyAccess } from '../common/auth/auth.types.js';
+import { PrismaService } from '../database/prisma.service.js';
+import type { CreatePersonDto } from './dto/create-person.dto.js';
+import type { SaveFamilyTreeDesignDto } from './dto/save-family-tree-design.dto.js';
+import type { UpdatePersonDto } from './dto/update-person.dto.js';
 import type {
   FamilyTreeEditScope,
   FamilyTreeResponse,
   PersonResponse,
   SaveFamilyTreeDesignResponse,
-} from "./family-tree.types.js";
+} from './family-tree.types.js';
 
 const managedPersonSelect = {
   id: true,
@@ -70,13 +62,9 @@ function mapManagedPerson(person: ManagedPersonRecord): PersonResponse {
   return { ...person };
 }
 
-/**
- * The year in a free-text birth or death date ("938", "khoảng 1850",
- * "15/03/1920"), if it has one; mirrors yearOf in the web's lib/partial-date.
- */
 function yearOf(value: string | null | undefined): number | null {
   if (!value) return null;
-  const text = value.trim().replace(/^khoảng\s+/i, "");
+  const text = value.trim().replace(/^khoảng\s+/i, '');
   const iso = /^(\d{4})-\d{2}-\d{2}/.exec(text);
   const dated = /^(?:\d{1,2}[/.-]){1,2}(\d{1,4})$/.exec(text);
   const year =
@@ -86,21 +74,19 @@ function yearOf(value: string | null | undefined): number | null {
   return year && Number(year) > 0 ? Number(year) : null;
 }
 
-function nullableText(
-  value: string | null | undefined,
-): string | null | undefined {
+function nullableText(value: string | null | undefined): string | null | undefined {
   if (value === undefined) return undefined;
   return value?.trim() || null;
 }
 
 const PROFILE_TEXT_FIELDS = [
-  "education",
-  "occupation",
-  "hometown",
-  "currentAddress",
-  "mapUrl",
-  "worshipPlace",
-  "deathAnniversaryText",
+  'education',
+  'occupation',
+  'hometown',
+  'currentAddress',
+  'mapUrl',
+  'worshipPlace',
+  'deathAnniversaryText',
 ] as const;
 
 type ProfileTextField = (typeof PROFILE_TEXT_FIELDS)[number];
@@ -110,10 +96,6 @@ type ProfileFields = Partial<Record<ProfileTextField, string | null>> & {
   ageAtDeath?: number | null;
 };
 
-/**
- * The profile, hometown and worship fields to write: all of them, or with
- * `onlyGiven` just the ones the input carries (a partial update).
- */
 function profileData(input: ProfileFields, onlyGiven = false): ProfileFields {
   const data: ProfileFields = {};
   for (const field of PROFILE_TEXT_FIELDS) {
@@ -135,26 +117,18 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
 
   for (const person of input.people) {
     if (!person.name.trim()) {
-      throw new BadRequestException(
-        "Họ và tên thành viên không được để trống.",
-      );
+      throw new BadRequestException('Họ và tên thành viên không được để trống.');
     }
     if (peopleByClientId.has(person.clientId)) {
-      throw new BadRequestException(
-        "Bản thiết kế chứa mã thành viên bị trùng.",
-      );
+      throw new BadRequestException('Bản thiết kế chứa mã thành viên bị trùng.');
     }
     if (person.databaseId && databaseIds.has(person.databaseId)) {
-      throw new BadRequestException(
-        "Bản thiết kế tham chiếu trùng một thành viên đã lưu.",
-      );
+      throw new BadRequestException('Bản thiết kế tham chiếu trùng một thành viên đã lưu.');
     }
     const bornIn = yearOf(person.birthDate);
     const diedIn = yearOf(person.deathDate);
     if (bornIn !== null && diedIn !== null && diedIn < bornIn) {
-      throw new BadRequestException(
-        "Năm mất của thành viên không được trước năm sinh.",
-      );
+      throw new BadRequestException('Năm mất của thành viên không được trước năm sinh.');
     }
     peopleByClientId.set(person.clientId, person);
     if (person.databaseId) databaseIds.add(person.databaseId);
@@ -163,26 +137,19 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
   const deletedIds = new Set(input.deletedPersonIds ?? []);
   for (const databaseId of databaseIds) {
     if (deletedIds.has(databaseId)) {
-      throw new BadRequestException(
-        "Một thành viên không thể vừa được lưu vừa được đánh dấu xóa.",
-      );
+      throw new BadRequestException('Một thành viên không thể vừa được lưu vừa được đánh dấu xóa.');
     }
   }
 
   for (const person of input.people) {
-    for (const parentClientId of [
-      person.fatherClientId,
-      person.motherClientId,
-    ]) {
+    for (const parentClientId of [person.fatherClientId, person.motherClientId]) {
       if (parentClientId && !peopleByClientId.has(parentClientId)) {
         throw new BadRequestException(
-          "Cha hoặc mẹ trong bản thiết kế không thuộc danh sách thành viên được lưu.",
+          'Cha hoặc mẹ trong bản thiết kế không thuộc danh sách thành viên được lưu.',
         );
       }
       if (parentClientId && parentClientId === person.clientId) {
-        throw new BadRequestException(
-          "Một thành viên không thể là cha hoặc mẹ của chính mình.",
-        );
+        throw new BadRequestException('Một thành viên không thể là cha hoặc mẹ của chính mình.');
       }
     }
     if (
@@ -190,28 +157,18 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
       person.motherClientId &&
       person.fatherClientId === person.motherClientId
     ) {
-      throw new BadRequestException(
-        "Cha và mẹ phải là hai thành viên khác nhau.",
-      );
+      throw new BadRequestException('Cha và mẹ phải là hai thành viên khác nhau.');
     }
-    if (
-      person.fatherClientId &&
-      peopleByClientId.get(person.fatherClientId)?.gender !== "MALE"
-    ) {
-      throw new BadRequestException("Người cha phải có giới tính nam.");
+    if (person.fatherClientId && peopleByClientId.get(person.fatherClientId)?.gender !== 'MALE') {
+      throw new BadRequestException('Người cha phải có giới tính nam.');
     }
-    if (
-      person.motherClientId &&
-      peopleByClientId.get(person.motherClientId)?.gender !== "FEMALE"
-    ) {
-      throw new BadRequestException("Người mẹ phải có giới tính nữ.");
+    if (person.motherClientId && peopleByClientId.get(person.motherClientId)?.gender !== 'FEMALE') {
+      throw new BadRequestException('Người mẹ phải có giới tính nữ.');
     }
   }
 
-  // Full siblings may not share a name; people without parents in the tree
-  // (such as in-laws) and a husband and wife may.
   const coupleKey = (leftId: string, rightId: string): string =>
-    leftId < rightId ? leftId + "|" + rightId : rightId + "|" + leftId;
+    leftId < rightId ? leftId + '|' + rightId : rightId + '|' + leftId;
   const couples = new Set(
     input.relationships.map((relationship) =>
       coupleKey(relationship.husbandClientId, relationship.wifeClientId),
@@ -221,19 +178,13 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
   for (const person of input.people) {
     if (!person.fatherClientId && !person.motherClientId) continue;
     const key = [
-      person.name.trim().replace(/\s+/g, " ").toLocaleLowerCase("vi"),
-      person.fatherClientId ?? "",
-      person.motherClientId ?? "",
-    ].join("|");
+      person.name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('vi'),
+      person.fatherClientId ?? '',
+      person.motherClientId ?? '',
+    ].join('|');
     const namesakes = namesakesByKey.get(key) ?? [];
-    if (
-      namesakes.some(
-        (otherId) => !couples.has(coupleKey(otherId, person.clientId)),
-      )
-    ) {
-      throw new BadRequestException(
-        "Bản thiết kế có hai anh chị em ruột trùng họ tên.",
-      );
+    if (namesakes.some((otherId) => !couples.has(coupleKey(otherId, person.clientId)))) {
+      throw new BadRequestException('Bản thiết kế có hai anh chị em ruột trùng họ tên.');
     }
     namesakesByKey.set(key, [...namesakes, person.clientId]);
   }
@@ -245,62 +196,50 @@ function validateDesignInput(input: SaveFamilyTreeDesignDto): void {
       !peopleByClientId.has(relationship.wifeClientId)
     ) {
       throw new BadRequestException(
-        "Quan hệ vợ chồng phải tham chiếu thành viên trong cùng bản thiết kế.",
+        'Quan hệ vợ chồng phải tham chiếu thành viên trong cùng bản thiết kế.',
       );
     }
     if (relationship.husbandClientId === relationship.wifeClientId) {
-      throw new BadRequestException(
-        "Một thành viên không thể kết hôn với chính mình.",
-      );
+      throw new BadRequestException('Một thành viên không thể kết hôn với chính mình.');
     }
     if (
-      peopleByClientId.get(relationship.husbandClientId)?.gender !== "MALE" ||
-      peopleByClientId.get(relationship.wifeClientId)?.gender !== "FEMALE"
+      peopleByClientId.get(relationship.husbandClientId)?.gender !== 'MALE' ||
+      peopleByClientId.get(relationship.wifeClientId)?.gender !== 'FEMALE'
     ) {
       throw new BadRequestException(
-        "Quan hệ vợ chồng yêu cầu người chồng là nam và người vợ là nữ.",
+        'Quan hệ vợ chồng yêu cầu người chồng là nam và người vợ là nữ.',
       );
     }
-    const key = [relationship.husbandClientId, relationship.wifeClientId]
-      .sort()
-      .join(":");
+    const key = [relationship.husbandClientId, relationship.wifeClientId].sort().join(':');
     if (relationshipKeys.has(key)) {
-      throw new BadRequestException(
-        "Bản thiết kế chứa quan hệ vợ chồng bị trùng.",
-      );
+      throw new BadRequestException('Bản thiết kế chứa quan hệ vợ chồng bị trùng.');
     }
     relationshipKeys.add(key);
   }
 
-  const visitState = new Map<string, "visiting" | "visited">();
+  const visitState = new Map<string, 'visiting' | 'visited'>();
   function visit(clientId: string): void {
     const state = visitState.get(clientId);
-    if (state === "visiting") {
-      throw new BadRequestException(
-        "Quan hệ cha mẹ trong bản thiết kế tạo thành vòng lặp.",
-      );
+    if (state === 'visiting') {
+      throw new BadRequestException('Quan hệ cha mẹ trong bản thiết kế tạo thành vòng lặp.');
     }
-    if (state === "visited") return;
+    if (state === 'visited') return;
 
-    visitState.set(clientId, "visiting");
+    visitState.set(clientId, 'visiting');
     const person = peopleByClientId.get(clientId);
-    for (const parentClientId of [
-      person?.fatherClientId,
-      person?.motherClientId,
-    ]) {
+    for (const parentClientId of [person?.fatherClientId, person?.motherClientId]) {
       if (parentClientId) visit(parentClientId);
     }
-    visitState.set(clientId, "visited");
+    visitState.set(clientId, 'visited');
   }
 
   for (const clientId of peopleByClientId.keys()) visit(clientId);
 }
 
-/** What a chi/nhánh manager may touch, taken before the save changes anything. */
 type BranchRestriction = { rootIds: Set<string>; before: BranchScope };
 
 const OUTSIDE_BRANCH_MESSAGE =
-  "Bạn chỉ được chỉnh sửa thành viên thuộc chi/nhánh được giao quản lý.";
+  'Bạn chỉ được chỉnh sửa thành viên thuộc chi/nhánh được giao quản lý.';
 
 async function loadBranchScope(
   transaction: Prisma.TransactionClient,
@@ -337,18 +276,12 @@ export class FamilyTreeService {
       },
     });
     if (!family)
-      throw new NotFoundException(
-        "Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.",
-      );
+      throw new NotFoundException('Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.');
 
     const [people, relationships] = await Promise.all([
       this.prisma.person.findMany({
         where: { familyId },
-        orderBy: [
-          { generation: "asc" },
-          { orderInFamily: "asc" },
-          { name: "asc" },
-        ],
+        orderBy: [{ generation: 'asc' }, { orderInFamily: 'asc' }, { name: 'asc' }],
         select: {
           id: true,
           name: true,
@@ -383,11 +316,7 @@ export class FamilyTreeService {
       }),
       this.prisma.relationship.findMany({
         where: { familyId },
-        orderBy: [
-          { husbandId: "asc" },
-          { wifeOrder: "asc" },
-          { createdAt: "asc" },
-        ],
+        orderBy: [{ husbandId: 'asc' }, { wifeOrder: 'asc' }, { createdAt: 'asc' }],
         select: {
           id: true,
           husbandId: true,
@@ -405,7 +334,6 @@ export class FamilyTreeService {
     };
   }
 
-  /** The chi/nhánh roots this account manages; empty for the family head, who edits everything. */
   async getEditScope(access: FamilyAccess): Promise<FamilyTreeEditScope> {
     if (access.role === UserRole.MEMBER_PLUS) {
       return { fullAccess: true, rootPersonIds: [] };
@@ -420,12 +348,6 @@ export class FamilyTreeService {
     };
   }
 
-  /**
-   * The family head saves the whole design. A branch manager's save is held to their branch:
-   * changes to anyone outside it are dropped, a branch root and spouses who married in keep their
-   * parents, and the save is refused if it deletes outside the branch or leaves someone added or
-   * edited outside it.
-   */
   async saveDesign(
     access: FamilyAccess,
     input: SaveFamilyTreeDesignDto,
@@ -440,30 +362,21 @@ export class FamilyTreeService {
           select: { id: true },
         });
         if (!family) {
-          throw new NotFoundException(
-            "Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.",
-          );
+          throw new NotFoundException('Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.');
         }
 
-        const restriction = await this.loadBranchRestriction(
-          transaction,
-          access,
-        );
+        const restriction = await this.loadBranchRestriction(transaction, access);
         const mayEdit = (databaseId: string): boolean =>
           !restriction || restriction.before.editable.has(databaseId);
-        /** Roots and spouses who married in stay attached to the people above them. */
         const mayMove = (databaseId: string): boolean =>
           !restriction ||
-          (restriction.before.lineage.has(databaseId) &&
-            !restriction.rootIds.has(databaseId));
+          (restriction.before.lineage.has(databaseId) && !restriction.rootIds.has(databaseId));
         if (
           restriction &&
-          (input.deletedPersonIds ?? []).some(
-            (id) => !mayEdit(id) || restriction.rootIds.has(id),
-          )
+          (input.deletedPersonIds ?? []).some((id) => !mayEdit(id) || restriction.rootIds.has(id))
         ) {
           throw new ForbiddenException(
-            "Bạn chỉ được xóa thành viên trong chi/nhánh được giao, không gồm người đứng đầu chi.",
+            'Bạn chỉ được xóa thành viên trong chi/nhánh được giao, không gồm người đứng đầu chi.',
           );
         }
 
@@ -471,9 +384,7 @@ export class FamilyTreeService {
           .map((person) => person.databaseId)
           .filter((id): id is string => Boolean(id));
         const deletedPersonIds = input.deletedPersonIds ?? [];
-        const referencedDatabaseIds = [
-          ...new Set([...currentDatabaseIds, ...deletedPersonIds]),
-        ];
+        const referencedDatabaseIds = [...new Set([...currentDatabaseIds, ...deletedPersonIds])];
 
         if (referencedDatabaseIds.length > 0) {
           const existingPeople = await transaction.person.findMany({
@@ -482,7 +393,7 @@ export class FamilyTreeService {
           });
           if (existingPeople.length !== referencedDatabaseIds.length) {
             throw new BadRequestException(
-              "Bản thiết kế tham chiếu thành viên không thuộc dòng họ hoặc đã bị xóa.",
+              'Bản thiết kế tham chiếu thành viên không thuộc dòng họ hoặc đã bị xóa.',
             );
           }
         }
@@ -518,9 +429,7 @@ export class FamilyTreeService {
               data,
             });
             if (updated.count !== 1) {
-              throw new NotFoundException(
-                "Không tìm thấy thành viên trong dòng họ này.",
-              );
+              throw new NotFoundException('Không tìm thấy thành viên trong dòng họ này.');
             }
             databaseIdByClientId.set(person.clientId, person.databaseId);
           } else {
@@ -541,9 +450,7 @@ export class FamilyTreeService {
         for (const person of input.people) {
           const databaseId = databaseIdByClientId.get(person.clientId);
           if (!databaseId) {
-            throw new BadRequestException(
-              "Không thể ánh xạ thành viên trong bản thiết kế.",
-            );
+            throw new BadRequestException('Không thể ánh xạ thành viên trong bản thiết kế.');
           }
           const fatherId = person.fatherClientId
             ? databaseIdByClientId.get(person.fatherClientId)
@@ -552,14 +459,10 @@ export class FamilyTreeService {
             ? databaseIdByClientId.get(person.motherClientId)
             : null;
           if (person.fatherClientId && !fatherId) {
-            throw new BadRequestException(
-              "Không thể ánh xạ người cha trong bản thiết kế.",
-            );
+            throw new BadRequestException('Không thể ánh xạ người cha trong bản thiết kế.');
           }
           if (person.motherClientId && !motherId) {
-            throw new BadRequestException(
-              "Không thể ánh xạ người mẹ trong bản thiết kế.",
-            );
+            throw new BadRequestException('Không thể ánh xạ người mẹ trong bản thiết kế.');
           }
 
           const worshipKeeperId = person.worshipKeeperClientId
@@ -567,7 +470,7 @@ export class FamilyTreeService {
             : null;
           if (person.worshipKeeperClientId && !worshipKeeperId) {
             throw new BadRequestException(
-              "Không thể ánh xạ người phụ trách cúng giỗ trong bản thiết kế.",
+              'Không thể ánh xạ người phụ trách cúng giỗ trong bản thiết kế.',
             );
           }
           if (!person.databaseId || mayEdit(person.databaseId)) {
@@ -586,42 +489,27 @@ export class FamilyTreeService {
 
         let deletedPersonCount = 0;
         if (deletedPersonIds.length > 0) {
-          await this.detachPersonReferences(
-            transaction,
-            familyId,
-            deletedPersonIds,
-          );
+          await this.detachPersonReferences(transaction, familyId, deletedPersonIds);
           const deleted = await transaction.person.deleteMany({
             where: { familyId, id: { in: deletedPersonIds } },
           });
           deletedPersonCount = deleted.count;
         }
 
-        /** Marriages are rewritten only where at least one partner is someone this save may edit. */
-        const touchesEditable = (id: string): boolean =>
-          createdIds.has(id) || mayEdit(id);
-        const savedDatabaseIds = [...databaseIdByClientId.values()].filter(
-          touchesEditable,
-        );
+        const touchesEditable = (id: string): boolean => createdIds.has(id) || mayEdit(id);
+        const savedDatabaseIds = [...databaseIdByClientId.values()].filter(touchesEditable);
         await transaction.relationship.deleteMany({
           where: {
             familyId,
-            OR: [
-              { husbandId: { in: savedDatabaseIds } },
-              { wifeId: { in: savedDatabaseIds } },
-            ],
+            OR: [{ husbandId: { in: savedDatabaseIds } }, { wifeId: { in: savedDatabaseIds } }],
           },
         });
 
         for (const relationship of input.relationships) {
-          const husbandId = databaseIdByClientId.get(
-            relationship.husbandClientId,
-          );
+          const husbandId = databaseIdByClientId.get(relationship.husbandClientId);
           const wifeId = databaseIdByClientId.get(relationship.wifeClientId);
           if (!husbandId || !wifeId) {
-            throw new BadRequestException(
-              "Không thể ánh xạ quan hệ vợ chồng trong bản thiết kế.",
-            );
+            throw new BadRequestException('Không thể ánh xạ quan hệ vợ chồng trong bản thiết kế.');
           }
           if (!touchesEditable(husbandId) && !touchesEditable(wifeId)) continue;
 
@@ -644,22 +532,15 @@ export class FamilyTreeService {
         }
 
         if (restriction) {
-          // Everyone added, and everyone who was in the branch, must still be in it afterwards.
-          const after = await loadBranchScope(
-            transaction,
-            familyId,
-            restriction.rootIds,
-          );
+          const after = await loadBranchScope(transaction, familyId, restriction.rootIds);
           const deletedIds = new Set(deletedPersonIds);
           const strayed = [
             ...createdIds,
-            ...[...restriction.before.editable].filter(
-              (id) => !deletedIds.has(id),
-            ),
+            ...[...restriction.before.editable].filter((id) => !deletedIds.has(id)),
           ].some((id) => !after.editable.has(id));
           if (strayed) {
             throw new ForbiddenException(
-              "Thay đổi này đưa thành viên ra ngoài chi/nhánh bạn quản lý. Thành viên mới phải là con cháu hoặc vợ/chồng của người trong chi.",
+              'Thay đổi này đưa thành viên ra ngoài chi/nhánh bạn quản lý. Thành viên mới phải là con cháu hoặc vợ/chồng của người trong chi.',
             );
           }
         }
@@ -677,10 +558,7 @@ export class FamilyTreeService {
     );
   }
 
-  async createPerson(
-    familyId: string,
-    input: CreatePersonDto,
-  ): Promise<PersonResponse> {
+  async createPerson(familyId: string, input: CreatePersonDto): Promise<PersonResponse> {
     return this.prisma.$transaction(
       async (transaction) => {
         const family = await transaction.family.findFirst({
@@ -688,24 +566,12 @@ export class FamilyTreeService {
           select: { id: true },
         });
         if (!family)
-          throw new NotFoundException(
-            "Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.",
-          );
+          throw new NotFoundException('Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.');
         const fatherId = input.fatherId ?? null;
         const motherId = input.motherId ?? null;
-        await this.validateParents(
-          transaction,
-          familyId,
-          null,
-          fatherId,
-          motherId,
-        );
+        await this.validateParents(transaction, familyId, null, fatherId, motherId);
         const worshipKeeperId = input.worshipKeeperId ?? null;
-        await this.validateWorshipKeeper(
-          transaction,
-          familyId,
-          worshipKeeperId,
-        );
+        await this.validateWorshipKeeper(transaction, familyId, worshipKeeperId);
 
         const person = await transaction.person.create({
           data: {
@@ -750,52 +616,27 @@ export class FamilyTreeService {
           where: { id: personId, familyId },
           select: { id: true, fatherId: true, motherId: true },
         });
-        if (!existing)
-          throw new NotFoundException(
-            "Không tìm thấy thành viên trong dòng họ này.",
-          );
-        const fatherId =
-          input.fatherId === undefined ? existing.fatherId : input.fatherId;
-        const motherId =
-          input.motherId === undefined ? existing.motherId : input.motherId;
-        await this.validateParents(
-          transaction,
-          familyId,
-          personId,
-          fatherId,
-          motherId,
-        );
+        if (!existing) throw new NotFoundException('Không tìm thấy thành viên trong dòng họ này.');
+        const fatherId = input.fatherId === undefined ? existing.fatherId : input.fatherId;
+        const motherId = input.motherId === undefined ? existing.motherId : input.motherId;
+        await this.validateParents(transaction, familyId, personId, fatherId, motherId);
         if (input.worshipKeeperId) {
-          await this.validateWorshipKeeper(
-            transaction,
-            familyId,
-            input.worshipKeeperId,
-          );
+          await this.validateWorshipKeeper(transaction, familyId, input.worshipKeeperId);
         }
 
         const data: Prisma.PersonUpdateManyMutationInput = {
           ...(input.fatherId === undefined ? {} : { fatherId }),
           ...(input.motherId === undefined ? {} : { motherId }),
           ...(input.name === undefined ? {} : { name: input.name.trim() }),
-          ...(input.honorific === undefined
-            ? {}
-            : { honorific: nullableText(input.honorific) }),
-          ...(input.nickname === undefined
-            ? {}
-            : { nickname: nullableText(input.nickname) }),
+          ...(input.honorific === undefined ? {} : { honorific: nullableText(input.honorific) }),
+          ...(input.nickname === undefined ? {} : { nickname: nullableText(input.nickname) }),
           ...(input.courtesyName === undefined
             ? {}
             : { courtesyName: nullableText(input.courtesyName) }),
           ...(input.gender === undefined ? {} : { gender: input.gender }),
-          ...(input.birthDate === undefined
-            ? {}
-            : { birthDate: nullableText(input.birthDate) }),
-          ...(input.deathDate === undefined
-            ? {}
-            : { deathDate: nullableText(input.deathDate) }),
-          ...(input.lunarDeathDay === undefined
-            ? {}
-            : { lunarDeathDay: input.lunarDeathDay }),
+          ...(input.birthDate === undefined ? {} : { birthDate: nullableText(input.birthDate) }),
+          ...(input.deathDate === undefined ? {} : { deathDate: nullableText(input.deathDate) }),
+          ...(input.lunarDeathDay === undefined ? {} : { lunarDeathDay: input.lunarDeathDay }),
           ...(input.lunarDeathMonth === undefined
             ? {}
             : { lunarDeathMonth: input.lunarDeathMonth }),
@@ -803,21 +644,11 @@ export class FamilyTreeService {
           ...(input.burialPlace === undefined
             ? {}
             : { burialPlace: nullableText(input.burialPlace) }),
-          ...(input.phone === undefined
-            ? {}
-            : { phone: nullableText(input.phone) }),
-          ...(input.avatarUrl === undefined
-            ? {}
-            : { avatarUrl: nullableText(input.avatarUrl) }),
-          ...(input.biography === undefined
-            ? {}
-            : { biography: nullableText(input.biography) }),
-          ...(input.generation === undefined
-            ? {}
-            : { generation: input.generation }),
-          ...(input.orderInFamily === undefined
-            ? {}
-            : { orderInFamily: input.orderInFamily }),
+          ...(input.phone === undefined ? {} : { phone: nullableText(input.phone) }),
+          ...(input.avatarUrl === undefined ? {} : { avatarUrl: nullableText(input.avatarUrl) }),
+          ...(input.biography === undefined ? {} : { biography: nullableText(input.biography) }),
+          ...(input.generation === undefined ? {} : { generation: input.generation }),
+          ...(input.orderInFamily === undefined ? {} : { orderInFamily: input.orderInFamily }),
           ...profileData(input, true),
           ...(input.worshipKeeperId === undefined
             ? {}
@@ -828,9 +659,7 @@ export class FamilyTreeService {
           data,
         });
         if (updated.count !== 1)
-          throw new NotFoundException(
-            "Không tìm thấy thành viên trong dòng họ này.",
-          );
+          throw new NotFoundException('Không tìm thấy thành viên trong dòng họ này.');
         const person = await transaction.person.findFirstOrThrow({
           where: { id: personId, familyId },
           select: managedPersonSelect,
@@ -848,24 +677,18 @@ export class FamilyTreeService {
           where: { id: personId, familyId },
           select: { id: true },
         });
-        if (!existing)
-          throw new NotFoundException(
-            "Không tìm thấy thành viên trong dòng họ này.",
-          );
+        if (!existing) throw new NotFoundException('Không tìm thấy thành viên trong dòng họ này.');
         await this.detachPersonReferences(transaction, familyId, [personId]);
         const deleted = await transaction.person.deleteMany({
           where: { id: personId, familyId },
         });
         if (deleted.count !== 1)
-          throw new NotFoundException(
-            "Không tìm thấy thành viên trong dòng họ này.",
-          );
+          throw new NotFoundException('Không tìm thấy thành viên trong dòng họ này.');
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
   }
 
-  /** Null for the family head; a member account must manage at least one branch to save. */
   private async loadBranchRestriction(
     transaction: Prisma.TransactionClient,
     access: FamilyAccess,
@@ -883,7 +706,6 @@ export class FamilyTreeService {
     };
   }
 
-  /** The anniversary keeper must be a member of the same Family. */
   private async validateWorshipKeeper(
     transaction: Prisma.TransactionClient,
     familyId: string,
@@ -895,16 +717,10 @@ export class FamilyTreeService {
       select: { id: true },
     });
     if (!keeper) {
-      throw new BadRequestException(
-        "Người phụ trách cúng giỗ phải là thành viên trong dòng họ.",
-      );
+      throw new BadRequestException('Người phụ trách cúng giỗ phải là thành viên trong dòng họ.');
     }
   }
 
-  /**
-   * Person rows are referenced through Restrict foreign keys, so every inbound
-   * link has to be cleared before they can be removed for good.
-   */
   private async detachPersonReferences(
     transaction: Prisma.TransactionClient,
     familyId: string,
@@ -944,39 +760,27 @@ export class FamilyTreeService {
     motherId: string | null,
   ): Promise<void> {
     if (fatherId && motherId && fatherId === motherId) {
-      throw new BadRequestException(
-        "Cha và mẹ phải là hai thành viên khác nhau.",
-      );
+      throw new BadRequestException('Cha và mẹ phải là hai thành viên khác nhau.');
     }
     if (personId && (personId === fatherId || personId === motherId)) {
-      throw new BadRequestException(
-        "Một thành viên không thể là cha hoặc mẹ của chính mình.",
-      );
+      throw new BadRequestException('Một thành viên không thể là cha hoặc mẹ của chính mình.');
     }
 
-    const requested = [
-      ...new Set(
-        [fatherId, motherId].filter((id): id is string => id !== null),
-      ),
-    ];
+    const requested = [...new Set([fatherId, motherId].filter((id): id is string => id !== null))];
     if (!requested.length) return;
     const parents = await transaction.person.findMany({
       where: { familyId, id: { in: requested } },
       select: { id: true, gender: true },
     });
     if (parents.length !== requested.length) {
-      throw new BadRequestException(
-        "Cha và mẹ phải thuộc cùng dòng họ đang quản lý.",
-      );
+      throw new BadRequestException('Cha và mẹ phải thuộc cùng dòng họ đang quản lý.');
     }
-    const parentGenders = new Map(
-      parents.map((parent) => [parent.id, parent.gender]),
-    );
-    if (fatherId && parentGenders.get(fatherId) !== "MALE") {
-      throw new BadRequestException("Người cha phải có giới tính nam.");
+    const parentGenders = new Map(parents.map((parent) => [parent.id, parent.gender]));
+    if (fatherId && parentGenders.get(fatherId) !== 'MALE') {
+      throw new BadRequestException('Người cha phải có giới tính nam.');
     }
-    if (motherId && parentGenders.get(motherId) !== "FEMALE") {
-      throw new BadRequestException("Người mẹ phải có giới tính nữ.");
+    if (motherId && parentGenders.get(motherId) !== 'FEMALE') {
+      throw new BadRequestException('Người mẹ phải có giới tính nữ.');
     }
     if (!personId) return;
 
@@ -993,7 +797,7 @@ export class FamilyTreeService {
         if (!id || visited.has(id)) continue;
         if (id === personId)
           throw new BadRequestException(
-            "Không thể chọn người này làm cha hoặc mẹ vì sẽ tạo vòng lặp gia phả.",
+            'Không thể chọn người này làm cha hoặc mẹ vì sẽ tạo vòng lặp gia phả.',
           );
         visited.add(id);
         const person = byId.get(id);

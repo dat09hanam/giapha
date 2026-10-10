@@ -37,7 +37,6 @@ async function loadBook(
       getPlatformFeatures(),
       getAuthProfile(sessionToken),
     ]);
-    // The platform admin has switched printing off, or this is not the family's clan head.
     if (!features.printBook || !isClanHeadOf(profile, slug)) notFound();
     return { tree, family };
   } catch (error) {

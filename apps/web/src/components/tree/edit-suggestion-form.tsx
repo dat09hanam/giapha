@@ -14,10 +14,6 @@ import { isViewerNameFixed, readViewerName } from '@/lib/viewer-identity';
 const inputClass =
   'w-full rounded-xl border border-amber-900/20 bg-white px-3 text-base text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-amber-600 focus:ring-2 focus:ring-amber-600/25 sm:text-sm';
 
-/**
- * Proposes a change to one person for the clan head to review. Whoever sends
- * it types their own name, since the whole family signs in with one account.
- */
 export function EditSuggestionForm({
   familySlug,
   personId,
@@ -31,7 +27,6 @@ export function EditSuggestionForm({
 }) {
   const id = useId();
   const showToast = useToast();
-  // Only opened by a tap, never server-rendered, so storage can be read right away.
   const [proposerName, setProposerName] = useState(readViewerName);
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -54,7 +49,6 @@ export function EditSuggestionForm({
     setSubmitting(true);
     try {
       await createEditSuggestion(familySlug, personId, { proposerName: name, content: text });
-      // The same name the feed posts under, kept per signed-in account.
       setViewerName(name);
       setSent(true);
       showToast({ kind: 'success', message: 'Đã gửi đề xuất đến trưởng họ.' });

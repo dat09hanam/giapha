@@ -9,11 +9,9 @@ export type PersonSearchEntry = {
 };
 
 export type PersonSearchResult = PersonSearchEntry & {
-  /** The alias that matched when the name itself did not, e.g. a courtesy name. */
   matchedAlias: string | null;
 };
 
-/** Lower-cased, without Vietnamese tone marks and with đ → d, so "nguyen van an" finds "Nguyễn Văn An". */
 export function foldVietnamese(text: string): string {
   return text
     .normalize('NFD')
@@ -24,11 +22,6 @@ export function foldVietnamese(text: string): string {
     .trim();
 }
 
-/**
- * How well `query` matches `text`, or 0 for no match. Every query word must
- * start a word of the text; a whole-text match, a match from the first word,
- * and one typed with the same tone marks rank higher.
- */
 function matchScore(text: string, query: string, foldedQuery: string): number {
   const folded = foldVietnamese(text);
   const words = folded.split(' ');
@@ -53,7 +46,6 @@ export function searchPeople(
 
   return entries
     .flatMap((entry): { result: PersonSearchResult; score: number }[] => {
-      // A name match outranks any alias match of the same quality.
       const nameScore = matchScore(entry.person.name, query, foldedQuery);
       if (nameScore > 0)
         return [{ result: { ...entry, matchedAlias: null }, score: nameScore * 2 }];
@@ -76,7 +68,6 @@ export function searchPeople(
     .map(({ result }) => result);
 }
 
-/** Search entries straight from the tree's people, for pickers outside the tree view. */
 export function searchEntriesFromPeople(people: readonly Person[]): PersonSearchEntry[] {
   const byId = new Map(people.map((person) => [person.id, person]));
   return people.map((person) => {

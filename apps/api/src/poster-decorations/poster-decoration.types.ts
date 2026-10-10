@@ -35,12 +35,9 @@ export type PosterDecorationRecord = Prisma.PosterDecorationGetPayload<{
   select: typeof posterDecorationSelect;
 }>;
 
-/** Percent of the art in from each edge; see `PosterDecoration.insetTop` in the schema. */
 export type PosterInsets = { top: number; right: number; bottom: number; left: number };
 
-/** Where the family name is written over the art, and how it bends. */
 export type PosterNameArea = PosterInsets & {
-  /** How far the name's middle rises above its ends, in percent of the area's height. */
   curve: number;
   color: string;
 };
@@ -51,22 +48,17 @@ export type PosterDecorationResponse = {
   id: string;
   kind: PosterDecorationKind;
   name: string;
-  /** API-relative image path for uploaded decorations, versioned so caches refresh on change. */
   imageUrl: string | null;
   isActive: boolean;
   sortOrder: number;
   backgroundMode: PosterBackgroundMode | null;
-  /** The area the tree is placed in; null keeps the tree inside the frame band. */
   insets: PosterInsets | null;
-  /** Where the family name is written; null writes none. */
   nameArea: PosterNameArea | null;
-  /** Where family-specific text is written vertically on the left and right. */
   leftTextArea: PosterVerticalTextArea | null;
   rightTextArea: PosterVerticalTextArea | null;
 };
 
 export type AdminPosterDecorationResponse = PosterDecorationResponse & {
-  /** How many families currently show this decoration. */
   usageCount: number;
 };
 

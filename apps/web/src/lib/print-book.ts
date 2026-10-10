@@ -11,36 +11,10 @@ import { displayPersonName, displayPersonTitle } from '@/lib/person-name';
 import type { FamilyTreeResponse, Person } from '@/types/family-tree';
 import { yearOf } from '@/lib/partial-date';
 
-/*
- * The family tree as a printed book: a cover, a table of contents, the phả đồ cut into pages
- * by chi, and an index of names.
- *
- * The chi pages draw the tree as the overview poster does: one card per person, spouses side
- * by side joined by a marriage line, children hanging from the middle of their parents' line.
- * A page holds as many generations and families as fit the paper at a legible size; a branch
- * that does not fit continues on later pages, and its card says where. Small branches
- * continued from the same page share a page.
- *
- * Every length is in CSS pixels (1/96 inch), the unit the browser prints in.
- */
-
 export type PaperSize = 'A4' | 'A3' | 'A2' | 'A1' | 'A0';
-/**
- * How the tree runs on the page. A bound book is always printed on portrait paper; only the
- * tree's direction and the way its text stands change.
- *
- * `topDown` draws the eldest generation at the top. `leftToRight` draws it at the left, each
- * generation a column further right, with level text.
- *
- * `rotated` prints with the text turned to stand on end: the generations run
- * left to right across the sheet, the eldest at the top, the "Đời n" labels along the top
- * edge. It is the top-down tree laid out on a landscape frame, mirrored so siblings run right
- * to left with the labels on the right, then turned a quarter round anticlockwise.
- */
 export type Orientation = 'leftToRight' | 'topDown' | 'rotated';
 export type PaperOptions = { size: PaperSize; orientation: Orientation };
 
-/** Long and short sides in millimetres. */
 export const PAPER_SIZES: Record<PaperSize, { long: number; short: number }> = {
   A4: { long: 297, short: 210 },
   A3: { long: 420, short: 297 },
@@ -51,36 +25,19 @@ export const PAPER_SIZES: Record<PaperSize, { long: number; short: number }> = {
 
 const PX_PER_MM = 96 / 25.4;
 
-/** About 35 × 21 mm: a name in two lines at 10pt, then the years and giỗ. */
 export const PRINT_CARD = { width: 132, height: 80 } as const;
-/** Height of a "Xem trang" or "Tiếp từ trang" note. */
 export const NOTE_HEIGHT = 20;
-/** Branches sharing a page stand further apart than siblings. */
 const BRANCH_GAP = 48;
-/** Space between bands stacked on one page, so their notes stay apart. */
 const BAND_GAP = 28;
 
-/**
- * A vertical tree runs top-down; a horizontal one runs left to right, the root at the middle
- * of the left edge and each generation a column further right. Text stays level either way.
- */
 export type TreeDirection = 'vertical' | 'horizontal';
 
-/**
- * The tree is laid out along two axes: across a generation, where siblings and spouses stand
- * side by side, and along the generations. A horizontal tree is the same layout turned a
- * quarter round, so a card's width and height swap axes, spouses stack under one another, and
- * the gap between generations must hold a note beside a card instead of below it.
- */
 type Axes = {
-  /** A card's extent across a generation, and along the generations. */
   across: number;
   along: number;
   spouseGap: number;
   siblingGap: number;
-  /** Between generations: marriage brackets, child lines and notes. */
   rowGap: number;
-  /** Room along the generations for a note before a branch and after a continued card. */
   note: number;
 };
 
@@ -103,14 +60,11 @@ const AXES: Record<TreeDirection, Axes> = {
   },
 };
 
-/** Page frame: margins most printers can reach, a running header and footer, row labels. */
 export const PAGE_FRAME = {
   margin: Math.round(10 * PX_PER_MM),
   header: 42,
   footer: 22,
-  /** Left column holding the "Đời n" labels of a top-down tree. */
   gutter: 52,
-  /** Top strip holding the "Đời n" labels of a left-to-right tree. */
   labelStrip: 26,
 } as const;
 
@@ -118,32 +72,25 @@ const TOC_LINE = 22;
 const TOC_COLUMN = 420;
 const INDEX_LINE = 17;
 const INDEX_COLUMN = 250;
-/** A list page's own heading, above its entries. */
 export const LIST_HEADING = 44;
 
 type Rect = { left: number; top: number; width: number; height: number };
 
 export type PageGeometry = {
-  /** The page as laid out; `paperOf` gives the paper it is printed on. */
   widthMm: number;
   heightMm: number;
   width: number;
   height: number;
   direction: TreeDirection;
-  /** Laid out landscape and mirrored, printed a quarter turn round on portrait paper. */
   rotated: boolean;
-  /** Where the tree is drawn, inside the frame and clear of the row labels. */
   tree: Rect;
-  /** Where lists (contents, index) are set. */
   text: Rect;
-  /** Cards that fit side by side in a generation, and generations that fit on a page. */
   columns: number;
   rows: number;
 };
 
 export function pageGeometry({ size, orientation }: PaperOptions): PageGeometry {
   const { long, short } = PAPER_SIZES[size];
-  // Only the rotated tree is laid out on a landscape frame, then turned onto portrait paper.
   const wide = orientation === 'rotated';
   const widthMm = wide ? long : short;
   const heightMm = wide ? short : long;
@@ -158,7 +105,6 @@ export function pageGeometry({ size, orientation }: PaperOptions): PageGeometry 
   };
   const rotated = orientation === 'rotated';
   const direction: TreeDirection = orientation === 'leftToRight' ? 'horizontal' : 'vertical';
-  // A mirrored tree keeps its "Đời n" labels in a gutter on the right.
   const tree: Rect =
     direction === 'vertical'
       ? { ...text, left: rotated ? margin : margin + gutter, width: text.width - gutter }
@@ -185,14 +131,12 @@ export function pageGeometry({ size, orientation }: PaperOptions): PageGeometry 
   };
 }
 
-/** The paper a page is printed on, in millimetres. */
 export function paperOf(geometry: PageGeometry): { widthMm: number; heightMm: number } {
   return geometry.rotated
     ? { widthMm: geometry.heightMm, heightMm: geometry.widthMm }
     : { widthMm: geometry.widthMm, heightMm: geometry.heightMm };
 }
 
-/** The tree area's extent across the generations and along them. */
 function treeRoom(tree: Rect, direction: TreeDirection): { across: number; along: number } {
   return direction === 'vertical'
     ? { across: tree.width, along: tree.height }
@@ -204,16 +148,10 @@ export type PrintCard = {
   x: number;
   y: number;
   name: string;
-  /** "Vợ 2", the honorific, and which wife a child was born to when the father had several. */
   caption: string | null;
-  /** Years and giỗ, as far as they are known. */
   life: string | null;
 };
 
-/**
- * A note pinned to a point: `below` hangs it centred under the point, `after` starts it at the
- * point, `before` ends it there; the last two are centred on the point vertically.
- */
 export type PageNote = { x: number; y: number; text: string; anchor: 'below' | 'after' | 'before' };
 
 export type TreePage = {
@@ -222,14 +160,12 @@ export type TreePage = {
   title: string;
   subtitle: string | null;
   direction: TreeDirection;
-  /** Content size before scaling; `scale` fits it into the page's tree area. */
   width: number;
   height: number;
   scale: number;
   cards: PrintCard[];
   paths: string[];
   notes: PageNote[];
-  /** Each generation's row (or column) centre: a y for a top-down tree, an x for a left-to-right one. */
   rowLabels: { at: number; generation: number }[];
 };
 
@@ -244,7 +180,6 @@ export type BookPage =
   | TreePage
   | { kind: 'index'; number: number; first: boolean; columns: number; entries: IndexEntry[] };
 
-/** Which sheet a page is printed on. */
 export type SheetKind = 'text' | 'tree';
 
 export function sheetOf(page: BookPage): SheetKind {
@@ -252,10 +187,6 @@ export function sheetOf(page: BookPage): SheetKind {
 }
 
 export type Book = {
-  /**
-   * Every page is printed on portrait paper; the chosen orientation sets how the tree runs
-   * on the overview poster and the chi pages.
-   */
   sheets: Record<SheetKind, PageGeometry>;
   pages: BookPage[];
   treePageCount: number;
@@ -264,19 +195,13 @@ export type Book = {
 
 type Unit = {
   id: string;
-  /** The member born into the tree (the first founder for a root unit). */
   key: string;
-  /** Everyone else in the unit: the key's spouses, on cards beside theirs. */
   partners: string[];
   generation: number;
   parent: string | null;
   children: string[];
 };
 
-/**
- * Spouses and co-parents form a unit; each unit hangs under the unit of the parent its
- * first-born member came from. Mirrors the units `layoutFamily` builds for the screen.
- */
 function buildUnits(
   people: readonly LayoutPerson[],
   relationships: readonly LayoutRelationship[],
@@ -301,7 +226,12 @@ function buildUnits(
     }
   });
   people.forEach((person) => {
-    if (person.fatherId && person.motherId && byId.has(person.fatherId) && byId.has(person.motherId)) {
+    if (
+      person.fatherId &&
+      person.motherId &&
+      byId.has(person.fatherId) &&
+      byId.has(person.motherId)
+    ) {
       join(person.fatherId, person.motherId);
     }
   });
@@ -320,16 +250,13 @@ function buildUnits(
     const blood = sorted.find(
       (member) => inOtherUnit(member.fatherId) || inOtherUnit(member.motherId),
     );
-    // A founding couple: the husband heads the card, as the phả đồ is reckoned through him.
     const key = blood ?? sorted.find((member) => member.gender === 'MALE') ?? sorted[0]!;
     units.set(unitId, {
       id: unitId,
       key: key.id,
       partners: sorted.filter((member) => member !== key).map((member) => member.id),
       generation: Math.min(...members.map((member) => member.generation)),
-      parent: blood
-        ? find(inOtherUnit(blood.fatherId) ? blood.fatherId : blood.motherId!)
-        : null,
+      parent: blood ? find(inOtherUnit(blood.fatherId) ? blood.fatherId : blood.motherId!) : null,
       children: [],
     });
   });
@@ -341,7 +268,6 @@ function buildUnits(
   });
   units.forEach((unit) => unit.children.sort(compareUnits));
 
-  // A parent cycle in inconsistent data would leave units unreachable; cut it so they still print.
   const roots = [...units.keys()].filter((unitId) => !units.get(unitId)!.parent).sort(compareUnits);
   const reached = new Set<string>();
   const reach = (unitId: string): void => {
@@ -395,30 +321,24 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
   return chunks.length ? chunks : [[]];
 }
 
-/** One chi drawn on a page: a root unit and as many generations below it as fit. */
 type Branch = {
   root: string;
   part: { index: number; total: number } | null;
   unitIds: string[];
-  /** Units whose children continue in later branches, left to right. */
   continued: string[];
   layout: FamilyLayout;
   width: number;
   firstGeneration: number;
   lastGeneration: number;
-  /** The branch this one continues from, as an index into the book's branches. */
   from: number | null;
 };
 
-/** Branches standing side by side across the generations. */
 type Band = { branches: number[]; width: number; firstGeneration: number; lastGeneration: number };
 
 export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): Book {
   const geometry = pageGeometry(paper);
   const textSheet = pageGeometry({ size: paper.size, orientation: 'topDown' });
   const horizontal = geometry.direction === 'horizontal';
-  // Everything below is laid out top-down, in "width" across a generation and "height" along
-  // the generations; a horizontal page turns the finished drawing a quarter round.
   const axes = AXES[geometry.direction];
   const { across: W, along: H, spouseGap, siblingGap, rowGap } = axes;
   const generationGap = H + rowGap;
@@ -452,7 +372,6 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
   const unit = (unitId: string): Unit => units.get(unitId)!;
   const keyPerson = (unitId: string): Person => peopleById.get(unit(unitId).key)!;
 
-  /** The units a branch shows: its root, then the children of every expanded unit. */
   type Plan = { root: string; rootChildren: string[]; expanded: Set<string> };
   function shownChildren(plan: Plan, unitId: string): string[] {
     if (!plan.expanded.has(unitId)) return [];
@@ -467,12 +386,10 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
     visit(plan.root);
     return shown;
   }
-  /** A unit's own row: its member and their spouses side by side. */
   function ownWidth(unitId: string): number {
     const count = 1 + unit(unitId).partners.length;
     return count * W + (count - 1) * spouseGap;
   }
-  /** Width the branch needs, packing each family's children side by side under it. */
   function estimatedWidth(plan: Plan, unitId: string): number {
     const children = shownChildren(plan, unitId);
     if (!children.length) return ownWidth(unitId);
@@ -482,7 +399,6 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
     return Math.max(ownWidth(unitId), span);
   }
 
-  /** Lays out the units with the same layout the overview poster uses. */
   function layoutUnits(unitIds: readonly string[]): FamilyLayout {
     const pagePeople = unitIds.flatMap((unitId) =>
       [unit(unitId).key, ...unit(unitId).partners].map((personId) => layoutPeople.get(personId)!),
@@ -498,14 +414,9 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
     return { minX, width: Math.max(...xs) + W - minX };
   }
 
-  /**
-   * Fills a branch from its root down, a generation at a time, expanding the smallest families
-   * first so a page keeps as many whole families as fit; the rest continue in later branches.
-   */
   function planBranch(root: string, rootChildren: string[]): Plan {
     const plan: Plan = { root, rootChildren, expanded: new Set() };
     if (!rootChildren.length) return plan;
-    // The root always shows its children: they are why this branch is drawn.
     plan.expanded.add(root);
     const expansions: string[] = [];
     const rootGeneration = unit(root).generation;
@@ -532,15 +443,12 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
       level = next;
     }
 
-    // The estimate ignores how the layout centres children under their parents; check the
-    // real layout and give back the last expansions until it fits.
     while (expansions.length && layoutBounds(layoutUnits(shownUnits(plan))).width > capacity) {
       plan.expanded.delete(expansions.pop()!);
     }
     return plan;
   }
 
-  /** A root with more children than fit side by side is drawn in parts. */
   function partsOf(root: string): string[][] {
     const parts: string[][] = [[]];
     let width = 0;
@@ -582,14 +490,11 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
     });
   }
 
-  // Every branch in reading order: a family's continued children side by side, then each
-  // of their own continuations in turn, so a chi stays together.
   const branches: Branch[] = [];
   const contentsOrder: { root: string; depth: number }[] = [];
   function visit(rootIds: readonly string[], from: number | null, depth: number): void {
     const first = branches.length;
     rootIds.forEach((root) => {
-      // People linked to no one are in the index, not the contents.
       if (unit(root).children.length) contentsOrder.push({ root, depth });
       branches.push(...branchesOf(root, from));
     });
@@ -598,15 +503,24 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
       if (continued.length) visit(continued, index, depth + 1);
     }
   }
-  visit(roots.filter((root) => unit(root).children.length > 0), null, 0);
-  visit(roots.filter((root) => unit(root).children.length === 0), null, 0);
+  visit(
+    roots.filter((root) => unit(root).children.length > 0),
+    null,
+    0,
+  );
+  visit(
+    roots.filter((root) => unit(root).children.length === 0),
+    null,
+    0,
+  );
 
-  // Pack branches in order: beside the last band while it is wide enough, else in a new band
-  // below it while the page is tall enough, else on a new page.
   const pages: Band[][] = [];
   const pageOfBranch: number[] = [];
   const pageHeight = (bands: readonly Band[]): number =>
-    bands.reduce((total, band) => total + bandHeight(band.firstGeneration, band.lastGeneration), 0) +
+    bands.reduce(
+      (total, band) => total + bandHeight(band.firstGeneration, band.lastGeneration),
+      0,
+    ) +
     (bands.length - 1) * BAND_GAP;
   branches.forEach((branch, index) => {
     const bands = pages[pages.length - 1];
@@ -623,7 +537,12 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
       firstGeneration: branch.firstGeneration,
       lastGeneration: branch.lastGeneration,
     };
-    if (bands && widened && widened.width <= capacity && pageHeight([...bands.slice(0, -1), widened]) <= room.along) {
+    if (
+      bands &&
+      widened &&
+      widened.width <= capacity &&
+      pageHeight([...bands.slice(0, -1), widened]) <= room.along
+    ) {
       bands[bands.length - 1] = widened;
     } else if (bands && pageHeight([...bands, alone]) <= room.along) {
       bands.push(alone);
@@ -633,16 +552,13 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
     pageOfBranch[index] = pages.length - 1;
   });
 
-  // Page numbers: the cover is page 1 and the introduction page 2, then the contents, the
-  // overview poster, the chi pages and the index.
   const contentsColumns = Math.max(1, Math.floor(textSheet.text.width / TOC_COLUMN));
   const contentsPerPage =
     contentsColumns * Math.max(1, Math.floor((textSheet.text.height - LIST_HEADING) / TOC_LINE));
   const contentsPageCount = Math.ceil((contentsOrder.length + 2) / contentsPerPage);
   const posterPage = 3 + contentsPageCount;
   const firstTreePage = posterPage + 1;
-  const pageNumber = (branchIndex: number): number =>
-    firstTreePage + pageOfBranch[branchIndex]!;
+  const pageNumber = (branchIndex: number): number => firstTreePage + pageOfBranch[branchIndex]!;
   const drawnOn = new Map<string, number[]>();
   branches.forEach((branch, index) => {
     const numbers = drawnOn.get(branch.root) ?? [];
@@ -661,7 +577,6 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
     ),
   );
 
-  /** "Vợ 2" on a wife's card when her husband had several; "Vợ" or "Chồng" otherwise. */
   function spouseLabel(unitId: string, partner: Person): string {
     const wives = tree.relationships.filter(
       (relationship) => relationship.husbandId === unit(unitId).key,
@@ -698,7 +613,10 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
     return `Chi ${key.gender === 'FEMALE' ? 'bà' : 'ông'} ${displayPersonName(key.name)}${suffix}`;
   }
 
-  function pageTitles(branchIndexes: readonly number[]): { title: string; subtitle: string | null } {
+  function pageTitles(branchIndexes: readonly number[]): {
+    title: string;
+    subtitle: string | null;
+  } {
     const pageBranches = branchIndexes.map((index) => branches[index]!);
     const titles = pageBranches.map((branch) =>
       branchTitle(branch.root, branch.part, branch.from !== null),
@@ -710,7 +628,10 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
         : null;
     if (pageBranches.length > 1) {
       return {
-        title: pageBranches.length === 2 ? titles.join(' · ') : `${titles[0]} và ${titles.length - 1} chi khác`,
+        title:
+          pageBranches.length === 2
+            ? titles.join(' · ')
+            : `${titles[0]} và ${titles.length - 1} chi khác`,
         subtitle: from,
       };
     }
@@ -734,13 +655,8 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
   function drawPage(bands: readonly Band[], pageIndex: number): TreePage {
     type Point = { x: number; y: number };
     const width = Math.max(...bands.map((band) => band.width));
-    /**
-     * From the top-down layout to the page: a horizontal tree swaps the axes, a rotated one
-     * is mirrored across.
-     */
     const turn = ({ x, y }: Point): Point =>
       horizontal ? { x: y, y: x } : geometry.rotated ? { x: width - x, y } : { x, y };
-    /** A card's top-left corner on the page. */
     const corner = (point: Point): Point =>
       geometry.rotated ? { x: width - point.x - W, y: point.y } : turn(point);
     const line = (points: readonly Point[]): string =>
@@ -756,25 +672,26 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
     let bandTop = 0;
 
     bands.forEach((band) => {
-      // Notes before each branch's first card sit in a strip at the start of the band.
       const rowTop = (generation: number): number =>
         bandTop + axes.note + (generation - band.firstGeneration) * generationGap;
-      // Bands are as wide as their branches; the narrower ones are centred on the widest.
       let left = (width - band.width) / 2;
       band.branches.forEach((branchIndex) => {
         const branch = branches[branchIndex]!;
         const { minX, width: branchWidth } = layoutBounds(branch.layout);
         const unitOfPerson = new Map(
           branch.unitIds.flatMap((unitId) =>
-            [unit(unitId).key, ...unit(unitId).partners].map((personId) => [personId, unitId] as const),
+            [unit(unitId).key, ...unit(unitId).partners].map(
+              (personId) => [personId, unitId] as const,
+            ),
           ),
         );
         const at = (personId: string): Point => ({
           x: left + (branch.layout.positions.get(personId)?.x ?? minX) - minX,
           y: rowTop(unit(unitOfPerson.get(personId)!).generation),
         });
-        /** A unit's cards from first to last, and how far its brackets reach past them. */
-        const span = (unitId: string): { start: number; end: number; row: number; drop: number } => {
+        const span = (
+          unitId: string,
+        ): { start: number; end: number; row: number; drop: number } => {
           const members = [unit(unitId).key, ...unit(unitId).partners];
           const spots = members.map(at);
           const drops = branch.layout.marriages
@@ -798,13 +715,16 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
             life: lifeLine(person),
           });
         });
-        // Lines as the overview poster draws them: marriage lines and brackets, and child
-        // lines from the middle of the parents' marriage line to each child.
         branch.layout.marriages.forEach((marriage) => {
           const first = at(marriage.leftId);
           const second = at(marriage.rightId);
           if (marriage.adjacent) {
-            paths.push(line([{ x: first.x + W, y: first.y + H / 2 }, { x: second.x, y: first.y + H / 2 }]));
+            paths.push(
+              line([
+                { x: first.x + W, y: first.y + H / 2 },
+                { x: second.x, y: first.y + H / 2 },
+              ]),
+            );
             return;
           }
           const bracket = Math.max(first.y, second.y) + H + marriage.drop;
@@ -848,7 +768,6 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
         }
         branch.continued.forEach((unitId) => {
           const family = span(unitId);
-          // Past the marriage bracket, if the unit has one.
           const beyond = family.row + H + family.drop + (horizontal ? 4 : 3);
           notes.push({
             ...turn({ x: (family.start + family.end) / 2, y: beyond }),
@@ -859,7 +778,11 @@ export function buildPrintBook(tree: FamilyTreeResponse, paper: PaperOptions): B
         left += branchWidth + BRANCH_GAP;
       });
 
-      for (let generation = band.firstGeneration; generation <= band.lastGeneration; generation += 1) {
+      for (
+        let generation = band.firstGeneration;
+        generation <= band.lastGeneration;
+        generation += 1
+      ) {
         rowLabels.push({ generation, at: rowTop(generation) + H / 2 });
       }
       bandTop += bandHeight(band.firstGeneration, band.lastGeneration) + BAND_GAP;

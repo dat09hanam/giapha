@@ -20,7 +20,6 @@ import { FamilyAccessGuard } from '../common/auth/family-access.guard.js';
 import { FamilyRoles } from '../common/auth/family-roles.decorator.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
-// Runtime import is required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { UploadFamilyMediaDto } from './dto/upload-family-media.dto.js';
 import { MediaService } from './media.service.js';
@@ -55,17 +54,11 @@ export class MediaController {
     );
 
     if (contentType === 'application/pdf') {
-      // Library PDFs open in the browser's viewer, sandboxed so any script inside cannot run
-      // with this origin's cookies.
       reply.header('Content-Security-Policy', 'sandbox').header('Content-Disposition', 'inline');
     }
 
     await reply
-      // Helmet defaults every response to `same-origin`, which stops the web app
-      // on another origin from rendering these in an <img>. Access is still
-      // gated by the guards above; this only permits embedding.
       .header('Cross-Origin-Resource-Policy', 'cross-origin')
-      // Names are content-addressed by UUID, so a cached copy can never go stale.
       .header('Cache-Control', 'private, max-age=31536000, immutable')
       .type(contentType)
       .send(bytes);

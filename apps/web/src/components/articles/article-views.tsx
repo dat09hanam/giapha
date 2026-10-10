@@ -8,7 +8,6 @@ import { RichTextView } from '@/components/rich-text/rich-text-view';
 import { ARTICLE_SECTIONS, articleCoverSrc } from '@/lib/article-api';
 import type { Article, ArticleCategory, ArticleSummary } from '@/types/article';
 
-/** The heading band at the top of a section. */
 function SectionHero({ category }: { category: ArticleCategory }) {
   const section = ARTICLE_SECTIONS[category];
   return (
@@ -37,9 +36,7 @@ export function ArticleListView({
 }: {
   category: ArticleCategory;
   articles: readonly ArticleSummary[];
-  /** Shows a search box over the cards. */
   searchable?: boolean;
-  /** The `?q=` the page was opened with. */
   initialQuery?: string;
 }) {
   return (
@@ -79,7 +76,6 @@ export function ArticleView({
   related,
 }: {
   article: Article;
-  /** Other articles of the same section, newest first. */
   related: readonly ArticleSummary[];
 }) {
   const section = ARTICLE_SECTIONS[article.category];
@@ -137,7 +133,6 @@ export function ArticlesLoading() {
   return <PageLoader label="Đang tải bài viết" />;
 }
 
-/** An unknown path or an article taken down, inside the section's masthead. */
 export function ArticleNotFound({ category }: { category: ArticleCategory }) {
   const section = ARTICLE_SECTIONS[category];
   return (

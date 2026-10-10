@@ -10,7 +10,6 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   return articleMetadata('PRAYER', (await params).slug);
 }
 
-/** One published article of Mẫu bài cúng. */
 export default async function ArticlePage({ params }: ArticlePageProps) {
   return <ArticleRoute category="PRAYER" slug={(await params).slug} />;
 }

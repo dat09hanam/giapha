@@ -9,10 +9,6 @@ import { Button } from '@/components/ui/button';
 import type { PosterDecoration } from '@/lib/poster-decorations';
 import type { FamilyDetails } from '@/types/family-tree';
 
-/**
- * Gia phả mẫu, edited by the platform admin in place of a clan head: its tree in the designer,
- * and its details and phả đồ right here. While there is none, the tab offers to create it.
- */
 export function DemoFamilyPanel({
   family,
   decorations,

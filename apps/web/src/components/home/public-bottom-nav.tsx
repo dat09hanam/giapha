@@ -17,10 +17,6 @@ const TABS = [
   { href: '/thu-vien', label: 'Thư viện', icon: BookOpen },
 ] as const;
 
-/**
- * The public site's tab bar on phones and tablets, where the thumb is, built from the same tab
- * as a family's bottom bar. The last tab opens the "Liên hệ tạo gia phả" popup.
- */
 export function PublicBottomNav() {
   const pathname = usePathname();
 
@@ -39,7 +35,6 @@ export function PublicBottomNav() {
                 aria-current={active ? 'page' : undefined}
                 className="block h-full"
                 onClick={(event) => {
-                  // Already home: back to the top rather than a reload.
                   if (href === '/' && pathname === '/') {
                     event.preventDefault();
                     window.scrollTo({ top: 0, behavior: 'smooth' });

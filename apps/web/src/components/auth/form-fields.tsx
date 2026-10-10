@@ -4,16 +4,10 @@ import { cn } from '@/lib/utils';
 
 type FieldProps = ComponentProps<'input'> & {
   label: string;
-  /** Decorative glyph shown inside the input's leading edge. */
   icon?: ReactNode;
-  /** Control rendered inside the input's trailing edge, such as a visibility toggle. */
   trailing?: ReactNode;
 };
 
-/**
- * A labelled input. Nothing shows under it until it fails a check; then FormValidation writes the
- * red error into the slot below.
- */
 export function Field({ label, icon, trailing, id, className, ...props }: FieldProps) {
   return (
     <div className="grid gap-1.5" data-field="">

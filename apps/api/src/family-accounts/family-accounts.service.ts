@@ -7,11 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, UserRole, UserStatus } from '@prisma/client';
 
-import {
-  generatePassword,
-  generateSharedMemberPassword,
-  hashPassword,
-} from '../auth/password.js';
+import { generatePassword, generateSharedMemberPassword, hashPassword } from '../auth/password.js';
 import { computeBranchScope } from '../branches/branch-scope.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { familyNameKey } from '../families/family-credentials.js';
@@ -23,11 +19,9 @@ import type {
 
 export type FamilyAccountBranch = { rootPersonId: string; rootName: string };
 
-/** The prefixes `generateFamilyUsernames` puts before a family's shared suffix. */
 const SHARED_USERNAME_PREFIX = 'ThanhVien';
 const HEAD_USERNAME_PREFIX = 'TruongHo';
 
-/** One email belongs to one account, since signing in and Quên mật khẩu find the account by it. */
 const EMAIL_TAKEN_MESSAGE = 'Email đã được dùng cho tài khoản khác. Hãy dùng email khác.';
 
 function pad2(value: number): string {
@@ -38,17 +32,14 @@ export type FamilyAccount = {
   id: string;
   username: string;
   displayName: string;
-  /** Where a Quên mật khẩu code goes; it also signs the account in. */
   email: string | null;
   role: UserRole;
   status: UserStatus;
-  /** The family's shared member account, whose password cannot be reset. */
   isShared: boolean;
   createdAt: string;
   branches: FamilyAccountBranch[];
 };
 
-/** A password is shown once, in the response that set it. */
 export type FamilyAccountWithPassword = { account: FamilyAccount; password: string };
 
 const accountSelect = {
@@ -85,10 +76,6 @@ function toAccount(record: AccountRecord): FamilyAccount {
   };
 }
 
-/**
- * The family head's accounts page: member accounts and the chi/nhánh each one manages.
- * The head's own account is listed but never changed here.
- */
 @Injectable()
 export class FamilyAccountsService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -102,12 +89,6 @@ export class FamilyAccountsService {
     return accounts.map(toAccount);
   }
 
-  /**
-   * What every account the clan head creates ends with, e.g. `HoPham1503`: the part the family's
-   * generated accounts share (`ThanhVienHoPham1503`, `TruongHoHoPham1503`), so it carries the
-   * origin when the family needed one and survives a later rename. Families without those accounts
-   * fall back to the name and death anniversary.
-   */
   async usernameSuffix(familyId: string): Promise<string> {
     const generated = await this.prisma.user.findMany({
       where: { familyId, OR: [{ isShared: true }, { role: UserRole.MEMBER_PLUS }] },
@@ -136,11 +117,6 @@ export class FamilyAccountsService {
     return `${familyNameKey(family.name)}${anniversary}`;
   }
 
-  /**
-   * The full username for a typed prefix and whether it is free. Usernames are unique across every
-   * family, soft-deleted accounts included, so this looks past the tenant; it reveals only whether
-   * the name is taken, never whose it is.
-   */
   async checkUsername(
     familyId: string,
     usernamePrefix: string,
@@ -190,7 +166,6 @@ export class FamilyAccountsService {
     const displayName = input.displayName?.trim();
     const email = input.email === undefined ? undefined : normalizeEmail(input.email);
     if (email && isShared) {
-      // Anyone holding the shared password could otherwise reset it to a password of their own.
       throw new BadRequestException('Tài khoản dùng chung không được gắn email.');
     }
     await this.assertEmailFree(email ?? null, userId);
@@ -216,16 +191,11 @@ export class FamilyAccountsService {
     }
   }
 
-  /**
-   * A generated password the owner must replace on their next sign-in. The shared account gets a
-   * new shared password instead, kept as is, since it is shown only once and could otherwise be lost.
-   */
   async resetPassword(familyId: string, userId: string): Promise<FamilyAccountWithPassword> {
     const { isShared } = await this.findMemberAccount(familyId, userId);
     const password = isShared ? generateSharedMemberPassword() : generatePassword();
     const passwordHash = await hashPassword(password);
     const account = await this.prisma.$transaction(async (transaction) => {
-      // Signs the account out everywhere, so the old password stops working at once.
       await transaction.authSession.deleteMany({ where: { userId } });
       return transaction.user.update({
         where: { id: userId },
@@ -236,16 +206,11 @@ export class FamilyAccountsService {
     return { account: toAccount(account), password };
   }
 
-  /** Removed for good, so the username can be given out again; sessions and branches go with it. */
   async remove(familyId: string, userId: string): Promise<void> {
     await this.findMemberAccount(familyId, userId);
     await this.prisma.user.delete({ where: { id: userId } });
   }
 
-  /**
-   * Replaces the branches an account manages. A branch may not sit inside, or contain, a branch
-   * already given to anyone, this account's other choices included.
-   */
   async setBranches(
     familyId: string,
     userId: string,
@@ -253,8 +218,6 @@ export class FamilyAccountsService {
   ): Promise<FamilyAccount> {
     const { isShared } = await this.findMemberAccount(familyId, userId);
     const rootIds = [...new Set(input.rootPersonIds)];
-    // The whole clan signs in with the shared account, so it must never edit a branch. Clearing
-    // stays allowed, for branches given to it before this rule.
     if (isShared && rootIds.length > 0) {
       throw new BadRequestException('Không thể giao chi/nhánh cho tài khoản dùng chung.');
     }
@@ -318,8 +281,6 @@ export class FamilyAccountsService {
     return toAccount(account);
   }
 
-  /** Only member accounts of this family are managed here, never the family head's own. */
-  /** Refused before writing, so the answer names the email rather than a constraint. */
   private async assertEmailFree(email: string | null, exceptUserId?: string): Promise<void> {
     if (!email) return;
     const owner = await this.prisma.user.findUnique({ where: { email }, select: { id: true } });
@@ -342,12 +303,10 @@ export class FamilyAccountsService {
   }
 }
 
-/** Stored lower-case, like the clan head's; an empty value means no email. */
 function normalizeEmail(value: string | undefined): string | null {
   return value?.trim().toLowerCase() || null;
 }
 
-/** A unique index hit by a request racing with another: says which value was taken. */
 function throwIfTaken(error: unknown): void {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
     if (String(error.meta?.target ?? '').includes('email')) {

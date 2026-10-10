@@ -16,10 +16,8 @@ import {
 
 import { IMAGE_CONTENT_TYPES } from '../../media/image-format.js';
 
-/** Base64 of 3 MB of image data, plus a little slack for padding. */
 const MAX_BASE64_LENGTH = 4_200_000;
 
-/** Lowercase words joined by single hyphens, as the web app builds them from the title. */
 export const ARTICLE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export class ArticleCoverDto {
@@ -66,7 +64,6 @@ export class CreateArticleDto extends ArticleFieldsDto {
   })
   slug!: string;
 
-  /** The structured rich-text document; the service checks its shape. */
   @IsDefined()
   content!: unknown;
 
@@ -99,7 +96,6 @@ export class UpdateArticleDto extends ArticleFieldsDto {
   @IsOptional()
   content?: unknown;
 
-  /** A new cover image, or null to remove the current one. */
   @IsOptional()
   @ValidateNested()
   @Type(() => ArticleCoverDto)

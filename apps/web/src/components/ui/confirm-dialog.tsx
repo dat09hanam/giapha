@@ -18,11 +18,9 @@ import { cn } from '@/lib/utils';
 
 export type ConfirmOptions = {
   title: string;
-  /** A sentence or two under the title, e.g. what cannot be undone. */
   message?: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  /** `danger` for deleting or discarding: a red button and a warning icon. */
   tone?: 'default' | 'danger';
 };
 
@@ -30,10 +28,6 @@ type PendingConfirm = ConfirmOptions & { resolve: (confirmed: boolean) => void }
 
 const ConfirmContext = createContext<((options: ConfirmOptions) => Promise<boolean>) | null>(null);
 
-/**
- * Asks the visitor to confirm, in place of `window.confirm`:
- * `if (!(await confirm({ title: 'Xóa bài viết này?', tone: 'danger' }))) return;`
- */
 export function useConfirm(): (options: ConfirmOptions) => Promise<boolean> {
   const confirm = useContext(ConfirmContext);
   if (!confirm) {
@@ -56,7 +50,6 @@ function ConfirmDialog({
   const danger = pending.tone === 'danger';
 
   useEffect(() => {
-    // Cancel is the safe default for a destructive question.
     (danger ? cancelRef : confirmRef).current?.focus();
     const onKey = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') onAnswer(false);
@@ -122,7 +115,6 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const confirm = useCallback(
     (options: ConfirmOptions): Promise<boolean> =>
       new Promise<boolean>((resolve) => {
-        // A second question while one is open answers the first with "no".
         setPending((current) => {
           current?.resolve(false);
           return { ...options, resolve };

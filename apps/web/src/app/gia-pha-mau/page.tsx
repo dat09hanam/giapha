@@ -15,7 +15,6 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-/** A visitor sees the tree alone: every member-only section and action stays hidden. */
 const VISITOR_FEATURES: FamilyFeatures = {
   feed: false,
   fund: false,
@@ -58,7 +57,6 @@ function NoDemoYet() {
   );
 }
 
-/** Gia phả mẫu: the family the platform admin marked as the sample, open to every visitor. */
 export default async function DemoFamilyPage() {
   let tree: FamilyTreeResponse;
   let family: FamilyDetails;

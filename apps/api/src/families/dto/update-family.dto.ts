@@ -20,10 +20,6 @@ export class UpdateFamilyDto {
   @MaxLength(5000)
   description?: string;
 
-  /**
-   * The formatted introduction (see common/validation/rich-text.ts), checked by the service;
-   * null clears it. It replaces `description`, which the service then derives from it.
-   */
   @IsOptional()
   @IsObject()
   introduction?: Record<string, unknown> | null;
@@ -43,7 +39,6 @@ export class UpdateFamilyDto {
   @Matches(/^\d{2}\/\d{2}$/)
   deathAnniversary?: string | null;
 
-  /** Library background ID; null shows plain paper. */
   @IsOptional()
   @IsUUID()
   posterBackgroundId?: string | null;

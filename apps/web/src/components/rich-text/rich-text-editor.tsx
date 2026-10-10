@@ -29,7 +29,6 @@ import {
 import { cn } from '@/lib/utils';
 import type { RichTextDocument } from '@/types/rich-text';
 
-/** Marks text as "back to the default colour"; such colours are then stripped from the DOM. */
 const RESET_COLOR = '#010203';
 
 const BLOCK_CHOICES = [
@@ -56,10 +55,6 @@ const IDLE: Active = {
   block: 'p',
 };
 
-/**
- * `document.execCommand` is deprecated but still the only built-in way to format a
- * contentEditable selection, and every current browser supports these commands.
- */
 function run(command: string, value?: string): void {
   document.execCommand(command, false, value);
 }
@@ -81,7 +76,6 @@ function ToolButton({
       title={label}
       aria-label={label}
       aria-pressed={active}
-      // Keep the selection in the editor: a click would move focus to the button first.
       onMouseDown={(event) => event.preventDefault()}
       onClick={onRun}
       className={cn(
@@ -98,12 +92,6 @@ function Divider() {
   return <span className="mx-0.5 h-5 w-px shrink-0 bg-line" aria-hidden="true" />;
 }
 
-/**
- * A small word processor: bold, italic, underline, strike-through, colours, headings, quotes,
- * lists and alignment. It edits the HTML of a contentEditable box and reports a structured
- * document on every change; pasted text arrives without its outside formatting. Give it a new
- * `key` to load a different `initial` document.
- */
 export function RichTextEditor({
   id,
   initial,
@@ -122,10 +110,8 @@ export function RichTextEditor({
   const [active, setActive] = useState<Active>(IDLE);
   const [colorsOpen, setColorsOpen] = useState(false);
 
-  // Seeded once; afterwards the DOM is the editor's own state.
   useEffect(() => {
     if (editorRef.current) editorRef.current.innerHTML = richTextToEditorHtml(initial);
-    // `initial` is read on mount only; a new document comes with a new key.
   }, []);
 
   useEffect(() => {
@@ -154,7 +140,6 @@ export function RichTextEditor({
     onChange(next);
   }
 
-  /** Runs a formatting command on the selection, then reports the new document. */
   function format(command: string, value?: string): void {
     editorRef.current?.focus();
     run('styleWithCSS', 'true');
@@ -163,7 +148,6 @@ export function RichTextEditor({
   }
 
   function setBlock(value: BlockValue): void {
-    // Choosing the block the caret is already in turns a quote back into a paragraph.
     format('formatBlock', active.block === value && value === 'blockquote' ? 'p' : value);
   }
 
@@ -315,7 +299,6 @@ export function RichTextEditor({
           onInput={emit}
           onBlur={() => setColorsOpen(false)}
           onPaste={(event) => {
-            // Text only: formatting copied from elsewhere would not survive the document anyway.
             event.preventDefault();
             run('insertText', event.clipboardData.getData('text/plain'));
             emit();

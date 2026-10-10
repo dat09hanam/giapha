@@ -15,14 +15,9 @@ type AuthShellProps = {
   description: string;
   children: ReactNode;
   footer: ReactNode;
-  /** True when the page draws no site header, so the shell fills the whole viewport. */
   fullScreen?: boolean;
 };
 
-/**
- * Ink-wash landscape behind a parchment card. On large screens the card floats centred over the
- * full scene; on phones the brand sits above a landscape band and the card overlaps its lower edge.
- */
 export function AuthShell({
   eyebrow,
   title,
@@ -38,7 +33,6 @@ export function AuthShell({
         fullScreen ? 'min-h-dvh' : 'min-h-[calc(100dvh-4rem)]',
       )}
     >
-      {/* Large screens: the landscape fills the page behind the card. */}
       <div
         className="pointer-events-none absolute inset-0 -z-10 hidden lg:block"
         aria-hidden="true"
@@ -48,7 +42,6 @@ export function AuthShell({
 
       <BrandBlock className="px-6 pt-8 lg:hidden" />
 
-      {/* Phones and tablets: a landscape band the card overlaps. */}
       <div className="pointer-events-none relative mt-6 h-64 sm:h-80 lg:hidden" aria-hidden="true">
         <Landscape imageClassName="origin-bottom-right scale-150 object-[100%_100%]" />
         <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#f7efdf] to-transparent" />
@@ -98,7 +91,6 @@ function Landscape({ imageClassName }: { imageClassName: string }) {
   );
 }
 
-/** The site's logo, name and description, the same as the home page's masthead and footer. */
 function BrandBlock({ className }: { className?: string }) {
   return (
     <div className={cn('flex flex-col items-center text-center', className)}>

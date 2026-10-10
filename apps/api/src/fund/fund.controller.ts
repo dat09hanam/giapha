@@ -22,12 +22,10 @@ import { FamilyRoles } from '../common/auth/family-roles.decorator.js';
 import { RequiresFamilyFeature } from '../common/auth/family-feature.decorator.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
-// Runtime import is required for Nest's emitted DTO validation metadata.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { SaveFundEntryDto } from './fund.dto.js';
 import { FundService, type FundEntryResponse, type FundResponse } from './fund.service.js';
 
-/** Quỹ họ: every member reads the ledger; only the clan head (MEMBER_PLUS) writes it. */
 @Controller('families/:slug/fund')
 @RequiresFamilyFeature('fund')
 @UseGuards(SessionAuthGuard, FamilyAccessGuard)

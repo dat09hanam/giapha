@@ -17,6 +17,7 @@ import { MediaModule } from './media/media.module.js';
 import { MeritModule } from './merit/merit.module.js';
 import { PlatformFeaturesModule } from './platform-features/platform-features.module.js';
 import { PosterDecorationsModule } from './poster-decorations/poster-decorations.module.js';
+import { PricingPlansModule } from './pricing-plans/pricing-plans.module.js';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { PosterDecorationsModule } from './poster-decorations/poster-decorations
     LibraryModule,
     PlatformFeaturesModule,
     ArticlesModule,
+    PricingPlansModule,
   ],
 })
 export class AppModule {}

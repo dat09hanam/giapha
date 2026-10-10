@@ -15,7 +15,6 @@ import type { FamilyTreeResponse } from '@/types/family-tree';
 
 type Point = { x: number; y: number };
 
-/** Where each person-node handle sits on the card, as the canvas places them. */
 function handlePoint(
   node: PersonFlowNode,
   origin: Point,
@@ -37,11 +36,6 @@ function handlePoint(
   }
 }
 
-/**
- * The whole phả đồ as the viewer shows it, on the family's decorated sheet, fitted into
- * `width` × `height`. Drawn without React Flow, whose measuring would be thrown off by the
- * scaled print preview.
- */
 export function PosterOverview({
   tree,
   family,

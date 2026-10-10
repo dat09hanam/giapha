@@ -1,15 +1,5 @@
-/**
- * Birth and death dates are free text: old ancestors often have only a year
- * ("1850", "khoảng 1850", "03/1920"). Older records hold `YYYY-MM-DD`.
- */
-
 type DateParts = { year: number; month: number | null; day: number | null };
 
-/**
- * The parts of a date the text spells out. Years may be short ("938" for an
- * ancestor of the 10th century); free text falls back to its first 3- or
- * 4-digit number, so "khoảng năm 1850" still gives 1850.
- */
 function partsOf(value: string | null | undefined): DateParts | null {
   if (!value) return null;
   const text = value.trim().replace(/^khoảng\s+/i, '');
@@ -29,15 +19,10 @@ function partsOf(value: string | null | undefined): DateParts | null {
   return year && Number(year) > 0 ? { year: Number(year), month: null, day: null } : null;
 }
 
-/** The year in such a date, or null when it names none. */
 export function yearOf(value: string | null | undefined): number | null {
   return partsOf(value)?.year ?? null;
 }
 
-/**
- * A sortable `YYYY`, `YYYY-MM` or `YYYY-MM-DD` for as much of the date as is
- * known (short years padded with zeros), or null without a year.
- */
 export function sortKeyOf(value: string | null | undefined): string | null {
   const parts = partsOf(value);
   if (!parts) return null;
@@ -49,10 +34,6 @@ export function sortKeyOf(value: string | null | undefined): string | null {
   ].join('-');
 }
 
-/**
- * Negative when `a` is earlier, positive when `b` is, null when the
- * dates cannot tell (a missing year, or the same year known to different detail).
- */
 export function compareDates(
   a: string | null | undefined,
   b: string | null | undefined,
@@ -65,19 +46,16 @@ export function compareDates(
   return left < right ? -1 : 1;
 }
 
-/** How such a date reads: older `YYYY-MM-DD` records as `dd/mm/yyyy`, typed text as it is. */
 export function formatPartialDate(value: string | null | undefined): string {
   if (!value) return '';
   const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
   return iso ? `${iso[3]}/${iso[2]}/${iso[1]}` : value;
 }
 
-/** A date as far as it is known: a month needs a year, a day needs a month. */
 export type PartialDate = {
   year: number | null;
   month: number | null;
   day: number | null;
-  /** Written as "khoảng …": the family only roughly remembers it. */
   approximate: boolean;
 };
 
@@ -92,7 +70,6 @@ export function parsePartialDate(value: string | null | undefined): PartialDate 
   };
 }
 
-/** `15/03/1920`, `03/1920` or `1920`, with "khoảng " in front when approximate; '' without a year. */
 export function composePartialDate({ year, month, day, approximate }: PartialDate): string {
   if (year === null) return '';
   const pad = (part: number): string => String(part).padStart(2, '0');
@@ -106,7 +83,6 @@ export function composePartialDate({ year, month, day, approximate }: PartialDat
 }
 
 export function daysInMonth(year: number, month: number): number {
-  // setUTCFullYear, unlike Date.UTC, does not read years 0–99 as 1900–1999.
   const date = new Date(0);
   date.setUTCFullYear(year, month, 0);
   return date.getUTCDate();

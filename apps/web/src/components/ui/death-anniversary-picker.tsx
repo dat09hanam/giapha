@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 
 const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] as const;
 
-/** What the lunar months are called; tháng Một is the 11th. */
 const LUNAR_MONTH_NAMES = [
   'Giêng',
   'Hai',
@@ -30,9 +29,7 @@ type DeathAnniversaryPickerProps = {
   id: string;
   value: string;
   onChange: (value: string) => void;
-  /** Overrides the legend so the picker can also label a person's giỗ. */
   label?: string;
-  /** Lunar months never exceed 30 days; solar anniversaries keep the default. */
   maxDayInMonth?: number;
   required?: boolean;
   disabled?: boolean;
@@ -61,7 +58,6 @@ function lastDay(month: number | null, maxDayInMonth: number): number {
   return Math.min(month === null ? 31 : DAYS_IN_MONTH[month - 1]!, maxDayInMonth);
 }
 
-/** "Mùng 5 tháng Giêng" for a lunar date, "05/01" for a solar one. */
 function describe({ day, month }: DayMonth, lunar: boolean): string {
   if (day === null || month === null) return '';
   if (!lunar) return formatValue(day, month);
@@ -90,7 +86,6 @@ function AnniversaryDialog({
   const complete = picked.day !== null && picked.month !== null;
 
   function pickMonth(month: number): void {
-    // A day the new month does not have moves back to its last day.
     setPicked(({ day }) => ({
       month,
       day: day === null ? null : Math.min(day, lastDay(month, maxDayInMonth)),
@@ -190,10 +185,6 @@ function AnniversaryDialog({
   );
 }
 
-/**
- * A death anniversary as day and month: a field that opens month and day
- * grids. `value` and `onChange` use `DD/MM`, or '' for none.
- */
 export function DeathAnniversaryPicker({
   id,
   value,
@@ -252,8 +243,6 @@ export function DeathAnniversaryPicker({
           </button>
         ) : null}
         {required ? (
-          // Keeps the form's own "required" check: an empty anniversary blocks
-          // the submit, and focusing this box opens the picker.
           <input
             tabIndex={-1}
             aria-hidden="true"

@@ -10,7 +10,6 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   return articleMetadata('LIBRARY', (await params).slug);
 }
 
-/** One published article of Thư viện. */
 export default async function ArticlePage({ params }: ArticlePageProps) {
   return <ArticleRoute category="LIBRARY" slug={(await params).slug} />;
 }

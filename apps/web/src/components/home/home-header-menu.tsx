@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, Flame, House, LayoutGrid, Menu, Network, UserRound, X } from 'lucide-react';
+import { BookOpen, Flame, House, LayoutGrid, Menu, Network, Tag, UserRound, X } from 'lucide-react';
 
 import { ContactLink } from '@/components/social/contact-link';
 import { RingingPhone } from '@/components/social/ringing-phone';
@@ -16,9 +16,9 @@ const LINKS = [
   { href: '#chuc-nang', label: 'Chức năng', icon: LayoutGrid },
   { href: '/mau-bai-cung', label: 'Mẫu bài cúng', icon: Flame },
   { href: '/thu-vien', label: 'Thư viện', icon: BookOpen },
+  { href: '#bang-gia', label: 'Bảng giá', icon: Tag },
 ] as const;
 
-/** Away from the home page, section links lead back to that section of it. */
 function linkHref(href: string, onHomePage: boolean): string {
   return href.startsWith('#') && !onHomePage ? `/${href}` : href;
 }
@@ -26,7 +26,6 @@ function linkHref(href: string, onHomePage: boolean): string {
 export function HomeHeaderMenu({ onHomePage = true }: { onHomePage?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
-  // On the home page the chosen section is remembered; elsewhere the path decides.
   const [chosenSection, setChosenSection] = useState('#top');
   const current = onHomePage
     ? chosenSection

@@ -7,19 +7,12 @@ import { cn } from '@/lib/utils';
 export type TabItem = {
   id: string;
   label: string;
-  /** Shown on phones, where every tab shares one row; defaults to `label`. */
   shortLabel?: string;
   icon?: ReactNode;
-  /** A count that wants attention, such as unread items; hidden when zero. */
   badge?: number;
   content: ReactNode;
 };
 
-/**
- * Splits a page into sections. Every panel stays mounted so unsaved form input
- * survives switching tabs, and the open tab is kept in the URL hash so a
- * reload or shared link opens the same section.
- */
 export function Tabs({
   tabs,
   label,
@@ -27,7 +20,6 @@ export function Tabs({
 }: {
   tabs: readonly TabItem[];
   label: string;
-  /** Page buttons on the tab row from lg; above the tabs on narrower screens. */
   actions?: ReactNode;
 }) {
   const [activeId, setActiveId] = useState(tabs[0]?.id ?? '');
@@ -58,7 +50,6 @@ export function Tabs({
   return (
     <div className="grid min-w-0 gap-6">
       <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        {/* Phones: equal columns, icon over a short label. From sm: a row of pills. */}
         <div
           role="tablist"
           aria-label={label}

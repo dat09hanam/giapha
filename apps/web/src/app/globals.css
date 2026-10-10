@@ -1,11 +1,5 @@
 @import 'tailwindcss';
 
-/*
- * Classic & Heritage system: gỗ trầm carries the large architectural surfaces,
- * đỏ son marks actions and important states, and vàng đồng draws the fine details.
- * `brand-*` stays the red interaction scale so existing feature screens inherit
- * the new palette without coupling their behaviour to a particular visual shell.
- */
 @theme {
   --color-brand-50: #faf3f2;
   --color-brand-100: #f4e3e1;
@@ -49,14 +43,49 @@
   --font-display: var(--font-noto-serif), 'Noto Serif', Georgia, 'Times New Roman', serif;
 }
 
-/* A white card on the paper background; cards inset from the screen edge on phones too. */
 @utility surface {
   border: 1px solid var(--color-line);
   border-radius: 0.875rem;
   background: var(--card);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 82%),
-    0 14px 34px -28px rgb(74 46 18 / 55%);
+    0 1px 3px rgb(74 46 18 / 8%),
+    0 14px 34px -24px rgb(74 46 18 / 45%);
+}
+
+@utility content-veil {
+  background: linear-gradient(
+    90deg,
+    rgb(250 247 240 / 18%) 0%,
+    rgb(250 247 240 / 42%) 22%,
+    rgb(250 247 240 / 52%) 50%,
+    rgb(250 247 240 / 42%) 78%,
+    rgb(250 247 240 / 18%) 100%
+  );
+
+  @media (width >= 64rem) {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgb(250 247 240 / 55%) 22%,
+      rgb(250 247 240 / 74%) 50%,
+      rgb(250 247 240 / 55%) 78%,
+      transparent 100%
+    );
+  }
+
+  @media (width >= 100rem) {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 8%,
+      rgb(250 247 240 / 58%) 26%,
+      rgb(250 247 240 / 76%) 50%,
+      rgb(250 247 240 / 58%) 74%,
+      transparent 92%,
+      transparent 100%
+    );
+  }
 }
 
 @utility heritage-hero {
@@ -82,7 +111,7 @@
 :root {
   --background: #fdfbf7;
   --foreground: #2c221e;
-  --card: #fffefa;
+  --card: #fffdf9;
   --card-foreground: #2c221e;
   --primary: #7a1c1c;
   --primary-foreground: #fffdf9;
@@ -91,7 +120,6 @@
   --muted: #f3eadc;
   --muted-foreground: #76665c;
   --border: #dfcda7;
-  /* Gold stays decorative; the darker lacquer red keeps focus indicators visible on paper. */
   --ring: #7a1c1c;
   --radius: 0.75rem;
 }
@@ -100,7 +128,6 @@
   border-color: var(--border);
 }
 
-/* The paper lives on <html>, so scenery drawn behind the page (z-index below 0) still shows. */
 html {
   min-height: 100%;
   background:
@@ -139,8 +166,6 @@ a {
   background: rgb(253 251 247 / 88%) !important;
 }
 
-/* "Xem ngang": the tree turns a quarter round into landscape and back. The
-   resting values (rotate: 90deg) come from the element's own classes. */
 @keyframes tree-turn-in {
   from {
     rotate: 0deg;
@@ -169,11 +194,6 @@ a {
   }
 }
 
-/*
- * Modals (see components/ui/presence.tsx). The backdrop fades; a dialog rises
- * and fades in; a sheet slides up from the bottom; a sheet-dialog is a sheet on
- * phones and a dialog from sm. data-presence="closed" plays them backwards.
- */
 @keyframes ui-fade-in {
   from {
     opacity: 0;
@@ -253,11 +273,6 @@ a {
   }
 }
 
-/*
- * A panel that is a sheet only below lg and sits in the page from lg up. Its
- * state is `data-sheet`, not `data-presence`: from lg it stays on screen while
- * "closed", and the descendant rules above would close any dialog opened in it.
- */
 @media (max-width: 63.999rem) {
   .ui-sheet-below-lg {
     animation: ui-slide-in 300ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -268,10 +283,6 @@ a {
   }
 }
 
-/*
- * Moving between a family's sections (app/[slug]/template.tsx): the new page rises a
- * little and fades in. No fill mode, so no transform is left behind to trap fixed children.
- */
 @keyframes page-enter {
   from {
     opacity: 0;
@@ -283,8 +294,6 @@ a {
   animation: page-enter 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* A phone ringing: a quick burst of shakes, then a rest, so it catches the eye without
-   nagging. Used on the "Tạo gia phả" contact buttons (RingingPhone). */
 @keyframes phone-ring {
   0%,
   28%,
@@ -305,11 +314,6 @@ a {
   }
 }
 
-/*
- * A field that failed its check (FormValidation sets `aria-invalid`), and the red text under it.
- * Plain red, apart from the lacquer `brand-*` reds used for actions, so an error reads as one.
- * Unlayered, so it wins over the field's own border utilities.
- */
 :is(input, select, textarea)[aria-invalid='true'] {
   border-color: #dc2626;
 }
@@ -335,11 +339,6 @@ a {
   animation: phone-ring 2.4s ease-in-out infinite;
 }
 
-/*
- * Loading (components/ui/heritage-loader.tsx). The tree grows one generation
- * at a time on a 3.2s cycle: founder, branches, children, branches,
- * grandchildren; it holds, fades, and grows again.
- */
 .heritage-tree circle,
 .heritage-tree g[class*='heritage-node'] {
   transform-box: fill-box;
@@ -456,7 +455,6 @@ a {
   }
 }
 
-/* The caption breathes with the tree. */
 .heritage-caption {
   animation: heritage-caption 3.2s ease-in-out infinite;
 }
@@ -471,7 +469,6 @@ a {
   }
 }
 
-/* The small mark in busy buttons: parent, then each child, light up in turn. */
 .heritage-dot {
   transform-box: fill-box;
   transform-origin: center;
@@ -497,7 +494,6 @@ a {
   }
 }
 
-/* The bar across the top while the next page loads (components/layout/navigation-progress.tsx). */
 @keyframes heritage-progress {
   from {
     transform: scaleX(0);
@@ -526,7 +522,6 @@ a {
     animation-duration: 1ms !important;
   }
 
-  /* The tree stands still, fully grown; only the caption and dots fade gently. */
   .heritage-tree *,
   .heritage-dot {
     animation: none !important;
@@ -537,4 +532,8 @@ a {
   .phone-ring {
     animation: none;
   }
+}
+
+body:has([data-admin-workspace]) > header {
+  display: none;
 }

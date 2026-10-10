@@ -35,7 +35,6 @@ export type FamilyHeaderViewer = {
   id: string;
   displayName: string;
   role: UserRole;
-  /** A member account the clan head put in charge of a chi/nhánh; it edits that in the designer. */
   managesBranches: boolean;
 } | null;
 
@@ -49,10 +48,6 @@ const NAV_ICONS: Record<FamilyNavKey, LucideIcon> = {
   announcements: Bell,
 };
 
-/**
- * Lights a link the moment it is tapped, while the next page is still on its way.
- * Render it inside a positioned Link.
- */
 function PendingGlow({ className }: { className: string }) {
   const { pending } = useLinkStatus();
   return (
@@ -105,7 +100,7 @@ function SideNavEntry({
       className={cn(
         base,
         active
-          ? 'bg-paper text-brand-800 shadow-sm ring-1 ring-inset ring-gold-400/40'
+          ? 'bg-paper font-semibold text-brand-800 shadow-sm ring-1 ring-inset ring-gold-400/40 before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-brand-700'
           : 'text-gold-50/85 hover:bg-white/10 hover:text-white',
       )}
     >
@@ -116,7 +111,6 @@ function SideNavEntry({
   );
 }
 
-/** One tab of the phone's bottom bar: an icon over a short label, Facebook-style. */
 export function BottomTab({
   icon: Icon,
   label,
@@ -128,7 +122,6 @@ export function BottomTab({
   label: string;
   active?: boolean;
   disabled?: boolean;
-  /** Working on it, e.g. saving: the loading mark stands in for the icon. */
   busy?: boolean;
 }) {
   return (
@@ -162,18 +155,12 @@ export function BottomTab({
   );
 }
 
-/**
- * A family's navigation. Desktops get a dark-wood sidebar with the family's name;
- * phones and tablets get a bottom tab bar, where the thumb is. The page leaves
- * room for either (see the family chrome).
- */
 export function FamilyHeader({
   family,
   nav,
   viewer,
 }: {
   family: { slug: string; name: string };
-  /** The sections this family shows, in menu order. */
   nav: readonly FamilyNavItem[];
   viewer: FamilyHeaderViewer;
 }) {
@@ -183,9 +170,7 @@ export function FamilyHeader({
   const adminHref =
     viewer?.role === 'ADMIN' ? '/admin' : `/admin/${encodeURIComponent(family.slug)}`;
   const adminActive = isManager && pathname.startsWith('/admin');
-  // The designer brings its own bottom bar of editing tools.
   const inDesigner = pathname.endsWith('/thiet_ke');
-  // The clan head's admin area, or a branch manager's way into the designer.
   const managerLink = isManager
     ? { href: adminHref, label: 'Quản lý dòng họ', icon: Settings, active: adminActive }
     : viewer?.managesBranches
@@ -196,11 +181,9 @@ export function FamilyHeader({
           active: inDesigner,
         }
       : null;
-  // The phone's bar keeps only sections that work; the others are listed in the menu.
   const available = nav.filter(
     (item): item is FamilyNavItem & { path: string } => item.path !== null && !item.menuOnly,
   );
-  // The Menu sheet: working sections without a tab, then those still being built.
   const inMenu = nav.filter(
     (item): item is FamilyNavItem & { path: string } =>
       item.path !== null && Boolean(item.menuOnly),
@@ -224,7 +207,6 @@ export function FamilyHeader({
 
   return (
     <>
-      {/* From lg: a dark-wood sidebar down the left; the page leaves room for it. */}
       <aside
         className="heritage-hero fixed inset-y-0 left-0 z-40 hidden w-60 flex-col overflow-hidden rounded-none border-y-0 border-l-0 border-r border-gold-500/30 text-white shadow-xl lg:flex print:hidden!"
         aria-label="Điều hướng dòng họ"
@@ -233,7 +215,6 @@ export function FamilyHeader({
           aria-hidden="true"
           className="pointer-events-none absolute -right-20 top-20 size-72 rounded-full bg-gold-400/10 blur-3xl"
         />
-        {/* The painting's sky is opaque; fading its top keeps its edge from showing as a line. */}
         <Image
           src="/images/decorations/sidebar-ancestral-hall.png"
           alt=""
@@ -267,11 +248,10 @@ export function FamilyHeader({
             <Link
               href={managerLink.href}
               aria-current={managerLink.active ? 'page' : undefined}
-              // A gilded button rather than a plain row, so the manager's own area stands out.
               className={cn(
                 'group relative mt-1 flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-semibold transition duration-200',
                 managerLink.active
-                  ? 'bg-paper text-brand-800 shadow-sm ring-1 ring-inset ring-gold-400/40'
+                  ? 'bg-paper text-brand-800 shadow-sm ring-1 ring-inset ring-gold-400/40 before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-brand-700'
                   : 'bg-gradient-to-r from-gold-400/25 to-gold-500/10 text-gold-50 shadow-[0_0_18px_rgba(212,175,55,0.18)] ring-1 ring-inset ring-gold-300/60 hover:from-gold-400/35 hover:to-gold-500/20 hover:text-white',
               )}
             >
@@ -335,7 +315,7 @@ export function FamilyHeader({
           <div className="fixed inset-0 z-40 lg:hidden">
             <button
               type="button"
-              className="ui-backdrop absolute inset-0 bg-stone-950/40"
+              className="ui-backdrop absolute inset-0 bg-stone-950/40 backdrop-blur-[2px]"
               aria-label="Đóng menu"
               tabIndex={-1}
               onClick={() => setMenuOpen(false)}
@@ -350,7 +330,6 @@ export function FamilyHeader({
                 {family.name}
               </p>
               {managerLink ? (
-                // The clan head's or a branch manager's own page; other members never see it.
                 <Link
                   href={managerLink.href}
                   aria-current={managerLink.active ? 'page' : undefined}
@@ -480,7 +459,6 @@ export function FamilyHeader({
                 <BottomTab
                   icon={menuOpen ? X : Menu}
                   label="Menu"
-                  // A page reached from the menu keeps the Menu tab lit.
                   active={menuOpen || inMenuSection || Boolean(managerLink?.active)}
                 />
               </button>

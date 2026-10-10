@@ -24,7 +24,6 @@ export default async function FamilyLibraryPage({ params }: FamilyLibraryPagePro
   try {
     [library, people] = await Promise.all([
       getLibrary(slug, sessionToken),
-      // Only the clan head tags documents with people, so only they need the tree.
       profile.role === 'MEMBER_PLUS'
         ? getFamilyTree(slug, sessionToken).then((tree) => tree.people)
         : Promise.resolve([]),

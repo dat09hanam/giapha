@@ -12,7 +12,6 @@ import { updatePlatformFeatures } from '@/lib/platform-features-api';
 import { cn } from '@/lib/utils';
 import type { FamilyFeature, FamilyFeatures } from '@/types/family-tree';
 
-/** The platform admin's switches for every family's sections; each one saves as it is flipped. */
 export function PlatformFeaturesForm({ initial }: { initial: FamilyFeatures }) {
   const showToast = useToast();
   const [features, setFeatures] = useState<FamilyFeatures>(initial);
@@ -30,7 +29,10 @@ export function PlatformFeaturesForm({ initial }: { initial: FamilyFeatures }) {
       });
     } catch (error: unknown) {
       setFeatures((current) => ({ ...current, [feature]: !on }));
-      showToast({ kind: 'error', message: getApiErrorMessage(error, `${on ? 'bật' : 'tắt'} chức năng`) });
+      showToast({
+        kind: 'error',
+        message: getApiErrorMessage(error, `${on ? 'bật' : 'tắt'} chức năng`),
+      });
     } finally {
       setSaving(null);
     }

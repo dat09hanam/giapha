@@ -10,23 +10,15 @@ export type UsernameStatus = 'empty' | 'invalid' | 'checking' | 'free' | 'taken'
 const PREFIX_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.@-]*$/;
 const PREFIX_MIN_LENGTH = 3;
 export const PREFIX_MAX_LENGTH = 60;
-/** Waits for a pause in typing before asking the API. */
 const CHECK_DELAY_MS = 350;
 
-/**
- * Whether the username made of a typed prefix and the family's suffix is free, asked of the API
- * while the clan head types.
- */
 export function useUsernameCheck(familySlug: string, prefix: string): UsernameStatus {
   const typed = prefix.trim();
   const checkable =
     typed.length >= PREFIX_MIN_LENGTH &&
     typed.length <= PREFIX_MAX_LENGTH &&
     PREFIX_PATTERN.test(typed);
-  /** The latest answer and the prefix it was for; null when the check failed. */
-  const [answer, setAnswer] = useState<{ prefix: string; available: boolean | null } | null>(
-    null,
-  );
+  const [answer, setAnswer] = useState<{ prefix: string; available: boolean | null } | null>(null);
 
   useEffect(() => {
     if (!checkable) return;
@@ -68,10 +60,6 @@ function statusMessage(status: UsernameStatus, username: string, suffix: string)
   }
 }
 
-/**
- * The typed part of a username, with the family's suffix shown fixed after it; turns green when
- * the whole name is free and red when it is taken.
- */
 export function UsernameField({
   id,
   label,
@@ -83,7 +71,6 @@ export function UsernameField({
 }: Omit<ComponentProps<'input'>, 'value'> & {
   id: string;
   label: string;
-  /** What the API appends, e.g. `HoPham1503`. */
   suffix: string;
   status: UsernameStatus;
   value: string;
@@ -97,7 +84,6 @@ export function UsernameField({
       <div
         className={cn(
           'flex h-11 w-full overflow-hidden rounded-lg border border-gold-700/45 bg-[var(--card)] transition focus-within:border-brand-700 focus-within:ring-2 focus-within:ring-brand-700/15',
-          // `!`: the unlayered `* { border-color }` in globals.css outranks plain utilities.
           status === 'free' && 'border-2 border-emerald-600!',
           status === 'taken' && 'border-2 border-red-600!',
           className,

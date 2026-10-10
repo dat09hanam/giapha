@@ -27,7 +27,6 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
   try {
     [detail, people] = await Promise.all([
       getAlbum(slug, albumId, sessionToken),
-      // Only the clan head tags photos with people, so only they need the tree.
       profile.role === 'MEMBER_PLUS'
         ? getFamilyTree(slug, sessionToken).then((tree) => tree.people)
         : Promise.resolve([]),
@@ -41,7 +40,11 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
   }
 
   return (
-    <main className="min-h-[calc(100dvh-4rem)] bg-stone-950">
+    <main className="min-h-[calc(100dvh-4rem)]">
+      <div
+        className="pointer-events-none fixed inset-0 z-[-5] bg-paper/35 backdrop-blur-sm lg:left-60 print:hidden"
+        aria-hidden="true"
+      />
       <AlbumView familySlug={slug} initial={detail} people={people} />
     </main>
   );

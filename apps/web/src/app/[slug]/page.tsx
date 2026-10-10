@@ -30,7 +30,6 @@ export async function generateMetadata({ params }: FamilyHomePageProps): Promise
   }
 }
 
-/** One block of the home page; a block that fails to load does not take the page down. */
 async function section<T>(on: boolean, load: () => Promise<T>): Promise<HomeSection<T>> {
   if (!on) return { state: 'off' };
   try {
@@ -62,7 +61,6 @@ export default async function FamilyHomePage({ params }: FamilyHomePageProps) {
     throw error;
   }
 
-  // Null shows every section, as the navigation does; the API still refuses one switched off.
   const features: FamilyFeatures | null = await getPlatformFeatures().catch(() => null);
   const [fund, posts] = await Promise.all([
     section(features?.fund ?? true, async () => (await getFundLedger(slug, sessionToken)).totals),

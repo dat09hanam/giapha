@@ -12,10 +12,6 @@ import { updateFamilyAccount, type FamilyAccount } from '@/lib/family-accounts-a
 
 const FORM_ID = 'account-email-form';
 
-/**
- * Adds, changes or removes a member account's email, which signs the account in and receives its
- * Quên mật khẩu code. Errors, the API's included (an email already taken), show under the field.
- */
 export function AccountEmailDialog({
   familySlug,
   account,

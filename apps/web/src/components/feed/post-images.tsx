@@ -7,7 +7,6 @@ import type { FeedImage } from '@/lib/feed-api';
 import { familyMediaSrc } from '@/lib/media-api';
 import { cn } from '@/lib/utils';
 
-/** A single photo keeps its shape, within these bounds (width ÷ height). */
 const MIN_SINGLE_RATIO = 4 / 5;
 const MAX_SINGLE_RATIO = 2;
 
@@ -29,14 +28,12 @@ function Photo({
       className={cn('relative block overflow-hidden bg-stone-200', className)}
       aria-label={label}
     >
-      {/* Family media is served by the API behind the session cookie, so next/image does not apply. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt="" loading="lazy" className="size-full object-cover" draggable={false} />
     </button>
   );
 }
 
-/** One to four photos laid out as Facebook does. */
 export function PostImages({
   images,
   familySlug,
@@ -82,7 +79,6 @@ export function PostImages({
   );
 }
 
-/** Full-screen photos: swipe or use the arrows; Escape or ✕ closes. */
 export function ImageLightbox({
   images,
   familySlug,
@@ -115,7 +111,7 @@ export function ImageLightbox({
       role="dialog"
       aria-modal="true"
       aria-label="Xem ảnh"
-      className="ui-backdrop fixed inset-0 z-[80] flex flex-col bg-black/95 text-white"
+      className="ui-backdrop fixed inset-0 z-[80] flex flex-col bg-stone-950/40 text-white backdrop-blur-2xl"
       onTouchStart={(event) => {
         touchStartX.current = event.touches[0]?.clientX ?? null;
       }}

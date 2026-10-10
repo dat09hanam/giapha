@@ -23,7 +23,6 @@ import type {
 } from './feed.types.js';
 
 const PAGE_SIZE = 10;
-/** Names listed under a post's reactions; the rest are a count. */
 const REACTOR_NAMES_SHOWN = 3;
 
 const POST_SELECT = {
@@ -56,7 +55,6 @@ type CommentRecord = {
   editedAt: Date | null;
 };
 
-/** Who is acting: their hashed device key, and whether they are the clan head. */
 export type FeedActor = { keyHash: string | null; canModerate: boolean };
 
 type ReactionTarget = { postId: string } | { commentId: string };
@@ -106,11 +104,6 @@ export class FeedService {
     @Inject(MediaService) private readonly media: MediaService,
   ) {}
 
-  /**
-   * The clan head's and a branch manager's accounts belong to one person, so they always post,
-   * comment and react under the account's name. The members' shared account returns null and
-   * keeps the name each phone types.
-   */
   async personalName(access: FamilyAccess, displayName: string): Promise<string | null> {
     if (access.role === UserRole.MEMBER_PLUS) return displayName;
     const managed = await this.prisma.branchManager.count({
@@ -148,7 +141,6 @@ export class FeedService {
       throw new BadRequestException('Bài viết cần có nội dung hoặc ít nhất một ảnh.');
     }
 
-    // Files first, so the post never points at a photo that failed to save.
     const stored: string[] = [];
     try {
       for (const image of images) {
@@ -167,8 +159,6 @@ export class FeedService {
           authorKeyHash: keyHash,
           content,
           images: {
-            // familyId comes from the post: it is part of the composite key the images hang off,
-            // and Prisma rejects it here at runtime even though the types allow it.
             create: images.map((image, index) => ({
               url: stored[index]!,
               width: image.width,
@@ -215,7 +205,6 @@ export class FeedService {
     if (!actor.canModerate && post.authorKeyHash !== actor.keyHash) {
       throw new ForbiddenException('Bạn chỉ có thể xóa bài viết đăng từ thiết bị này.');
     }
-    // Comments, replies, reactions and image rows go with it (Cascade).
     await this.prisma.feedPost.delete({ where: { id: post.id } });
     await this.media.removeOwnedFiles(
       familyId,
@@ -242,7 +231,6 @@ export class FeedService {
         select: { id: true, parentId: true, authorName: true },
       });
       if (!target) throw new NotFoundException('Không tìm thấy bình luận cần phản hồi.');
-      // Replies stay one level deep; answering a reply names its author instead.
       parentId = target.parentId ?? target.id;
       replyToName = target.parentId ? target.authorName : null;
     }
@@ -286,7 +274,6 @@ export class FeedService {
     if (!actor.canModerate && comment.authorKeyHash !== actor.keyHash) {
       throw new ForbiddenException('Bạn chỉ có thể xóa bình luận viết từ thiết bị này.');
     }
-    // Its replies and reactions go with it (Cascade).
     await this.prisma.feedComment.delete({ where: { id: comment.id } });
   }
 
@@ -322,7 +309,6 @@ export class FeedService {
     return summarize(await this.reactionsFor(familyId, target), keyHash);
   }
 
-  /** Posts with their comments and every reaction, gathered in three queries. */
   private async buildPosts(
     familyId: string,
     posts: readonly PostRecord[],

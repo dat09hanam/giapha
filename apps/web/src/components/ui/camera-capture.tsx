@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 
 type Facing = 'user' | 'environment';
 
-/** What went wrong opening the camera, in words the visitor can act on. */
 function cameraErrorMessage(error: unknown): string {
   const name = error instanceof DOMException ? error.name : '';
   if (name === 'NotAllowedError' || name === 'SecurityError') {
@@ -23,11 +22,6 @@ function cameraErrorMessage(error: unknown): string {
   return 'Không mở được camera. Hãy thử lại hoặc chọn ảnh có sẵn.';
 }
 
-/**
- * Takes a photo with the device camera. The live preview is mirrored for the
- * front camera like a mirror, but the photo itself is not. The photo is handed
- * back as a JPEG file, ready for the same checks and cropping as an upload.
- */
 export function CameraCapture({
   onCancel,
   onCaptured,

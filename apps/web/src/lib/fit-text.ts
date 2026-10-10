@@ -1,4 +1,3 @@
-/** Line height used wherever fitted text is drawn. */
 export const FITTED_LINE_HEIGHT = 1.2;
 
 let context: CanvasRenderingContext2D | null | undefined;
@@ -12,7 +11,6 @@ function measureContext(): CanvasRenderingContext2D | null {
   return context;
 }
 
-/** Breaks words into lines no wider than `maxWidth` at the context's current font. */
 function wrap(
   ctx: CanvasRenderingContext2D,
   words: readonly string[],
@@ -34,11 +32,6 @@ function wrap(
   return lines;
 }
 
-/**
- * The largest font size, in pixels, at which `text` wraps into at most
- * `maxLines` lines inside a `width` × `height` box, between `minSize` and
- * `maxSize`. Words are never broken. Outside the browser, `fallback` is used.
- */
 export function fitTextSize({
   text,
   width,
@@ -52,7 +45,6 @@ export function fitTextSize({
   text: string;
   width: number;
   height: number;
-  /** CSS font without the size, such as `700 Inter, sans-serif`. */
   font: string;
   minSize: number;
   maxSize: number;

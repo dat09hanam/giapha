@@ -1,14 +1,9 @@
-/**
- * Formatted text as the API stores it: blocks of styled runs, never HTML. Mirrors
- * `apps/api/src/common/validation/rich-text.ts`, which validates it.
- */
 export type RichTextRun = {
   text: string;
   bold?: true;
   italic?: true;
   underline?: true;
   strike?: true;
-  /** `#rrggbb`. */
   color?: string;
 };
 

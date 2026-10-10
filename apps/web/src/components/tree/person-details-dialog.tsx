@@ -50,7 +50,6 @@ const MARRIAGE_STATUS_LABEL: Record<FamilyTreeRelationship['status'], string | n
 const HEADER_ACTION_CLASS =
   'inline-flex items-center gap-1.5 rounded-full border border-amber-900/15 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 transition hover:border-amber-700/50 hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700';
 
-/** `YYYY-MM-DD…` as `DD/MM/YYYY`; anything else as given. */
 function byFamilyOrder(a: Person, b: Person): number {
   const order = (a.orderInFamily ?? Infinity) - (b.orderInFamily ?? Infinity);
   if (order !== 0 && Number.isFinite(order)) return order;
@@ -64,12 +63,6 @@ function hasParentsIn(person: Person, byId: ReadonlyMap<string, Person>): boolea
   );
 }
 
-/**
- * "Con thứ N" for someone born into the family. Someone who married in (no
- * parents on the tree, but a spouse who has them) takes their spouse's place
- * instead: the wife of the first son is "Con dâu thứ 1", the husband of the
- * first daughter "Con rể thứ 1".
- */
 function familyRoleLabel(
   person: Person,
   byId: ReadonlyMap<string, Person>,
@@ -121,10 +114,6 @@ function RelativeChip({
   );
 }
 
-/**
- * A person's details over the tree: names, dates, death anniversary, burial
- * place, biography and close relatives. Relatives open in the same popup.
- */
 export function PersonDetailsDialog({
   person,
   generation,
@@ -141,15 +130,12 @@ export function PersonDetailsDialog({
   people: readonly Person[];
   relationships: readonly FamilyTreeRelationship[];
   familySlug: string;
-  /** False while the platform admin has switched edit suggestions off. */
   canSuggestEdits: boolean;
   onSelectPerson: (id: string) => void;
-  /** Opens the kinship calculator starting from this person. */
   onFindKinship: (id: string) => void;
   onClose: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  // Keyed by person so opening a relative from this popup starts without the form.
   const [suggestingFor, setSuggestingFor] = useState<string | null>(null);
   const suggesting = suggestingFor === person.id;
   const byId = new Map(people.map((entry) => [entry.id, entry]));

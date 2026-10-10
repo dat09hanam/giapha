@@ -22,7 +22,6 @@ import { FamilyRoles } from '../common/auth/family-roles.decorator.js';
 import { RequiresFamilyFeature } from '../common/auth/family-feature.decorator.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
-// Runtime imports are required for Nest's emitted DTO validation metadata.
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 import {
   CreateDocumentDto,
@@ -40,10 +39,6 @@ import {
   type LibraryViewer,
 } from './library.service.js';
 
-/**
- * Album và tư liệu: every member views and may send photos into an album for
- * review; only the clan head (MEMBER_PLUS) keeps the library and approves them.
- */
 @Controller('families/:slug/library')
 @RequiresFamilyFeature('library')
 @UseGuards(SessionAuthGuard, FamilyAccessGuard)
@@ -99,7 +94,6 @@ export class LibraryController {
     return this.library.deleteAlbum(this.familyId(request), albumId);
   }
 
-  /** Members may send photos too; theirs wait for the clan head's approval. */
   @Post('albums/:albumId/photos')
   @FamilyRoles(UserRole.MEMBER_PLUS, UserRole.MEMBER)
   addPhoto(
@@ -139,7 +133,6 @@ export class LibraryController {
     return this.library.updateItem(this.familyId(request), itemId, input);
   }
 
-  /** The clan head deletes or turns down; a member withdraws their own pending photo. */
   @Delete('items/:itemId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @FamilyRoles(UserRole.MEMBER_PLUS, UserRole.MEMBER)

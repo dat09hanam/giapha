@@ -8,14 +8,9 @@ export type SegmentedOption<T extends string> = {
   value: T;
   label: string;
   icon?: ReactNode;
-  /** A count shown after the label. */
   count?: number;
 };
 
-/**
- * A row of mutually exclusive choices, such as a list filter: the chosen one is filled with
- * the brand red. Set `asTabs` when it switches panels rather than filtering a list.
- */
 export function Segmented<T extends string>({
   options,
   value,

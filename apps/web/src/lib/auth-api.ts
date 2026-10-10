@@ -9,13 +9,10 @@ export type AuthProfile = {
   displayName: string;
   role: UserRole;
   family: { id: string; slug: string; name: string } | null;
-  /** A member account the clan head put in charge of at least one chi/nhánh. */
   managesBranches: boolean;
-  /** The password was given by someone else and must be replaced before anything else. */
   mustChangePassword: boolean;
 };
 
-/** The clan head (trưởng họ) of this very family; other roles and other families are not. */
 export function isClanHeadOf(profile: AuthProfile, slug: string): boolean {
   return profile.role === 'MEMBER_PLUS' && profile.family?.slug === slug;
 }
@@ -80,10 +77,6 @@ export function changePassword(input: {
 
 export const FORGOT_PASSWORD_PATH = '/quen-mat-khau';
 
-/**
- * Mails a one-time code to the account's email; `login` is its username or email. Answers with the
- * masked email the code went to, and fails with "Tài khoản không tồn tại." when nothing matches.
- */
 export function requestPasswordReset(login: string): Promise<{ sentTo: string }> {
   return apiFetch<{ sentTo: string }>(
     `${API_URL}/auth/password-reset`,
@@ -96,7 +89,6 @@ export function requestPasswordReset(login: string): Promise<{ sentTo: string }>
   );
 }
 
-/** Checks the mailed code before asking for a new password; a wrong guess uses up an attempt. */
 export function verifyPasswordReset(input: { login: string; code: string }): Promise<void> {
   return apiFetch<void>(
     `${API_URL}/auth/password-reset/verify`,
@@ -109,7 +101,6 @@ export function verifyPasswordReset(input: { login: string; code: string }): Pro
   );
 }
 
-/** Replaces a forgotten password with the mailed code; every device is signed out. */
 export function confirmPasswordReset(input: {
   login: string;
   code: string;
@@ -139,7 +130,5 @@ export function profileDestination(profile: AuthProfile): string {
     return '/';
   }
 
-  // Members and the clan head alike start on the family's home page; the clan head reaches
-  // their admin pages from its navigation.
   return `/${encodeURIComponent(profile.family.slug)}`;
 }

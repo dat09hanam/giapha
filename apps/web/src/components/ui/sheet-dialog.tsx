@@ -5,11 +5,6 @@ import { useEffect, useId, type ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 
-/**
- * A form dialog: a bottom sheet on phones, a centred card from sm. Render it
- * inside <Presence> for the open and close animation. Escape closes it unless
- * `busy`.
- */
 export function SheetDialog({
   title,
   onClose,

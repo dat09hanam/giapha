@@ -16,10 +16,8 @@ import type { FamilyPoster } from '@/lib/poster-decorations';
 import { cn } from '@/lib/utils';
 import type { FamilyTreeResponse } from '@/types/family-tree';
 
-/** What the cover and the introduction say about the family. */
 export type BookCover = {
   familyName: string;
-  /** The clan's surname, read from its members' names; null when it cannot be told. */
   surname: string | null;
   template: CoverTemplate;
   description: string | null;
@@ -35,7 +33,6 @@ export type BookCover = {
 const INK = '#7a1616';
 const LINE_COLOR = '#8b1a1a';
 
-/** Long names step down so they still fit two lines of the card. */
 function nameSize(name: string): number {
   if (name.length <= 16) return 13.5;
   if (name.length <= 24) return 12;
@@ -80,17 +77,29 @@ function Sheet({
   );
 }
 
-function RunningHeader({ familyName, title, subtitle }: { familyName: string; title: string; subtitle?: string | null }) {
+function RunningHeader({
+  familyName,
+  title,
+  subtitle,
+}: {
+  familyName: string;
+  title: string;
+  subtitle?: string | null;
+}) {
   return (
     <>
       <span className="shrink-0 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b1a1a]/80">
-        {familyName.trim().toLocaleLowerCase('vi').startsWith('gia phả') ? familyName : `Gia phả ${familyName}`}
+        {familyName.trim().toLocaleLowerCase('vi').startsWith('gia phả')
+          ? familyName
+          : `Gia phả ${familyName}`}
       </span>
       <span className="min-w-0 text-right leading-tight">
         <span className="block truncate text-[13px] font-bold" style={{ color: INK }}>
           {title}
         </span>
-        {subtitle ? <span className="block truncate text-[9.5px] text-stone-600">{subtitle}</span> : null}
+        {subtitle ? (
+          <span className="block truncate text-[9.5px] text-stone-600">{subtitle}</span>
+        ) : null}
       </span>
     </>
   );
@@ -114,7 +123,9 @@ function Card({ card }: { card: PrintCard }) {
         {card.name}
       </p>
       {card.life ? (
-        <p className="mt-0.5 max-w-full truncate text-[9.5px] leading-[12px] text-stone-700">{card.life}</p>
+        <p className="mt-0.5 max-w-full truncate text-[9.5px] leading-[12px] text-stone-700">
+          {card.life}
+        </p>
       ) : null}
     </div>
   );
@@ -131,8 +142,6 @@ function TreeSheet({
 }) {
   const { tree } = geometry;
   const horizontal = page.direction === 'horizontal';
-  // A top-down tree hangs from the top, centred across; a left-to-right one grows from the
-  // middle of the left edge.
   const left = horizontal ? tree.left : tree.left + (tree.width - page.width * page.scale) / 2;
   const top = horizontal ? tree.top + (tree.height - page.height * page.scale) / 2 : tree.top;
   const content: CSSProperties = {
@@ -190,7 +199,13 @@ function TreeSheet({
               note.anchor === 'after' && '-translate-y-1/2',
               note.anchor === 'before' && '-translate-x-full -translate-y-1/2',
             )}
-            style={{ left: note.x, top: note.y, height: NOTE_HEIGHT - 6, lineHeight: `${NOTE_HEIGHT - 8}px`, color: INK }}
+            style={{
+              left: note.x,
+              top: note.y,
+              height: NOTE_HEIGHT - 6,
+              lineHeight: `${NOTE_HEIGHT - 8}px`,
+              color: INK,
+            }}
           >
             {note.anchor === 'before' ? '◂' : '▸'} {note.text}
           </span>
@@ -231,14 +246,28 @@ const LEGEND: { term: string; meaning: string }[] = [
   { term: 'Đời n', meaning: 'Thế hệ thứ n, tính từ thuỷ tổ là đời 1.' },
   { term: '1890–1955', meaning: 'Năm sinh và năm mất. “s. 1960” là sinh năm 1960, còn sống.' },
   { term: 'Giỗ 12/3 ÂL', meaning: 'Ngày giỗ: ngày 12 tháng 3 âm lịch.' },
-  { term: 'Vợ 1, Vợ 2 · Chồng', meaning: 'Thẻ của vợ hoặc chồng, đứng cạnh người trong họ, nối bằng đường hôn nhân.' },
+  {
+    term: 'Vợ 1, Vợ 2 · Chồng',
+    meaning: 'Thẻ của vợ hoặc chồng, đứng cạnh người trong họ, nối bằng đường hôn nhân.',
+  },
   { term: 'Con vợ 2', meaning: 'Người cha có nhiều vợ: người này là con của người vợ thứ hai.' },
   { term: '▸ Xem trang 12', meaning: 'Con cháu của người này được vẽ tiếp ở trang 12.' },
-  { term: '▸ Tiếp từ trang 4', meaning: 'Người này đã có trên trang 4; trang này vẽ tiếp con cháu.' },
+  {
+    term: '▸ Tiếp từ trang 4',
+    meaning: 'Người này đã có trên trang 4; trang này vẽ tiếp con cháu.',
+  },
   { term: '(phần 1/2)', meaning: 'Gia đình đông con được chia sang nhiều trang liền nhau.' },
 ];
 
-function IntroSheet({ geometry, cover, number }: { geometry: PageGeometry; cover: BookCover; number: number }) {
+function IntroSheet({
+  geometry,
+  cover,
+  number,
+}: {
+  geometry: PageGeometry;
+  cover: BookCover;
+  number: number;
+}) {
   const { text } = geometry;
   const details = [
     { label: 'Nguyên quán', value: cover.ancestryOrigin },
@@ -258,7 +287,10 @@ function IntroSheet({ geometry, cover, number }: { geometry: PageGeometry; cover
         style={{ left: text.left, top: text.top, width: text.width, height: text.height }}
       >
         <section>
-          <h2 className="text-[22px] font-bold" style={{ color: INK, lineHeight: `${LIST_HEADING}px` }}>
+          <h2
+            className="text-[22px] font-bold"
+            style={{ color: INK, lineHeight: `${LIST_HEADING}px` }}
+          >
             Giới thiệu dòng họ
           </h2>
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[12px]">
@@ -281,11 +313,14 @@ function IntroSheet({ geometry, cover, number }: { geometry: PageGeometry; cover
             Chú thích
           </h2>
           <p className="mt-1 text-[11px] text-stone-600">
-            Trang tổng quát vẽ toàn bộ cây trên một trang. Các trang sau vẽ từng chi theo cùng
-            cách: mỗi thẻ là một người, con nối từ giữa đường hôn nhân của cha mẹ.
+            Trang tổng quát vẽ toàn bộ cây trên một trang. Các trang sau vẽ từng chi theo cùng cách:
+            mỗi thẻ là một người, con nối từ giữa đường hôn nhân của cha mẹ.
           </p>
           <div className="mt-3 flex gap-6">
-            <div className="relative shrink-0" style={{ width: PRINT_CARD.width, height: PRINT_CARD.height }}>
+            <div
+              className="relative shrink-0"
+              style={{ width: PRINT_CARD.width, height: PRINT_CARD.height }}
+            >
               <Card card={SAMPLE_CARD} />
             </div>
             <dl className="grid flex-1 grid-cols-[auto_1fr] content-start gap-x-3 gap-y-1 text-[10.5px] leading-snug">
@@ -305,7 +340,6 @@ function IntroSheet({ geometry, cover, number }: { geometry: PageGeometry; cover
   );
 }
 
-/** The data the overview poster is drawn from. */
 export type BookOverview = {
   tree: FamilyTreeResponse;
   family: { name: string; poster: FamilyPoster };
@@ -336,7 +370,10 @@ function OverviewSheet({
         />
       }
     >
-      <div className="absolute" style={{ left: text.left, top: text.top, width: text.width, height: text.height }}>
+      <div
+        className="absolute"
+        style={{ left: text.left, top: text.top, width: text.width, height: text.height }}
+      >
         <PosterOverview {...overview} width={text.width} height={text.height} />
       </div>
     </Sheet>
@@ -365,13 +402,22 @@ function ListSheet({
       number={number}
       header={<RunningHeader familyName={familyName} title={heading ?? 'tiếp theo'} />}
     >
-      <div className="absolute" style={{ left: text.left, top: text.top, width: text.width, height: text.height }}>
+      <div
+        className="absolute"
+        style={{ left: text.left, top: text.top, width: text.width, height: text.height }}
+      >
         {heading ? (
-          <h2 className="text-[22px] font-bold" style={{ color: INK, lineHeight: `${LIST_HEADING}px` }}>
+          <h2
+            className="text-[22px] font-bold"
+            style={{ color: INK, lineHeight: `${LIST_HEADING}px` }}
+          >
             {heading}
           </h2>
         ) : null}
-        <ol className="gap-8 [column-fill:auto]" style={{ columnCount: columns, height: `calc(100% - ${LIST_HEADING}px)` }}>
+        <ol
+          className="gap-8 [column-fill:auto]"
+          style={{ columnCount: columns, height: `calc(100% - ${LIST_HEADING}px)` }}
+        >
           {children}
         </ol>
       </div>
@@ -396,7 +442,9 @@ export function BookSheet({
     case 'intro':
       return <IntroSheet geometry={geometry} cover={cover} number={page.number} />;
     case 'poster':
-      return <OverviewSheet geometry={geometry} cover={cover} overview={overview} number={page.number} />;
+      return (
+        <OverviewSheet geometry={geometry} cover={cover} overview={overview} number={page.number} />
+      );
     case 'tree':
       return <TreeSheet page={page} geometry={geometry} familyName={cover.familyName} />;
     case 'contents':
@@ -414,7 +462,9 @@ export function BookSheet({
               className="flex h-[22px] break-inside-avoid items-baseline gap-2 text-[11.5px]"
               style={{ paddingLeft: Math.min(entry.depth, 6) * 14 }}
             >
-              <span className={cn('truncate', entry.depth === 0 && 'font-bold')}>{entry.title}</span>
+              <span className={cn('truncate', entry.depth === 0 && 'font-bold')}>
+                {entry.title}
+              </span>
               <span className="min-w-4 flex-1 border-b border-dotted border-stone-400" />
               <span className="tabular-nums">{entry.page}</span>
             </li>
@@ -431,7 +481,10 @@ export function BookSheet({
           columns={page.columns}
         >
           {page.entries.map((entry, index) => (
-            <li key={index} className="flex h-[17px] break-inside-avoid items-baseline gap-1.5 text-[10.5px]">
+            <li
+              key={index}
+              className="flex h-[17px] break-inside-avoid items-baseline gap-1.5 text-[10.5px]"
+            >
               <span className="truncate font-medium">{entry.name}</span>
               <span className="shrink-0 text-[9px] text-stone-500">đời {entry.generation}</span>
               <span className="min-w-3 flex-1 border-b border-dotted border-stone-300" />

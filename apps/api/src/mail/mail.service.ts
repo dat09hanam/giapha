@@ -4,7 +4,6 @@ import { createTransport, type Transporter } from 'nodemailer';
 
 export type MailMessage = { to: string; subject: string; text: string; html: string };
 
-/** Sends mail over SMTP; the server and sender come from the `SMTP_*` and `MAIL_FROM` settings. */
 @Injectable()
 export class MailService {
   private transporter: Transporter | null = null;

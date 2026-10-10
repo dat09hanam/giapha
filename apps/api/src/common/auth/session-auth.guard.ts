@@ -14,7 +14,6 @@ import type { AuthRequest } from './auth.types.js';
 import { ALLOW_PENDING_PASSWORD_CHANGE_KEY } from './password-change.decorator.js';
 import { extractSessionToken, hashSessionToken } from './session-token.js';
 
-/** Sent with 403 so the web app can tell this refusal apart and open the change-password page. */
 export const PASSWORD_CHANGE_REQUIRED_MESSAGE =
   'Bạn cần đổi mật khẩu được cấp trước khi tiếp tục sử dụng.';
 

@@ -1,11 +1,6 @@
 import { randomBytes } from 'node:crypto';
 
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserStatus, type Prisma } from '@prisma/client';
 
 import { hashSessionToken } from '../common/auth/session-token.js';
@@ -37,9 +32,7 @@ export type AuthProfile = {
   displayName: string;
   role: ProfileRecord['role'];
   family: { id: string; slug: string; name: string } | null;
-  /** True for a member account the family head put in charge of at least one chi/nhánh. */
   managesBranches: boolean;
-  /** The password was given by someone else; nothing but changing it works until it is. */
   mustChangePassword: boolean;
 };
 
@@ -98,10 +91,6 @@ export class AuthService {
     });
   }
 
-  /**
-   * Replaces the signed-in account's password. Every other session is signed out, so a password
-   * someone else knew stops working everywhere; the session making the change stays.
-   */
   async changePassword(
     userId: string,
     sessionId: string,

@@ -13,8 +13,6 @@ export const dynamic = 'force-dynamic';
 export default async function FamilyFeedPage({ params }: FamilyFeedPageProps) {
   const { slug } = await params;
   const path = `/${encodeURIComponent(slug)}/bang-tin`;
-  // The feed loads in the browser, so check the session here: a reload with an expired
-  // one goes straight to sign in instead of showing an error in an empty feed.
   await requireSession(path);
 
   let feedOn = true;
@@ -22,9 +20,7 @@ export default async function FamilyFeedPage({ params }: FamilyFeedPageProps) {
     [, { feed: feedOn }] = await Promise.all([getFamily(slug), getPlatformFeatures()]);
   } catch (error: unknown) {
     if (error instanceof ApiNotFoundError) notFound();
-    // Other failures surface in the feed itself, which can retry.
   }
-  // The platform admin has switched the feed off.
   if (!feedOn) notFound();
 
   return (

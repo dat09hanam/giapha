@@ -1,10 +1,5 @@
 import { cn } from '@/lib/utils';
 
-/**
- * The app's loading mark: a family tree that grows from the founding
- * ancestor down two generations, then fades and grows again. Animated by the
- * `heritage-*` keyframes in globals.css.
- */
 export function TreeLoader({ className }: { className?: string }) {
   return (
     <svg
@@ -42,7 +37,6 @@ export function TreeLoader({ className }: { className?: string }) {
   );
 }
 
-/** A whole page or panel while it loads: the growing tree and what is coming. */
 export function PageLoader({
   label = 'Đang tải gia phả',
   className,
@@ -67,10 +61,6 @@ export function PageLoader({
   );
 }
 
-/**
- * The small mark for a busy button or row, in place of a spinning icon: a
- * parent and two children lighting up in turn. Takes the text colour.
- */
 export function InlineLoader({ className, label }: { className?: string; label?: string }) {
   return (
     <svg

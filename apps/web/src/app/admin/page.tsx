@@ -1,25 +1,36 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { ImageIcon, Network, Newspaper, ShieldCheck, Sparkles, ToggleRight } from 'lucide-react';
+import {
+  ClipboardList,
+  ImageIcon,
+  Network,
+  Newspaper,
+  Sparkles,
+  Tag,
+  ToggleRight,
+} from 'lucide-react';
 
-import { AdminPageHeader } from '@/components/admin/admin-layout';
+import { AdminWorkspace } from '@/components/admin/admin-workspace';
 import { ArticleManager } from '@/components/admin/article-manager';
 import { CreateFamilyForm } from '@/components/admin/create-family-form';
 import { DemoFamilyPanel } from '@/components/admin/demo-family-panel';
 import { PlatformFeaturesForm } from '@/components/admin/platform-features-form';
 import { PosterDecorationManager } from '@/components/admin/poster-decoration-manager';
+import { PricingPlanManager } from '@/components/admin/pricing-plan-manager';
+import { ServiceRegistrationsPanel } from '@/components/admin/service-registrations-panel';
 import { ApiErrorState } from '@/components/ui/api-error-state';
-import { Tabs } from '@/components/ui/tabs';
 import {
   ApiNotFoundError,
   ApiUnauthorizedError,
   getAdminArticles,
+  getAdminPricingPlans,
   getAuthProfile,
   getDemoFamily,
   getFamily,
   getPlatformFeatures,
   getPosterDecorations,
+  getServiceRegistrations,
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { profileDestination, type AuthProfile } from '@/lib/auth-api';
@@ -28,6 +39,7 @@ import { SITE_BRAND } from '@/lib/site-brand';
 import type { AdminArticle } from '@/types/article';
 import { requirePasswordChanged } from '@/lib/session';
 import type { FamilyDetails, FamilyFeatures } from '@/types/family-tree';
+import type { PricingPlan, ServiceRegistration } from '@/types/pricing';
 
 export const metadata: Metadata = {
   description: `Khu vực quản trị nền tảng ${SITE_BRAND.name}.`,
@@ -49,7 +61,6 @@ async function requireAdmin(): Promise<AuthProfile> {
     throw error;
   }
   requirePasswordChanged(profile, '/admin');
-  // A clan head who opens /admin wants their own family's admin pages, not its home page.
   if (profile.role === 'MEMBER_PLUS' && profile.family && !profile.mustChangePassword) {
     redirect(`/admin/${encodeURIComponent(profile.family.slug)}`);
   }
@@ -57,7 +68,6 @@ async function requireAdmin(): Promise<AuthProfile> {
   return profile;
 }
 
-/** The sample family's details, or null while none is marked. */
 async function loadDemoFamily(): Promise<FamilyDetails | null> {
   try {
     return await getFamily((await getDemoFamily()).slug);
@@ -73,14 +83,18 @@ export default async function AdminPage() {
   let features: FamilyFeatures;
   let demoFamily: FamilyDetails | null;
   let articles: AdminArticle[];
+  let pricingPlans: PricingPlan[];
+  let registrations: ServiceRegistration[];
   try {
     profile = await requireAdmin();
     const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
-    [decorations, features, demoFamily, articles] = await Promise.all([
+    [decorations, features, demoFamily, articles, pricingPlans, registrations] = await Promise.all([
       getPosterDecorations<AdminPosterDecoration>(sessionToken),
       getPlatformFeatures(),
       loadDemoFamily(),
       getAdminArticles(sessionToken),
+      getAdminPricingPlans(sessionToken),
+      getServiceRegistrations(sessionToken),
     ]);
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
@@ -96,58 +110,58 @@ export default async function AdminPage() {
   }
 
   return (
-    <main className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:gap-8 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
-      <AdminPageHeader
-        eyebrow={
-          <>
-            <ShieldCheck aria-hidden="true" />
-            Quản trị hệ thống
-          </>
-        }
-        title={`Xin chào, ${profile.displayName}`}
-        description="Tạo không gian gia phả cho các dòng họ, chỉnh sửa gia phả mẫu, quản lý thư viện hình nền phả đồ dùng chung, viết bài cho Mẫu bài cúng và Thư viện, và bật tắt chức năng cho toàn hệ thống."
-      />
-
-      <Tabs
-        label="Khu vực quản trị"
-        tabs={[
-          {
-            id: 'dong-ho',
-            label: 'Dòng họ',
-            icon: <Network aria-hidden="true" />,
-            content: <CreateFamilyForm />,
-          },
-          {
-            id: 'gia-pha-mau',
-            label: 'Gia phả mẫu',
-            icon: <Sparkles aria-hidden="true" />,
-            content: (
-              <DemoFamilyPanel
-                family={demoFamily}
-                decorations={decorations.filter((decoration) => decoration.isActive)}
-              />
-            ),
-          },
-          {
-            id: 'hinh-nen',
-            label: 'Hình nền phả đồ',
-            icon: <ImageIcon aria-hidden="true" />,
-            content: <PosterDecorationManager initial={decorations} />,
-          },
-          {
-            id: 'bai-viet',
-            label: 'Bài viết',
-            icon: <Newspaper aria-hidden="true" />,
-            content: <ArticleManager initial={articles} />,
-          },
-          {
-            id: 'chuc-nang',
-            label: 'Chức năng',
-            icon: <ToggleRight aria-hidden="true" />,
-            content: <PlatformFeaturesForm initial={features} />,
-          },
-        ]}
-      />
-    </main>
+    <AdminWorkspace
+      displayName={profile.displayName}
+      sections={[
+        {
+          id: 'dong-ho',
+          label: 'Dòng họ',
+          icon: <Network aria-hidden="true" />,
+          content: <CreateFamilyForm />,
+        },
+        {
+          id: 'dang-ky',
+          label: 'Đăng ký dịch vụ',
+          icon: <ClipboardList aria-hidden="true" />,
+          badge: registrations.filter((entry) => entry.status === 'NEW').length,
+          content: <ServiceRegistrationsPanel initial={registrations} />,
+        },
+        {
+          id: 'bang-gia',
+          label: 'Bảng giá',
+          icon: <Tag aria-hidden="true" />,
+          content: <PricingPlanManager initial={pricingPlans} />,
+        },
+        {
+          id: 'gia-pha-mau',
+          label: 'Gia phả mẫu',
+          icon: <Sparkles aria-hidden="true" />,
+          content: (
+            <DemoFamilyPanel
+              family={demoFamily}
+              decorations={decorations.filter((decoration) => decoration.isActive)}
+            />
+          ),
+        },
+        {
+          id: 'hinh-nen',
+          label: 'Hình nền phả đồ',
+          icon: <ImageIcon aria-hidden="true" />,
+          content: <PosterDecorationManager initial={decorations} />,
+        },
+        {
+          id: 'bai-viet',
+          label: 'Bài viết',
+          icon: <Newspaper aria-hidden="true" />,
+          content: <ArticleManager initial={articles} />,
+        },
+        {
+          id: 'chuc-nang',
+          label: 'Chức năng',
+          icon: <ToggleRight aria-hidden="true" />,
+          content: <PlatformFeaturesForm initial={features} />,
+        },
+      ]}
+    />
   );
 }

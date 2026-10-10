@@ -40,7 +40,6 @@ import {
 } from '@/lib/poster-decorations';
 
 type Draft = {
-  /** Null while adding a new background. */
   id: string | null;
   name: string;
   sortOrder: string;
@@ -51,11 +50,9 @@ type Draft = {
   leftTextArea: PosterVerticalTextArea | null;
   rightTextArea: PosterVerticalTextArea | null;
   file: File | null;
-  /** The saved image, kept for the preview until a new file replaces it. */
   imageUrl: string | null;
 };
 
-/** What the API takes: a background without a tree area is stored as null. */
 function insetsToSave(insets: PosterInsets): PosterInsets | null {
   return hasTreeArea(insets) ? insets : null;
 }
@@ -77,7 +74,6 @@ const INSET_EDGES = [
   { edge: 'left', label: 'Trái' },
 ] as const;
 
-/** Four percent fields, one per edge of the tree area. */
 function InsetFields({
   legend,
   hint,
@@ -161,7 +157,6 @@ function BackgroundEditor({
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // The editor replaces the library, so bring its top into view when it opens.
   useEffect(() => {
     document
       .getElementById('background-editor')
@@ -179,7 +174,6 @@ function BackgroundEditor({
     return () => URL.revokeObjectURL(url);
   }, [draft.file]);
 
-  // The sample is drawn exactly as the poster will draw it, from the unsaved options.
   const sample: PosterDecoration = {
     id: draft.id ?? 'new',
     kind: 'BACKGROUND',
@@ -341,7 +335,6 @@ function BackgroundEditor({
   );
 }
 
-/** A background sample stretched to the width of its container at 16:9. */
 function FittedSwatch({
   decoration,
   className,
@@ -374,7 +367,6 @@ function FittedSwatch({
   );
 }
 
-/** The platform ADMIN's CRUD screen for the phả đồ background library. */
 export function PosterDecorationManager({ initial }: { initial: AdminPosterDecoration[] }) {
   const confirm = useConfirm();
   const showToast = useToast();

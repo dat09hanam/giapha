@@ -5,7 +5,6 @@ import type { RichTextDocument } from '@/types/rich-text';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
-/** The two public sections, keyed by category: their path, names and blurb. */
 export const ARTICLE_SECTIONS: Record<
   ArticleCategory,
   { path: string; label: string; heading: string; description: string }
@@ -32,12 +31,10 @@ export function articleHref(category: ArticleCategory, slug: string): string {
 
 export function articleCoverSrc(coverUrl: string | null): string | null {
   if (!coverUrl) return null;
-  // A local preview of a file the ADMIN has picked but not saved yet.
   if (coverUrl.startsWith('blob:')) return coverUrl;
   return API_URL + coverUrl;
 }
 
-/** "Văn khấn ngày giỗ" → "van-khan-ngay-gio", within the API's 160 characters. */
 export function articleSlug(title: string): string {
   return foldVietnamese(title)
     .replace(/[^a-z0-9]+/g, '-')
@@ -46,7 +43,6 @@ export function articleSlug(title: string): string {
     .replace(/-+$/, '');
 }
 
-/** Matches the API's limit on cover uploads. */
 export const MAX_ARTICLE_COVER_BYTES = 3 * 1024 * 1024;
 
 export type ArticleCoverUpload = { contentType: string; data: string };
@@ -58,7 +54,6 @@ export type ArticleInput = {
   summary: string | null;
   content: RichTextDocument;
   isPublished: boolean;
-  /** A new cover, or null to remove the current one; left out to keep it. */
   cover?: ArticleCoverUpload | null;
 };
 

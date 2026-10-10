@@ -69,7 +69,6 @@ function Block({ block }: { block: RichTextBlock }) {
       );
     }
     default:
-      // An empty paragraph is a deliberate blank line.
       return (
         <p style={style} className="min-h-[1lh]">
           <Line line={block.content} />
@@ -78,10 +77,6 @@ function Block({ block }: { block: RichTextBlock }) {
   }
 }
 
-/**
- * A formatted document, built element by element: text is always text, so nothing the writer
- * typed can turn into markup. Renders on the server.
- */
 export function RichTextView({
   document,
   className,

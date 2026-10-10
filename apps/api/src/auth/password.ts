@@ -7,7 +7,6 @@ const HASH_VERSION = 'scrypt-v1';
 
 export const MIN_PASSWORD_LENGTH = 6;
 const GENERATED_PASSWORD_LENGTH = 10;
-// Leaves out look-alike characters (0/O, 1/l/I) so a generated password survives being read aloud.
 const GENERATED_PASSWORD_ALPHABET = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 export function generatePassword(): string {
@@ -18,18 +17,10 @@ export function generatePassword(): string {
   ).join('');
 }
 
-/**
- * The family's shared member password: "thanhvien" and six random digits, simple enough to pass
- * around the clan by word of mouth. It is never forced to change, since everyone shares it.
- */
 export function generateSharedMemberPassword(): string {
   return `thanhvien${sixRandomDigits()}`;
 }
 
-/**
- * The clan head's first password: "truongho" and six random digits, in the same easy form as the
- * shared one. The head must still replace it on their first sign-in.
- */
 export function generateClanHeadPassword(): string {
   return `truongho${sixRandomDigits()}`;
 }
@@ -38,7 +29,6 @@ function sixRandomDigits(): string {
   return randomInt(0, 1_000_000).toString().padStart(6, '0');
 }
 
-/** A password the account's owner chose themselves. */
 export function validateOwnPassword(typed: string): string {
   if (typed.length < MIN_PASSWORD_LENGTH) {
     throw new BadRequestException(`Mật khẩu phải có ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`);

@@ -5,7 +5,6 @@ export const REACTIONS: readonly {
   type: FeedReactionType;
   emoji: string;
   label: string;
-  /** Colour of the "Thích" button once chosen. */
   textClass: string;
 }[] = [
   { type: 'LIKE', emoji: '👍', label: 'Thích', textClass: 'text-blue-600' },
@@ -21,7 +20,6 @@ export const REACTION_BY_TYPE = Object.fromEntries(
   REACTIONS.map((reaction) => [reaction.type, reaction]),
 ) as Record<FeedReactionType, (typeof REACTIONS)[number]>;
 
-/** "Vừa xong", "5 phút", "3 giờ", "2 ngày", then a date, like Facebook. */
 export function timeAgo(iso: string, now = Date.now()): string {
   const date = new Date(iso);
   const seconds = Math.max(0, Math.round((now - date.getTime()) / 1000));
@@ -48,10 +46,6 @@ const AVATAR_COLORS = [
   'bg-indigo-600',
 ];
 
-/**
- * A round badge with the first letter of the given name: Vietnamese names put
- * it last, so "Nguyễn Văn Bình" shows "B". The colour follows the name.
- */
 export function NameAvatar({ name, className }: { name: string; className?: string }) {
   const words = name.trim().split(/\s+/).filter(Boolean);
   const initial = (words.at(-1)?.[0] ?? '?').toLocaleUpperCase('vi');

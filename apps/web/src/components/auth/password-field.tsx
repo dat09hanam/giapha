@@ -7,7 +7,6 @@ import { Field } from './form-fields';
 
 type PasswordFieldProps = Omit<ComponentProps<typeof Field>, 'type' | 'trailing'>;
 
-/** A password input with a button that reveals or hides what was typed. */
 export function PasswordField(props: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
   const Icon = visible ? EyeOff : Eye;

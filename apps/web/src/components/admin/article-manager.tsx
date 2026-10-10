@@ -46,22 +46,15 @@ import type { RichTextDocument } from '@/types/rich-text';
 type Filter = 'ALL' | ArticleCategory;
 
 type Draft = {
-  /** Null while writing a new article. */
   id: string | null;
   category: ArticleCategory;
   title: string;
   slug: string;
-  /**
-   * The path always follows the title, except once the article has been published: then it
-   * stays, so links already shared and pages Google has stored keep working.
-   */
   slugLocked: boolean;
   summary: string;
   content: RichTextDocument;
   isPublished: boolean;
-  /** The cover shown: the saved one, a local preview, or none. */
   coverUrl: string | null;
-  /** A new cover to upload, null to remove the saved one, undefined to leave it. */
   cover: ArticleCoverUpload | null | undefined;
 };
 
@@ -118,7 +111,6 @@ function inputOf(draft: Draft): ArticleInput {
   };
 }
 
-/** "văn khấn ngày tết" → "Văn Khấn Ngày Tết": the first letter of every word, the rest as typed. */
 function capitalizeWords(text: string): string {
   return text.replace(
     /(^|[\s([{"'“‘])(\p{Ll})/gu,
@@ -136,7 +128,6 @@ function ArticleEditor({
   onSaved,
 }: {
   draft: Draft;
-  /** Every saved article, to tell whether the path is already in use. */
   articles: readonly AdminArticle[];
   onChange: (draft: Draft) => void;
   onCancel: () => void;
@@ -158,9 +149,7 @@ function ArticleEditor({
         ? 'taken'
         : 'free';
 
-  /** Applies the capitals without throwing the caret to the end of the line. */
   function changeTitle(input: HTMLInputElement, composing: boolean): void {
-    // Rewriting the text mid-composition would break Vietnamese input methods.
     const title = composing ? input.value : capitalizeWords(input.value);
     const { selectionStart, selectionEnd } = input;
     onChange({ ...draft, title, slug: draft.slugLocked ? draft.slug : articleSlug(title) });
@@ -309,7 +298,6 @@ function ArticleEditor({
             aria-invalid={slugStatus === 'taken'}
             className={cn(
               'cursor-default bg-stone-50 text-stone-700 focus:ring-0',
-              // `!`: the unlayered `* { border-color }` in globals.css outranks plain utilities.
               slugStatus === 'free' && 'border-2 border-emerald-600!',
               slugStatus === 'taken' && 'border-2 border-red-600!',
             )}
@@ -408,10 +396,6 @@ function ArticleEditor({
   );
 }
 
-/**
- * Mẫu bài cúng and Thư viện: the platform ADMIN writes, publishes, hides and deletes the
- * articles of the public site's two reading sections.
- */
 export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }) {
   const confirm = useConfirm();
   const showToast = useToast();

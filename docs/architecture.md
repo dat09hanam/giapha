@@ -195,6 +195,25 @@ an optional cover image lives under `MEDIA_ROOT/articles/`. `GET /api/articles?c
 shows them at `/mau-bai-cung` and `/thu-vien` (both reserved Family slugs) under the home page's
 masthead; `slug` is unique per category, and `publishedAt` is set on first publication and kept.
 
+`PricingPlan` and its `PricingPlanFeature` lines are the home page's pricing table (the Bảng giá
+section, `#bang-gia`). They are platform-level and **not** tenant-owned: no `familyId`, written only
+by the platform `ADMIN` (the Bảng giá tab of `/admin`). A plan carries its price in whole đồng
+(`0` is shown as "Miễn phí"), a tone and a preset icon key for its card, and an optional badge; each
+feature line is `NORMAL`, `BOLD` (a headline benefit) or `STRIKETHROUGH` (not included). Saving a
+plan replaces its feature lines as a whole. `GET /api/pricing-plans` is public and returns active
+plans only; `GET /api/pricing-plans/admin` and the writes are `ADMIN` only. The plans describe the
+offer only: nothing in the app enforces a plan's limits yet. A card's button opens the sign-up form
+(labelled with the plan's `ctaLabel`; `PricingPlan.ctaHref` is no longer shown and is
+kept only so saved rows stay valid).
+
+`ServiceRegistration` is a visitor's sign-up request from that form: full name, email, phone, the
+consent time, and the chosen plan (`planId`, set to null if the plan is deleted, with `planName`
+kept as a snapshot). It is platform-level, since a request comes before any Family exists, and it
+holds personal contact details: `POST /api/service-registrations` is public but throttled per
+address and only accepts an active plan; listing, the status (`NEW`, `CONTACTED`, `COMPLETED`,
+`CANCELLED`), the admin's note and deletion are `ADMIN` only, in the Đăng ký dịch vụ section of
+`/admin`.
+
 An uploaded background may carry `insetTop/Right/Bottom/Left` (percent, all four or none): the tree
 area the `ADMIN` drew over the art. The web app's `poster-geometry.ts` sizes the 16:9 sheet so the
 tree fills exactly that area at any tree size; without one the tree sits inside the frame band.

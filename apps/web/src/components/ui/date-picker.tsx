@@ -32,7 +32,6 @@ function Calendar({
   const today = todayInVietnam();
   const start = parseDay(value) ?? parseDay(today)!;
   const [view, setView] = useState({ year: start.year, month: start.month });
-  // What is typed in the year box; null shows the viewed year.
   const [yearDraft, setYearDraft] = useState<string | null>(null);
   const selectedRef = useRef<HTMLButtonElement>(null);
   const minYear = Number(min.slice(0, 4));
@@ -63,7 +62,6 @@ function Calendar({
     });
   }
 
-  // Six weeks from the Monday on or before the 1st, so the grid never jumps in height.
   const lead = mondayIndex(view.year, view.month, 1);
   const cells = Array.from({ length: 42 }, (_, index) => {
     const iso = toIsoDay({ year: view.year, month: view.month, day: index - lead + 1 });
@@ -75,7 +73,7 @@ function Calendar({
     <div className="fixed inset-0 z-[75] grid place-items-center p-4">
       <button
         type="button"
-        className="ui-backdrop absolute inset-0 bg-stone-950/40"
+        className="ui-backdrop absolute inset-0 bg-stone-950/40 backdrop-blur-[2px]"
         aria-label="Đóng lịch"
         tabIndex={-1}
         onClick={onClose}
@@ -107,7 +105,6 @@ function Calendar({
               </option>
             ))}
           </select>
-          {/* Typed, not a menu: ancestors can be born centuries back. */}
           <input
             className={cn(selectClass, 'w-[4.5rem] shrink-0 text-center tabular-nums')}
             type="text"
@@ -210,12 +207,6 @@ function Calendar({
   );
 }
 
-/**
- * A Vietnamese date field: shows dd/mm/yyyy and opens a Monday-first calendar
- * with month and year menus. The browser's own date picker follows the
- * device's language, which is often English, so it is not used.
- * `value` and `onChange` use `YYYY-MM-DD`, or '' for no date.
- */
 export function DatePicker({
   id,
   value,
@@ -230,7 +221,6 @@ export function DatePicker({
   value: string;
   onChange: (value: string) => void;
   min?: string;
-  /** Latest selectable day; defaults to the end of next year. */
   max?: string;
   allowClear?: boolean;
   placeholder?: string;
