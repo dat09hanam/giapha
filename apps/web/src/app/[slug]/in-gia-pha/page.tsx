@@ -9,7 +9,7 @@ import {
   getAuthProfile,
   getFamily,
   getFamilyTree,
-  getPlatformFeatures,
+  getFamilyFeatures,
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { isClanHeadOf } from '@/lib/auth-api';
@@ -34,7 +34,7 @@ async function loadBook(
     const [tree, family, features, profile] = await Promise.all([
       getFamilyTree(slug, sessionToken),
       getFamily(slug),
-      getPlatformFeatures(),
+      getFamilyFeatures(slug),
       getAuthProfile(sessionToken),
     ]);
     if (!features.printBook || !isClanHeadOf(profile, slug)) notFound();

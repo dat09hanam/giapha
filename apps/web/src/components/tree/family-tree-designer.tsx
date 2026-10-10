@@ -60,7 +60,8 @@ import { PersonAvatar } from '@/components/ui/person-avatar';
 import { Presence, usePresence } from '@/components/ui/presence';
 import { useToast } from '@/components/ui/toast';
 import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { PlanLimitDialog } from '@/components/pricing/plan-limit-dialog';
+import { getApiErrorMessage, isPlanLimitError } from '@/lib/api-error';
 import {
   ACCEPTED_IMAGE_TYPES,
   MAX_SOURCE_IMAGE_BYTES,
@@ -1009,11 +1010,14 @@ export function FamilyTreeDesigner({
   initialTree,
   focus = null,
   editScope = FULL_ACCESS,
+  memberLimit = null,
 }: {
   familyName: string;
   familySlug: string;
   initialTree: FamilyTreeResponse;
   editScope?: TreeEditScope;
+  /** The plan's cap on people in the tree; the API enforces it again on save. */
+  memberLimit?: { planName: string; maxMembers: number | null } | null;
   focus?: { personId: string; suggestion: EditSuggestion | null } | null;
 }) {
   const initialDraft = useMemo(() => createInitialDraft(initialTree), [initialTree]);
@@ -1087,11 +1091,33 @@ export function FamilyTreeDesigner({
     setSelectedMemberId(memberId);
   }, []);
 
-  const openRelationshipPicker = useCallback((memberId: string): void => {
-    setSelectedMemberId(memberId);
-    setRelationshipTargetId(memberId);
-    setAddition({ step: 'choose' });
-  }, []);
+  // Counts everyone in the draft, saved or not: the tree after saving holds exactly these people.
+  const memberCount = draft.people.length;
+  const memberLimitLabel =
+    memberLimit?.maxMembers != null ? `${memberCount}/${memberLimit.maxMembers}` : `${memberCount}`;
+  const memberLimitReached =
+    memberLimit?.maxMembers != null && memberCount >= memberLimit.maxMembers;
+  const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
+  const closePlanLimit = useCallback(() => setPlanLimitMessage(null), []);
+  const warnMemberLimit = useCallback((): void => {
+    if (!memberLimit || memberLimit.maxMembers === null) return;
+    setPlanLimitMessage(
+      `Gói “${memberLimit.planName}” chỉ cho phép tối đa ${memberLimit.maxMembers} thành viên trên cây gia phả; cây đang có ${memberCount} người, kể cả người chưa lưu.`,
+    );
+  }, [memberCount, memberLimit]);
+
+  const openRelationshipPicker = useCallback(
+    (memberId: string): void => {
+      setSelectedMemberId(memberId);
+      if (memberLimitReached) {
+        warnMemberLimit();
+        return;
+      }
+      setRelationshipTargetId(memberId);
+      setAddition({ step: 'choose' });
+    },
+    [memberLimitReached, warnMemberLimit],
+  );
 
   const selectedMember = useMemo(
     () => findMember(draft, selectedMemberId),
@@ -1113,7 +1139,6 @@ export function FamilyTreeDesigner({
   const deleteDetachesChildren =
     !deleteRemovesBranch &&
     Boolean(deleteTargetId && memberChildren(draft, deleteTargetId).length > 0);
-  const memberCount = draft.people.length;
   const selectedChildren = useMemo(
     () => memberChildren(draft, selectedMemberId),
     [draft, selectedMemberId],
@@ -1226,6 +1251,11 @@ export function FamilyTreeDesigner({
 
   function createRelationship(kind: RelationshipKind, parents: PlannedParents | null): void {
     if (!relationshipTargetId || !relationshipTarget) return;
+    if (memberLimitReached) {
+      warnMemberLimit();
+      closeRelationshipPicker();
+      return;
+    }
 
     const member: DesignerMember = {
       ...createMember(
@@ -1589,6 +1619,10 @@ export function FamilyTreeDesigner({
       });
       return true;
     } catch (error: unknown) {
+      if (isPlanLimitError(error)) {
+        setPlanLimitMessage(error.message);
+        return false;
+      }
       showToast({
         kind: 'error',
         message: getApiErrorMessage(error, 'lưu toàn bộ gia phả'),
@@ -1617,7 +1651,7 @@ export function FamilyTreeDesigner({
 
           <div className="flex flex-wrap items-center justify-end gap-2">
             <span className="rounded-full border border-gold-200/25 bg-gold-100/10 px-3 py-1.5 text-xs text-gold-100">
-              Bản nháp · {memberCount} khung
+              Bản nháp · {memberLimitLabel} khung
             </span>
             <Button
               type="button"
@@ -1714,7 +1748,7 @@ export function FamilyTreeDesigner({
               position="top-left"
               className="rounded-full border border-gold-500/30 bg-paper/90 px-3 py-1.5 text-xs text-stone-600 shadow-sm backdrop-blur lg:hidden"
             >
-              {memberCount} khung · Chạm vào khung để sửa
+              {memberLimitLabel} khung · Chạm vào khung để sửa
             </Panel>
           </ReactFlow>
         </section>
@@ -2684,6 +2718,7 @@ export function FamilyTreeDesigner({
           </div>
         ) : null}
       </Presence>
+      <PlanLimitDialog message={planLimitMessage} onClose={closePlanLimit} />
     </main>
   );
 }

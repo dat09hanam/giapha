@@ -30,7 +30,8 @@ import { Field } from '@/components/auth/form-fields';
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
 import { useToast } from '@/components/ui/toast';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { PlanLimitDialog } from '@/components/pricing/plan-limit-dialog';
+import { getApiErrorMessage, isPlanLimitError } from '@/lib/api-error';
 import {
   createFamilyAccount,
   deleteFamilyAccount,
@@ -73,6 +74,7 @@ export function FamilyAccountsPanel({
   const [credential, setCredential] = useState<Credential | null>(null);
   const [editingEmail, setEditingEmail] = useState<FamilyAccount | null>(null);
   const [copied, setCopied] = useState(false);
+  const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
   const credentialRef = useRef<HTMLDivElement>(null);
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const assigning = accounts.find((account) => account.id === assigningId) ?? null;
@@ -136,7 +138,8 @@ export function FamilyAccountsPanel({
       setUsername('');
       showToast({ kind: 'success', message: `Đã tạo tài khoản ${result.account.displayName}.` });
     } catch (error: unknown) {
-      showToast({ kind: 'error', message: getApiErrorMessage(error, 'tạo tài khoản') });
+      if (isPlanLimitError(error)) setPlanLimitMessage(error.message);
+      else showToast({ kind: 'error', message: getApiErrorMessage(error, 'tạo tài khoản') });
     } finally {
       setCreating(false);
     }
@@ -208,6 +211,7 @@ export function FamilyAccountsPanel({
 
   return (
     <div className="grid gap-6">
+      <PlanLimitDialog message={planLimitMessage} onClose={() => setPlanLimitMessage(null)} />
       <SectionCard
         icon={<UserPlus aria-hidden="true" />}
         title="Tạo tài khoản quản lý chi"

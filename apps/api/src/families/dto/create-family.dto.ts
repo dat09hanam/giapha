@@ -3,6 +3,7 @@ import {
   IsEmail,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   MaxLength,
   MinLength,
@@ -38,4 +39,7 @@ export class CreateFamilyDto {
   @IsOptional()
   @IsBoolean()
   isDemo?: boolean;
+
+  @IsUUID('all', { message: 'Hãy chọn gói dịch vụ mà dòng họ đã mua.' })
+  planId!: string;
 }

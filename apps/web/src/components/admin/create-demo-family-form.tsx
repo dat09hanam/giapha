@@ -6,6 +6,7 @@ import { useState, type FormEvent } from 'react';
 
 import { InlineLoader } from '@/components/ui/heritage-loader';
 import { SectionCard } from '@/components/admin/admin-layout';
+import { PlanSelect } from '@/components/admin/plan-select';
 import { Field } from '@/components/auth/form-fields';
 import { Button } from '@/components/ui/button';
 import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker';
@@ -13,6 +14,7 @@ import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { createDemoFamily } from '@/lib/family-api';
 import { foldVietnamese } from '@/lib/person-search';
+import type { PricingPlan } from '@/types/pricing';
 
 function demoSlug(name: string): string {
   const base = foldVietnamese(name)
@@ -23,11 +25,12 @@ function demoSlug(name: string): string {
   return `${base || 'dong-ho'}-mau`;
 }
 
-export function CreateDemoFamilyForm() {
+export function CreateDemoFamilyForm({ plans }: { plans: readonly PricingPlan[] }) {
   const router = useRouter();
   const showToast = useToast();
   const [name, setName] = useState('');
   const [deathAnniversary, setDeathAnniversary] = useState('');
+  const [planId, setPlanId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const slug = demoSlug(name);
 
@@ -35,7 +38,7 @@ export function CreateDemoFamilyForm() {
     event.preventDefault();
     setSubmitting(true);
     try {
-      const body = await createDemoFamily({ name, slug, deathAnniversary });
+      const body = await createDemoFamily({ name, slug, deathAnniversary, planId });
       showToast({ kind: 'success', message: `Đã tạo gia phả mẫu ${body.family.name}.` });
       router.refresh();
     } catch (error: unknown) {
@@ -77,11 +80,12 @@ export function CreateDemoFamilyForm() {
             onChange={setDeathAnniversary}
             required
           />
+          <PlanSelect id="demo-family-plan" plans={plans} value={planId} onChange={setPlanId} />
           <Button
             type="submit"
             size="lg"
             className="mt-1 sm:justify-self-start"
-            disabled={submitting}
+            disabled={submitting || plans.length === 0}
           >
             {submitting ? (
               <InlineLoader className="size-4" />

@@ -169,13 +169,13 @@ clan head chose: a nullable foreign key `posterBackgroundId` into the decoration
 plain paper), plus the optional family-specific vertical inscriptions `posterLeftText` and
 `posterRightText`.
 
-The platform `ADMIN` switches Family sections on or off for every Family at once. `PlatformFeature`
-is a platform-level table (not tenant-owned) keyed by feature: `feed`, `fund`, `merit`, `library`,
-`editSuggestions` and `printBook`; a feature without a row is on. `GET /api/platform-features` is
-public, because every Family page reads it to build its menu; `PATCH` is `ADMIN` only and accepts a
-partial map. A controller or route marked `@RequiresFamilyFeature(...)` is refused by
-`FamilyAccessGuard` with 404 while its switch is off; the web app hides the section from the menu
-and answers its pages with not found. Switching a section off keeps its data.
+Family sections (feed, fund, merit, library, edit suggestions) are always on; there are no
+platform-wide switches. The one exception is `printBook`, which is a plan right (see plan rights
+below). `GET /api/families/:slug/features` is public and returns a Family's effective map; every
+Family page uses it. A controller or route marked `@RequiresFamilyFeature(...)` is refused by
+`FamilyAccessGuard` with 404 while the feature is off for that Family; the web app hides the section
+from the menu and answers its pages with not found. To make another section a plan right, add it
+to the plan catalog and gate it in `readFamilyFeaturesFor`.
 
 `PosterDecoration` is the platform-wide background library and is deliberately **not**
 tenant-owned: every Family chooses from the same rows. Every row has `kind` `BACKGROUND` and is an
@@ -198,11 +198,49 @@ masthead; `slug` is unique per category, and `publishedAt` is set on first publi
 `PricingPlan` and its `PricingPlanFeature` lines are the home page's pricing table (the Bảng giá
 section, `#bang-gia`). They are platform-level and **not** tenant-owned: no `familyId`, written only
 by the platform `ADMIN` (the Bảng giá tab of `/admin`). A plan carries its price in whole đồng
-(`0` is shown as "Miễn phí"), a tone and a preset icon key for its card, and an optional badge; each
-feature line is `NORMAL`, `BOLD` (a headline benefit) or `STRIKETHROUGH` (not included). Saving a
-plan replaces its feature lines as a whole. `GET /api/pricing-plans` is public and returns active
-plans only; `GET /api/pricing-plans/admin` and the writes are `ADMIN` only. The plans describe the
-offer only: nothing in the app enforces a plan's limits yet. A card's button opens the sign-up form
+(`0` is shown as "Miễn phí"), a tone and a preset icon key for its card, and an optional badge.
+`GET /api/pricing-plans` is public and returns active plans only; `GET /api/pricing-plans/admin` and
+the writes are `ADMIN` only. A plan still used by a Family cannot be deleted (hide it instead).
+
+**Plan rights have one source.** `src/common/plan-rights.ts` holds the plan catalog
+(`GET /api/pricing-plans/catalog`): three limits, `maxMembers` (people in the tree),
+`durationMonths` and `maxManagers` (personal `MEMBER` accounts the clan head creates to manage
+branches), and two options, `printBook` (the clan head's printable-book export) and
+`dataEntrySupport` (a hand-delivered service; display only, nothing enforces it). A feature line is
+never free text: it is a catalog `key`, a `value` (a limit's number, null = unlimited; always null
+for an option) and a style (`NORMAL`, `BOLD`, or `STRIKETHROUGH` = option not included; a limit
+cannot be struck). `assertValidPlanFeatures` refuses unknown or repeated keys, out-of-range values
+and a plan missing any limit line, so every saved plan is complete. `resolvePlanRights` turns lines
+into rights and is the only place any code reads a plan's rights; a missing limit fails closed
+(zero). The API renders each line's display text from the catalog, so the pricing table shows
+exactly what is enforced. The admin edits all plans at once in a feature table (columns =
+plans in display order, rows = catalog entries): `PUT /api/pricing-plans/features` must name every
+plan exactly once, sets `sortOrder` from the column order and replaces every plan's lines in one
+transaction. `POST`/`PATCH /api/pricing-plans` only edit card details; a new plan is appended last
+with every catalog line (limits unlimited, options not included).
+
+`Family.planId` records the plan a Family bought and is required for every Family, the demo family
+included: the `ADMIN` chooses it when creating the Family and can switch it later from the Family
+list on `/admin` (`GET /api/families` lists platform-level facts only: name, slug, status, plan,
+member count, expiry; `PATCH /api/families/:slug/plan`, both `ADMIN` only). The duration sets
+`Family.planExpiresAt` when the plan is chosen or changed (the new period starts that day) and
+`POST /api/families/:slug/plan/renew` adds one period after the current end, or after today if it
+has lapsed. The demo family never expires. A Family past `planExpiresAt` is expired at once:
+`FamilyAccessGuard` and the public family endpoint answer 403 with an expiry message, and an
+in-process sweep (every 10 minutes, idempotent) stores status `EXPIRED`. Changing or renewing the
+plan returns an `EXPIRED` Family to `ACTIVE`; its data is never touched. The member cap limits the
+Person rows of a Family: creating a person, or saving a tree design that adds people, is refused
+with 403 inside the same transaction when the tree would exceed it. Lowering a limit does not remove
+anyone; it only stops further additions. The manager cap works the same way when the clan head
+creates a branch-manager account. `GET /api/families/:slug/plan-limits` (Family members only) returns the plan
+name and both caps so the web can warn early: the tree designer counts every person in its draft,
+saved or not, and refuses to start an addition at the cap, while the API still enforces it on save. A non-demo Family has an expiry date exactly when its plan has a duration, and saving the feature
+table keeps that true in the same transaction (`syncFamilyExpiryToPlan`): a plan that gains a
+duration starts a period today for its Families that had none, a plan that becomes permanent clears
+their expiry and reopens `EXPIRED` ones, and changing the number of months keeps each Family's
+bought period. The member and manager caps and the printable book apply live.
+
+A card's button opens the sign-up form
 (labelled with the plan's `ctaLabel`; `PricingPlan.ctaHref` is no longer shown and is
 kept only so saved rows stay valid).
 

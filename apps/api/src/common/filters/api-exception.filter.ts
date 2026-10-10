@@ -10,6 +10,8 @@ import type { FastifyReply } from 'fastify';
 type ErrorPayload = {
   statusCode: number;
   message: string | string[];
+  /** Machine-readable reason, for errors the web reacts to specially. */
+  code?: string;
 };
 
 const STATUS_MESSAGES: Record<number, string> = {
@@ -44,6 +46,17 @@ const VIETNAMESE_CHARACTER_PATTERN =
 
 function fallbackMessage(status: number): string {
   return STATUS_MESSAGES[status] ?? `Yêu cầu không thành công do máy chủ trả về mã lỗi ${status}.`;
+}
+
+function extractCode(exception: unknown): string | undefined {
+  if (!(exception instanceof HttpException)) return undefined;
+  const response: unknown = exception.getResponse();
+  return typeof response === 'object' &&
+    response !== null &&
+    'code' in response &&
+    typeof response.code === 'string'
+    ? response.code
+    : undefined;
 }
 
 function extractMessages(exception: unknown): { status: number; messages: string[] } {
@@ -107,6 +120,8 @@ export class ApiExceptionFilter implements ExceptionFilter {
       statusCode: status,
       message: localized.length === 1 ? localized[0]! : localized,
     };
+    const code = extractCode(exception);
+    if (code) payload.code = code;
 
     void response.status(status).send(payload);
   }

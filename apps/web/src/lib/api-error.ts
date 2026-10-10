@@ -6,11 +6,16 @@ import {
 
 export type ApiErrorKind = 'http' | 'network' | 'invalid-response' | 'unknown';
 
+/** The API's code for a refused addition that needs a bigger plan. */
+export const PLAN_LIMIT_REACHED = 'PLAN_LIMIT_REACHED';
+
 export class ApiRequestError extends Error {
   constructor(
     message: string,
     readonly status: number | null,
     readonly kind: ApiErrorKind,
+    /** Machine-readable reason from the API, when it sent one. */
+    readonly code: string | null = null,
   ) {
     super(message);
     this.name = 'ApiRequestError';
@@ -84,6 +89,19 @@ function messagesFromBody(body: unknown): string[] {
   }
 
   return [];
+}
+
+function codeFromBody(body: unknown): string | null {
+  return typeof body === 'object' &&
+    body !== null &&
+    'code' in body &&
+    typeof body.code === 'string'
+    ? body.code
+    : null;
+}
+
+export function isPlanLimitError(error: unknown): error is ApiRequestError {
+  return error instanceof ApiRequestError && error.code === PLAN_LIMIT_REACHED;
 }
 
 function translateLegacyValidation(message: string): string | null {
@@ -168,6 +186,7 @@ export async function apiFetch<T>(url: string, init: RequestInit, action: string
         : statusMessage(response.status, action),
       response.status,
       'http',
+      codeFromBody(body),
     );
   }
 

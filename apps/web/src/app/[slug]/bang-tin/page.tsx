@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { FamilyFeed } from '@/components/feed/family-feed';
-import { ApiNotFoundError, getFamily, getPlatformFeatures } from '@/lib/api';
+import { ApiNotFoundError, getFamily, getFamilyFeatures } from '@/lib/api';
 import { requireSession } from '@/lib/session';
 
 type FamilyFeedPageProps = {
@@ -17,7 +17,7 @@ export default async function FamilyFeedPage({ params }: FamilyFeedPageProps) {
 
   let feedOn = true;
   try {
-    [, { feed: feedOn }] = await Promise.all([getFamily(slug), getPlatformFeatures()]);
+    [, { feed: feedOn }] = await Promise.all([getFamily(slug), getFamilyFeatures(slug)]);
   } catch (error: unknown) {
     if (error instanceof ApiNotFoundError) notFound();
   }

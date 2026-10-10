@@ -1,21 +1,13 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import {
-  ClipboardList,
-  ImageIcon,
-  Network,
-  Newspaper,
-  Sparkles,
-  Tag,
-  ToggleRight,
-} from 'lucide-react';
+import { ClipboardList, ImageIcon, Network, Newspaper, Sparkles, Tag } from 'lucide-react';
 
 import { AdminWorkspace } from '@/components/admin/admin-workspace';
 import { ArticleManager } from '@/components/admin/article-manager';
 import { CreateFamilyForm } from '@/components/admin/create-family-form';
 import { DemoFamilyPanel } from '@/components/admin/demo-family-panel';
-import { PlatformFeaturesForm } from '@/components/admin/platform-features-form';
+import { FamilyPlansPanel } from '@/components/admin/family-plans-panel';
 import { PosterDecorationManager } from '@/components/admin/poster-decoration-manager';
 import { PricingPlanManager } from '@/components/admin/pricing-plan-manager';
 import { ServiceRegistrationsPanel } from '@/components/admin/service-registrations-panel';
@@ -24,22 +16,24 @@ import {
   ApiNotFoundError,
   ApiUnauthorizedError,
   getAdminArticles,
+  getAdminFamilies,
   getAdminPricingPlans,
+  getPlanCatalog,
   getAuthProfile,
   getDemoFamily,
   getFamily,
-  getPlatformFeatures,
   getPosterDecorations,
   getServiceRegistrations,
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { profileDestination, type AuthProfile } from '@/lib/auth-api';
+import type { AdminFamily } from '@/lib/family-api';
 import type { AdminPosterDecoration } from '@/lib/poster-decorations';
 import { SITE_BRAND } from '@/lib/site-brand';
 import type { AdminArticle } from '@/types/article';
 import { requirePasswordChanged } from '@/lib/session';
-import type { FamilyDetails, FamilyFeatures } from '@/types/family-tree';
-import type { PricingPlan, ServiceRegistration } from '@/types/pricing';
+import type { FamilyDetails } from '@/types/family-tree';
+import type { PlanCatalogEntry, PricingPlan, ServiceRegistration } from '@/types/pricing';
 
 export const metadata: Metadata = {
   description: `Khu vực quản trị nền tảng ${SITE_BRAND.name}.`,
@@ -80,22 +74,25 @@ async function loadDemoFamily(): Promise<FamilyDetails | null> {
 export default async function AdminPage() {
   let profile: AuthProfile;
   let decorations: AdminPosterDecoration[];
-  let features: FamilyFeatures;
   let demoFamily: FamilyDetails | null;
   let articles: AdminArticle[];
   let pricingPlans: PricingPlan[];
   let registrations: ServiceRegistration[];
+  let families: AdminFamily[];
+  let catalog: PlanCatalogEntry[];
   try {
     profile = await requireAdmin();
     const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
-    [decorations, features, demoFamily, articles, pricingPlans, registrations] = await Promise.all([
-      getPosterDecorations<AdminPosterDecoration>(sessionToken),
-      getPlatformFeatures(),
-      loadDemoFamily(),
-      getAdminArticles(sessionToken),
-      getAdminPricingPlans(sessionToken),
-      getServiceRegistrations(sessionToken),
-    ]);
+    [decorations, demoFamily, articles, pricingPlans, registrations, families, catalog] =
+      await Promise.all([
+        getPosterDecorations<AdminPosterDecoration>(sessionToken),
+        loadDemoFamily(),
+        getAdminArticles(sessionToken),
+        getAdminPricingPlans(sessionToken),
+        getServiceRegistrations(sessionToken),
+        getAdminFamilies(sessionToken),
+        getPlanCatalog(),
+      ]);
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
       return (
@@ -117,7 +114,12 @@ export default async function AdminPage() {
           id: 'dong-ho',
           label: 'Dòng họ',
           icon: <Network aria-hidden="true" />,
-          content: <CreateFamilyForm />,
+          content: (
+            <div className="grid gap-6">
+              <CreateFamilyForm plans={pricingPlans} />
+              <FamilyPlansPanel families={families} plans={pricingPlans} />
+            </div>
+          ),
         },
         {
           id: 'dang-ky',
@@ -130,7 +132,7 @@ export default async function AdminPage() {
           id: 'bang-gia',
           label: 'Bảng giá',
           icon: <Tag aria-hidden="true" />,
-          content: <PricingPlanManager initial={pricingPlans} />,
+          content: <PricingPlanManager initial={pricingPlans} catalog={catalog} />,
         },
         {
           id: 'gia-pha-mau',
@@ -140,6 +142,7 @@ export default async function AdminPage() {
             <DemoFamilyPanel
               family={demoFamily}
               decorations={decorations.filter((decoration) => decoration.isActive)}
+              plans={pricingPlans}
             />
           ),
         },
@@ -154,12 +157,6 @@ export default async function AdminPage() {
           label: 'Bài viết',
           icon: <Newspaper aria-hidden="true" />,
           content: <ArticleManager initial={articles} />,
-        },
-        {
-          id: 'chuc-nang',
-          label: 'Chức năng',
-          icon: <ToggleRight aria-hidden="true" />,
-          content: <PlatformFeaturesForm initial={features} />,
         },
       ]}
     />

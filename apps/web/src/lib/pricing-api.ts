@@ -1,6 +1,7 @@
 import { apiFetch } from '@/lib/api-error';
 import type {
   PricingPlan,
+  PricingPlanFeatureInput,
   PricingPlanInput,
   ServiceRegistration,
   ServiceRegistrationInput,
@@ -24,6 +25,22 @@ export function updatePricingPlan(id: string, input: PricingPlanInput): Promise<
     `${API_URL}/pricing-plans/${encodeURIComponent(id)}`,
     { method: 'PATCH', credentials: 'include', headers: JSON_HEADERS, body: JSON.stringify(input) },
     'lưu gói dịch vụ',
+  );
+}
+
+/** Saves every plan's features and the display order (the array order) in one go. */
+export function savePlanFeatureTable(
+  plans: { id: string; features: PricingPlanFeatureInput[] }[],
+): Promise<PricingPlan[]> {
+  return apiFetch<PricingPlan[]>(
+    `${API_URL}/pricing-plans/features`,
+    {
+      method: 'PUT',
+      credentials: 'include',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ plans }),
+    },
+    'lưu bảng tính năng',
   );
 }
 

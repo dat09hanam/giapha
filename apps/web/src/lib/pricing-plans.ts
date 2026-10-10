@@ -30,6 +30,11 @@ export const PRICING_PLAN_TONES: ReadonlyArray<{ value: PricingPlanTone; label: 
   { value: 'LACQUER', label: 'Đỏ son' },
 ];
 
+export function formatPlanDuration(months: number | null): string {
+  if (months === null) return 'Vĩnh viễn';
+  return months % 12 === 0 ? `${months / 12} năm` : `${months} tháng`;
+}
+
 export function formatPlanPrice(price: number): string {
   return price === 0 ? 'Miễn phí' : `${price.toLocaleString('vi-VN')}đ`;
 }

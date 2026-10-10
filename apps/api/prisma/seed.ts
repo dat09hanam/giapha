@@ -18,6 +18,10 @@ const ids = {
 } as const;
 
 async function main(): Promise<void> {
+  const plan = await prisma.pricingPlan.findFirstOrThrow({
+    orderBy: [{ sortOrder: 'desc' }, { createdAt: 'desc' }],
+    select: { id: true },
+  });
   const family = await prisma.family.upsert({
     where: { slug: 'demo' },
     update: {
@@ -30,6 +34,7 @@ async function main(): Promise<void> {
       slug: 'demo',
       name: 'Dòng họ Nguyễn Văn',
       description: 'Gia phả mẫu dùng để kiểm tra sơ đồ phả hệ.',
+      planId: plan.id,
     },
   });
 

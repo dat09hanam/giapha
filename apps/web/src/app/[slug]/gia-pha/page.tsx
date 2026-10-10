@@ -10,7 +10,7 @@ import {
   getAuthProfile,
   getFamilyTree,
   getFamily,
-  getPlatformFeatures,
+  getFamilyFeatures,
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { isClanHeadOf } from '@/lib/auth-api';
@@ -70,9 +70,9 @@ export default async function FamilyPage({ params }: FamilyPageProps) {
   try {
     const loaded = await loadFamilyTree(slug);
     tree = loaded.tree;
-    let platformFeatures: FamilyFeatures;
-    [family, platformFeatures] = await Promise.all([getFamily(slug), getPlatformFeatures()]);
-    features = { ...platformFeatures, printBook: platformFeatures.printBook && loaded.isClanHead };
+    let familyFeatures: FamilyFeatures;
+    [family, familyFeatures] = await Promise.all([getFamily(slug), getFamilyFeatures(slug)]);
+    features = { ...familyFeatures, printBook: familyFeatures.printBook && loaded.isClanHead };
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
       return (

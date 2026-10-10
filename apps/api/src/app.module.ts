@@ -15,7 +15,6 @@ import { FamilyTreeModule } from './family-tree/family-tree.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MediaModule } from './media/media.module.js';
 import { MeritModule } from './merit/merit.module.js';
-import { PlatformFeaturesModule } from './platform-features/platform-features.module.js';
 import { PosterDecorationsModule } from './poster-decorations/poster-decorations.module.js';
 import { PricingPlansModule } from './pricing-plans/pricing-plans.module.js';
 
@@ -35,7 +34,6 @@ import { PricingPlansModule } from './pricing-plans/pricing-plans.module.js';
     FundModule,
     MeritModule,
     LibraryModule,
-    PlatformFeaturesModule,
     ArticlesModule,
     PricingPlansModule,
   ],

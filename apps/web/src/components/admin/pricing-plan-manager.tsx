@@ -1,61 +1,38 @@
 'use client';
 
-import {
-  ArrowDown,
-  ArrowUp,
-  Bold,
-  Eye,
-  EyeOff,
-  PencilLine,
-  Plus,
-  Star,
-  Strikethrough,
-  Tag,
-  Trash2,
-  Type,
-} from 'lucide-react';
+import { PencilLine, Plus, Tag } from 'lucide-react';
 import { useState, type FormEvent, type ReactNode } from 'react';
 
 import { SectionCard } from '@/components/admin/admin-layout';
+import { PlanFeatureTable } from '@/components/admin/plan-feature-table';
 import { Field } from '@/components/auth/form-fields';
 import { PricingCard } from '@/components/pricing/pricing-card';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { InlineLoader } from '@/components/ui/heritage-loader';
-import { Segmented } from '@/components/ui/segmented';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { createPricingPlan, deletePricingPlan, updatePricingPlan } from '@/lib/pricing-api';
+import { planFeatureText } from '@/lib/plan-catalog';
 import {
-  formatPlanPrice,
-  PRICING_PLAN_ICONS,
-  PRICING_PLAN_TONES,
-  pricingPlanIcon,
-} from '@/lib/pricing-plans';
+  createPricingPlan,
+  deletePricingPlan,
+  savePlanFeatureTable,
+  updatePricingPlan,
+} from '@/lib/pricing-api';
+import { PRICING_PLAN_ICONS, PRICING_PLAN_TONES } from '@/lib/pricing-plans';
 import { cn } from '@/lib/utils';
 import type {
-  PricingFeatureStyle,
+  PlanCatalogEntry,
+  PricingCardPlan,
   PricingPlan,
+  PricingPlanFeatureInput,
   PricingPlanInput,
   PricingPlanTone,
 } from '@/types/pricing';
 
-type DraftFeature = { key: number; text: string; style: PricingFeatureStyle };
+type Draft = Omit<PricingPlanInput, 'price'> & { id: string | null; price: string };
 
-type Draft = Omit<PricingPlanInput, 'price' | 'sortOrder' | 'features'> & {
-  id: string | null;
-  price: string;
-  sortOrder: string;
-  features: DraftFeature[];
-};
-
-let nextFeatureKey = 1;
-
-function draftFeature(text = '', style: PricingFeatureStyle = 'NORMAL'): DraftFeature {
-  return { key: nextFeatureKey++, text, style };
-}
-
-function emptyDraft(sortOrder: number): Draft {
+function emptyDraft(): Draft {
   return {
     id: null,
     name: '',
@@ -69,20 +46,23 @@ function emptyDraft(sortOrder: number): Draft {
     ctaLabel: 'Đăng ký ngay',
     ctaHref: '#lien-he',
     isActive: true,
-    sortOrder: String(sortOrder),
-    features: [draftFeature()],
   };
 }
 
 function toDraft(plan: PricingPlan): Draft {
   return {
-    ...plan,
+    id: plan.id,
+    name: plan.name,
     description: plan.description ?? '',
-    billingPeriod: plan.billingPeriod ?? '',
-    badge: plan.badge ?? '',
     price: String(plan.price),
-    sortOrder: String(plan.sortOrder),
-    features: plan.features.map((feature) => draftFeature(feature.text, feature.style)),
+    billingPeriod: plan.billingPeriod ?? '',
+    icon: plan.icon,
+    tone: plan.tone,
+    badge: plan.badge ?? '',
+    isFeatured: plan.isFeatured,
+    ctaLabel: plan.ctaLabel,
+    ctaHref: plan.ctaHref,
+    isActive: plan.isActive,
   };
 }
 
@@ -99,22 +79,24 @@ function toInput(draft: Draft): PricingPlanInput {
     ctaHref: draft.ctaHref,
     isActive: draft.isActive,
     price: Math.max(0, Math.round(Number(draft.price) || 0)),
-    sortOrder: Math.max(0, Math.round(Number(draft.sortOrder) || 0)),
-    features: draft.features
-      .map(({ text, style }) => ({ text: text.trim(), style }))
-      .filter((feature) => feature.text.length > 0),
   };
+}
+
+function toPreview(draft: Draft, features: PricingCardPlan['features']): PricingCardPlan {
+  return { ...toInput(draft), features };
+}
+
+/** What the API gives a new plan: every catalog row, limits unlimited, options not included. */
+function defaultFeatures(catalog: readonly PlanCatalogEntry[]): PricingCardPlan['features'] {
+  return catalog.map((entry) => ({
+    text: planFeatureText(catalog, { key: entry.key, value: null }),
+    style: entry.kind === 'OPTION' ? 'STRIKETHROUGH' : 'NORMAL',
+  }));
 }
 
 function bySortOrder(plans: PricingPlan[]): PricingPlan[] {
   return [...plans].sort((a, b) => a.sortOrder - b.sortOrder);
 }
-
-const STYLE_OPTIONS = [
-  { value: 'NORMAL', label: 'Thường', icon: <Type aria-hidden="true" /> },
-  { value: 'BOLD', label: 'Đậm', icon: <Bold aria-hidden="true" /> },
-  { value: 'STRIKETHROUGH', label: 'Gạch', icon: <Strikethrough aria-hidden="true" /> },
-] as const;
 
 const BADGE_SUGGESTIONS = ['Phổ biến nhất', 'Khuyên dùng', 'Tiết kiệm nhất', 'Mới'] as const;
 
@@ -184,113 +166,16 @@ function CheckField({
   );
 }
 
-function FeatureListEditor({
-  features,
-  onChange,
-}: {
-  features: DraftFeature[];
-  onChange: (features: DraftFeature[]) => void;
-}) {
-  function patch(key: number, change: Partial<DraftFeature>): void {
-    onChange(
-      features.map((feature) => (feature.key === key ? { ...feature, ...change } : feature)),
-    );
-  }
-
-  function move(index: number, offset: -1 | 1): void {
-    const next = [...features];
-    const [line] = next.splice(index, 1);
-    if (!line) return;
-    next.splice(index + offset, 0, line);
-    onChange(next);
-  }
-
-  return (
-    <fieldset className="grid gap-3">
-      <legend className="mb-1 text-sm font-medium text-brand-950">Tính năng của gói</legend>
-      <p className="-mt-1 text-xs leading-5 text-stone-500">
-        <strong>In đậm</strong> cho lợi ích nổi bật, <s>gạch ngang</s> cho tính năng gói này không
-        có. Dòng để trống sẽ được bỏ qua khi lưu.
-      </p>
-      <ol className="grid gap-2">
-        {features.map((feature, index) => (
-          <li
-            key={feature.key}
-            className="grid gap-2 rounded-xl border border-gold-500/25 bg-white/80 p-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"
-          >
-            <input
-              aria-label={`Tính năng ${index + 1}`}
-              value={feature.text}
-              maxLength={160}
-              placeholder="Ví dụ: Tối đa 300 người"
-              onChange={(event) => patch(feature.key, { text: event.currentTarget.value })}
-              className={cn(
-                SELECT_CLASS,
-                feature.style === 'BOLD' && 'font-semibold',
-                feature.style === 'STRIKETHROUGH' && 'text-stone-500 line-through',
-              )}
-            />
-            <Segmented
-              label={`Kiểu chữ của tính năng ${index + 1}`}
-              options={STYLE_OPTIONS}
-              value={feature.style}
-              onChange={(style) => patch(feature.key, { style })}
-            />
-            <span className="flex justify-end gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={index === 0}
-                aria-label={`Chuyển tính năng ${index + 1} lên`}
-                onClick={() => move(index, -1)}
-              >
-                <ArrowUp className="size-4" aria-hidden="true" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={index === features.length - 1}
-                aria-label={`Chuyển tính năng ${index + 1} xuống`}
-                onClick={() => move(index, 1)}
-              >
-                <ArrowDown className="size-4" aria-hidden="true" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={`Xóa tính năng ${index + 1}`}
-                onClick={() => onChange(features.filter((line) => line.key !== feature.key))}
-              >
-                <Trash2 className="size-4 text-red-700" aria-hidden="true" />
-              </Button>
-            </span>
-          </li>
-        ))}
-      </ol>
-      <Button
-        type="button"
-        variant="outline"
-        className="justify-self-start"
-        disabled={features.length >= 30}
-        onClick={() => onChange([...features, draftFeature()])}
-      >
-        <Plus className="size-4" aria-hidden="true" />
-        Thêm tính năng
-      </Button>
-    </fieldset>
-  );
-}
-
 function PlanEditor({
+  features,
   draft,
   saving,
   onChange,
   onCancel,
   onSave,
 }: {
+  /** Display lines for the preview card. */
+  features: PricingCardPlan['features'];
   draft: Draft;
   saving: boolean;
   onChange: (draft: Draft) => void;
@@ -311,7 +196,7 @@ function PlanEditor({
       <SectionCard
         icon={<PencilLine aria-hidden="true" />}
         title={draft.id ? `Sửa gói “${draft.name || 'chưa đặt tên'}”` : 'Thêm gói dịch vụ'}
-        description="Thẻ bên phải cập nhật ngay khi bạn sửa, đúng như khách xem ở trang chủ."
+        description="Thông tin trên thẻ gói. Tính năng và thứ tự hiển thị chỉnh ở bảng phía trên."
         footer={
           <>
             <Button type="button" variant="outline" disabled={saving} onClick={onCancel}>
@@ -405,7 +290,7 @@ function PlanEditor({
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <SelectField
                 id="plan-icon"
                 label="Biểu tượng"
@@ -430,15 +315,6 @@ function PlanEditor({
                   </option>
                 ))}
               </SelectField>
-              <Field
-                id="plan-order"
-                label="Thứ tự hiển thị"
-                type="number"
-                min={0}
-                max={9999}
-                value={draft.sortOrder}
-                onChange={(event) => set('sortOrder', event.currentTarget.value)}
-              />
             </div>
 
             <div className="grid gap-1.5">
@@ -472,11 +348,6 @@ function PlanEditor({
                 onChange={(checked) => set('isActive', checked)}
               />
             </div>
-
-            <FeatureListEditor
-              features={draft.features}
-              onChange={(features) => set('features', features)}
-            />
           </div>
 
           <aside className="lg:sticky lg:top-6 lg:self-start" aria-label="Xem trước thẻ gói">
@@ -484,7 +355,7 @@ function PlanEditor({
               Xem trước
             </p>
             <div className="pt-3">
-              <PricingCard plan={toInput(draft)} />
+              <PricingCard plan={toPreview(draft, features)} />
             </div>
           </aside>
         </div>
@@ -493,7 +364,13 @@ function PlanEditor({
   );
 }
 
-export function PricingPlanManager({ initial }: { initial: PricingPlan[] }) {
+export function PricingPlanManager({
+  initial,
+  catalog,
+}: {
+  initial: PricingPlan[];
+  catalog: readonly PlanCatalogEntry[];
+}) {
   const confirm = useConfirm();
   const showToast = useToast();
   const [plans, setPlans] = useState(() => bySortOrder(initial));
@@ -501,10 +378,7 @@ export function PricingPlanManager({ initial }: { initial: PricingPlan[] }) {
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  function startNew(): void {
-    const lastOrder = plans.at(-1)?.sortOrder ?? 0;
-    setDraft(emptyDraft(lastOrder + 10));
-  }
+  const editing = draft?.id ? plans.find((plan) => plan.id === draft.id) : undefined;
 
   async function save(): Promise<void> {
     if (!draft) return;
@@ -518,11 +392,29 @@ export function PricingPlanManager({ initial }: { initial: PricingPlan[] }) {
         bySortOrder([...current.filter((plan) => plan.id !== saved.id), saved]),
       );
       setDraft(null);
-      showToast({ kind: 'success', message: `Đã lưu gói “${saved.name}”.` });
+      showToast({
+        kind: 'success',
+        message: draft.id
+          ? `Đã lưu gói “${saved.name}”.`
+          : `Đã thêm gói “${saved.name}”. Hãy đặt tính năng cho gói trong bảng.`,
+      });
     } catch (error: unknown) {
       showToast({ kind: 'error', message: getApiErrorMessage(error, 'lưu gói dịch vụ') });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveTable(
+    columns: { id: string; features: PricingPlanFeatureInput[] }[],
+  ): Promise<boolean> {
+    try {
+      setPlans(bySortOrder(await savePlanFeatureTable(columns)));
+      showToast({ kind: 'success', message: 'Đã lưu bảng tính năng và thứ tự các gói.' });
+      return true;
+    } catch (error: unknown) {
+      showToast({ kind: 'error', message: getApiErrorMessage(error, 'lưu bảng tính năng') });
+      return false;
     }
   }
 
@@ -531,7 +423,7 @@ export function PricingPlanManager({ initial }: { initial: PricingPlan[] }) {
       !(await confirm({
         title: `Xóa gói “${plan.name}”?`,
         message:
-          'Gói và các tính năng của nó sẽ bị xóa khỏi bảng giá. Muốn tạm ẩn, hãy sửa gói và bỏ chọn “Hiển thị trên trang chủ”.',
+          'Gói sẽ bị xóa khỏi bảng giá. Muốn tạm ẩn, hãy sửa gói và bỏ chọn “Hiển thị trên trang chủ”.',
         confirmLabel: 'Xóa',
         tone: 'danger',
       }))
@@ -556,9 +448,9 @@ export function PricingPlanManager({ initial }: { initial: PricingPlan[] }) {
       <SectionCard
         icon={<Tag aria-hidden="true" />}
         title="Bảng giá dịch vụ"
-        description="Các gói hiển thị ở mục Bảng giá trên trang chủ, theo thứ tự hiển thị. Mỗi gói có danh sách tính năng riêng, viết thường, in đậm hoặc gạch ngang."
+        description="Mỗi cột là một gói, theo đúng thứ tự hiển thị trên trang chủ; mỗi hàng là một tính năng trong danh mục. Dùng mũi tên ở đầu cột để đổi thứ tự."
         actions={
-          <Button type="button" onClick={startNew} disabled={draft !== null}>
+          <Button type="button" onClick={() => setDraft(emptyDraft())} disabled={draft !== null}>
             <Plus className="size-4" aria-hidden="true" />
             Thêm gói
           </Button>
@@ -569,81 +461,26 @@ export function PricingPlanManager({ initial }: { initial: PricingPlan[] }) {
             Chưa có gói nào. Mục Bảng giá sẽ ẩn khỏi trang chủ cho tới khi có gói đang hiển thị.
           </p>
         ) : (
-          <ul className="grid gap-3 md:grid-cols-2">
-            {plans.map((plan) => {
-              const Icon = pricingPlanIcon(plan.icon);
-              return (
-                <li
-                  key={plan.id}
-                  className={cn(
-                    'flex items-center gap-3 rounded-xl border border-gold-500/30 bg-white/80 p-3',
-                    !plan.isActive && 'opacity-70',
-                    draft?.id === plan.id && 'ring-2 ring-brand-700/40',
-                  )}
-                >
-                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gold-100 text-wood-700 ring-1 ring-gold-500/40">
-                    <Icon className="size-5" aria-hidden="true" />
-                  </span>
-                  <span className="grid min-w-0 flex-1 gap-0.5">
-                    <span className="flex flex-wrap items-center gap-1.5">
-                      <span className="truncate font-semibold text-brand-950">{plan.name}</span>
-                      {plan.badge ? (
-                        <span className="rounded bg-brand-700 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                          {plan.badge}
-                        </span>
-                      ) : null}
-                      {plan.isFeatured ? (
-                        <Star className="size-4 fill-gold-400 text-gold-600" aria-label="Nổi bật" />
-                      ) : null}
-                      {plan.isActive ? (
-                        <Eye className="size-4 text-stone-400" aria-label="Đang hiển thị" />
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-stone-100 px-1.5 py-0.5 text-xs font-medium text-stone-600">
-                          <EyeOff className="size-3.5" aria-hidden="true" />
-                          Đang ẩn
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-sm text-stone-600">
-                      {formatPlanPrice(plan.price)}
-                      {plan.price > 0 && plan.billingPeriod ? `/${plan.billingPeriod}` : ''} ·{' '}
-                      {plan.features.length} tính năng
-                    </span>
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Sửa gói ${plan.name}`}
-                    disabled={saving}
-                    onClick={() => setDraft(toDraft(plan))}
-                  >
-                    <PencilLine className="size-4" aria-hidden="true" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Xóa gói ${plan.name}`}
-                    disabled={busyId !== null}
-                    onClick={() => void remove(plan)}
-                  >
-                    {busyId === plan.id ? (
-                      <InlineLoader className="size-4" />
-                    ) : (
-                      <Trash2 className="size-4 text-red-700" aria-hidden="true" />
-                    )}
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
+          <PlanFeatureTable
+            plans={plans}
+            catalog={catalog}
+            locked={saving}
+            busyId={busyId}
+            onSave={saveTable}
+            onEdit={(plan) => setDraft(toDraft(plan))}
+            onRemove={(plan) => void remove(plan)}
+          />
         )}
       </SectionCard>
 
       {draft ? (
         <PlanEditor
           key={draft.id ?? 'new'}
+          features={
+            editing
+              ? editing.features.map(({ text, style }) => ({ text, style }))
+              : defaultFeatures(catalog)
+          }
           draft={draft}
           saving={saving}
           onChange={setDraft}

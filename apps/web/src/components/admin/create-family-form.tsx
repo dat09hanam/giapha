@@ -1,6 +1,7 @@
 'use client';
 
 import { Check, CheckCircle2, Copy, KeyRound, Plus, TriangleAlert, UsersRound } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { InlineLoader } from '@/components/ui/heritage-loader';
@@ -16,8 +17,10 @@ import {
 import { foldVietnamese } from '@/lib/person-search';
 import { cn } from '@/lib/utils';
 import { SectionCard } from '@/components/admin/admin-layout';
+import { PlanSelect } from '@/components/admin/plan-select';
 import { Field } from '@/components/auth/form-fields';
 import { useToast } from '@/components/ui/toast';
+import type { PricingPlan } from '@/types/pricing';
 
 function previewSlug(name: string, deathAnniversary: string): string {
   const base = foldVietnamese(name)
@@ -54,16 +57,18 @@ function slugStatusMessage(
   }
 }
 
-export function CreateFamilyForm() {
+export function CreateFamilyForm({ plans }: { plans: readonly PricingPlan[] }) {
   const [name, setName] = useState('');
   const [deathAnniversary, setDeathAnniversary] = useState('');
   const [ancestryOrigin, setAncestryOrigin] = useState('');
   const [headEmail, setHeadEmail] = useState('');
+  const [planId, setPlanId] = useState('');
   const [slugCheck, setSlugCheck] = useState<{
     key: string;
     result: FamilySlugCheck | null;
   } | null>(null);
   const showToast = useToast();
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<CreatedFamilyResult | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -120,12 +125,15 @@ export function CreateFamilyForm() {
         deathAnniversary,
         ancestryOrigin,
         headEmail: headEmail.trim(),
+        planId,
       });
       setCreated(body);
       setName('');
       setDeathAnniversary('');
       setAncestryOrigin('');
       setHeadEmail('');
+      setPlanId('');
+      router.refresh();
       showToast({
         kind: 'success',
         message: `Đã tạo dòng họ ${body.family.name}.`,
@@ -191,6 +199,7 @@ export function CreateFamilyForm() {
             onChange={(event) => setHeadEmail(event.target.value)}
             required
           />
+          <PlanSelect id="family-plan" plans={plans} value={planId} onChange={setPlanId} />
           <div className="grid gap-1.5">
             <Field
               id="family-slug"
@@ -224,7 +233,7 @@ export function CreateFamilyForm() {
             type="submit"
             size="lg"
             className="mt-1 sm:justify-self-start"
-            disabled={submitting || slugStatus === 'taken'}
+            disabled={submitting || slugStatus === 'taken' || plans.length === 0}
           >
             {submitting ? (
               <InlineLoader className="size-4" />
@@ -246,6 +255,7 @@ export function CreateFamilyForm() {
                 <p className="font-semibold text-brand-950">Đã tạo {created.family.name}</p>
                 <p className="text-sm text-brand-800">
                   Đường dẫn /{created.family.slug} · Ngày giỗ {created.family.deathAnniversary}
+                  {` · Gói ${created.family.plan.name}`}
                 </p>
               </div>
             </div>

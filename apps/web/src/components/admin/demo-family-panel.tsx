@@ -8,15 +8,18 @@ import { FamilyProfileForm } from '@/components/admin/family-profile-form';
 import { Button } from '@/components/ui/button';
 import type { PosterDecoration } from '@/lib/poster-decorations';
 import type { FamilyDetails } from '@/types/family-tree';
+import type { PricingPlan } from '@/types/pricing';
 
 export function DemoFamilyPanel({
   family,
   decorations,
+  plans,
 }: {
   family: FamilyDetails | null;
   decorations: PosterDecoration[];
+  plans: readonly PricingPlan[];
 }) {
-  if (!family) return <CreateDemoFamilyForm />;
+  if (!family) return <CreateDemoFamilyForm plans={plans} />;
 
   const familyPath = `/${encodeURIComponent(family.slug)}`;
   return (

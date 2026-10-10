@@ -12,6 +12,7 @@ import { FamilyStatus, UserRole } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma.service.js';
 import { isFamilyFeatureOn, type FamilyFeature } from '../family-features.js';
+import { FAMILY_EXPIRED_MESSAGE, isFamilyExpired } from '../family-plan.js';
 import { normalizeFamilySlug } from '../pipes/family-slug.pipe.js';
 import type { AuthRequest } from './auth.types.js';
 import { FAMILY_FEATURE_KEY } from './family-feature.decorator.js';
@@ -39,14 +40,15 @@ export class FamilyAccessGuard implements CanActivate {
     const rawSlug = (request.params as { slug?: string }).slug;
     const slug = normalizeFamilySlug(rawSlug ?? '');
     const family = await this.prisma.family.findFirst({
-      where: { slug, status: FamilyStatus.ACTIVE, deletedAt: null },
-      select: { id: true, slug: true, isDemo: true },
+      where: { slug, status: { in: [FamilyStatus.ACTIVE, FamilyStatus.EXPIRED] }, deletedAt: null },
+      select: { id: true, slug: true, isDemo: true, status: true, planExpiresAt: true },
     });
     if (platformAdmin) {
       if (!family?.isDemo) throw new ForbiddenException(ADMIN_REFUSED_MESSAGE);
     } else if (!family || family.id !== request.auth.familyId) {
       throw new ForbiddenException('Bạn không được phép truy cập dòng họ theo đường dẫn này.');
     }
+    if (isFamilyExpired(family)) throw new ForbiddenException(FAMILY_EXPIRED_MESSAGE);
     const role = platformAdmin ? UserRole.MEMBER_PLUS : request.auth.role;
 
     const roles = this.reflector.getAllAndOverride<UserRole[]>(FAMILY_ROLES_KEY, [
@@ -63,8 +65,8 @@ export class FamilyAccessGuard implements CanActivate {
       FAMILY_FEATURE_KEY,
       [context.getHandler(), context.getClass()],
     );
-    if (feature && !(await isFamilyFeatureOn(this.prisma, feature))) {
-      throw new NotFoundException('Chức năng này đang tạm tắt trên hệ thống.');
+    if (feature && !(await isFamilyFeatureOn(this.prisma, family.id, feature))) {
+      throw new NotFoundException('Chức năng này chưa được bật cho dòng họ.');
     }
 
     request.familyAccess = {

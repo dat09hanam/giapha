@@ -2,7 +2,12 @@ import type { Metadata } from 'next';
 
 import { FamilyTreeDesigner } from '@/components/tree/family-tree-designer';
 import { ApiErrorState } from '@/components/ui/api-error-state';
-import { getEditSuggestions, getFamilyTree, getTreeEditScope } from '@/lib/api';
+import {
+  getEditSuggestions,
+  getFamilyPlanLimits,
+  getFamilyTree,
+  getTreeEditScope,
+} from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { requireFamilyManager } from '@/lib/family-manager';
 import type { EditSuggestion } from '@/types/edit-suggestion';
@@ -33,9 +38,10 @@ export default async function FamilyDesignerPage({
 
   try {
     const profile = await requireFamilyManager(slug, 'designer');
-    const [tree, editScope, suggestions] = await Promise.all([
+    const [tree, editScope, planLimits, suggestions] = await Promise.all([
       getFamilyTree(profile.family.slug, profile.sessionToken),
       getTreeEditScope(profile.family.slug, profile.sessionToken),
+      getFamilyPlanLimits(profile.family.slug, profile.sessionToken),
       suggestionId && profile.role === 'MEMBER_PLUS'
         ? getEditSuggestions(profile.family.slug, profile.sessionToken).catch(() => null)
         : null,
@@ -50,6 +56,7 @@ export default async function FamilyDesignerPage({
         familySlug={profile.family.slug}
         initialTree={tree}
         editScope={editScope}
+        memberLimit={{ planName: planLimits.planName, maxMembers: planLimits.maxMembers }}
         focus={focusPersonId ? { personId: focusPersonId, suggestion } : null}
       />
     );

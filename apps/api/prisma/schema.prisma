@@ -11,6 +11,7 @@ enum FamilyStatus {
   ACTIVE
   SUSPENDED
   ARCHIVED
+  EXPIRED
 }
 
 enum UserRole {
@@ -107,6 +108,8 @@ model Family {
   posterLeftText        String?           @db.VarChar(191)
   posterRightText       String?           @db.VarChar(191)
   isDemo                Boolean           @default(false)
+  planId                String            @db.Char(36)
+  planExpiresAt         DateTime?
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
   deletedAt             DateTime?
@@ -125,10 +128,13 @@ model Family {
   meritDonations        MeritDonation[]
   branchManagers        BranchManager[]
   posterBackground      PosterDecoration? @relation("FamilyPosterBackground", fields: [posterBackgroundId], references: [id], onDelete: SetNull)
+  plan                  PricingPlan       @relation(fields: [planId], references: [id], onDelete: Restrict)
 
   @@index([status])
   @@index([deletedAt])
   @@index([isDemo])
+  @@index([planId])
+  @@index([status, planExpiresAt])
 }
 
 model User {
@@ -487,12 +493,6 @@ model MeritDonation {
   @@index([familyId, eventId, donatedOn])
 }
 
-model PlatformFeature {
-  key       String   @id @db.VarChar(50)
-  enabled   Boolean  @default(true)
-  updatedAt DateTime @updatedAt
-}
-
 enum ArticleCategory {
   PRAYER
   LIBRARY
@@ -544,20 +544,27 @@ model PricingPlan {
   sortOrder     Int                   @default(0)
   features      PricingPlanFeature[]
   registrations ServiceRegistration[]
+  families      Family[]
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 
   @@index([isActive, sortOrder])
 }
 
+// One line of a plan, chosen from the catalog in src/common/plan-rights.ts. The line is both what
+// the pricing table shows and what the API enforces: `key` is a catalog key, `value` the number a
+// limit takes (null = unlimited; always null for a module), STRIKETHROUGH marks a module the plan
+// does not include.
 model PricingPlanFeature {
   id        String              @id @default(uuid()) @db.Char(36)
   planId    String              @db.Char(36)
   plan      PricingPlan         @relation(fields: [planId], references: [id], onDelete: Cascade)
-  text      String              @db.VarChar(160)
+  key       String              @db.VarChar(50)
+  value     Int?
   style     PricingFeatureStyle @default(NORMAL)
   sortOrder Int                 @default(0)
 
+  @@unique([planId, key])
   @@index([planId, sortOrder])
 }
 

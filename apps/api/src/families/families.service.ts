@@ -1,12 +1,16 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { FamilyStatus, PosterDecorationKind, Prisma, UserRole } from '@prisma/client';
 
+import { readFamilyFeaturesFor, type FamilyFeatures } from '../common/family-features.js';
+import { FAMILY_EXPIRED_MESSAGE, isFamilyExpired, planExpiry } from '../common/family-plan.js';
+import { planRightsSelect, resolvePlanRights } from '../common/plan-rights.js';
 import { normalizeFamilySlug } from '../common/pipes/family-slug.pipe.js';
 import {
   parseRichText,
@@ -25,6 +29,7 @@ import {
   toPosterDecorationResponse,
   type PosterDecorationResponse,
 } from '../poster-decorations/poster-decoration.types.js';
+import type { ChangeFamilyPlanDto } from './dto/change-family-plan.dto.js';
 import type { CreateFamilyDto } from './dto/create-family.dto.js';
 import type { FamilySlugCheckQueryDto } from './dto/family-slug-check.dto.js';
 import type { UpdateFamilyDto } from './dto/update-family.dto.js';
@@ -88,10 +93,79 @@ function toFamilySummary(record: FamilySummaryRecord): FamilySummary {
   };
 }
 
+/** Platform-level facts about a Family for the ADMIN's list; no member or tree data. */
+export type AdminFamilyListItem = {
+  id: string;
+  slug: string;
+  name: string;
+  status: FamilyStatus;
+  isDemo: boolean;
+  createdAt: Date;
+  planExpiresAt: Date | null;
+  memberCount: number;
+  managerCount: number;
+  plan: {
+    id: string;
+    name: string;
+    durationMonths: number | null;
+    maxMembers: number | null;
+    maxManagers: number | null;
+  };
+};
+
+const adminFamilySelect = {
+  id: true,
+  slug: true,
+  name: true,
+  status: true,
+  isDemo: true,
+  createdAt: true,
+  planExpiresAt: true,
+  plan: { select: { id: true, name: true, ...planRightsSelect } },
+  _count: {
+    select: { people: true, users: { where: { role: UserRole.MEMBER, isShared: false } } },
+  },
+} satisfies Prisma.FamilySelect;
+
+function toAdminFamily({
+  _count,
+  plan,
+  ...family
+}: Prisma.FamilyGetPayload<{ select: typeof adminFamilySelect }>): AdminFamilyListItem {
+  const { durationMonths, maxMembers, maxManagers } = resolvePlanRights(plan.features);
+  return {
+    ...family,
+    memberCount: _count.people,
+    managerCount: _count.users,
+    plan: { id: plan.id, name: plan.name, durationMonths, maxMembers, maxManagers },
+  };
+}
+
+const familyPlanStateSelect = {
+  id: true,
+  isDemo: true,
+  status: true,
+  planExpiresAt: true,
+  plan: { select: planRightsSelect },
+} satisfies Prisma.FamilySelect;
+
+type FamilyPlanState = Prisma.FamilyGetPayload<{ select: typeof familyPlanStateSelect }>;
+
+/** The limits a family's own managers need to warn before the API refuses. */
+export type FamilyPlanLimits = {
+  planName: string;
+  maxMembers: number | null;
+  maxManagers: number | null;
+};
+
 export type FamilySlugCheck = { slug: string; available: boolean; withOrigin: boolean };
 
 export type CreatedFamilyResult = {
-  family: FamilySummary & { deathAnniversary: string; isDemo: boolean };
+  family: FamilySummary & {
+    deathAnniversary: string;
+    isDemo: boolean;
+    plan: { id: string; name: string };
+  };
   accounts: {
     memberPlus: { role: 'MEMBER_PLUS'; username: string; password: string };
     member: { role: 'MEMBER'; username: string; password: string };
@@ -103,13 +177,104 @@ export class FamiliesService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async getPublicFamily(slug: string): Promise<FamilySummary> {
+    const record = await this.prisma.family.findFirst({
+      where: { slug, status: { in: [FamilyStatus.ACTIVE, FamilyStatus.EXPIRED] }, deletedAt: null },
+      select: { ...familySummarySelect, status: true, planExpiresAt: true },
+    });
+    if (!record)
+      throw new NotFoundException('Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.');
+    const { status, planExpiresAt, ...family } = record;
+    if (isFamilyExpired({ status, planExpiresAt })) {
+      throw new ForbiddenException(FAMILY_EXPIRED_MESSAGE);
+    }
+    return toFamilySummary(family);
+  }
+
+  async getPlanLimits(familyId: string): Promise<FamilyPlanLimits> {
+    const family = await this.prisma.family.findUnique({
+      where: { id: familyId },
+      select: { plan: { select: { name: true, ...planRightsSelect } } },
+    });
+    if (!family) throw new NotFoundException('Không tìm thấy dòng họ.');
+    const { maxMembers, maxManagers } = resolvePlanRights(family.plan.features);
+    return { planName: family.plan.name, maxMembers, maxManagers };
+  }
+
+  async getFamilyFeatures(slug: string): Promise<FamilyFeatures> {
     const family = await this.prisma.family.findFirst({
       where: { slug, status: FamilyStatus.ACTIVE, deletedAt: null },
-      select: familySummarySelect,
+      select: { id: true },
     });
     if (!family)
       throw new NotFoundException('Không tìm thấy dòng họ hoặc dòng họ không còn hoạt động.');
-    return toFamilySummary(family);
+    return readFamilyFeaturesFor(this.prisma, family.id);
+  }
+
+  async listFamilies(): Promise<AdminFamilyListItem[]> {
+    const records = await this.prisma.family.findMany({
+      where: { deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: adminFamilySelect,
+    });
+    return records.map(toAdminFamily);
+  }
+
+  async changePlan(slug: string, input: ChangeFamilyPlanDto): Promise<AdminFamilyListItem> {
+    const [family, plan] = await Promise.all([
+      this.findFamilyForPlan(slug),
+      this.prisma.pricingPlan.findUnique({
+        where: { id: input.planId },
+        select: { id: true, ...planRightsSelect },
+      }),
+    ]);
+    if (!plan) throw new BadRequestException('Không tìm thấy gói dịch vụ đã chọn.');
+    // A new plan is a new purchase: its period starts today.
+    return this.setPlanPeriod(family, {
+      planId: plan.id,
+      planExpiresAt: planExpiry(
+        resolvePlanRights(plan.features).durationMonths,
+        new Date(),
+        family.isDemo,
+      ),
+    });
+  }
+
+  async renewPlan(slug: string): Promise<AdminFamilyListItem> {
+    const family = await this.findFamilyForPlan(slug);
+    const { durationMonths } = resolvePlanRights(family.plan.features);
+    if (durationMonths === null || family.isDemo) {
+      throw new BadRequestException('Gói của dòng họ này không có thời hạn nên không cần gia hạn.');
+    }
+    // Renewing early adds a full period after the current end; a lapsed plan restarts today.
+    const now = new Date();
+    const from = family.planExpiresAt && family.planExpiresAt > now ? family.planExpiresAt : now;
+    return this.setPlanPeriod(family, {
+      planExpiresAt: planExpiry(durationMonths, from, false),
+    });
+  }
+
+  private async findFamilyForPlan(slug: string): Promise<FamilyPlanState> {
+    const family = await this.prisma.family.findFirst({
+      where: { slug, deletedAt: null },
+      select: familyPlanStateSelect,
+    });
+    if (!family) throw new NotFoundException('Không tìm thấy dòng họ.');
+    return family;
+  }
+
+  private async setPlanPeriod(
+    family: FamilyPlanState,
+    data: { planId?: string; planExpiresAt: Date | null },
+  ): Promise<AdminFamilyListItem> {
+    const record = await this.prisma.family.update({
+      where: { id: family.id },
+      data: {
+        ...data,
+        ...(family.status === FamilyStatus.EXPIRED ? { status: FamilyStatus.ACTIVE } : {}),
+      },
+      select: adminFamilySelect,
+    });
+    return toAdminFamily(record);
   }
 
   async createFamily(input: CreateFamilyDto): Promise<CreatedFamilyResult> {
@@ -135,6 +300,12 @@ export class FamiliesService {
       throw new ConflictException(EMAIL_TAKEN_MESSAGE);
     }
 
+    const plan = await this.prisma.pricingPlan.findUnique({
+      where: { id: input.planId },
+      select: { id: true, name: true, ...planRightsSelect },
+    });
+    if (!plan) throw new BadRequestException('Không tìm thấy gói dịch vụ đã chọn.');
+
     const posterDefaults = await this.defaultPosterDecorations();
 
     try {
@@ -153,6 +324,12 @@ export class FamiliesService {
             deathAnniversaryDay: anniversary.day,
             deathAnniversaryMonth: anniversary.month,
             isDemo,
+            planId: plan.id,
+            planExpiresAt: planExpiry(
+              resolvePlanRights(plan.features).durationMonths,
+              new Date(),
+              isDemo,
+            ),
             ...posterDefaults,
           },
           select: familySummarySelect,
@@ -183,7 +360,12 @@ export class FamiliesService {
       });
 
       return {
-        family: { ...toFamilySummary(family), deathAnniversary: anniversary.display, isDemo },
+        family: {
+          ...toFamilySummary(family),
+          deathAnniversary: anniversary.display,
+          isDemo,
+          plan: { id: plan.id, name: plan.name },
+        },
         accounts: isDemo
           ? null
           : {

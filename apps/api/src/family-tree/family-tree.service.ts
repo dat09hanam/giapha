@@ -10,6 +10,7 @@ import type { MaritalStatus } from '@prisma/client';
 
 import { computeBranchScope, type BranchScope } from '../branches/branch-scope.js';
 import type { FamilyAccess } from '../common/auth/auth.types.js';
+import { assertWithinMemberLimit } from '../common/family-plan.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { CreatePersonDto } from './dto/create-person.dto.js';
 import type { SaveFamilyTreeDesignDto } from './dto/save-family-tree-design.dto.js';
@@ -496,6 +497,8 @@ export class FamilyTreeService {
           deletedPersonCount = deleted.count;
         }
 
+        if (createdIds.size > 0) await assertWithinMemberLimit(transaction, familyId);
+
         const touchesEditable = (id: string): boolean => createdIds.has(id) || mayEdit(id);
         const savedDatabaseIds = [...databaseIdByClientId.values()].filter(touchesEditable);
         await transaction.relationship.deleteMany({
@@ -599,6 +602,7 @@ export class FamilyTreeService {
           },
           select: managedPersonSelect,
         });
+        await assertWithinMemberLimit(transaction, familyId);
         return mapManagedPerson(person);
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },

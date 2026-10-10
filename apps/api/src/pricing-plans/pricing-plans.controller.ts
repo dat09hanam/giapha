@@ -10,13 +10,15 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 
 import { PlatformAdminGuard } from '../common/auth/platform-admin.guard.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { PricingPlanDto } from './pricing-plan.dto.js';
+import { PricingPlanDto, SavePlanFeatureTableDto } from './pricing-plan.dto.js';
+import type { PlanCatalogEntry } from '../common/plan-rights.js';
 import type { PricingPlanResponse } from './pricing-plan.types.js';
 import { PricingPlansService } from './pricing-plans.service.js';
 
@@ -30,6 +32,11 @@ export class PricingPlansController {
     return this.plans.listActive();
   }
 
+  @Get('catalog')
+  catalog(): readonly PlanCatalogEntry[] {
+    return this.plans.catalog();
+  }
+
   @Get('admin')
   @UseGuards(SessionAuthGuard, PlatformAdminGuard)
   @Header('Cache-Control', 'no-store')
@@ -41,6 +48,12 @@ export class PricingPlansController {
   @UseGuards(SessionAuthGuard, PlatformAdminGuard)
   create(@Body() input: PricingPlanDto): Promise<PricingPlanResponse> {
     return this.plans.create(input);
+  }
+
+  @Put('features')
+  @UseGuards(SessionAuthGuard, PlatformAdminGuard)
+  saveFeatureTable(@Body() input: SavePlanFeatureTableDto): Promise<PricingPlanResponse[]> {
+    return this.plans.saveFeatureTable(input);
   }
 
   @Patch(':id')

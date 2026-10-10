@@ -9,6 +9,7 @@ import { Prisma, UserRole, UserStatus } from '@prisma/client';
 
 import { generatePassword, generateSharedMemberPassword, hashPassword } from '../auth/password.js';
 import { computeBranchScope } from '../branches/branch-scope.js';
+import { assertWithinManagerLimit } from '../common/family-plan.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { familyNameKey } from '../families/family-credentials.js';
 import type {
@@ -137,19 +138,27 @@ export class FamilyAccountsService {
     const username = `${input.usernamePrefix.trim()}${await this.usernameSuffix(familyId)}`;
     const email = normalizeEmail(input.email);
     await this.assertEmailFree(email);
+    const passwordHash = await hashPassword(password);
     try {
-      const account = await this.prisma.user.create({
-        data: {
-          familyId,
-          username,
-          displayName: input.displayName.trim(),
-          email,
-          passwordHash: await hashPassword(password),
-          mustChangePassword: true,
-          role: UserRole.MEMBER,
+      const account = await this.prisma.$transaction(
+        async (transaction) => {
+          const created = await transaction.user.create({
+            data: {
+              familyId,
+              username,
+              displayName: input.displayName.trim(),
+              email,
+              passwordHash,
+              mustChangePassword: true,
+              role: UserRole.MEMBER,
+            },
+            select: accountSelect,
+          });
+          await assertWithinManagerLimit(transaction, familyId);
+          return created;
         },
-        select: accountSelect,
-      });
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
       return { account: toAccount(account), password };
     } catch (error: unknown) {
       throwIfTaken(error);

@@ -4,6 +4,7 @@ import { ApiRequestError, apiFetch } from '@/lib/api-error';
 import type { AuthProfile } from '@/lib/auth-api';
 import type { TreeEditScope } from '@/lib/branch-scope';
 import type { FamilyAccount } from '@/lib/family-accounts-api';
+import type { AdminFamily } from '@/lib/family-api';
 import type { PosterDecoration } from '@/lib/poster-decorations';
 import type { FeedPage } from '@/lib/feed-api';
 import type { FundLedger } from '@/lib/fund-api';
@@ -12,7 +13,12 @@ import type { MeritEventDetail, MeritOverview } from '@/lib/merit-api';
 import type { AdminArticle, Article, ArticleCategory, ArticleSummary } from '@/types/article';
 import type { EditSuggestion } from '@/types/edit-suggestion';
 import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
-import type { PricingPlan, ServiceRegistration } from '@/types/pricing';
+import type {
+  FamilyPlanLimits,
+  PlanCatalogEntry,
+  PricingPlan,
+  ServiceRegistration,
+} from '@/types/pricing';
 
 const API_URL = (process.env.API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
@@ -62,8 +68,12 @@ export const getFamily = cache((slug: string) =>
   getJson<FamilyDetails>(`/families/${encodeURIComponent(slug)}`, 'tải thông tin dòng họ'),
 );
 
-export const getPlatformFeatures = cache(() =>
-  getJson<FamilyFeatures>('/platform-features', 'tải danh sách chức năng'),
+/** The platform switches narrowed by the family's plan: what this family may use. */
+export const getFamilyFeatures = cache((slug: string) =>
+  getJson<FamilyFeatures>(
+    `/families/${encodeURIComponent(slug)}/features`,
+    'tải danh sách chức năng của dòng họ',
+  ),
 );
 
 export type DemoFamily = { id: string; slug: string; name: string };
@@ -78,6 +88,14 @@ export const getFamilyTree = cache((slug: string, sessionToken?: string) =>
   getJson<FamilyTreeResponse>(
     `/families/${encodeURIComponent(slug)}/tree`,
     'tải cây gia phả',
+    sessionToken,
+  ),
+);
+
+export const getFamilyPlanLimits = cache((slug: string, sessionToken: string) =>
+  getJson<FamilyPlanLimits>(
+    `/families/${encodeURIComponent(slug)}/plan-limits`,
+    'tải giới hạn gói dịch vụ',
     sessionToken,
   ),
 );
@@ -179,8 +197,16 @@ export const getPricingPlans = cache(() =>
   getJson<PricingPlan[]>('/pricing-plans', 'tải bảng giá dịch vụ'),
 );
 
+export const getPlanCatalog = cache(() =>
+  getJson<PlanCatalogEntry[]>('/pricing-plans/catalog', 'tải danh mục tính năng gói'),
+);
+
 export const getAdminPricingPlans = cache((sessionToken: string) =>
   getJson<PricingPlan[]>('/pricing-plans/admin', 'tải danh sách gói dịch vụ', sessionToken),
+);
+
+export const getAdminFamilies = cache((sessionToken: string) =>
+  getJson<AdminFamily[]>('/families', 'tải danh sách dòng họ', sessionToken),
 );
 
 export const getServiceRegistrations = cache((sessionToken: string) =>

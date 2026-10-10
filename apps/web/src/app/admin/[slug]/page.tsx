@@ -14,6 +14,7 @@ import {
   getEditSuggestions,
   getFamily,
   getFamilyAccounts,
+  getFamilyFeatures,
   getFamilyTree,
   getFamilyUsernameSuffix,
   getPosterDecorations,
@@ -23,7 +24,7 @@ import type { FamilyAccount } from '@/lib/family-accounts-api';
 import { requireFamilyManager, type FamilyManagerProfile } from '@/lib/family-manager';
 import type { PosterDecoration } from '@/lib/poster-decorations';
 import type { EditSuggestion } from '@/types/edit-suggestion';
-import type { FamilyDetails, FamilyTreeResponse } from '@/types/family-tree';
+import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
 
 type FamilyAdminPageProps = {
   params: Promise<{ slug: string }>;
@@ -44,11 +45,12 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
   let accounts: FamilyAccount[];
   let usernameSuffix: string;
   let tree: FamilyTreeResponse;
+  let features: FamilyFeatures | null;
   try {
     profile = await requireFamilyManager(slug, 'admin');
     const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
     let suffix: { suffix: string };
-    [family, decorations, suggestions, accounts, tree, suffix] = await Promise.all([
+    [family, decorations, suggestions, accounts, tree, suffix, features] = await Promise.all([
       getFamily(profile.family.slug),
       getPosterDecorations(sessionToken),
       getEditSuggestions(profile.family.slug, sessionToken).catch((error: unknown) => {
@@ -58,6 +60,7 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
       getFamilyAccounts(profile.family.slug, sessionToken),
       getFamilyTree(profile.family.slug, sessionToken),
       getFamilyUsernameSuffix(profile.family.slug, sessionToken),
+      getFamilyFeatures(profile.family.slug).catch(() => null),
     ]);
     usernameSuffix = suffix.suffix;
   } catch (error: unknown) {
@@ -76,6 +79,7 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
   const pendingCount = Array.isArray(suggestions)
     ? suggestions.filter((suggestion) => suggestion.status === 'PENDING').length
     : 0;
+  const suggestionsOn = features?.editSuggestions ?? true;
   const familyPath = `/${encodeURIComponent(profile.family.slug)}`;
   return (
     <main className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:gap-8 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
@@ -119,7 +123,7 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
               />
             ),
           },
-          {
+          suggestionsOn && {
             id: 'de-xuat',
             label: 'Đề xuất chỉnh sửa',
             shortLabel: 'Đề xuất',
@@ -139,7 +143,7 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
               </p>
             ),
           },
-        ]}
+        ].filter((tab) => tab !== false)}
       />
     </main>
   );

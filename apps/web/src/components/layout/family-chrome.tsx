@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { FamilyHeader, type FamilyHeaderViewer } from '@/components/layout/family-header';
 import { SiteHeaderBar } from '@/components/layout/site-header';
 import { ViewerIdentityScope } from '@/components/layout/viewer-identity-scope';
-import { ApiNotFoundError, getAuthProfile, getFamily, getPlatformFeatures } from '@/lib/api';
+import { ApiNotFoundError, getAuthProfile, getFamily, getFamilyFeatures } from '@/lib/api';
 import type { AuthProfile } from '@/lib/auth-api';
 import { familyNav } from '@/lib/family-nav';
 import { requirePasswordChanged } from '@/lib/session';
@@ -37,9 +37,9 @@ async function loadFamilyName(slug: string): Promise<string | null> {
   }
 }
 
-async function loadFeatures(): Promise<FamilyFeatures | null> {
+async function loadFeatures(slug: string): Promise<FamilyFeatures | null> {
   try {
-    return await getPlatformFeatures();
+    return await getFamilyFeatures(slug);
   } catch {
     return null;
   }
@@ -66,7 +66,7 @@ function PageBackground() {
 export async function FamilyChrome({ slug, children }: { slug: string; children: ReactNode }) {
   const [name, features, viewer] = await Promise.all([
     loadFamilyName(slug),
-    loadFeatures(),
+    loadFeatures(slug),
     loadViewer(slug),
   ]);
 

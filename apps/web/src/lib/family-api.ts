@@ -10,12 +10,53 @@ export type CreatedFamilyResult = {
     name: string;
     slug: string;
     deathAnniversary: string;
+    plan: { id: string; name: string };
   };
   accounts: {
     memberPlus: { role: 'MEMBER_PLUS'; username: string; password: string };
     member: { role: 'MEMBER'; username: string; password: string };
   };
 };
+
+export type AdminFamily = {
+  id: string;
+  slug: string;
+  name: string;
+  status: 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED' | 'EXPIRED';
+  isDemo: boolean;
+  createdAt: string;
+  planExpiresAt: string | null;
+  memberCount: number;
+  managerCount: number;
+  plan: {
+    id: string;
+    name: string;
+    durationMonths: number | null;
+    maxMembers: number | null;
+    maxManagers: number | null;
+  };
+};
+
+export function renewFamilyPlan(slug: string): Promise<AdminFamily> {
+  return apiFetch<AdminFamily>(
+    `${API_URL}/families/${encodeURIComponent(slug)}/plan/renew`,
+    { method: 'POST', credentials: 'include', headers: { Accept: 'application/json' } },
+    'gia hạn gói dịch vụ',
+  );
+}
+
+export function changeFamilyPlan(slug: string, planId: string): Promise<AdminFamily> {
+  return apiFetch<AdminFamily>(
+    `${API_URL}/families/${encodeURIComponent(slug)}/plan`,
+    {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planId }),
+    },
+    'đổi gói dịch vụ',
+  );
+}
 
 export type CreatedDemoFamilyResult = {
   family: CreatedFamilyResult['family'];
@@ -27,6 +68,7 @@ export type CreateFamilyInput = {
   deathAnniversary: string;
   headEmail?: string;
   ancestryOrigin?: string;
+  planId: string;
 };
 
 export type CreateDemoFamilyInput = CreateFamilyInput & { slug: string };
@@ -59,7 +101,7 @@ export function createFamily(input: CreateFamilyInput): Promise<CreatedFamilyRes
 export type FamilySlugCheck = { slug: string; available: boolean; withOrigin: boolean };
 
 export function checkFamilySlug(
-  input: CreateFamilyInput,
+  input: Pick<CreateFamilyInput, 'name' | 'deathAnniversary' | 'ancestryOrigin'>,
   signal: AbortSignal,
 ): Promise<FamilySlugCheck> {
   const query = new URLSearchParams({ name: input.name, deathAnniversary: input.deathAnniversary });

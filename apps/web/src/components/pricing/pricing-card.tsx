@@ -2,11 +2,11 @@ import { Check, X } from 'lucide-react';
 
 import { formatPlanPrice, pricingPlanIcon } from '@/lib/pricing-plans';
 import { cn } from '@/lib/utils';
-import type { PricingPlanInput } from '@/types/pricing';
+import type { PricingCardPlan } from '@/types/pricing';
 
 import styles from './pricing.module.css';
 
-export function PricingCard({ plan, onChoose }: { plan: PricingPlanInput; onChoose?: () => void }) {
+export function PricingCard({ plan, onChoose }: { plan: PricingCardPlan; onChoose?: () => void }) {
   const Icon = pricingPlanIcon(plan.icon);
   return (
     <article className={cn(styles.card, plan.isFeatured && styles.featured)} data-tone={plan.tone}>

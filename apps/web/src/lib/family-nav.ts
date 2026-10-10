@@ -47,43 +47,6 @@ export function familyNav(features: FamilyFeatures | null): readonly FamilyNavIt
   return FAMILY_NAV.filter((item) => !item.feature || features[item.feature]);
 }
 
-export const FAMILY_FEATURE_CHOICES: readonly {
-  feature: FamilyFeature;
-  label: string;
-  description: string;
-}[] = [
-  {
-    feature: 'feed',
-    label: 'Bảng tin',
-    description: 'Thành viên đăng bài, bình luận và bày tỏ cảm xúc.',
-  },
-  {
-    feature: 'fund',
-    label: 'Quỹ họ',
-    description: 'Sổ thu chi của dòng họ.',
-  },
-  {
-    feature: 'merit',
-    label: 'Công đức',
-    description: 'Ghi nhận người công đức tiền mặt hoặc hiện vật cho từng sự kiện của dòng họ.',
-  },
-  {
-    feature: 'library',
-    label: 'Album và tư liệu',
-    description: 'Album ảnh và tài liệu của dòng họ.',
-  },
-  {
-    feature: 'editSuggestions',
-    label: 'Đề xuất chỉnh sửa',
-    description: 'Thành viên gửi đề xuất sửa thông tin một người trên cây để trưởng họ duyệt.',
-  },
-  {
-    feature: 'printBook',
-    label: 'In gia phả',
-    description: 'Xuất cây gia phả thành quyển để in hoặc lưu PDF.',
-  },
-];
-
 export function isInSection(pathname: string, href: string, path: string): boolean {
   return pathname === href || (path !== '' && pathname.startsWith(`${href}/`));
 }

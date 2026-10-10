@@ -1,5 +1,7 @@
 import type { PricingFeatureStyle, PricingPlanTone, Prisma } from '@prisma/client';
 
+import { planFeatureText, resolvePlanRights, type PlanRights } from '../common/plan-rights.js';
+
 export const pricingPlanSelect = {
   id: true,
   name: true,
@@ -15,7 +17,7 @@ export const pricingPlanSelect = {
   isActive: true,
   sortOrder: true,
   features: {
-    select: { id: true, text: true, style: true },
+    select: { id: true, key: true, value: true, style: true },
     orderBy: { sortOrder: 'asc' },
   },
 } satisfies Prisma.PricingPlanSelect;
@@ -24,8 +26,11 @@ export type PricingPlanRecord = Prisma.PricingPlanGetPayload<{ select: typeof pr
 
 export type PricingPlanFeatureResponse = {
   id: string;
-  text: string;
+  key: string;
+  value: number | null;
   style: PricingFeatureStyle;
+  /** Rendered from the catalog; the web shows it as is. */
+  text: string;
 };
 
 export type PricingPlanResponse = {
@@ -43,8 +48,14 @@ export type PricingPlanResponse = {
   isActive: boolean;
   sortOrder: number;
   features: PricingPlanFeatureResponse[];
+  /** What the lines enforce for a family on this plan. */
+  rights: PlanRights;
 };
 
 export function toPricingPlanResponse(record: PricingPlanRecord): PricingPlanResponse {
-  return { ...record, features: record.features.map((feature) => ({ ...feature })) };
+  return {
+    ...record,
+    features: record.features.map((feature) => ({ ...feature, text: planFeatureText(feature) })),
+    rights: resolvePlanRights(record.features),
+  };
 }
