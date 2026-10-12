@@ -1,5 +1,6 @@
 import { HomeLanding } from '@/components/home/home-landing';
-import { getPricingPlans } from '@/lib/api';
+import { getArticles, getPricingPlans } from '@/lib/api';
+import type { ArticleSummary } from '@/types/article';
 import type { PricingPlan } from '@/types/pricing';
 
 async function loadPricingPlans(): Promise<PricingPlan[]> {
@@ -10,6 +11,15 @@ async function loadPricingPlans(): Promise<PricingPlan[]> {
   }
 }
 
+async function loadGuides(): Promise<ArticleSummary[]> {
+  try {
+    return (await getArticles('LIBRARY')).slice(0, 3);
+  } catch {
+    return [];
+  }
+}
+
 export default async function HomePage() {
-  return <HomeLanding pricingPlans={await loadPricingPlans()} />;
+  const [pricingPlans, guides] = await Promise.all([loadPricingPlans(), loadGuides()]);
+  return <HomeLanding pricingPlans={pricingPlans} guides={guides} />;
 }

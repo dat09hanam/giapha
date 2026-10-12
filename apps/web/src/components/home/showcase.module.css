@@ -1,0 +1,379 @@
+/* Phone mockup, printed sheet and the feature carousel on the landing page. */
+
+.phone {
+  position: relative;
+  aspect-ratio: 390 / 844;
+  width: 100%;
+  padding: 7px;
+  border-radius: 34px;
+  background: linear-gradient(145deg, #3a2a1f, #1d140e 55%, #3a2a1f);
+  box-shadow:
+    inset 0 0 0 1.5px rgb(197 160 89 / 55%),
+    0 28px 40px -24px rgb(43 26 12 / 60%),
+    0 8px 14px -8px rgb(43 26 12 / 35%);
+}
+
+.screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 27px;
+  background: var(--paper);
+}
+
+.screen img {
+  object-fit: cover;
+  object-position: top center;
+}
+
+.notch {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  width: 18%;
+  height: 10px;
+  border-radius: 999px;
+  background: #1d140e;
+  transform: translateX(-50%);
+}
+
+.kenBurns img {
+  transform-origin: 50% 40%;
+  animation: kenBurns 16s ease-in-out infinite alternate;
+}
+
+@keyframes kenBurns {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+
+  50% {
+    transform: scale(1.14) translate(-4%, 3%);
+  }
+
+  100% {
+    transform: scale(1.08) translate(4%, -2%);
+  }
+}
+
+.illustratedScreen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px 18px 96px;
+  background:
+    url('/images/decorations/lotus-bloom.webp') center bottom -12px / 92% auto no-repeat,
+    radial-gradient(circle at 50% 34%, rgb(197 160 89 / 28%), transparent 60%),
+    var(--paper-texture),
+    var(--paper);
+  color: var(--brown);
+  text-align: center;
+}
+
+.screenMedal {
+  display: grid;
+  width: 84px;
+  height: 84px;
+  place-items: center;
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  background: var(--paper-light);
+  box-shadow:
+    inset 0 0 0 5px var(--paper-deep),
+    0 12px 22px -14px rgb(74 46 18 / 60%);
+}
+
+.screenTitle {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.screenLines {
+  display: grid;
+  width: 70%;
+  gap: 7px;
+}
+
+.screenLines span {
+  height: 7px;
+  border-radius: 999px;
+  background: rgb(197 160 89 / 32%);
+}
+
+.screenLines span:nth-child(2) {
+  width: 82%;
+  margin-inline: auto;
+}
+
+.screenLines span:nth-child(3) {
+  width: 58%;
+  margin-inline: auto;
+}
+
+.printStage {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+}
+
+.printSheet {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1872 / 1053;
+  border: 5px solid var(--paper-light);
+  border-radius: 3px;
+  background: var(--paper-light);
+  box-shadow:
+    6px 6px 0 -1px var(--paper-deep),
+    12px 12px 0 -2px rgb(230 215 184 / 85%),
+    0 30px 40px -24px rgb(43 26 12 / 55%);
+}
+
+.printSheet img {
+  object-fit: cover;
+}
+
+/* Wooden rods of a hanging scroll. */
+.printSheet::before,
+.printSheet::after {
+  position: absolute;
+  z-index: 1;
+  left: -10px;
+  right: -10px;
+  height: 9px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #8a5a2b, #5c3a1a);
+  box-shadow: 0 3px 6px -2px rgb(43 26 12 / 50%);
+  content: '';
+}
+
+.printSheet::before {
+  top: -12px;
+}
+
+.printSheet::after {
+  bottom: -12px;
+}
+
+.printTag {
+  position: absolute;
+  bottom: 18%;
+  left: 50%;
+  padding: 5px 12px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: var(--paper-light);
+  color: var(--brown);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+/* Carousel */
+
+.showcase {
+  position: relative;
+  z-index: 1;
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin-top: 8px;
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chips button {
+  flex-shrink: 0;
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-light);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.chips button[aria-pressed='true'] {
+  border-color: var(--green);
+  background: var(--green);
+  color: #fff;
+}
+
+.trackWrap {
+  position: relative;
+  margin-top: 20px;
+}
+
+.track {
+  display: flex;
+  gap: 22px;
+  margin: 0;
+  padding: 8px 4px 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 4px;
+  scrollbar-width: none;
+  list-style: none;
+  overscroll-behavior-x: contain;
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}
+
+.slide {
+  display: flex;
+  flex: 0 0 240px;
+  flex-direction: column;
+  scroll-snap-align: start;
+}
+
+.slideArt {
+  aspect-ratio: 390 / 844;
+  width: 100%;
+}
+
+.slideCaption {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.slideIcon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 10px;
+  background: #e7ead8;
+  color: var(--green);
+}
+
+.slideCaption h3 {
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.slideCaption p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.arrow {
+  position: absolute;
+  top: calc(8px + 240px * 844 / 390 / 2);
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper-light);
+  color: var(--brown);
+  box-shadow: 0 10px 20px -12px rgb(74 46 18 / 55%);
+  transform: translateY(-50%);
+  transition: opacity 0.2s ease;
+}
+
+.arrow:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.arrowPrev {
+  left: -14px;
+}
+
+.arrowNext {
+  right: -14px;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.dots button {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--line);
+  transition:
+    width 0.25s ease,
+    background 0.25s ease;
+}
+
+.dots button[aria-current='true'] {
+  width: 22px;
+  background: var(--gold);
+}
+
+@media (max-width: 640px) {
+  .chips {
+    margin-inline: -16px;
+    padding-inline: 16px;
+  }
+
+  .track {
+    gap: 16px;
+    margin-inline: -16px;
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
+  }
+
+  .slide {
+    flex-basis: min(68vw, 260px);
+  }
+
+  .arrow {
+    display: none;
+  }
+}
+
+@media (hover: none) {
+  .chips button:active,
+  .dots button:active {
+    transform: scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kenBurns img {
+    animation: none;
+  }
+
+  .track {
+    scroll-behavior: auto;
+  }
+}
