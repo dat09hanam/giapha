@@ -180,200 +180,542 @@
   transform: translateX(-50%);
 }
 
-/* Carousel */
+/* Feature spotlight: tab list beside one large device on a stage. */
 
 .showcase {
   position: relative;
   z-index: 1;
-  grid-column: 1 / -1;
-  min-width: 0;
-  margin-top: 8px;
-}
-
-.chips {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.chips::-webkit-scrollbar {
-  display: none;
-}
-
-.chips button {
-  flex-shrink: 0;
-  height: 38px;
-  padding: 0 16px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--paper-light);
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 600;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.chips button[aria-pressed='true'] {
-  border-color: var(--green);
-  background: var(--green);
-  color: #fff;
-}
-
-.trackWrap {
-  position: relative;
-  margin-top: 20px;
-}
-
-.track {
-  display: flex;
-  gap: 22px;
-  margin: 0;
-  padding: 8px 4px 20px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: 4px;
-  scrollbar-width: none;
-  list-style: none;
-  overscroll-behavior-x: contain;
-}
-
-.track::-webkit-scrollbar {
-  display: none;
-}
-
-.slide {
-  display: flex;
-  flex: 0 0 240px;
-  flex-direction: column;
-  scroll-snap-align: start;
-}
-
-.slideArt {
-  aspect-ratio: 390 / 844;
-  width: 100%;
-}
-
-.slideCaption {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.slideIcon {
   display: grid;
-  width: 34px;
-  height: 34px;
-  flex-shrink: 0;
-  place-items: center;
-  border-radius: 10px;
-  background: #e7ead8;
-  color: var(--green);
+  grid-column: 1 / -1;
+  grid-template-areas:
+    'tabs stage'
+    'cta stage';
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  gap: 20px 48px;
+  min-width: 0;
+  margin-top: 32px;
 }
 
-.slideCaption h3 {
-  font-size: 16px;
+/* Compact call to action closing the feature list. */
+.cta {
+  position: relative;
+  grid-area: cta;
+  align-self: start;
+  padding: 18px 20px;
+  overflow: hidden;
+  border: 1px solid rgb(197 160 89 / 55%);
+  border-radius: 16px;
+  background:
+    url('/images/decorations/lotus-bloom.webp') right -26px bottom -34px / 120px auto no-repeat,
+    linear-gradient(135deg, var(--green), var(--green-dark));
+  color: #fff;
+  box-shadow: 0 22px 36px -24px rgb(22 56 41 / 75%);
+}
+
+.ctaTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
   line-height: 1.3;
 }
 
-.slideCaption p {
-  margin-top: 4px;
-  color: var(--muted);
+.ctaText {
+  max-width: 34ch;
+  margin: 4px 0 0;
+  color: rgb(255 255 255 / 75%);
   font-size: 13.5px;
   line-height: 1.5;
 }
 
-.arrow {
-  position: absolute;
-  top: calc(8px + 240px * 844 / 390 / 2);
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  background: var(--paper-light);
-  color: var(--brown);
-  box-shadow: 0 10px 20px -12px rgb(74 46 18 / 55%);
-  transform: translateY(-50%);
-  transition: opacity 0.2s ease;
+.ctaActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 14px;
 }
 
-.arrow:disabled {
+.ctaPrimary,
+.ctaSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Bright gold with a lit top edge and a crisp rim, so it reads sharply on the dark green. */
+.ctaPrimary {
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid #f3dc9f;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f1d58f, #d9b25f);
+  color: #10291e !important;
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 65%),
+    0 8px 18px -10px rgb(0 0 0 / 55%);
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.ctaPrimary:hover {
+  background: linear-gradient(180deg, #f7e2a8, #e3bf6e);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 75%),
+    0 10px 22px -10px rgb(0 0 0 / 60%);
+}
+
+.ctaSecondary {
+  color: var(--gold-soft) !important;
+  text-decoration: underline;
+  text-decoration-color: rgb(234 217 180 / 40%);
+  text-underline-offset: 4px;
+}
+
+.ctaSecondary:hover {
+  color: #fff !important;
+}
+
+.tabs {
+  display: flex;
+  grid-area: tabs;
+  align-self: end;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tabItem {
+  display: contents;
+}
+
+.groupLabel {
+  margin: 10px 0 2px 14px;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tabItem:first-child .groupLabel {
+  margin-top: 0;
+}
+
+.tab {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  width: 100%;
+  padding: 7px 14px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    color 0.3s ease;
+}
+
+.tab:hover {
+  background: rgb(255 253 248 / 55%);
+  color: var(--ink);
+}
+
+.tab[aria-selected='true'] {
+  border-color: var(--line);
+  background: var(--paper-light);
+  color: var(--ink);
+  box-shadow: 0 18px 32px -24px rgb(74 46 18 / 55%);
+}
+
+.tabIcon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 10px;
+  background: rgb(231 234 216 / 60%);
+  color: var(--green);
+  transition:
+    background 0.3s ease,
+    color 0.3s ease;
+}
+
+.tab[aria-selected='true'] .tabIcon {
+  background: var(--green);
+  color: #fff;
+}
+
+.tabBody {
+  display: grid;
+  min-width: 0;
+  padding-top: 7px;
+}
+
+.tabTitle {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Collapses to nothing on inactive tabs; grid rows animate the height. */
+.tabText {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.4s ease,
+    opacity 0.3s ease;
+}
+
+.tabText > span {
+  overflow: hidden;
+  padding-top: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.tab[aria-selected='true'] .tabText {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.tab[aria-selected='true'] .tabText > span {
+  padding-top: 4px;
+}
+
+.tabProgress {
+  position: absolute;
+  right: 16px;
+  bottom: 0;
+  left: 16px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgb(197 160 89 / 22%);
+  opacity: 0;
+}
+
+.tabProgress::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--gold), var(--green));
+  content: '';
+  transform: scaleX(var(--progress));
+  transform-origin: left;
+}
+
+.tab[aria-selected='true'] .tabProgress {
+  opacity: 1;
+}
+
+/* Stage */
+
+.stage {
+  position: relative;
+  grid-area: stage;
+  display: grid;
+  min-height: 760px;
+  padding-bottom: 110px;
+  place-items: center;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+/* Ink-wash lake landscape behind the device; the device base sits on the water, so its
+   reflection falls onto the lake. Edges and sky fade into the paper. */
+.scenery {
+  position: absolute;
+  z-index: -1;
+  top: 100%;
+  left: 50%;
+  width: 340%;
+  aspect-ratio: 1600 / 386;
+  background: url('/images/home/mountains-strip.webp') center / 100% auto no-repeat;
+  pointer-events: none;
+  translate: -50% -78%;
+  mask-image:
+    linear-gradient(90deg, transparent, #000 18% 82%, transparent),
+    linear-gradient(transparent, #000 30%);
+  mask-composite: intersect;
+}
+
+/* Soft light behind the device so it reads clearly against the landscape. */
+.glow {
+  position: absolute;
+  z-index: -1;
+  top: 46%;
+  left: 50%;
+  width: 190%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(255 253 248) 0 18%,
+    rgb(230 243 236 / 75%) 34%,
+    rgb(197 160 89 / 16%) 52%,
+    transparent 68%
+  );
+  pointer-events: none;
+  translate: -50% -50%;
+}
+
+.float {
+  position: absolute;
+  inset: 0;
+  animation: bob 6s ease-in-out infinite;
+}
+
+@keyframes bob {
+  50% {
+    translate: 0 -8px;
+  }
+}
+
+.counter {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.counter span {
+  display: inline-block;
+  color: var(--gold);
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1;
+  animation: rise 0.5s ease both;
+}
+
+.device {
+  position: relative;
+  isolation: isolate;
+  width: 256px;
+  aspect-ratio: 390 / 844;
+}
+
+.screenSlot {
+  position: absolute;
+  inset: 0;
   opacity: 0;
   pointer-events: none;
-}
-
-.arrowPrev {
-  left: -14px;
-}
-
-.arrowNext {
-  right: -14px;
-}
-
-.dots {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.dots button {
-  width: 8px;
-  height: 8px;
-  padding: 0;
-  border-radius: 999px;
-  background: var(--line);
+  transform: translateY(24px) scale(0.94) rotate(-2deg);
   transition:
-    width 0.25s ease,
-    background 0.25s ease;
+    opacity 0.6s ease,
+    transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.dots button[aria-current='true'] {
-  width: 22px;
-  background: var(--gold);
+.screenSlot[data-active] {
+  opacity: 1;
+  transform: none;
+  -webkit-box-reflect: below 6px linear-gradient(transparent 80%, rgb(0 0 0 / 34%));
 }
 
-@media (max-width: 640px) {
-  .chips {
+/* The printed scroll is landscape, so it borrows width beyond the phone box. */
+.screenSlotWide {
+  inset: 0 -42%;
+}
+
+.screenSlot .phone {
+  box-shadow:
+    inset 0 0 0 1.5px rgb(197 160 89 / 55%),
+    0 50px 60px -30px rgb(43 26 12 / 55%),
+    0 14px 24px -12px rgb(43 26 12 / 35%);
+}
+
+.badge {
+  position: absolute;
+  right: -64px;
+  bottom: 72px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid rgb(197 160 89 / 55%);
+  border-radius: 999px;
+  background: rgb(255 253 248 / 82%);
+  color: var(--brown);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 16px 30px -18px rgb(74 46 18 / 60%);
+  backdrop-filter: blur(10px);
+  animation: rise 0.6s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* Mobile shows the description under the stage instead of inside the tab. */
+.caption {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .showcase {
+    grid-template-areas:
+      'tabs'
+      'stage'
+      'cta';
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .cta {
+    margin-top: 28px;
+  }
+
+  .tabs {
+    flex-direction: row;
+    gap: 8px;
     margin-inline: -16px;
-    padding-inline: 16px;
+    padding: 4px 16px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
-  .track {
-    gap: 16px;
-    margin-inline: -16px;
-    padding-inline: 16px;
-    scroll-padding-inline: 16px;
-  }
-
-  .slide {
-    flex-basis: min(68vw, 260px);
-  }
-
-  .arrow {
+  .tabs::-webkit-scrollbar {
     display: none;
+  }
+
+  .groupLabel {
+    display: none;
+  }
+
+  .tab {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+    width: auto;
+    height: 44px;
+    padding: 0 16px 0 6px;
+    border-color: var(--line);
+    border-radius: 999px;
+    background: var(--paper-light);
+  }
+
+  .tab[aria-selected='true'] {
+    border-color: var(--green);
+  }
+
+  .tabIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+  }
+
+  .tabBody {
+    padding-top: 0;
+  }
+
+  .tabTitle {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .tabText {
+    display: none;
+  }
+
+  .tabProgress {
+    right: 18px;
+    bottom: 3px;
+    left: 44px;
+    height: 2px;
+  }
+
+  .stage {
+    min-height: 0;
+    padding: 28px 0 0;
+    overflow-x: clip;
+  }
+
+  .scenery {
+    width: 290%;
+  }
+
+  .glow {
+    width: 150%;
+  }
+
+  .counter {
+    display: none;
+  }
+
+  .device {
+    width: min(52vw, 232px);
+  }
+
+  .screenSlotWide {
+    inset: 0 -26%;
+  }
+
+  .badge {
+    right: -28%;
+    bottom: 56px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .caption {
+    display: block;
+    max-width: 420px;
+    margin-top: 76px;
+    text-align: center;
+  }
+
+  .caption h3 {
+    color: var(--ink);
+    font-size: 19px;
+    animation: rise 0.5s ease both;
+  }
+
+  .caption p {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.55;
   }
 }
 
 @media (hover: none) {
-  .chips button:active,
-  .dots button:active {
-    transform: scale(0.96);
+  .tab:active {
+    transform: scale(0.97);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .kenBurns img {
+  .kenBurns img,
+  .float {
     animation: none;
   }
 
-  .track {
-    scroll-behavior: auto;
+  .screenSlot {
+    transform: none;
+    transition: opacity 0.3s ease;
   }
 }

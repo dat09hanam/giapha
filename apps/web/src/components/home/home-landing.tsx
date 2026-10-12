@@ -3,8 +3,6 @@ import Link from 'next/link';
 import {
   ArrowRight,
   Check,
-  ChevronDown,
-  MoonStar,
   PhoneCall,
   Quote,
   ScrollText,
@@ -20,22 +18,18 @@ import { cn } from '@/lib/utils';
 import type { ArticleSummary } from '@/types/article';
 import type { PricingPlan } from '@/types/pricing';
 
-import { CountUp } from './count-up';
+import { Faq } from './faq';
 import { FeatureShowcase } from './feature-showcase';
 import {
-  heroFacts,
   overview,
   paperVsOnline,
   questions,
   reasons,
   steps,
   testimonials,
-  trustPoints,
 } from './home-content';
 import { HomeFooter } from './home-footer';
 import { HomeHeader } from './home-header';
-import { PhoneFrame } from './phone-frame';
-import { SectionChips } from './section-chips';
 import styles from './home.module.css';
 
 function Eyebrow({ children }: { children: string }) {
@@ -45,25 +39,6 @@ function Eyebrow({ children }: { children: string }) {
       {children}
       <span aria-hidden="true" />
     </p>
-  );
-}
-
-function CtaBand({ title, text }: { title: string; text: string }) {
-  return (
-    <aside className={cn(styles.ctaBand, styles.reveal)} aria-label={title}>
-      <div>
-        <h2>{title}</h2>
-        <p>{text}</p>
-      </div>
-      <div className={styles.ctaBandActions}>
-        <Link className={styles.primary} href="/gia-pha-mau">
-          Xem gia phả mẫu <ArrowRight size={18} aria-hidden="true" />
-        </Link>
-        <ContactLink className={styles.secondary}>
-          <PhoneCall size={17} aria-hidden="true" /> Đăng ký cho dòng họ
-        </ContactLink>
-      </div>
-    </aside>
   );
 }
 
@@ -106,26 +81,6 @@ function WhyDigital() {
             ))}
           </ul>
         </article>
-      </div>
-    </section>
-  );
-}
-
-function Trust() {
-  return (
-    <section className={styles.trust} id="bao-mat" aria-labelledby="trust-title">
-      <Eyebrow>Dữ liệu của dòng họ</Eyebrow>
-      <h2 id="trust-title">Thông tin tổ tiên được giữ kín và đúng người</h2>
-      <div className={styles.trustGrid}>
-        {trustPoints.map(({ icon: Icon, q, a }) => (
-          <article key={q} className={styles.reveal}>
-            <span className={styles.trustIcon}>
-              <Icon size={20} aria-hidden="true" />
-            </span>
-            <h3>{q}</h3>
-            <p>{a}</p>
-          </article>
-        ))}
       </div>
     </section>
   );
@@ -186,15 +141,6 @@ export function HomeLanding({
   guides: readonly ArticleSummary[];
 }) {
   const hasPricing = pricingPlans.length > 0;
-  const sections = [
-    { href: '#vi-sao', label: 'Vì sao' },
-    { href: '#chuc-nang', label: 'Chức năng' },
-    { href: '#cach-bat-dau', label: 'Cách bắt đầu' },
-    { href: '#bao-mat', label: 'Bảo mật' },
-    ...(hasPricing ? [{ href: '#bang-gia', label: 'Bảng giá' } as const] : []),
-    { href: '#hoi-dap', label: 'Hỏi đáp' },
-  ] as const;
-
   return (
     <main className={styles.home} id="top">
       <HomeHeader />
@@ -226,40 +172,8 @@ export function HomeLanding({
               <PhoneCall size={17} aria-hidden="true" /> Đăng ký cho dòng họ
             </ContactLink>
           </div>
-          <dl className={styles.heroFacts}>
-            {heroFacts.map(({ value, label }) => (
-              <div key={label}>
-                <dt>{label}</dt>
-                <dd>
-                  <CountUp value={value} />
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-        <div className={styles.heroDevice}>
-          <PhoneFrame
-            className={styles.heroBackPhone}
-            src="/images/decorations/screen-kinship.webp"
-            alt="Tra cứu cách xưng hô giữa hai thành viên"
-            sizes="(max-width: 1023px) 44vw, 200px"
-          />
-          <PhoneFrame
-            src="/images/decorations/screen-tree.webp"
-            alt="Cây gia phả dòng họ mẫu hiển thị trên điện thoại"
-            sizes="(max-width: 1023px) 52vw, 230px"
-            animated
-          />
-          <span className={cn(styles.heroBadge, styles.heroBadgeTop)}>
-            <Smartphone size={16} aria-hidden="true" /> Không cần cài đặt
-          </span>
-          <span className={cn(styles.heroBadge, styles.heroBadgeBottom)}>
-            <MoonStar size={16} aria-hidden="true" /> Ngày giỗ theo âm lịch
-          </span>
         </div>
       </section>
-
-      <SectionChips sections={sections} />
 
       <nav className={styles.overview} aria-label="Tổng quan">
         {overview.map(({ icon: Icon, title, text, href }) => (
@@ -297,7 +211,7 @@ export function HomeLanding({
           <p className={styles.longCopy}>
             Chúng tôi cung cấp nền tảng gia phả trực tuyến giúp các dòng họ lưu giữ, quản lý và
             truyền lại giá trị lịch sử, văn hóa, gắn kết tình thân giữa các thế hệ một cách dễ dàng
-            và tiện lợi. Không cần cài đặt: mở bằng trình duyệt trên máy tính, máy tính bảng hay
+            và tiện lợi. Không cần cài đặt, mở bằng trình duyệt trên máy tính, máy tính bảng hay
             điện thoại.
           </p>
           <p className={styles.shortCopy}>
@@ -316,14 +230,9 @@ export function HomeLanding({
         <FeatureShowcase />
       </section>
 
-      <CtaBand
-        title="Xem tận mắt trước khi bắt đầu"
-        text="Gia phả mẫu mở ngay trên điện thoại, không cần đăng nhập."
-      />
-
       <section className={styles.steps} id="cach-bat-dau" aria-labelledby="steps-title">
-        <Eyebrow>Cách bắt đầu</Eyebrow>
-        <h2 id="steps-title">Có gia phả trực tuyến trong 4 bước</h2>
+        <Eyebrow>Gìn Giữ Cội Nguồn</Eyebrow>
+        <h2 id="steps-title">Tạo Gia Phả trực tuyến chỉ với 3 bước</h2>
         <ol className={styles.stepList}>
           {steps.map(({ title, text, image, alt, focus }, index) => (
             <li key={title} className={styles.reveal}>
@@ -353,18 +262,14 @@ export function HomeLanding({
           {reasons.map(({ icon: Icon, title, text }) => (
             <article key={title} className={styles.reveal}>
               <span className={styles.roundIcon}>
-                <Icon size={24} aria-hidden="true" />
+                <Icon size={26} aria-hidden="true" />
               </span>
-              <div>
-                <h3>{title}</h3>
-                <p>{text}</p>
-              </div>
+              <h3>{title}</h3>
+              <p>{text}</p>
             </article>
           ))}
         </div>
       </section>
-
-      <Trust />
 
       <Testimonials />
 
@@ -384,21 +289,11 @@ export function HomeLanding({
       <Guides guides={guides} />
 
       <section className={styles.faq} id="hoi-dap" aria-labelledby="faq-title">
-        <div>
+        <div className={styles.faqHead}>
           <Eyebrow>Câu hỏi thường gặp</Eyebrow>
           <h2 id="faq-title">Bạn hỏi, chúng tôi giải đáp</h2>
         </div>
-        <div className={styles.faqList}>
-          {questions.map(({ q, a }, index) => (
-            <details key={q} open={index === 0}>
-              <summary>
-                {q}
-                <ChevronDown size={18} aria-hidden="true" />
-              </summary>
-              <p>{a}</p>
-            </details>
-          ))}
-        </div>
+        <Faq questions={questions} />
       </section>
 
       <HomeFooter />

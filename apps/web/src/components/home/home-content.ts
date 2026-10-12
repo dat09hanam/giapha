@@ -1,9 +1,5 @@
 import {
-  BadgeCheck,
   BookOpen,
-  FileDown,
-  KeyRound,
-  Network,
   Contact,
   FilePen,
   GitFork,
@@ -36,8 +32,8 @@ export const overview = [
   },
   {
     icon: ListChecks,
-    title: 'Bắt đầu trong 4 bước',
-    text: 'Tạo gia phả, nhập phả hệ, cấp tài khoản và mời con cháu cùng xem.',
+    title: 'Bắt đầu trong 3 bước',
+    text: 'Tạo gia phả, nhập phả hệ và mời con cháu cùng xem.',
     href: '#cach-bat-dau',
   },
   {
@@ -142,35 +138,28 @@ export const steps: readonly {
   alt: string;
   focus: string;
 }[] = [
-  {
-    title: 'Tạo gia phả',
-    text: 'Quản trị tạo không gian cho dòng họ, với đường dẫn riêng, và cấp tài khoản Trưởng họ.',
-    image: `${SCREEN}/screen-poster.webp`,
-    alt: 'Phả đồ mang tên dòng họ trên không gian riêng',
-    focus: 'center',
-  },
-  {
-    title: 'Nhập phả hệ',
-    text: 'Trưởng họ thêm từng người, từng đời, viết lời giới thiệu và lịch sử dòng họ.',
-    image: `${SCREEN}/screen-profile.webp`,
-    alt: 'Hồ sơ một thành viên với đời, thứ bậc và quan hệ gia đình',
-    focus: 'center 64%',
-  },
-  {
-    title: 'Cấp tài khoản',
-    text: 'Trưởng họ cấp tài khoản cho thành viên, giao người quản lý từng chi, nhánh.',
-    image: `${SCREEN}/screen-login.webp`,
-    alt: 'Màn hình đăng nhập tài khoản gia phả',
-    focus: 'center 64%',
-  },
-  {
-    title: 'Cùng gìn giữ',
-    text: 'Con cháu xem phả đồ, đọc bảng tin, đóng góp quỹ và gửi đề xuất bổ sung.',
-    image: `${SCREEN}/screen-kinship.webp`,
-    alt: 'Tra cứu cách xưng hô giữa hai thành viên',
-    focus: 'center 80%',
-  },
-];
+    {
+      title: 'Khởi Tạo Gia Phả',
+      text: 'Tạo không gian gia phả riêng cho dòng họ, lưu giữ thông tin tổ tiên và thiết lập tài khoản Trưởng họ.',
+      image: `${SCREEN}/screen-poster.webp`,
+      alt: 'Cây gia phả hoàn chỉnh',
+      focus: 'center',
+    },
+    {
+      title: 'Gìn Giữ Cội Nguồn',
+      text: 'Bổ sung các thế hệ, thông tin thành viên, tiểu sử, hình ảnh và những câu chuyện của dòng họ.',
+      image: `${SCREEN}/screen-profile.webp`,
+      alt: 'Hồ sơ thành viên',
+      focus: 'center 64%',
+    },
+    {
+      title: 'Kết Nối Cháu Con',
+      text: 'Mời con cháu cùng tìm hiểu cội nguồn, tra cứu quan hệ họ hàng và chung tay gìn giữ truyền thống.',
+      image: `${SCREEN}/screen-kinship.webp`,
+      alt: 'Các thế hệ trong gia đình',
+      focus: 'center 80%',
+    },
+  ];
 
 export const reasons = [
   {
@@ -210,36 +199,6 @@ export const paperVsOnline = {
     'In phả đồ khổ lớn hoặc xuất PDF khi cần',
   ],
 } as const;
-
-/** Answers to the usual worries about putting family records online. */
-export const trustPoints = [
-  {
-    icon: KeyRound,
-    q: 'Người lạ có xem được gia phả không?',
-    a: 'Không. Gia phả của dòng họ chỉ mở được khi đăng nhập bằng tài khoản do Trưởng họ cấp.',
-  },
-  {
-    icon: BadgeCheck,
-    q: 'Ai được sửa thông tin?',
-    a: 'Chỉ người được giao quyền. Thành viên khác gửi đề xuất, Trưởng họ duyệt rồi mới cập nhật.',
-  },
-  {
-    icon: Network,
-    q: 'Họ lớn nhiều chi thì quản lý sao?',
-    a: 'Trưởng họ giao người quản lý cho từng chi, nhánh để cùng nhập và giữ phả hệ.',
-  },
-  {
-    icon: FileDown,
-    q: 'Dòng họ có giữ được một bản riêng?',
-    a: 'Có. Xuất cả quyển gia phả ra PDF hoặc in phả đồ bất cứ lúc nào để cất giữ.',
-  },
-] as const;
-
-export const heroFacts = [
-  { value: 9, label: 'chức năng' },
-  { value: 4, label: 'bước bắt đầu' },
-  { value: 3, label: 'loại thiết bị' },
-] as const;
 
 export type Testimonial = { quote: string; name: string; role: string; avatar?: string };
 
