@@ -31,11 +31,22 @@ export function extractSessionToken(request: FastifyRequest): string | null {
   return null;
 }
 
-export function sessionCookie(token: string, expiresAt: Date, secure: boolean): string {
+export interface SessionCookieOptions {
+  secure: boolean;
+  /** Set when web and API run on different subdomains, so the web server also receives the cookie. */
+  domain?: string;
+}
+
+export function sessionCookie(
+  token: string,
+  expiresAt: Date,
+  { secure, domain }: SessionCookieOptions,
+): string {
   const maxAge = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
   return [
     `${SESSION_COOKIE_NAME}=${encodeURIComponent(token)}`,
     'Path=/',
+    domain ? `Domain=${domain}` : null,
     'HttpOnly',
     'SameSite=Strict',
     `Max-Age=${maxAge}`,
@@ -45,10 +56,11 @@ export function sessionCookie(token: string, expiresAt: Date, secure: boolean): 
     .join('; ');
 }
 
-export function expiredSessionCookie(secure: boolean): string {
+export function expiredSessionCookie({ secure, domain }: SessionCookieOptions): string {
   return [
     `${SESSION_COOKIE_NAME}=`,
     'Path=/',
+    domain ? `Domain=${domain}` : null,
     'HttpOnly',
     'SameSite=Strict',
     'Max-Age=0',

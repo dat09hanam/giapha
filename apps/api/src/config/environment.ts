@@ -8,6 +8,10 @@ const environmentSchema = z.object({
   DATABASE_URL: z.string().startsWith('mysql://'),
   WEB_ORIGIN: z.string().default('http://localhost:3000'),
   MEDIA_ROOT: z.string().min(1).default('./media'),
+  SESSION_COOKIE_DOMAIN: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
   SMTP_HOST: z
     .string()
     .optional()

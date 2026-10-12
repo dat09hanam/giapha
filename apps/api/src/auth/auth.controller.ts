@@ -22,6 +22,7 @@ import {
   expiredSessionCookie,
   extractSessionToken,
   sessionCookie,
+  type SessionCookieOptions,
 } from '../common/auth/session-token.js';
 import { AuthService, type AuthProfile, type AuthResult } from './auth.service.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -84,7 +85,7 @@ export class AuthController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
     await this.authService.logout(extractSessionToken(request));
-    reply.header('Set-Cookie', expiredSessionCookie(this.isSecureCookie()));
+    reply.header('Set-Cookie', expiredSessionCookie(this.cookieOptions()));
   }
 
   @Get('me')
@@ -116,12 +117,15 @@ export class AuthController {
   private finishAuthentication(result: AuthResult, reply: FastifyReply): AuthProfile {
     reply.header(
       'Set-Cookie',
-      sessionCookie(result.session.token, result.session.expiresAt, this.isSecureCookie()),
+      sessionCookie(result.session.token, result.session.expiresAt, this.cookieOptions()),
     );
     return result.profile;
   }
 
-  private isSecureCookie(): boolean {
-    return this.config.get<string>('NODE_ENV') === 'production';
+  private cookieOptions(): SessionCookieOptions {
+    return {
+      secure: this.config.get<string>('NODE_ENV') === 'production',
+      domain: this.config.get<string>('SESSION_COOKIE_DOMAIN'),
+    };
   }
 }
