@@ -42,6 +42,7 @@ import { PersonSearch } from '@/components/tree/person-search';
 import { PosterFrame } from '@/components/tree/poster-nodes';
 import { Presence } from '@/components/ui/presence';
 import { useIsPortrait, useRotatedPanZoom } from '@/components/tree/rotated-pan-zoom';
+import { useViewportLayer } from '@/components/tree/viewport-layer';
 import { buildKinshipGraph } from '@/lib/kinship';
 import type { PersonSearchEntry } from '@/lib/person-search';
 import { toPosterElements } from '@/lib/tree-layout';
@@ -269,7 +270,8 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
   const leaving = landscapeMode === 'leaving';
   const isPortrait = useIsPortrait();
   const turned = landscape && isPortrait;
-  const rotatedGestures = useRotatedPanZoom(turned, poster);
+  const viewportLayer = useViewportLayer(surfaceRef);
+  const rotatedGestures = useRotatedPanZoom(turned, poster, viewportLayer.hold);
   const exitLandscape = useCallback(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     setLandscapeMode(reducedMotion ? 'off' : 'leaving');
@@ -389,6 +391,8 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
               panOnDrag={!turned}
               zoomOnPinch={!turned}
               zoomOnDoubleClick={!turned}
+              onMoveStart={viewportLayer.onMoveStart}
+              onMoveEnd={viewportLayer.onMoveEnd}
               onNodeClick={(_, node) => {
                 if (node.type === 'person') setSelectedId(node.id);
               }}

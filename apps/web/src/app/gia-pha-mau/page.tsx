@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, Eye, LogIn, Sprout } from 'lucide-react';
+import { ArrowLeft, LogIn, Sprout } from 'lucide-react';
 
 import { FamilyTree } from '@/components/tree/family-tree';
 import { ApiErrorState } from '@/components/ui/api-error-state';
@@ -81,18 +81,6 @@ export default async function DemoFamilyPage() {
 
   return (
     <main className="overflow-hidden">
-      <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-gold-500/30 bg-gold-50 px-4 py-2 text-center text-sm text-wood-700">
-        <span className="inline-flex items-center gap-1.5 font-medium">
-          <Eye className="size-4" aria-hidden="true" />
-          Bạn đang xem gia phả mẫu · {family.name}
-        </span>
-        <Link
-          href="/login"
-          className="font-semibold text-brand-700 underline-offset-4 hover:underline"
-        >
-          Đăng nhập để vào gia phả dòng họ của bạn
-        </Link>
-      </p>
       <FamilyTree
         tree={tree}
         family={{ name: family.name, poster: family.poster, features: VISITOR_FEATURES }}

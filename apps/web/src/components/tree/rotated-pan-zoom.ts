@@ -50,7 +50,11 @@ function clampToPoster(viewport: Viewport, poster: Rect, width: number, height: 
   };
 }
 
-export function useRotatedPanZoom(enabled: boolean, poster: Rect | null) {
+export function useRotatedPanZoom(
+  enabled: boolean,
+  poster: Rect | null,
+  onGestureChange?: (active: boolean, viewport: Viewport) => void,
+) {
   const { getViewport, setViewport } = useReactFlow();
   const store = useStoreApi();
   const gesture = useRef<{ points: XYPosition[]; viewport: Viewport } | null>(null);
@@ -67,10 +71,13 @@ export function useRotatedPanZoom(enabled: boolean, poster: Rect | null) {
   const onTouchStart = useCallback(
     (event: TouchEvent<HTMLElement>) => {
       if (!enabled) return;
-      if (event.touches.length === 1) dragged.current = false;
+      if (event.touches.length === 1) {
+        dragged.current = false;
+        onGestureChange?.(true, getViewport());
+      }
       begin(event);
     },
-    [begin, enabled],
+    [begin, enabled, getViewport, onGestureChange],
   );
 
   const onTouchMove = useCallback(
@@ -115,9 +122,11 @@ export function useRotatedPanZoom(enabled: boolean, poster: Rect | null) {
 
   const onTouchEnd = useCallback(
     (event: TouchEvent<HTMLElement>) => {
-      if (enabled) begin(event);
+      if (!enabled) return;
+      begin(event);
+      if (event.touches.length === 0) onGestureChange?.(false, getViewport());
     },
-    [begin, enabled],
+    [begin, enabled, getViewport, onGestureChange],
   );
 
   const onClickCapture = useCallback(
