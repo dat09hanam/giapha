@@ -4,6 +4,7 @@ import { Check, Crop, Minus, Plus, RotateCcw, RotateCw, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { encodeCanvas } from '@/lib/image-compress';
 
 const VIEWPORT = 288;
 const OUTPUT = 512;
@@ -213,17 +214,9 @@ export function ImageCropper({
       source.height * scale,
     );
 
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          setLoadError('Không tạo được ảnh sau khi cắt.');
-          return;
-        }
-
-        onCropped(new File([blob], 'avatar.jpg', { type: 'image/jpeg' }));
-      },
-      'image/jpeg',
-      0.9,
+    encodeCanvas(canvas, 0.9).then(
+      ({ blob, type }) => onCropped(new File([blob], 'avatar', { type })),
+      () => setLoadError('Không tạo được ảnh sau khi cắt.'),
     );
   }
 

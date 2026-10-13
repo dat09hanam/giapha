@@ -24,6 +24,7 @@ import {
   LibraryLightbox,
   type ItemDetailsValue,
 } from '@/components/library/item-details';
+import { StorageMeter } from '@/components/library/storage-meter';
 import { InlineLoader } from '@/components/ui/heritage-loader';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { heroOverlapClass, PageHero } from '@/components/layout/page-hero';
@@ -33,6 +34,7 @@ import { Segmented } from '@/components/ui/segmented';
 import { SheetDialog } from '@/components/ui/sheet-dialog';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
+import type { FamilyStorage } from '@/lib/family-storage';
 import { compressImage, makeThumbnail } from '@/lib/image-compress';
 import {
   createAlbum,
@@ -422,10 +424,13 @@ export function LibraryView({
   familySlug,
   initial,
   people,
+  storage,
 }: {
   familySlug: string;
   initial: LibraryOverview;
   people: Person[];
+  /** Null when the viewer does not manage the family or the usage could not be loaded. */
+  storage: FamilyStorage | null;
 }) {
   const confirm = useConfirm();
   const showToast = useToast();
@@ -499,6 +504,12 @@ export function LibraryView({
           ]}
         />
       </div>
+
+      {storage ? (
+        <div className="px-3 sm:px-0">
+          <StorageMeter storage={storage} />
+        </div>
+      ) : null}
 
       {tab === 'albums' ? (
         <section aria-label="Album ảnh" className="grid gap-3 px-3 sm:gap-4 sm:px-0">

@@ -10,6 +10,7 @@ import { InlineLoader } from '@/components/ui/heritage-loader';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { changeFamilyPlan, renewFamilyPlan, type AdminFamily } from '@/lib/family-api';
+import { formatMegabytes } from '@/lib/plan-catalog';
 import { formatPlanDuration } from '@/lib/pricing-plans';
 import { cn } from '@/lib/utils';
 import type { PricingPlan } from '@/types/pricing';
@@ -45,12 +46,24 @@ function Usage({ used, limit, unit }: { used: number; limit: number | null; unit
   );
 }
 
+function StorageUsage({ usedMb, limitMb }: { usedMb: number; limitMb: number | null }) {
+  const full = limitMb !== null && usedMb >= limitMb;
+  return (
+    <span className={cn(full && 'font-medium text-amber-800')}>
+      {formatMegabytes(usedMb)}
+      {limitMb === null ? '' : `/${formatMegabytes(limitMb)}`} lưu trữ
+    </span>
+  );
+}
+
 function PlanUsage({ family }: { family: AdminFamily }) {
   return (
     <p className="text-xs leading-5 text-stone-500">
       <Usage used={family.memberCount} limit={family.plan.maxMembers} unit="thành viên" />
       {' · '}
       <Usage used={family.managerCount} limit={family.plan.maxManagers} unit="quản trị viên chi" />
+      {' · '}
+      <StorageUsage usedMb={family.storageUsedMb} limitMb={family.plan.maxStorageMb} />
       {' · '}
       {family.planExpiresAt ? (
         <span className={cn(isExpired(family) && 'font-medium text-red-700')}>

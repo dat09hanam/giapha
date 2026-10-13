@@ -112,6 +112,9 @@ model Family {
   isDemo                Boolean           @default(false)
   planId                String            @db.Char(36)
   planExpiresAt         DateTime?
+  /// Bytes the family's media folder takes. Kept by every write and delete in MediaService and
+  /// reset from the disk by FamilyStorageReconcileService, which corrects any drift.
+  storageUsedBytes      BigInt            @default(0)
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
   deletedAt             DateTime?

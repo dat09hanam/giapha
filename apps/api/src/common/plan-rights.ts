@@ -7,7 +7,12 @@ import { PricingFeatureStyle, type Prisma } from '@prisma/client';
  * so what the pricing table shows is exactly what applies. Site sections (feed, fund, merit,
  * library, edit suggestions) are not plan rights: every family has them.
  */
-export const PLAN_LIMIT_KEYS = ['maxMembers', 'durationMonths', 'maxManagers'] as const;
+export const PLAN_LIMIT_KEYS = [
+  'maxMembers',
+  'durationMonths',
+  'maxManagers',
+  'maxStorageMb',
+] as const;
 export type PlanLimitKey = (typeof PLAN_LIMIT_KEYS)[number];
 
 export const PLAN_OPTION_KEYS = ['dataEntrySupport', 'printBook'] as const;
@@ -26,6 +31,8 @@ type LimitEntry = {
   unlimitedText: string;
   min: number;
   max: number;
+  /** 'MB': the value is a size in megabytes, shown as MB or GB. */
+  unit?: 'MB';
 };
 
 /** Something a plan includes or not; included unless its line is missing or struck through. */
@@ -85,11 +92,30 @@ const ENTRIES: Record<PlanFeatureKey, PlanCatalogEntry> = {
     min: 0,
     max: 10_000,
   },
+  maxStorageMb: {
+    key: 'maxStorageMb',
+    kind: 'LIMIT',
+    label: 'Dung lượng lưu trữ (MB)',
+    description:
+      'Tổng dung lượng ảnh và tư liệu dòng họ được tải lên (1 GB = 1024 MB); đầy thì không tải thêm được.',
+    template: 'Lưu trữ {value}',
+    unlimitedText: 'Không giới hạn dung lượng lưu trữ',
+    min: 1,
+    max: 10_485_760,
+    unit: 'MB',
+  },
 };
 
 /** Catalog order is the order the editor offers and a new plan starts with. */
 export const PLAN_CATALOG: readonly PlanCatalogEntry[] = (
-  ['maxMembers', 'durationMonths', 'dataEntrySupport', 'printBook', 'maxManagers'] as const
+  [
+    'maxMembers',
+    'durationMonths',
+    'dataEntrySupport',
+    'printBook',
+    'maxManagers',
+    'maxStorageMb',
+  ] as const
 ).map((key) => ENTRIES[key]);
 
 export const PLAN_FEATURE_KEYS: readonly PlanFeatureKey[] = PLAN_CATALOG.map((entry) => entry.key);
@@ -109,6 +135,8 @@ export type PlanRights = {
   durationMonths: number | null;
   /** Null: no cap on branch-manager accounts. */
   maxManagers: number | null;
+  /** Null: no cap on the bytes a family's uploads take, in megabytes. */
+  maxStorageMb: number | null;
   /** Display only: a service the platform staff deliver by hand. */
   dataEntrySupport: boolean;
   /** The clan head may build and export the printable book. */
@@ -178,9 +206,17 @@ export function resolvePlanRights(lines: readonly PlanFeatureLine[]): PlanRights
     maxMembers: limit('maxMembers'),
     durationMonths: limit('durationMonths'),
     maxManagers: limit('maxManagers'),
+    maxStorageMb: limit('maxStorageMb'),
     dataEntrySupport: included('dataEntrySupport'),
     printBook: included('printBook'),
   };
+}
+
+/** A size in megabytes as people read it: MB below 1 GB, GB (one decimal at most) above. */
+export function formatMegabytes(megabytes: number): string {
+  if (megabytes < 1024) return `${megabytes.toLocaleString('vi-VN')} MB`;
+  const gigabytes = Math.round((megabytes / 1024) * 10) / 10;
+  return `${gigabytes.toLocaleString('vi-VN')} GB`;
 }
 
 /** The sentence the pricing table shows for a line. */
@@ -188,7 +224,8 @@ export function planFeatureText(line: Pick<PlanFeatureLine, 'key' | 'value'>): s
   const entry = catalogEntry(line.key);
   if (!entry) return line.key;
   if (entry.kind === 'OPTION') return entry.text;
-  return line.value === null
-    ? entry.unlimitedText
-    : entry.template.replace('{value}', line.value.toLocaleString('vi-VN'));
+  if (line.value === null) return entry.unlimitedText;
+  const value =
+    entry.unit === 'MB' ? formatMegabytes(line.value) : line.value.toLocaleString('vi-VN');
+  return entry.template.replace('{value}', value);
 }

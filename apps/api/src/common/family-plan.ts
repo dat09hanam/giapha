@@ -1,7 +1,8 @@
 import { ForbiddenException } from '@nestjs/common';
 import { FamilyStatus, UserRole, type Prisma } from '@prisma/client';
 
-import { planRightsSelect, resolvePlanRights } from './plan-rights.js';
+import { BYTES_PER_MEGABYTE } from './family-storage.js';
+import { formatMegabytes, planRightsSelect, resolvePlanRights } from './plan-rights.js';
 
 export const PLAN_LIMIT_REACHED = 'PLAN_LIMIT_REACHED';
 
@@ -119,4 +120,57 @@ export async function assertWithinMemberLimit(
       `Gói “${family.plan.name}” chỉ cho phép tối đa ${maxMembers} thành viên trên cây gia phả. Hãy nâng cấp gói để thêm thành viên.`,
     );
   }
+}
+
+/**
+ * Counts `bytes` against the family's storage quota before its file is written, or refuses with
+ * PLAN_LIMIT_REACHED when they do not fit. The check and the increment are one conditional
+ * UPDATE, so concurrent uploads cannot together pass the quota. Pair a failed write with
+ * `releaseFamilyStorage`.
+ */
+export async function reserveFamilyStorage(
+  client: Pick<Prisma.TransactionClient, 'family'>,
+  familyId: string,
+  bytes: number,
+): Promise<void> {
+  const family = await client.family.findUnique({
+    where: { id: familyId },
+    select: { storageUsedBytes: true, plan: { select: { name: true, ...planRightsSelect } } },
+  });
+  if (!family) return;
+  const { maxStorageMb } = resolvePlanRights(family.plan.features);
+  const increment = { storageUsedBytes: { increment: BigInt(bytes) } };
+  if (maxStorageMb === null) {
+    await client.family.update({ where: { id: familyId }, data: increment });
+    return;
+  }
+  const room = BigInt(maxStorageMb) * BigInt(BYTES_PER_MEGABYTE) - BigInt(bytes);
+  const { count } = await client.family.updateMany({
+    where: { id: familyId, storageUsedBytes: { lte: room } },
+    data: increment,
+  });
+  if (count === 0) {
+    const usedMb = Math.ceil(bytesToNumber(family.storageUsedBytes) / BYTES_PER_MEGABYTE);
+    throw new PlanLimitReachedException(
+      `Gói “${family.plan.name}” chỉ cho phép lưu trữ tối đa ${formatMegabytes(maxStorageMb)}; dòng họ đã dùng khoảng ${formatMegabytes(usedMb)}. Hãy xóa bớt ảnh, tư liệu hoặc nâng cấp gói để tải thêm.`,
+    );
+  }
+}
+
+/** Gives back storage after files are deleted or a reserved write failed. */
+export async function releaseFamilyStorage(
+  client: Pick<Prisma.TransactionClient, 'family'>,
+  familyId: string,
+  bytes: number,
+): Promise<void> {
+  if (bytes <= 0) return;
+  await client.family.updateMany({
+    where: { id: familyId },
+    data: { storageUsedBytes: { decrement: BigInt(bytes) } },
+  });
+}
+
+/** A stored byte count as a number; drift can leave it briefly negative until reconciled. */
+export function bytesToNumber(bytes: bigint): number {
+  return Math.max(0, Number(bytes));
 }

@@ -1,6 +1,15 @@
 'use client';
 
-import { Bold, ChevronLeft, ChevronRight, EyeOff, PencilLine, Trash2 } from 'lucide-react';
+import {
+  Bold,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  EyeOff,
+  PencilLine,
+  Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -36,6 +45,13 @@ function columnOf(plan: PricingPlan, catalog: readonly PlanCatalogEntry[]): Colu
       return [entry.key, { value: '', style: line?.style ?? 'STRIKETHROUGH' }];
     }),
   );
+}
+
+/** Catalog keys in the given order: unknown keys dropped, keys it misses appended in catalog order. */
+function rowOrder(keys: readonly string[], catalog: readonly PlanCatalogEntry[]): string[] {
+  const known = new Set(catalog.map((entry) => entry.key));
+  const ordered = [...new Set(keys)].filter((key) => known.has(key));
+  return [...ordered, ...catalog.map((entry) => entry.key).filter((key) => !ordered.includes(key))];
 }
 
 /** Empty means unlimited; anything else goes to the API as typed, which validates the range. */
@@ -115,6 +131,7 @@ export function PlanFeatureTable({
   // Unsaved edits sit on top of the saved plans, so plans added, renamed or deleted elsewhere
   // show up here without losing what the admin has typed.
   const [orderOverride, setOrderOverride] = useState<string[] | null>(null);
+  const [rowOverride, setRowOverride] = useState<string[] | null>(null);
   const [edits, setEdits] = useState<Record<string, Column>>({});
   const [saving, setSaving] = useState(false);
 
@@ -126,6 +143,10 @@ export function PlanFeatureTable({
         ...savedOrder.filter((id) => !orderOverride.includes(id)),
       ]
     : savedOrder;
+  // Every plan shows its features in one shared order, taken from the first plan as saved.
+  const savedRows = rowOrder(plans[0]?.features.map((line) => line.key) ?? [], catalog);
+  const rows = rowOverride ? rowOrder(rowOverride, catalog) : savedRows;
+  const entries = rows.flatMap((key) => catalog.find((entry) => entry.key === key) ?? []);
   const columns = order.flatMap((id) => {
     const plan = byId.get(id);
     return plan ? [{ plan, cells: { ...columnOf(plan, catalog), ...edits[id] } }] : [];
@@ -135,8 +156,12 @@ export function PlanFeatureTable({
     order.join() !== savedOrder.join() ||
     columns.some(
       ({ plan, cells }) =>
-        JSON.stringify(toLines(cells, catalog)) !==
-        JSON.stringify(toLines(columnOf(plan, catalog), catalog)),
+        rowOrder(
+          plan.features.map((line) => line.key),
+          catalog,
+        ).join() !== rows.join() ||
+        JSON.stringify(toLines(cells, entries)) !==
+          JSON.stringify(toLines(columnOf(plan, catalog), entries)),
     );
 
   function setCell(planId: string, key: string, change: Partial<Cell>): void {
@@ -157,15 +182,24 @@ export function PlanFeatureTable({
     setOrderOverride(next);
   }
 
+  function moveRow(index: number, offset: -1 | 1): void {
+    const next = [...rows];
+    const [key] = next.splice(index, 1);
+    if (!key) return;
+    next.splice(index + offset, 0, key);
+    setRowOverride(next);
+  }
+
   function revert(): void {
     setOrderOverride(null);
+    setRowOverride(null);
     setEdits({});
   }
 
   async function save(): Promise<void> {
     setSaving(true);
     const saved = await onSave(
-      columns.map(({ plan, cells }) => ({ id: plan.id, features: toLines(cells, catalog) })),
+      columns.map(({ plan, cells }) => ({ id: plan.id, features: toLines(cells, entries) })),
     );
     setSaving(false);
     if (saved) revert();
@@ -178,13 +212,14 @@ export function PlanFeatureTable({
       <div className="overflow-x-auto rounded-xl border border-gold-500/30 bg-white/80">
         <table className="w-full min-w-max border-collapse text-sm">
           <caption className="sr-only">
-            Bảng tính năng: mỗi cột là một gói theo thứ tự hiển thị, mỗi hàng là một tính năng
+            Bảng tính năng: mỗi cột là một gói, mỗi hàng là một tính năng, cả hai theo thứ tự hiển
+            thị
           </caption>
           <thead>
             <tr className="align-top">
               <th
                 scope="col"
-                className="sticky left-0 z-10 w-60 min-w-60 bg-white p-3 text-left text-xs font-semibold uppercase tracking-[0.12em] text-stone-500"
+                className="sticky left-0 z-10 w-72 min-w-72 bg-white p-3 pl-11 text-left text-xs font-semibold uppercase tracking-[0.12em] text-stone-500"
               >
                 Tính năng
               </th>
@@ -263,16 +298,42 @@ export function PlanFeatureTable({
             </tr>
           </thead>
           <tbody>
-            {catalog.map((entry) => (
+            {entries.map((entry, rowIndex) => (
               <tr key={entry.key} className="border-t border-gold-500/20 align-top">
                 <th
                   scope="row"
-                  className="sticky left-0 z-10 w-60 min-w-60 bg-white p-3 text-left font-normal"
+                  className="sticky left-0 z-10 w-72 min-w-72 bg-white p-3 pl-1.5 text-left font-normal"
                 >
-                  <span className="block font-medium text-brand-950">{entry.label}</span>
-                  <span className="mt-0.5 block text-xs leading-5 text-stone-500">
-                    {entry.description}
-                  </span>
+                  <div className="flex items-start gap-1.5">
+                    <div className="flex shrink-0 flex-col">
+                      <button
+                        type="button"
+                        disabled={disabled || rowIndex === 0}
+                        aria-label={`Đưa ${entry.label} lên trên`}
+                        title="Đưa lên trên"
+                        onClick={() => moveRow(rowIndex, -1)}
+                        className="grid size-7 place-items-center rounded-md text-stone-500 transition hover:bg-gold-50 hover:text-brand-800 disabled:pointer-events-none disabled:opacity-30"
+                      >
+                        <ChevronUp className="size-4" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={disabled || rowIndex === entries.length - 1}
+                        aria-label={`Đưa ${entry.label} xuống dưới`}
+                        title="Đưa xuống dưới"
+                        onClick={() => moveRow(rowIndex, 1)}
+                        className="grid size-7 place-items-center rounded-md text-stone-500 transition hover:bg-gold-50 hover:text-brand-800 disabled:pointer-events-none disabled:opacity-30"
+                      >
+                        <ChevronDown className="size-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block font-medium text-brand-950">{entry.label}</span>
+                      <span className="mt-0.5 block text-xs leading-5 text-stone-500">
+                        {entry.description}
+                      </span>
+                    </div>
+                  </div>
                 </th>
                 {columns.map(({ plan, cells }) => {
                   const cell = cells[entry.key] ?? { value: '', style: 'NORMAL' };

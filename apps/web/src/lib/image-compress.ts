@@ -1,7 +1,9 @@
 import { readAsBase64 } from '@/lib/media-api';
 
+export type EncodedImageType = 'image/webp' | 'image/jpeg';
+
 export type CompressedImage = {
-  contentType: 'image/jpeg';
+  contentType: EncodedImageType;
   data: string;
   width: number;
   height: number;
@@ -14,6 +16,36 @@ const ATTEMPTS = [
   { edge: 0.8, quality: 0.62 },
   { edge: 0.64, quality: 0.55 },
 ] as const;
+
+// Unknown until the first encode: browsers that cannot write WebP silently return PNG instead.
+let webpEncoding: boolean | undefined;
+
+function canvasBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('Không nén được ảnh.'))),
+      type,
+      quality,
+    );
+  });
+}
+
+/**
+ * Encodes a canvas as WebP, which is about a third smaller than JPEG at the same visible quality,
+ * and falls back to JPEG on browsers that cannot write WebP.
+ */
+export async function encodeCanvas(
+  canvas: HTMLCanvasElement,
+  quality: number,
+  { webp = true }: { webp?: boolean } = {},
+): Promise<{ blob: Blob; type: EncodedImageType }> {
+  if (webp && webpEncoding !== false) {
+    const blob = await canvasBlob(canvas, 'image/webp', quality);
+    webpEncoding = blob.type === 'image/webp';
+    if (webpEncoding) return { blob, type: 'image/webp' };
+  }
+  return { blob: await canvasBlob(canvas, 'image/jpeg', quality), type: 'image/jpeg' };
+}
 
 function loadImage(file: Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -31,7 +63,12 @@ function loadImage(file: Blob): Promise<HTMLImageElement> {
   });
 }
 
-function encode(image: HTMLImageElement, edge: number, quality: number) {
+async function encode(
+  image: HTMLImageElement,
+  edge: number,
+  quality: number,
+  options?: { webp?: boolean },
+): Promise<{ blob: Blob; type: EncodedImageType; width: number; height: number }> {
   const scale = Math.min(1, edge / Math.max(image.naturalWidth, image.naturalHeight));
   const width = Math.max(1, Math.round(image.naturalWidth * scale));
   const height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -43,14 +80,8 @@ function encode(image: HTMLImageElement, edge: number, quality: number) {
   context.fillStyle = '#fff';
   context.fillRect(0, 0, width, height);
   context.drawImage(image, 0, 0, width, height);
-  return new Promise<{ blob: Blob; width: number; height: number }>((resolve, reject) => {
-    canvas.toBlob(
-      (blob) =>
-        blob ? resolve({ blob, width, height }) : reject(new Error('Không nén được ảnh.')),
-      'image/jpeg',
-      quality,
-    );
-  });
+  const { blob, type } = await encodeCanvas(canvas, quality, options);
+  return { blob, type, width, height };
 }
 
 export async function compressImage(
@@ -60,16 +91,16 @@ export async function compressImage(
 ): Promise<CompressedImage> {
   const image = await loadImage(file);
   for (const attempt of ATTEMPTS) {
-    const { blob, width, height } = await encode(
+    const { blob, type, width, height } = await encode(
       image,
       Math.round(maxEdge * attempt.edge),
       attempt.quality,
     );
     if (blob.size <= maxBytes || attempt === ATTEMPTS.at(-1)) {
       if (blob.size > maxBytes) throw new Error('Ảnh quá lớn, hãy chọn ảnh khác.');
-      const data = await readAsBase64(new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
+      const data = await readAsBase64(new File([blob], 'photo', { type }));
       return {
-        contentType: 'image/jpeg',
+        contentType: type,
         data,
         width,
         height,
@@ -80,8 +111,9 @@ export async function compressImage(
   throw new Error('Ảnh quá lớn, hãy chọn ảnh khác.');
 }
 
+/** Always JPEG: the library API stores thumbnails as `image/jpeg`. */
 export async function makeThumbnail(file: Blob): Promise<string> {
   const image = await loadImage(file);
-  const { blob } = await encode(image, 480, 0.72);
+  const { blob } = await encode(image, 480, 0.72, { webp: false });
   return readAsBase64(new File([blob], 'thumb.jpg', { type: 'image/jpeg' }));
 }

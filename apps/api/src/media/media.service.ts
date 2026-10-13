@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { releaseFamilyStorage, reserveFamilyStorage } from '../common/family-plan.js';
 import { PrismaService } from '../database/prisma.service.js';
 import {
   CONTENT_TYPE_BY_EXTENSION,
@@ -45,24 +46,35 @@ export class MediaService {
     const { bytes, extension } = allowPdf
       ? decodeImage(contentType, data, maxBytes, DOCUMENT_FORMATS)
       : decodeImage(contentType, data, maxBytes);
+    await reserveFamilyStorage(this.prisma, familyId, bytes.length);
 
     const fileName = `${randomUUID()}.${extension}`;
     const directory = this.familyDirectory(familyId);
-    await mkdir(directory, { recursive: true });
-    await writeFile(join(directory, fileName), bytes);
+    try {
+      await mkdir(directory, { recursive: true });
+      await writeFile(join(directory, fileName), bytes);
+    } catch (error) {
+      await rm(join(directory, fileName), { force: true }).catch(() => undefined);
+      await releaseFamilyStorage(this.prisma, familyId, bytes.length);
+      throw error;
+    }
 
     return { fileName, url: `${MEDIA_URL_PREFIX}${fileName}`, sizeBytes: bytes.length };
   }
 
   async removeOwnedFiles(familyId: string, urls: readonly string[]): Promise<void> {
-    await Promise.all(
-      urls.map(async (url) => {
+    const freed = await Promise.all(
+      urls.map((url) => {
         const fileName = url.startsWith(MEDIA_URL_PREFIX) ? url.slice(MEDIA_URL_PREFIX.length) : '';
-        if (!STORED_FILE_NAME.test(fileName)) return;
-        await rm(join(this.familyDirectory(familyId), fileName), { force: true }).catch(
-          () => undefined,
-        );
+        return STORED_FILE_NAME.test(fileName)
+          ? this.removeFile(familyId, fileName).catch(() => 0)
+          : 0;
       }),
+    );
+    await releaseFamilyStorage(
+      this.prisma,
+      familyId,
+      freed.reduce((total, size) => total + size, 0),
     );
   }
 
@@ -109,7 +121,18 @@ export class MediaService {
       );
     }
 
-    await rm(join(this.familyDirectory(familyId), fileName), { force: true });
+    await releaseFamilyStorage(this.prisma, familyId, await this.removeFile(familyId, fileName));
+  }
+
+  /** Deletes one stored file and returns the bytes it took; 0 when it was already gone. */
+  private async removeFile(familyId: string, fileName: string): Promise<number> {
+    const path = join(this.familyDirectory(familyId), fileName);
+    const size = await stat(path).then(
+      (info) => info.size,
+      () => 0,
+    );
+    await rm(path, { force: true });
+    return size;
   }
 
   private familyDirectory(familyId: string): string {

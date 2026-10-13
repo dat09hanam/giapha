@@ -2,8 +2,9 @@ import { notFound } from 'next/navigation';
 
 import { LibraryView } from '@/components/library/library-view';
 import { ApiErrorState } from '@/components/ui/api-error-state';
-import { ApiNotFoundError, getFamilyTree, getLibrary } from '@/lib/api';
+import { ApiNotFoundError, getFamilyPlanLimits, getFamilyTree, getLibrary } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
+import { toFamilyStorage, type FamilyStorage } from '@/lib/family-storage';
 import type { LibraryOverview } from '@/lib/library-api';
 import { requireSession } from '@/lib/session';
 import type { Person } from '@/types/family-tree';
@@ -21,12 +22,17 @@ export default async function FamilyLibraryPage({ params }: FamilyLibraryPagePro
 
   let library: LibraryOverview;
   let people: Person[];
+  let storage: FamilyStorage | null;
   try {
-    [library, people] = await Promise.all([
+    [library, people, storage] = await Promise.all([
       getLibrary(slug, sessionToken),
       profile.role === 'MEMBER_PLUS'
         ? getFamilyTree(slug, sessionToken).then((tree) => tree.people)
         : Promise.resolve([]),
+      // The meter is a hint: the page still works if the usage cannot be loaded.
+      profile.role === 'MEMBER_PLUS'
+        ? getFamilyPlanLimits(slug, sessionToken).then(toFamilyStorage, () => null)
+        : Promise.resolve(null),
     ]);
   } catch (error: unknown) {
     if (error instanceof ApiNotFoundError) notFound();
@@ -44,7 +50,7 @@ export default async function FamilyLibraryPage({ params }: FamilyLibraryPagePro
 
   return (
     <main className="min-h-[calc(100dvh-4rem)]">
-      <LibraryView familySlug={slug} initial={library} people={people} />
+      <LibraryView familySlug={slug} initial={library} people={people} storage={storage} />
     </main>
   );
 }

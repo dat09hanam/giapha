@@ -28,12 +28,15 @@ export type AdminFamily = {
   planExpiresAt: string | null;
   memberCount: number;
   managerCount: number;
+  /** Megabytes the family's uploads take, rounded up. */
+  storageUsedMb: number;
   plan: {
     id: string;
     name: string;
     durationMonths: number | null;
     maxMembers: number | null;
     maxManagers: number | null;
+    maxStorageMb: number | null;
   };
 };
 

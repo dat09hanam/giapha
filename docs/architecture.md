@@ -203,9 +203,9 @@ by the platform `ADMIN` (the Bảng giá tab of `/admin`). A plan carries its pr
 the writes are `ADMIN` only. A plan still used by a Family cannot be deleted (hide it instead).
 
 **Plan rights have one source.** `src/common/plan-rights.ts` holds the plan catalog
-(`GET /api/pricing-plans/catalog`): three limits, `maxMembers` (people in the tree),
-`durationMonths` and `maxManagers` (personal `MEMBER` accounts the clan head creates to manage
-branches), and two options, `printBook` (the clan head's printable-book export) and
+(`GET /api/pricing-plans/catalog`): four limits, `maxMembers` (people in the tree),
+`durationMonths`, `maxManagers` (personal `MEMBER` accounts the clan head creates to manage
+branches) and `maxStorageMb` (megabytes the family's uploads may take), and two options, `printBook` (the clan head's printable-book export) and
 `dataEntrySupport` (a hand-delivered service; display only, nothing enforces it). A feature line is
 never free text: it is a catalog `key`, a `value` (a limit's number, null = unlimited; always null
 for an option) and a style (`NORMAL`, `BOLD`, or `STRIKETHROUGH` = option not included; a limit
@@ -218,6 +218,20 @@ plans in display order, rows = catalog entries): `PUT /api/pricing-plans/feature
 plan exactly once, sets `sortOrder` from the column order and replaces every plan's lines in one
 transaction. `POST`/`PATCH /api/pricing-plans` only edit card details; a new plan is appended last
 with every catalog line (limits unlimited, options not included).
+
+**Storage quota is a counter reconciled with the disk.** `Family.storageUsedBytes` holds the bytes
+of the family's `MEDIA_ROOT/{familyId}/` folder, so avatars, feed images, library photos, documents
+and thumbnails all count whichever table points at them. `MediaService` is the only code that
+writes or deletes family files and keeps the counter: `storeImage` calls `reserveFamilyStorage`
+before writing, a single conditional `UPDATE … WHERE storageUsedBytes <= quota - size` that both
+checks `maxStorageMb` and increments (so concurrent uploads cannot pass the quota together) and
+answers `PLAN_LIMIT_REACHED` when the file does not fit; a failed write and every delete call
+`releaseFamilyStorage` with the bytes freed. `FamilyStorageReconcileService` measures each folder
+(`src/common/family-storage.ts`) when the API starts and daily after, and resets the counter, so
+drift from crashes or files removed by hand lasts at most a day; a family whose counter moves
+while it is measured is skipped until the next run. Usage is read from the column in
+`GET /api/families/:slug/plan-limits` (`storageUsedMb`, shown to the clan head on the library page
+and in a warning banner from 85%) and in the `ADMIN` family list.
 
 `Family.planId` records the plan a Family bought and is required for every Family, the demo family
 included: the `ADMIN` chooses it when creating the Family and can switch it later from the Family

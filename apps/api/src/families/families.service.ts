@@ -9,7 +9,13 @@ import {
 import { FamilyStatus, Gender, PosterDecorationKind, Prisma, UserRole } from '@prisma/client';
 
 import { readFamilyFeaturesFor, type FamilyFeatures } from '../common/family-features.js';
-import { FAMILY_EXPIRED_MESSAGE, isFamilyExpired, planExpiry } from '../common/family-plan.js';
+import {
+  bytesToNumber,
+  FAMILY_EXPIRED_MESSAGE,
+  isFamilyExpired,
+  planExpiry,
+} from '../common/family-plan.js';
+import { BYTES_PER_MEGABYTE } from '../common/family-storage.js';
 import { planRightsSelect, resolvePlanRights } from '../common/plan-rights.js';
 import { normalizeFamilySlug } from '../common/pipes/family-slug.pipe.js';
 import {
@@ -104,12 +110,15 @@ export type AdminFamilyListItem = {
   planExpiresAt: Date | null;
   memberCount: number;
   managerCount: number;
+  /** Megabytes the family's uploads take on disk, rounded up. */
+  storageUsedMb: number;
   plan: {
     id: string;
     name: string;
     durationMonths: number | null;
     maxMembers: number | null;
     maxManagers: number | null;
+    maxStorageMb: number | null;
   };
 };
 
@@ -121,6 +130,7 @@ const adminFamilySelect = {
   isDemo: true,
   createdAt: true,
   planExpiresAt: true,
+  storageUsedBytes: true,
   plan: { select: { id: true, name: true, ...planRightsSelect } },
   _count: {
     select: { people: true, users: { where: { role: UserRole.MEMBER, isShared: false } } },
@@ -130,15 +140,23 @@ const adminFamilySelect = {
 function toAdminFamily({
   _count,
   plan,
+  storageUsedBytes,
   ...family
 }: Prisma.FamilyGetPayload<{ select: typeof adminFamilySelect }>): AdminFamilyListItem {
-  const { durationMonths, maxMembers, maxManagers } = resolvePlanRights(plan.features);
+  const { durationMonths, maxMembers, maxManagers, maxStorageMb } = resolvePlanRights(
+    plan.features,
+  );
   return {
     ...family,
     memberCount: _count.people,
     managerCount: _count.users,
-    plan: { id: plan.id, name: plan.name, durationMonths, maxMembers, maxManagers },
+    storageUsedMb: bytesToMegabytes(storageUsedBytes),
+    plan: { id: plan.id, name: plan.name, durationMonths, maxMembers, maxManagers, maxStorageMb },
   };
+}
+
+function bytesToMegabytes(bytes: bigint): number {
+  return Math.ceil(bytesToNumber(bytes) / BYTES_PER_MEGABYTE);
 }
 
 const familyPlanStateSelect = {
@@ -172,6 +190,9 @@ export type FamilyPlanLimits = {
   planName: string;
   maxMembers: number | null;
   maxManagers: number | null;
+  maxStorageMb: number | null;
+  /** Megabytes the family's uploads take on disk, rounded up. */
+  storageUsedMb: number;
 };
 
 export type FamilySlugCheck = { slug: string; available: boolean; withOrigin: boolean };
@@ -249,11 +270,20 @@ export class FamiliesService {
   async getPlanLimits(familyId: string): Promise<FamilyPlanLimits> {
     const family = await this.prisma.family.findUnique({
       where: { id: familyId },
-      select: { plan: { select: { name: true, ...planRightsSelect } } },
+      select: {
+        storageUsedBytes: true,
+        plan: { select: { name: true, ...planRightsSelect } },
+      },
     });
     if (!family) throw new NotFoundException('Không tìm thấy dòng họ.');
-    const { maxMembers, maxManagers } = resolvePlanRights(family.plan.features);
-    return { planName: family.plan.name, maxMembers, maxManagers };
+    const { maxMembers, maxManagers, maxStorageMb } = resolvePlanRights(family.plan.features);
+    return {
+      planName: family.plan.name,
+      maxMembers,
+      maxManagers,
+      maxStorageMb,
+      storageUsedMb: bytesToMegabytes(family.storageUsedBytes),
+    };
   }
 
   async getFamilyFeatures(slug: string): Promise<FamilyFeatures> {

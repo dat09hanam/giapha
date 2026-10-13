@@ -3,29 +3,51 @@ import type { ReactNode } from 'react';
 
 import { FamilyHeader, type FamilyHeaderViewer } from '@/components/layout/family-header';
 import { SiteHeaderBar } from '@/components/layout/site-header';
+import { StorageWarningBanner } from '@/components/layout/storage-warning-banner';
 import { ViewerIdentityScope } from '@/components/layout/viewer-identity-scope';
-import { ApiNotFoundError, getAuthProfile, getFamily, getFamilyFeatures } from '@/lib/api';
+import {
+  ApiNotFoundError,
+  getAuthProfile,
+  getFamily,
+  getFamilyFeatures,
+  getFamilyPlanLimits,
+} from '@/lib/api';
 import type { AuthProfile } from '@/lib/auth-api';
+import { toFamilyStorage, type FamilyStorage } from '@/lib/family-storage';
 import { familyNav } from '@/lib/family-nav';
 import { requirePasswordChanged } from '@/lib/session';
 import type { FamilyFeatures } from '@/types/family-tree';
 
-async function loadViewer(slug: string): Promise<FamilyHeaderViewer> {
+async function loadViewer(
+  slug: string,
+): Promise<{ viewer: FamilyHeaderViewer; storage: FamilyStorage | null }> {
   const sessionToken = (await cookies()).get('giapha_session')?.value;
-  if (!sessionToken) return null;
+  if (!sessionToken) return { viewer: null, storage: null };
   let profile: AuthProfile;
   try {
     profile = await getAuthProfile(sessionToken);
   } catch {
-    return null;
+    return { viewer: null, storage: null };
   }
   requirePasswordChanged(profile, `/${encodeURIComponent(slug)}`);
   return {
-    id: profile.id,
-    displayName: profile.displayName,
-    role: profile.role,
-    managesBranches: profile.managesBranches,
+    viewer: {
+      id: profile.id,
+      displayName: profile.displayName,
+      role: profile.role,
+      managesBranches: profile.managesBranches,
+    },
+    storage: profile.role === 'MEMBER_PLUS' ? await loadStorage(slug, sessionToken) : null,
   };
+}
+
+/** Only for the warning banner: a failure just means no banner. */
+async function loadStorage(slug: string, sessionToken: string): Promise<FamilyStorage | null> {
+  try {
+    return toFamilyStorage(await getFamilyPlanLimits(slug, sessionToken));
+  } catch {
+    return null;
+  }
 }
 
 async function loadFamilyName(slug: string): Promise<string | null> {
@@ -64,7 +86,7 @@ function PageBackground() {
 }
 
 export async function FamilyChrome({ slug, children }: { slug: string; children: ReactNode }) {
-  const [name, features, viewer] = await Promise.all([
+  const [name, features, { viewer, storage }] = await Promise.all([
     loadFamilyName(slug),
     loadFeatures(slug),
     loadViewer(slug),
@@ -89,6 +111,7 @@ export async function FamilyChrome({ slug, children }: { slug: string; children:
       <FamilyHeader family={{ slug, name }} nav={familyNav(features)} viewer={viewer} />
       <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 lg:pl-60 print:p-0">
         <PageBackground />
+        {storage ? <StorageWarningBanner slug={slug} storage={storage} /> : null}
         {children}
       </div>
     </ViewerIdentityScope>

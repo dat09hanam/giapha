@@ -20,6 +20,8 @@ export type PlanCatalogEntry =
       unlimitedText: string;
       min: number;
       max: number;
+      /** 'MB': the value is a size in megabytes, shown as MB or GB. */
+      unit?: 'MB';
     }
   | { key: string; kind: 'OPTION'; label: string; description: string; text: string };
 
@@ -39,6 +41,7 @@ export type PlanRights = {
   maxMembers: number | null;
   durationMonths: number | null;
   maxManagers: number | null;
+  maxStorageMb: number | null;
   dataEntrySupport: boolean;
   printBook: boolean;
 };
@@ -76,6 +79,9 @@ export type FamilyPlanLimits = {
   planName: string;
   maxMembers: number | null;
   maxManagers: number | null;
+  maxStorageMb: number | null;
+  /** Megabytes the family's uploads take, rounded up. */
+  storageUsedMb: number;
 };
 
 export type ServiceRegistrationStatus = 'NEW' | 'CONTACTED' | 'COMPLETED' | 'CANCELLED';
