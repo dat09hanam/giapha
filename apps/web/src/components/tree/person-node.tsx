@@ -1,6 +1,9 @@
 import {
   createContext,
   useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
   useSyncExternalStore,
   type CSSProperties,
   type ReactNode,
@@ -68,6 +71,14 @@ const NAME_COLORS: Record<Gender, { name: string; honorific: string }> = {
 
 const NAME_FONT_FAMILY = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 const HONORIFIC_SIZE = 11;
+const HONORIFIC_LINE_HEIGHT = 1.5;
+/**
+ * Room above and below the name, in em: stacked Vietnamese marks (Ễ, Ố) and descenders reach
+ * past a 1.2 line box, and the clamped name clips whatever leaves its box.
+ */
+const NAME_GLYPH_ROOM = 0.12;
+/** Smallest share of the fitted size the on-screen check may shrink a name to. */
+const MIN_NAME_SHRINK = 0.6;
 const FOUNDER_TEXT = { nameWeight: 900, name: 'font-black', honorific: 'font-extrabold' };
 const DEFAULT_TEXT = { nameWeight: 700, name: 'font-bold', honorific: 'font-semibold' };
 
@@ -80,7 +91,7 @@ function nameFontSize(
 ): number {
   const innerWidth = inner.width * 0.9;
   const innerHeight =
-    inner.height * 0.9 - (hasHonorific ? HONORIFIC_SIZE * textScale * FITTED_LINE_HEIGHT : 0);
+    inner.height * 0.9 - (hasHonorific ? HONORIFIC_SIZE * textScale * HONORIFIC_LINE_HEIGHT : 0);
   return fitTextSize({
     text: name,
     width: innerWidth,
@@ -128,7 +139,31 @@ export function PersonCard({
     Boolean(data.honorific),
     text.nameWeight,
   );
-  const nameSize = isBrowser ? fittedSize : 18 * data.textScale;
+  const baseNameSize = isBrowser ? fittedSize : 18 * data.textScale;
+  const nameRef = useRef<HTMLHeadingElement>(null);
+  const shrinkKey = `${data.name}|${data.honorific ?? ''}|${baseNameSize}`;
+  const [shrink, setShrink] = useState({ key: '', factor: 1 });
+  const shrinkFactor = shrink.key === shrinkKey ? shrink.factor : 1;
+  const nameSize = baseNameSize * shrinkFactor;
+
+  // The size above comes from a canvas estimate, which can be short of what the device renders
+  // (its own fonts, a larger system text size). The rendered card is checked and the name shrunk
+  // step by step until it sits inside the frame.
+  useLayoutEffect(() => {
+    const name = nameRef.current;
+    const card = name?.parentElement;
+    if (!isBrowser || !name || !card || shrinkFactor <= MIN_NAME_SHRINK) return;
+    const contentHeight = Array.from(card.children).reduce(
+      (total, child) => total + (child as HTMLElement).offsetHeight,
+      0,
+    );
+    const overflows =
+      contentHeight > card.clientHeight + 1 ||
+      name.scrollHeight > name.clientHeight + 1 ||
+      name.scrollWidth > name.clientWidth + 1;
+    if (overflows) setShrink({ key: shrinkKey, factor: shrinkFactor * 0.92 });
+  }, [isBrowser, shrinkFactor, shrinkKey]);
+
   const colors = NAME_COLORS[data.gender];
   const honorificColor = isFounder ? colors.name : colors.honorific;
 
@@ -161,19 +196,24 @@ export function PersonCard({
       >
         {data.honorific ? (
           <p
-            className={`max-w-full truncate uppercase tracking-wider ${text.honorific} ${honorificColor}`}
-            style={{ fontSize: HONORIFIC_SIZE * data.textScale }}
+            className={`max-w-full shrink-0 truncate uppercase tracking-wider ${text.honorific} ${honorificColor}`}
+            style={{
+              fontSize: HONORIFIC_SIZE * data.textScale,
+              lineHeight: HONORIFIC_LINE_HEIGHT,
+            }}
             title={data.honorific}
           >
             {data.honorific}
           </p>
         ) : null}
         <h2
-          className={`line-clamp-4 max-w-full text-balance ${text.name} ${colors.name}`}
+          ref={nameRef}
+          className={`line-clamp-4 max-w-full shrink-0 text-balance ${text.name} ${colors.name}`}
           style={{
             fontFamily: NAME_FONT_FAMILY,
             fontSize: nameSize,
             lineHeight: FITTED_LINE_HEIGHT,
+            paddingBlock: `${NAME_GLYPH_ROOM}em`,
           }}
           title={data.name}
         >
