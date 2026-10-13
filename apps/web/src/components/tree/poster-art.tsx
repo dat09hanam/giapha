@@ -1,5 +1,5 @@
 import { Playfair_Display, Water_Brush } from 'next/font/google';
-import { useEffect, useId, useLayoutEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 
 import {
   decorationImageSrc,
@@ -76,6 +76,8 @@ function widestWordEm(words: string[], font: string): number {
 
 const NAME_CAP_HEIGHT = 0.95;
 const NAME_CAPITAL_WIDTH = 0.78;
+const NAME_LETTER_SPACING = 0.04;
+const NAME_ARC_FILL = 0.98;
 
 function useFontsReady(): boolean {
   const [fontsReady, setFontsReady] = useState(false);
@@ -105,28 +107,50 @@ export function PosterFamilyName({
   const id = useId().replace(/:/g, '');
   const text = name.trim().toLocaleUpperCase('vi');
   const fontsReady = useFontsReady();
-  const measureKey = `${text}|${fontsReady}`;
-  const [measured, setMeasured] = useState({ key: '', em: 0 });
-
-  useLayoutEffect(() => {
-    const em = widestWordEm([text], `${NAME_FONT_WEIGHT} ${NAME_FONT}`);
-    if (em > 0) setMeasured({ key: measureKey, em });
-  }, [measureKey]);
+  const pathRef = useRef<SVGPathElement>(null);
+  const probeRef = useRef<SVGTextElement>(null);
 
   const boxWidth = (width * (100 - area.left - area.right)) / 100;
   const boxHeight = (height * (100 - area.top - area.bottom)) / 100;
-  if (!text || boxWidth <= 0 || boxHeight <= 0) return null;
-
   const bend = (boxHeight * area.curve) / 100;
   const capHeight = Math.max(boxHeight - Math.abs(bend), boxHeight * 0.25) * 0.9;
   const fontSize = capHeight / NAME_CAP_HEIGHT;
-  const endY = boxHeight / 2 + (Math.max(0, bend) + capHeight - Math.max(0, -bend)) / 2;
   const inset = boxWidth * 0.04;
-  const path = `M ${inset} ${endY} Q ${boxWidth / 2} ${endY - 2 * bend} ${boxWidth - inset} ${endY}`;
   const chord = boxWidth - 2 * inset;
-  const arcLength = chord * (1 + (8 / 3) * (bend / chord) ** 2);
-  const textEm = measured.key === measureKey ? measured.em : [...text].length * NAME_CAPITAL_WIDTH;
-  const fits = (textEm + [...text].length * 0.04) * fontSize <= arcLength;
+
+  const measureKey = `${text}|${fontsReady}|${boxWidth}|${boxHeight}|${bend}`;
+  const [measured, setMeasured] = useState({ key: '', arc: 0, text: 0 });
+
+  // Measured from the rendered SVG: WebKit (every iPhone browser) misplaces text that relies on
+  // `text-anchor` or `textLength` along a path, so the name is centred and fitted by hand. The
+  // probe has no letter spacing because browsers disagree on whether its length includes it.
+  useLayoutEffect(() => {
+    const arc = pathRef.current?.getTotalLength() ?? 0;
+    const glyphs = probeRef.current?.getComputedTextLength() ?? 0;
+    if (arc > 0 && glyphs > 0) setMeasured({ key: measureKey, arc, text: glyphs });
+  }, [measureKey]);
+
+  if (!text || boxWidth <= 0 || boxHeight <= 0) return null;
+
+  const letters = [...text].length;
+  const fresh = measured.key === measureKey;
+  const arcLength = fresh ? measured.arc : chord * (1 + (8 / 3) * (bend / chord) ** 2);
+  const textWidth =
+    ((fresh ? measured.text / fontSize : letters * NAME_CAPITAL_WIDTH) +
+      letters * NAME_LETTER_SPACING) *
+    fontSize;
+  // A name longer than the arc is set smaller and kept in the middle of the area. The margin
+  // keeps the last glyph on the path, which drops any glyph that runs past its end.
+  const fit = Math.min(1, (arcLength * NAME_ARC_FILL) / textWidth);
+  const lift = (capHeight * (1 - fit)) / 2;
+  const endY = boxHeight / 2 + (Math.max(0, bend) + capHeight - Math.max(0, -bend)) / 2 - lift;
+  const path = `M ${inset} ${endY} Q ${boxWidth / 2} ${endY - 2 * bend} ${boxWidth - inset} ${endY}`;
+  const textProps = {
+    fontFamily: NAME_FONT,
+    fontWeight: NAME_FONT_WEIGHT,
+    fontSize: fontSize * fit,
+    letterSpacing: fontSize * fit * NAME_LETTER_SPACING,
+  };
 
   return (
     <svg
@@ -141,24 +165,25 @@ export function PosterFamilyName({
       aria-hidden="true"
     >
       <defs>
-        <path id={`${id}-arc`} d={path} />
+        <path ref={pathRef} id={`${id}-arc`} d={path} />
       </defs>
       <text
-        fill={area.color}
-        stroke="rgba(60, 10, 0, 0.35)"
-        strokeWidth={fontSize * 0.05}
-        paintOrder="stroke"
+        ref={probeRef}
         fontFamily={NAME_FONT}
         fontWeight={NAME_FONT_WEIGHT}
         fontSize={fontSize}
-        letterSpacing={fontSize * 0.04}
+        visibility="hidden"
       >
-        <textPath
-          href={`#${id}-arc`}
-          startOffset="50%"
-          textAnchor="middle"
-          {...(fits ? {} : { textLength: arcLength, lengthAdjust: 'spacingAndGlyphs' })}
-        >
+        {text}
+      </text>
+      <text
+        fill={area.color}
+        stroke="rgba(60, 10, 0, 0.35)"
+        strokeWidth={fontSize * fit * 0.05}
+        paintOrder="stroke"
+        {...textProps}
+      >
+        <textPath href={`#${id}-arc`} startOffset={Math.max(0, (arcLength - textWidth * fit) / 2)}>
           {text}
         </textPath>
       </text>
@@ -210,20 +235,22 @@ export function PosterVerticalText({
     <div
       // A blurred shadow is repainted on every frame of a touch pan or pinch, so phones skip it.
       className="pointer-events-none absolute flex flex-col items-center overflow-hidden text-center pointer-fine:[text-shadow:0_0_var(--text-glow)_rgba(60,10,0,0.65)]"
-      style={{
-        left: `${area.left}%`,
-        top: `${area.top}%`,
-        width: boxWidth,
-        height: boxHeight,
-        color: area.color,
-        fontFamily: VERTICAL_TEXT_FONT,
-        fontSize,
-        fontWeight: 400,
-        justifyContent: words.length === 1 ? 'center' : 'space-between',
-        lineHeight: 1,
-        paddingBlock: fontSize * 0.04,
-        '--text-glow': `${Math.max(1, fontSize * 0.045)}px`,
-      } as CSSProperties}
+      style={
+        {
+          left: `${area.left}%`,
+          top: `${area.top}%`,
+          width: boxWidth,
+          height: boxHeight,
+          color: area.color,
+          fontFamily: VERTICAL_TEXT_FONT,
+          fontSize,
+          fontWeight: 400,
+          justifyContent: words.length === 1 ? 'center' : 'space-between',
+          lineHeight: 1,
+          paddingBlock: fontSize * 0.04,
+          '--text-glow': `${Math.max(1, fontSize * 0.045)}px`,
+        } as CSSProperties
+      }
       aria-hidden="true"
     >
       {words.map((word, index) => (
