@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/admin/admin-layout';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { compressImage } from '@/lib/image-compress';
 import { ACCEPTED_IMAGE_TYPES, readAsBase64 } from '@/lib/media-api';
 import {
   createPosterDecoration,
@@ -273,7 +274,8 @@ function BackgroundEditor({
               className="rounded-xl border bg-white px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-brand-900 file:px-3 file:py-1.5 file:text-white"
             />
             <span className="text-xs leading-5 text-stone-500">
-              PNG, JPG hoặc WEBP, tối đa 4 MB, tỉ lệ 16:9 với hoa văn vẽ sẵn.
+              PNG, JPG hoặc WEBP, tỉ lệ 16:9 với hoa văn vẽ sẵn. Ảnh lớn được tự thu nhỏ để
+              tải nhanh trên điện thoại.
             </span>
           </label>
 
@@ -367,6 +369,30 @@ function FittedSwatch({
   );
 }
 
+/** Sharp across a desktop-width poster, yet light enough for phones to download and decode. */
+const BACKGROUND_MAX_EDGE = 2560;
+
+/**
+ * Every visitor downloads the background before the tree shows, so it is shrunk and re-encoded
+ * as WebP here. Anything but a JPEG may have transparent areas over the paper, so those keep
+ * their alpha. A browser that cannot write WebP uploads the original, within the size limit.
+ */
+async function encodeBackground(file: File): Promise<{ contentType: string; data: string }> {
+  try {
+    const image = await compressImage(file, MAX_DECORATION_IMAGE_BYTES, {
+      maxEdge: BACKGROUND_MAX_EDGE,
+      transparent: file.type !== 'image/jpeg',
+    });
+    URL.revokeObjectURL(image.previewUrl);
+    return { contentType: image.contentType, data: image.data };
+  } catch {
+    if (file.size > MAX_DECORATION_IMAGE_BYTES) {
+      throw new Error('Ảnh vượt quá dung lượng tối đa 4 MB.');
+    }
+    return { contentType: file.type, data: await readAsBase64(file) };
+  }
+}
+
 export function PosterDecorationManager({ initial }: { initial: AdminPosterDecoration[] }) {
   const confirm = useConfirm();
   const showToast = useToast();
@@ -388,16 +414,10 @@ export function PosterDecorationManager({ initial }: { initial: AdminPosterDecor
       showToast({ kind: 'error', message: insetsError });
       return;
     }
-    if (draft.file && draft.file.size > MAX_DECORATION_IMAGE_BYTES) {
-      showToast({ kind: 'error', message: 'Ảnh vượt quá dung lượng tối đa 4 MB.' });
-      return;
-    }
 
     setSaving(true);
     try {
-      const image = draft.file
-        ? { contentType: draft.file.type, data: await readAsBase64(draft.file) }
-        : undefined;
+      const image = draft.file ? await encodeBackground(draft.file) : undefined;
       const options = {
         name: draft.name.trim(),
         isActive: draft.isActive,

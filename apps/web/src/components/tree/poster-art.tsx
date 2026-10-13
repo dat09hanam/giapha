@@ -208,7 +208,8 @@ export function PosterVerticalText({
 
   return (
     <div
-      className="pointer-events-none absolute flex flex-col items-center overflow-hidden text-center"
+      // A blurred shadow is repainted on every frame of a touch pan or pinch, so phones skip it.
+      className="pointer-events-none absolute flex flex-col items-center overflow-hidden text-center pointer-fine:[text-shadow:0_0_var(--text-glow)_rgba(60,10,0,0.65)]"
       style={{
         left: `${area.left}%`,
         top: `${area.top}%`,
@@ -221,8 +222,8 @@ export function PosterVerticalText({
         justifyContent: words.length === 1 ? 'center' : 'space-between',
         lineHeight: 1,
         paddingBlock: fontSize * 0.04,
-        textShadow: `0 0 ${Math.max(1, fontSize * 0.045)}px rgba(60, 10, 0, 0.65)`,
-      }}
+        '--text-glow': `${Math.max(1, fontSize * 0.045)}px`,
+      } as CSSProperties}
       aria-hidden="true"
     >
       {words.map((word, index) => (

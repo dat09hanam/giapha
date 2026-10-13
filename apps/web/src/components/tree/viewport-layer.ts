@@ -9,7 +9,16 @@ import type { Viewport } from '@xyflow/react';
  * which phones cannot keep up with. The viewport is promoted while it moves so the GPU only
  * shifts an already painted layer, and demoted after a zoom change so the browser repaints it
  * sharply at the new scale. After a plain pan it stays promoted: nothing needs repainting.
+ *
+ * WebKit (Safari, and every browser on iOS) rasterises a composited layer at its own unzoomed
+ * size rather than at the scale it is shown. The poster is far larger than the screen and is
+ * shown zoomed far out, so a promoted viewport there paints hundreds of times more pixels than
+ * the screen holds and pans and pinches stall. On WebKit the viewport is never promoted.
  */
+function rastersAtShownScale(): boolean {
+  return !('GestureEvent' in window);
+}
+
 export function useViewportLayer(surface: RefObject<HTMLElement | null>) {
   const layer = useRef({ promoted: false, zoom: 0, holding: false });
 
@@ -22,7 +31,7 @@ export function useViewportLayer(surface: RefObject<HTMLElement | null>) {
   const onMoveStart = useCallback(
     (_event: unknown, viewport: Viewport) => {
       const element = viewportElement();
-      if (!element || layer.current.promoted) return;
+      if (!element || layer.current.promoted || !rastersAtShownScale()) return;
       element.style.willChange = 'transform';
       layer.current.promoted = true;
       layer.current.zoom = viewport.zoom;

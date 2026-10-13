@@ -10,6 +10,7 @@ import {
   type CSSProperties,
   type RefObject,
 } from 'react';
+import { preload } from 'react-dom';
 import {
   getViewportForBounds,
   ReactFlow,
@@ -47,7 +48,7 @@ import { buildKinshipGraph } from '@/lib/kinship';
 import type { PersonSearchEntry } from '@/lib/person-search';
 import { toPosterElements } from '@/lib/tree-layout';
 import { cn } from '@/lib/utils';
-import type { FamilyPoster } from '@/lib/poster-decorations';
+import { decorationImageSrc, type FamilyPoster } from '@/lib/poster-decorations';
 import type { FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
 
 const nodeTypes = {
@@ -67,6 +68,33 @@ type LandscapeMode = 'off' | 'on' | 'leaving';
 
 function viewportForPoster(poster: Rect, width: number, height: number): Viewport {
   return getViewportForBounds(poster, width, height, MIN_ZOOM, MAX_ZOOM, 0.01);
+}
+
+const BACKGROUND_WAIT_MS = 4000;
+
+/**
+ * Holds the tree back until the poster background has downloaded and decoded, so the cards
+ * never show on bare paper with the background painting in after them. A slow or broken image
+ * stops holding it back after a few seconds.
+ */
+function useImageReady(src: string | null): boolean {
+  const [readySrc, setReadySrc] = useState<string | null>(null);
+  useEffect(() => {
+    if (!src) return;
+    let cancelled = false;
+    const done = (): void => {
+      if (!cancelled) setReadySrc(src);
+    };
+    const image = new Image();
+    image.src = src;
+    image.decode().then(done, done);
+    const timer = window.setTimeout(done, BACKGROUND_WAIT_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [src]);
+  return !src || readySrc === src;
 }
 
 function useShowPoster(surface: RefObject<HTMLDivElement | null>, poster: Rect | null) {
@@ -263,7 +291,14 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
     [poster],
   );
   const surfaceRef = useRef<HTMLDivElement>(null);
-  const { showPoster, shown } = useShowPoster(surfaceRef, poster);
+  const { showPoster, shown: placed } = useShowPoster(surfaceRef, poster);
+  const backgroundSrc = family.poster.background
+    ? decorationImageSrc(family.poster.background)
+    : null;
+  // Starts the download with the page's HTML instead of once the tree has rendered.
+  if (backgroundSrc) preload(backgroundSrc, { as: 'image' });
+  const backgroundReady = useImageReady(backgroundSrc);
+  const shown = placed && backgroundReady;
 
   const [landscapeMode, setLandscapeMode] = useState<LandscapeMode>('off');
   const landscape = landscapeMode !== 'off';
@@ -410,7 +445,7 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
             onClick={exitLandscape}
             disabled={leaving}
             aria-label="Thoát xem ngang"
-            className="absolute right-3 top-3 z-10 grid size-11 place-items-center rounded-full bg-paper/90 text-brand-800 shadow-lg ring-1 ring-gold-500/40 backdrop-blur hover:bg-white"
+            className="absolute right-3 top-3 z-10 grid size-11 place-items-center rounded-full bg-paper/90 text-brand-800 shadow-lg ring-1 ring-gold-500/40 hover:bg-white"
           >
             <Minimize2 className="size-5" aria-hidden="true" />
           </button>
@@ -419,7 +454,7 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
             type="button"
             onClick={() => setLandscapeMode('on')}
             aria-label="Xoay ngang gia phả"
-            className="absolute right-3 top-3 z-10 hidden size-11 place-items-center rounded-full bg-paper/90 text-brand-800 shadow-lg ring-1 ring-gold-500/40 backdrop-blur hover:bg-white portrait:grid"
+            className="absolute right-3 top-3 z-10 hidden size-11 place-items-center rounded-full bg-paper/90 text-brand-800 shadow-lg ring-1 ring-gold-500/40 hover:bg-white portrait:grid"
           >
             <RotateCw className="size-5" aria-hidden="true" />
           </button>

@@ -63,11 +63,13 @@ function loadImage(file: Blob): Promise<HTMLImageElement> {
   });
 }
 
+type EncodeOptions = { webp?: boolean; transparent?: boolean };
+
 async function encode(
   image: HTMLImageElement,
   edge: number,
   quality: number,
-  options?: { webp?: boolean },
+  { transparent = false, ...options }: EncodeOptions = {},
 ): Promise<{ blob: Blob; type: EncodedImageType; width: number; height: number }> {
   const scale = Math.min(1, edge / Math.max(image.naturalWidth, image.naturalHeight));
   const width = Math.max(1, Math.round(image.naturalWidth * scale));
@@ -77,17 +79,26 @@ async function encode(
   canvas.height = height;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Trình duyệt không xử lý được ảnh.');
-  context.fillStyle = '#fff';
-  context.fillRect(0, 0, width, height);
+  if (!transparent) {
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, width, height);
+  }
   context.drawImage(image, 0, 0, width, height);
   const { blob, type } = await encodeCanvas(canvas, quality, options);
+  if (transparent && type !== 'image/webp') {
+    throw new Error('Trình duyệt không nén được ảnh có nền trong suốt.');
+  }
   return { blob, type, width, height };
 }
 
+/**
+ * `transparent` keeps the alpha channel instead of flattening onto white. It needs WebP, the only
+ * alpha-capable format a canvas writes compactly, and throws on browsers that cannot write it.
+ */
 export async function compressImage(
   file: File,
   maxBytes: number,
-  { maxEdge = 1600 }: { maxEdge?: number } = {},
+  { maxEdge = 1600, transparent = false }: { maxEdge?: number; transparent?: boolean } = {},
 ): Promise<CompressedImage> {
   const image = await loadImage(file);
   for (const attempt of ATTEMPTS) {
@@ -95,6 +106,7 @@ export async function compressImage(
       image,
       Math.round(maxEdge * attempt.edge),
       attempt.quality,
+      { transparent },
     );
     if (blob.size <= maxBytes || attempt === ATTEMPTS.at(-1)) {
       if (blob.size > maxBytes) throw new Error('Ảnh quá lớn, hãy chọn ảnh khác.');
