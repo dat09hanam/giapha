@@ -22,7 +22,7 @@ export function PublicBottomNav() {
 
   return (
     <nav
-      className={`${styles.bottomNav} fixed inset-x-0 bottom-0 z-50 border-t border-gold-500/30 bg-paper/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_20px_rgba(74,46,18,0.08)] backdrop-blur lg:hidden print:hidden`}
+      className={`${styles.bottomNav} fixed inset-x-0 bottom-0 z-50 border-t border-gold-500/30 bg-paper/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_20px_rgba(74,46,18,0.08)] lg:hidden print:hidden`}
       aria-label="Điều hướng nhanh"
     >
       <ul className="mx-auto grid h-16 max-w-xl grid-cols-5">

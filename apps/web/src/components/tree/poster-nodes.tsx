@@ -6,7 +6,7 @@ import type { PosterFrameNode } from '@/lib/tree-layout';
 export function PosterFrame({ data }: NodeProps<PosterFrameNode>) {
   return (
     <div
-      className="pointer-events-none select-none shadow-[0_30px_80px_rgba(60,20,0,0.35)]"
+      className="pointer-events-none select-none pointer-fine:shadow-[0_30px_80px_rgba(60,20,0,0.35)]"
       aria-hidden="true"
     >
       <PosterSheet

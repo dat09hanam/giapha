@@ -156,7 +156,7 @@ export function PersonCard({
       ) : null}
 
       <article
-        className="absolute inset-0 flex flex-col items-center justify-center px-1 text-center drop-shadow-[0_6px_10px_rgba(80,55,10,0.18)]"
+        className="absolute inset-0 flex flex-col items-center justify-center px-1 text-center pointer-fine:drop-shadow-[0_6px_10px_rgba(80,55,10,0.18)]"
         style={frame.style}
       >
         {data.honorific ? (
