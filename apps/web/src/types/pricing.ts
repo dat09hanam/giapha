@@ -1,4 +1,11 @@
-export type PricingPlanTone = 'WOOD' | 'JADE' | 'GOLD' | 'LACQUER';
+export type PricingPlanTone =
+  | 'GOLD'
+  | 'ASH'
+  | 'SPROUT'
+  | 'TURQUOISE'
+  | 'AMETHYST'
+  | 'BRONZE'
+  | 'ONYX';
 
 export type PricingFeatureStyle = 'NORMAL' | 'BOLD' | 'STRIKETHROUGH';
 

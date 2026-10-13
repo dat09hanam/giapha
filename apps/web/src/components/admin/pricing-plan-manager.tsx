@@ -40,7 +40,7 @@ function emptyDraft(): Draft {
     price: '0',
     billingPeriod: 'năm',
     icon: 'sprout',
-    tone: 'WOOD',
+    tone: 'BRONZE',
     badge: '',
     isFeatured: false,
     ctaLabel: 'Đăng ký ngay',

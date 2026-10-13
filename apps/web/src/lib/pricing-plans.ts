@@ -24,10 +24,13 @@ export function pricingPlanIcon(key: string): LucideIcon {
 }
 
 export const PRICING_PLAN_TONES: ReadonlyArray<{ value: PricingPlanTone; label: string }> = [
-  { value: 'WOOD', label: 'Gỗ trầm' },
-  { value: 'JADE', label: 'Xanh ngọc' },
   { value: 'GOLD', label: 'Vàng đồng' },
-  { value: 'LACQUER', label: 'Đỏ son' },
+  { value: 'ASH', label: 'Xám tro' },
+  { value: 'SPROUT', label: 'Xanh mầm non' },
+  { value: 'TURQUOISE', label: 'Xanh ngọc' },
+  { value: 'AMETHYST', label: 'Tím huyết dụ' },
+  { value: 'BRONZE', label: 'Nâu cổ đồng' },
+  { value: 'ONYX', label: 'Đen huyền bí viền vàng kim' },
 ];
 
 export function formatPlanDuration(months: number | null): string {

@@ -1,10 +1,67 @@
+/* One row of cards: they share the width while they fit and scroll sideways once they do not.
+   The padding leaves room for the hover lift, shadow and corner badge inside the scroll box. */
+.carousel {
+  position: relative;
+}
+
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  grid-auto-columns: minmax(260px, 1fr);
+  grid-auto-flow: column;
   align-items: stretch;
   gap: 20px;
-  grid-auto-rows: 1fr;
-  padding-top: 16px;
+  margin: 0 -12px -24px;
+  padding: 16px 12px 40px;
+  overflow-x: auto;
+  scroll-padding-inline: 12px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.grid::-webkit-scrollbar {
+  display: none;
+}
+
+.grid > .card {
+  scroll-snap-align: start;
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid #dcc7a1;
+  border-radius: 999px;
+  background: rgb(255 253 249 / 95%);
+  color: #6b4423;
+  box-shadow: 0 10px 24px -14px rgb(74 46 18 / 70%);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.arrow:hover {
+  background: #6b4423;
+  color: #fffdf9;
+}
+
+.arrow:focus-visible {
+  outline: 3px solid #85601c;
+  outline-offset: 3px;
+}
+
+.arrowPrev {
+  left: -6px;
+}
+
+.arrowNext {
+  right: -6px;
 }
 
 .card {
@@ -29,13 +86,6 @@
     0 18px 36px -28px rgb(74 46 18 / 55%);
 }
 
-.card[data-tone='JADE'] {
-  --tone: #2f6b55;
-  --tone-deep: #1f4a3b;
-  --tone-soft: #e8f1ec;
-  --tone-line: #bfd6c8;
-}
-
 .card[data-tone='GOLD'] {
   --tone: #b8892f;
   --tone-deep: #85601c;
@@ -43,11 +93,50 @@
   --tone-line: #dcc27f;
 }
 
-.card[data-tone='LACQUER'] {
-  --tone: #a3201b;
-  --tone-deep: #7a1c1c;
-  --tone-soft: #f9e9e6;
-  --tone-line: #e4bab3;
+/* Light tones keep the chosen colour for borders and marks; --tone-deep carries the text. */
+.card[data-tone='ASH'] {
+  --tone: #94a3b8;
+  --tone-deep: #475569;
+  --tone-soft: #f1f5f9;
+  --tone-line: #cbd5e1;
+}
+
+.card[data-tone='SPROUT'] {
+  --tone: #4ade80;
+  --tone-deep: #166534;
+  --tone-soft: #ecfdf3;
+  --tone-line: #bbf7d0;
+}
+
+.card[data-tone='TURQUOISE'] {
+  --tone: #06b6d4;
+  --tone-deep: #0e7490;
+  --tone-soft: #ecfeff;
+  --tone-line: #a5f3fc;
+}
+
+.card[data-tone='AMETHYST'] {
+  --tone: #7c3aed;
+  --tone-deep: #5b21b6;
+  --tone-soft: #f3eefe;
+  --tone-line: #d8c8fb;
+}
+
+.card[data-tone='BRONZE'] {
+  --tone: #78350f;
+  --tone-deep: #5a270b;
+  --tone-soft: #f7ede4;
+  --tone-line: #dcc0a6;
+}
+
+/* Onyx pairs near-black with a gold-leaf frame. */
+.card[data-tone='ONYX'] {
+  --tone: #111827;
+  --tone-deep: #111827;
+  --tone-soft: #f4f1e8;
+  --tone-line: #d4af37;
+
+  border-color: #d4af37;
 }
 
 .featured {
@@ -253,15 +342,6 @@ span.cta {
   outline-offset: 3px;
 }
 
-.card[data-tone='WOOD'] .cta {
-  background: transparent;
-  color: var(--tone-deep);
-}
-
-.card[data-tone='WOOD'] .cta:hover {
-  background: var(--tone-soft);
-}
-
 .card[data-tone='GOLD'] .cta {
   border-color: #9a7224;
   background: linear-gradient(180deg, #c99a3e, #a77b28);
@@ -271,34 +351,72 @@ span.cta {
   background: linear-gradient(180deg, #d4a74b, #b38630);
 }
 
-/* Position dots only exist for the swipeable phone layout. */
+.card[data-tone='ONYX'] .cta {
+  border-color: #d4af37;
+  color: #f3d77a;
+}
+
+.card[data-tone='ONYX'] .cta:hover {
+  background: #1f2937;
+}
+
+.card[data-tone='ONYX'] .emblem {
+  border-color: #d4af37;
+}
+
+/* Position dots show on phones, and on wider screens only while the row overflows. */
 .dots {
   display: none;
+}
+
+.dots[data-overflow] {
+  display: flex;
+}
+
+.dots {
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.dots button {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #dcc9a4;
+  cursor: pointer;
+  transition:
+    width 0.3s ease,
+    background 0.3s ease;
+}
+
+.dots button[aria-current='true'] {
+  width: 24px;
+  background: #85601c;
 }
 
 /* Phones: a swipeable row of narrower cards; the next card peeks in so the row reads as scrollable. */
 @media (max-width: 640px) {
   .grid {
     grid-auto-columns: min(76vw, 290px);
-    grid-auto-flow: column;
-    grid-auto-rows: auto;
-    grid-template-columns: none;
     gap: 14px;
-    margin-inline: -16px;
+    margin: 0 -16px;
     padding: 16px 16px 24px;
-    overflow-x: auto;
     scroll-padding-inline: 16px;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
   }
 
-  .grid::-webkit-scrollbar {
+  .arrow {
     display: none;
+  }
+
+  .grid > .card {
+    scroll-snap-align: center;
   }
 
   .card {
     padding: 16px 14px 14px;
-    scroll-snap-align: center;
     transition:
       scale 0.35s ease,
       opacity 0.35s ease,
@@ -326,27 +444,7 @@ span.cta {
 
   .dots {
     display: flex;
-    justify-content: center;
-    gap: 8px;
     margin-top: 2px;
-  }
-
-  .dots button {
-    width: 8px;
-    height: 8px;
-    padding: 0;
-    border: 0;
-    border-radius: 999px;
-    background: #dcc9a4;
-    cursor: pointer;
-    transition:
-      width 0.3s ease,
-      background 0.3s ease;
-  }
-
-  .dots button[aria-current='true'] {
-    width: 24px;
-    background: #85601c;
   }
 
   .featured::before {

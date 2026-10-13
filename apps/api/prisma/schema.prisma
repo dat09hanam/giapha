@@ -518,10 +518,13 @@ model Article {
 }
 
 enum PricingPlanTone {
-  WOOD
-  JADE
   GOLD
-  LACQUER
+  ASH
+  SPROUT
+  TURQUOISE
+  AMETHYST
+  BRONZE
+  ONYX
 }
 
 enum PricingFeatureStyle {
@@ -537,7 +540,7 @@ model PricingPlan {
   price         Int                   @default(0)
   billingPeriod String?               @db.VarChar(20)
   icon          String                @default("sprout") @db.VarChar(30)
-  tone          PricingPlanTone       @default(WOOD)
+  tone          PricingPlanTone       @default(BRONZE)
   badge         String?               @db.VarChar(40)
   isFeatured    Boolean               @default(false)
   ctaLabel      String                @db.VarChar(40)
