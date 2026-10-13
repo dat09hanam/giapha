@@ -1,11 +1,5 @@
 export type PricingPlanTone =
-  | 'GOLD'
-  | 'ASH'
-  | 'SPROUT'
-  | 'TURQUOISE'
-  | 'AMETHYST'
-  | 'BRONZE'
-  | 'ONYX';
+  'GOLD' | 'ASH' | 'SPROUT' | 'TURQUOISE' | 'AMETHYST' | 'BRONZE' | 'ONYX';
 
 export type PricingFeatureStyle = 'NORMAL' | 'BOLD' | 'STRIKETHROUGH';
 

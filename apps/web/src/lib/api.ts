@@ -6,6 +6,7 @@ import type { TreeEditScope } from '@/lib/branch-scope';
 import type { FamilyAccount } from '@/lib/family-accounts-api';
 import type { AdminFamily } from '@/lib/family-api';
 import type { PosterDecoration } from '@/lib/poster-decorations';
+import type { SiteContact } from '@/types/site-contact';
 import type { FeedPage } from '@/lib/feed-api';
 import type { FundLedger } from '@/lib/fund-api';
 import type { AlbumDetail, LibraryOverview } from '@/lib/library-api';
@@ -212,6 +213,10 @@ export const getPricingPlans = cache(() =>
 
 export const getPlanCatalog = cache(() =>
   getJson<PlanCatalogEntry[]>('/pricing-plans/catalog', 'tải danh mục tính năng gói'),
+);
+
+export const getSiteContact = cache(() =>
+  getJson<SiteContact>('/site-contact', 'tải thông tin liên hệ'),
 );
 
 export const getAdminPricingPlans = cache((sessionToken: string) =>

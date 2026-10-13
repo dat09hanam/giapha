@@ -12,7 +12,7 @@ type Question = { q: string; a: string };
 /** Keep in sync with the `.faqBook` breakpoint in home.module.css. */
 const ACCORDION_QUERY = '(max-width: 900px)';
 
-const pad =(n: number) => String(n).padStart(2, '0');
+const pad = (n: number) => String(n).padStart(2, '0');
 
 /**
  * Index and answer page: numbered questions on the left, the chosen answer on a paper

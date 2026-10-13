@@ -1,9 +1,13 @@
+'use client';
+
 import { Clock, Mail, Phone } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { FacebookIcon, TiktokIcon, YoutubeIcon, ZaloIcon } from '@/components/social/social-icons';
-import { SITE_CONTACT, phoneHref, zaloHref } from '@/lib/site-contact';
+import { useSiteContact } from '@/components/social/site-contact-provider';
+import { phoneHref, zaloHref } from '@/lib/site-contact';
 import { cn } from '@/lib/utils';
+import type { SiteContact } from '@/types/site-contact';
 
 type Channel = {
   key: string;
@@ -15,53 +19,53 @@ type Channel = {
   external?: true;
 };
 
-function channels(): Channel[] {
+function channels(contact: SiteContact): Channel[] {
   const list: (Channel | null)[] = [
     {
       key: 'phone',
       label: 'Hotline',
-      value: SITE_CONTACT.phone,
-      href: phoneHref(SITE_CONTACT.phone),
+      value: contact.phone,
+      href: phoneHref(contact.phone),
       icon: <Phone className="size-5" aria-hidden="true" />,
       tint: 'bg-brand-700 text-white',
     },
     {
       key: 'zalo',
       label: 'Zalo',
-      value: SITE_CONTACT.phone,
-      href: zaloHref(SITE_CONTACT.phone),
+      value: contact.zalo ?? contact.phone,
+      href: zaloHref(contact),
       icon: <ZaloIcon size={24} />,
       tint: 'bg-[#0068ff] text-white [--zalo-ink:#0068ff]',
       external: true,
     },
-    SITE_CONTACT.facebook
+    contact.facebookUrl
       ? {
           key: 'facebook',
           label: 'Facebook',
           value: 'Nhắn tin qua fanpage',
-          href: SITE_CONTACT.facebook,
+          href: contact.facebookUrl,
           icon: <FacebookIcon size={20} />,
           tint: 'bg-[#1877f2] text-white',
           external: true,
         }
       : null,
-    SITE_CONTACT.youtube
+    contact.youtubeUrl
       ? {
           key: 'youtube',
           label: 'YouTube',
           value: 'Video hướng dẫn',
-          href: SITE_CONTACT.youtube,
+          href: contact.youtubeUrl,
           icon: <YoutubeIcon size={22} />,
           tint: 'bg-[#ff0000] text-white',
           external: true,
         }
       : null,
-    SITE_CONTACT.tiktok
+    contact.tiktokUrl
       ? {
           key: 'tiktok',
           label: 'TikTok',
           value: 'Theo dõi kênh',
-          href: SITE_CONTACT.tiktok,
+          href: contact.tiktokUrl,
           icon: <TiktokIcon size={20} />,
           tint: 'bg-stone-900 text-white',
           external: true,
@@ -70,8 +74,8 @@ function channels(): Channel[] {
     {
       key: 'email',
       label: 'Email',
-      value: SITE_CONTACT.email,
-      href: `mailto:${SITE_CONTACT.email}`,
+      value: contact.email,
+      href: `mailto:${contact.email}`,
       icon: <Mail className="size-5" aria-hidden="true" />,
       tint: 'bg-gold-100 text-wood-800',
     },
@@ -80,10 +84,11 @@ function channels(): Channel[] {
 }
 
 export function SocialContact({ className }: { className?: string }) {
+  const contact = useSiteContact();
   return (
     <div className={cn('grid gap-4', className)}>
       <ul className="grid gap-2.5 sm:grid-cols-2">
-        {channels().map((channel) => (
+        {channels(contact).map((channel) => (
           <li key={channel.key}>
             <a
               href={channel.href}
@@ -108,7 +113,7 @@ export function SocialContact({ className }: { className?: string }) {
       </ul>
       <p className="flex items-center gap-2 text-sm text-stone-600">
         <Clock className="size-4 shrink-0 text-gold-700" aria-hidden="true" />
-        {SITE_CONTACT.hours}
+        {contact.hours}
       </p>
     </div>
   );

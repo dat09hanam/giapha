@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { ClipboardList, ImageIcon, Network, Newspaper, Sparkles, Tag } from 'lucide-react';
+import { ClipboardList, Contact, ImageIcon, Network, Newspaper, Sparkles, Tag } from 'lucide-react';
 
 import { AdminWorkspace } from '@/components/admin/admin-workspace';
 import { ArticleManager } from '@/components/admin/article-manager';
@@ -11,6 +11,7 @@ import { FamilyPlansPanel } from '@/components/admin/family-plans-panel';
 import { PosterDecorationManager } from '@/components/admin/poster-decoration-manager';
 import { PricingPlanManager } from '@/components/admin/pricing-plan-manager';
 import { ServiceRegistrationsPanel } from '@/components/admin/service-registrations-panel';
+import { SiteContactManager } from '@/components/admin/site-contact-manager';
 import { ApiErrorState } from '@/components/ui/api-error-state';
 import {
   ApiNotFoundError,
@@ -24,6 +25,7 @@ import {
   getFamily,
   getPosterDecorations,
   getServiceRegistrations,
+  getSiteContact,
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { profileDestination, type AuthProfile } from '@/lib/auth-api';
@@ -34,6 +36,7 @@ import type { AdminArticle } from '@/types/article';
 import { requirePasswordChanged } from '@/lib/session';
 import type { FamilyDetails } from '@/types/family-tree';
 import type { PlanCatalogEntry, PricingPlan, ServiceRegistration } from '@/types/pricing';
+import type { SiteContact } from '@/types/site-contact';
 
 export const metadata: Metadata = {
   description: `Khu vực quản trị nền tảng ${SITE_BRAND.name}.`,
@@ -80,10 +83,11 @@ export default async function AdminPage() {
   let registrations: ServiceRegistration[];
   let families: AdminFamily[];
   let catalog: PlanCatalogEntry[];
+  let contact: SiteContact;
   try {
     profile = await requireAdmin();
     const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
-    [decorations, demoFamily, articles, pricingPlans, registrations, families, catalog] =
+    [decorations, demoFamily, articles, pricingPlans, registrations, families, catalog, contact] =
       await Promise.all([
         getPosterDecorations<AdminPosterDecoration>(sessionToken),
         loadDemoFamily(),
@@ -92,6 +96,7 @@ export default async function AdminPage() {
         getServiceRegistrations(sessionToken),
         getAdminFamilies(sessionToken),
         getPlanCatalog(),
+        getSiteContact(),
       ]);
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
@@ -157,6 +162,12 @@ export default async function AdminPage() {
           label: 'Bài viết',
           icon: <Newspaper aria-hidden="true" />,
           content: <ArticleManager initial={articles} />,
+        },
+        {
+          id: 'lien-he',
+          label: 'Liên hệ',
+          icon: <Contact aria-hidden="true" />,
+          content: <SiteContactManager initial={contact} />,
         },
       ]}
     />

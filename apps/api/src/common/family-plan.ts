@@ -93,8 +93,8 @@ export async function assertWithinManagerLimit(
   if (managers > maxManagers) {
     throw new PlanLimitReachedException(
       maxManagers === 0
-        ? `Gói “${family.plan.name}” không gồm tài khoản quản trị viên chi. Hãy nâng cấp gói để tạo thêm.`
-        : `Gói “${family.plan.name}” chỉ cho phép tối đa ${maxManagers} quản trị viên chi. Hãy nâng cấp gói để tạo thêm.`,
+        ? `Gói “${family.plan.name}” không gồm tài khoản quản trị viên. Hãy nâng cấp gói để tạo thêm.`
+        : `Gói “${family.plan.name}” chỉ cho phép tối đa ${maxManagers} quản trị viên. Hãy nâng cấp gói để tạo thêm.`,
     );
   }
 }

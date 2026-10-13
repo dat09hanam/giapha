@@ -59,7 +59,9 @@ export function PricingTable({ plans }: { plans: readonly PricingPlan[] }) {
   useEffect(() => {
     const cards = gridRef.current?.children;
     if (!cards) return;
-    Array.from(cards).forEach((card, index) => card.toggleAttribute('data-current', index === current));
+    Array.from(cards).forEach((card, index) =>
+      card.toggleAttribute('data-current', index === current),
+    );
   }, [current, plans]);
 
   function scrollByCard(direction: 1 | -1): void {

@@ -138,28 +138,28 @@ export const steps: readonly {
   alt: string;
   focus: string;
 }[] = [
-    {
-      title: 'Khởi Tạo Gia Phả',
-      text: 'Tạo không gian gia phả riêng cho dòng họ, lưu giữ thông tin tổ tiên và thiết lập tài khoản Trưởng họ.',
-      image: `${SCREEN}/screen-poster.webp`,
-      alt: 'Cây gia phả hoàn chỉnh',
-      focus: 'center',
-    },
-    {
-      title: 'Gìn Giữ Cội Nguồn',
-      text: 'Bổ sung các thế hệ, thông tin thành viên, tiểu sử, hình ảnh và những câu chuyện của dòng họ.',
-      image: `${SCREEN}/screen-profile.webp`,
-      alt: 'Hồ sơ thành viên',
-      focus: 'center 64%',
-    },
-    {
-      title: 'Kết Nối Cháu Con',
-      text: 'Mời con cháu cùng tìm hiểu cội nguồn, tra cứu quan hệ họ hàng và chung tay gìn giữ truyền thống.',
-      image: `${SCREEN}/screen-kinship.webp`,
-      alt: 'Các thế hệ trong gia đình',
-      focus: 'center 80%',
-    },
-  ];
+  {
+    title: 'Khởi Tạo Gia Phả',
+    text: 'Tạo không gian gia phả riêng cho dòng họ, lưu giữ thông tin tổ tiên và thiết lập tài khoản Trưởng họ.',
+    image: `${SCREEN}/screen-poster.webp`,
+    alt: 'Cây gia phả hoàn chỉnh',
+    focus: 'center',
+  },
+  {
+    title: 'Gìn Giữ Cội Nguồn',
+    text: 'Bổ sung các thế hệ, thông tin thành viên, tiểu sử, hình ảnh và những câu chuyện của dòng họ.',
+    image: `${SCREEN}/screen-profile.webp`,
+    alt: 'Hồ sơ thành viên',
+    focus: 'center 64%',
+  },
+  {
+    title: 'Kết Nối Cháu Con',
+    text: 'Mời con cháu cùng tìm hiểu cội nguồn, tra cứu quan hệ họ hàng và chung tay gìn giữ truyền thống.',
+    image: `${SCREEN}/screen-kinship.webp`,
+    alt: 'Các thế hệ trong gia đình',
+    focus: 'center 80%',
+  },
+];
 
 export const reasons = [
   {

@@ -9,7 +9,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { submitServiceRegistration } from '@/lib/pricing-api';
 import { formatPlanPrice } from '@/lib/pricing-plans';
 import { formatPhone, phoneDigits } from '@/lib/phone';
-import { SITE_CONTACT } from '@/lib/site-contact';
+import { SITE_POLICY_LINKS } from '@/lib/site-contact';
 import type { PricingPlan } from '@/types/pricing';
 
 import styles from './pricing.module.css';
@@ -175,8 +175,11 @@ export function PlanRegistrationDialog({
                       />
                       <span>
                         Tôi đồng ý với{' '}
-                        <PolicyLink href={SITE_CONTACT.privacy}>Chính sách bảo mật</PolicyLink> và{' '}
-                        <PolicyLink href={SITE_CONTACT.terms}>Quy định sử dụng dịch vụ</PolicyLink>
+                        <PolicyLink href={SITE_POLICY_LINKS.privacy}>Chính sách bảo mật</PolicyLink>{' '}
+                        và{' '}
+                        <PolicyLink href={SITE_POLICY_LINKS.terms}>
+                          Quy định sử dụng dịch vụ
+                        </PolicyLink>
                       </span>
                     </label>
                     <span className={styles.consentError} data-field-error="" aria-live="polite" />

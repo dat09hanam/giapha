@@ -61,7 +61,7 @@ function PlanUsage({ family }: { family: AdminFamily }) {
     <p className="text-xs leading-5 text-stone-500">
       <Usage used={family.memberCount} limit={family.plan.maxMembers} unit="thành viên" />
       {' · '}
-      <Usage used={family.managerCount} limit={family.plan.maxManagers} unit="quản trị viên chi" />
+      <Usage used={family.managerCount} limit={family.plan.maxManagers} unit="quản trị viên" />
       {' · '}
       <StorageUsage usedMb={family.storageUsedMb} limitMb={family.plan.maxStorageMb} />
       {' · '}

@@ -576,6 +576,21 @@ model PricingPlanFeature {
   @@index([planId, sortOrder])
 }
 
+// The platform's own contact details shown on the public site (footer, contact dialog, plan-limit
+// dialog). Platform-level, not tenant-owned: a single row with id 1, written only by the ADMIN.
+model SiteContact {
+  id          Int      @id @default(1)
+  phone       String   @db.VarChar(30)
+  zalo        String?  @db.VarChar(30)
+  email       String   @db.VarChar(191)
+  address     String   @db.VarChar(200)
+  hours       String   @db.VarChar(100)
+  facebookUrl String?  @db.VarChar(500)
+  youtubeUrl  String?  @db.VarChar(500)
+  tiktokUrl   String?  @db.VarChar(500)
+  updatedAt   DateTime @updatedAt
+}
+
 enum ServiceRegistrationStatus {
   NEW
   CONTACTED

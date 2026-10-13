@@ -202,6 +202,12 @@ by the platform `ADMIN` (the Bảng giá tab of `/admin`). A plan carries its pr
 `GET /api/pricing-plans` is public and returns active plans only; `GET /api/pricing-plans/admin` and
 the writes are `ADMIN` only. A plan still used by a Family cannot be deleted (hide it instead).
 
+`SiteContact` is the platform's own contact details (hotline, Zalo, email, address, hours, social
+links). It is platform-level and **not** tenant-owned: a single row (`id` 1), written only by the
+platform `ADMIN` (the Liên hệ tab of `/admin`, `PUT /api/site-contact`). `GET /api/site-contact` is
+public; the web root layout loads it once per request and hands it to client components through
+`SiteContactProvider`, falling back to built-in defaults when the API is unreachable.
+
 **Plan rights have one source.** `src/common/plan-rights.ts` holds the plan catalog
 (`GET /api/pricing-plans/catalog`): four limits, `maxMembers` (people in the tree),
 `durationMonths`, `maxManagers` (personal `MEMBER` accounts the clan head creates to manage

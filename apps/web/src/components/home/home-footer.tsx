@@ -1,12 +1,15 @@
+'use client';
+
 import Link from 'next/link';
 import { BookOpen, Clock, HandHeart, Mail, MapPin, Phone, UsersRound } from 'lucide-react';
 
 import { ContactLink } from '@/components/social/contact-link';
 import { RingingPhone } from '@/components/social/ringing-phone';
-import { FacebookIcon, YoutubeIcon, ZaloIcon } from '@/components/social/social-icons';
+import { useSiteContact } from '@/components/social/site-contact-provider';
+import { FacebookIcon, TiktokIcon, YoutubeIcon, ZaloIcon } from '@/components/social/social-icons';
 import { LogoMark } from '@/components/layout/logo-mark';
 import { SITE_BRAND } from '@/lib/site-brand';
-import { SITE_CONTACT, phoneHref, zaloHref } from '@/lib/site-contact';
+import { SITE_POLICY_LINKS, phoneHref, zaloHref } from '@/lib/site-contact';
 
 import styles from './home.module.css';
 
@@ -28,7 +31,10 @@ const footerValues = [
   },
 ];
 
+const EXTERNAL = { target: '_blank', rel: 'noopener noreferrer' } as const;
+
 export function HomeFooter() {
+  const contact = useSiteContact();
   return (
     <footer className={styles.footer} id="lien-he">
       <section className={styles.footerCta} aria-labelledby="footer-cta-title">
@@ -68,38 +74,40 @@ export function HomeFooter() {
             <p>{SITE_BRAND.description}</p>
             <ul className={styles.footerSocial} aria-label="Mạng xã hội">
               <li>
-                <a
-                  href={zaloHref(SITE_CONTACT.phone)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Zalo"
-                >
+                <a href={zaloHref(contact)} {...EXTERNAL} aria-label="Zalo">
                   <ZaloIcon size={22} />
                 </a>
               </li>
-              {SITE_CONTACT.facebook ? (
+              {contact.facebookUrl ? (
                 <li>
-                  <a href={SITE_CONTACT.facebook} aria-label="Facebook">
+                  <a href={contact.facebookUrl} {...EXTERNAL} aria-label="Facebook">
                     <FacebookIcon />
                   </a>
                 </li>
               ) : null}
-              {SITE_CONTACT.youtube ? (
+              {contact.youtubeUrl ? (
                 <li>
-                  <a href={SITE_CONTACT.youtube} aria-label="YouTube">
+                  <a href={contact.youtubeUrl} {...EXTERNAL} aria-label="YouTube">
                     <YoutubeIcon />
                   </a>
                 </li>
               ) : null}
+              {contact.tiktokUrl ? (
+                <li>
+                  <a href={contact.tiktokUrl} {...EXTERNAL} aria-label="TikTok">
+                    <TiktokIcon />
+                  </a>
+                </li>
+              ) : null}
               <li>
-                <a href={`mailto:${SITE_CONTACT.email}`} aria-label="Email">
+                <a href={`mailto:${contact.email}`} aria-label="Email">
                   <Mail size={18} aria-hidden="true" />
                 </a>
               </li>
             </ul>
             <nav className={styles.footerLinks} aria-label="Thông tin pháp lý">
-              <a href={SITE_CONTACT.privacy}>Chính sách bảo mật</a>
-              <a href={SITE_CONTACT.terms}>Điều khoản sử dụng</a>
+              <a href={SITE_POLICY_LINKS.privacy}>Chính sách bảo mật</a>
+              <a href={SITE_POLICY_LINKS.terms}>Điều khoản sử dụng</a>
               <a href="#lien-he">Liên hệ</a>
             </nav>
           </div>
@@ -121,25 +129,25 @@ export function HomeFooter() {
                 <span>
                   <MapPin size={17} aria-hidden="true" />
                 </span>
-                {SITE_CONTACT.address}
+                {contact.address}
               </li>
               <li>
                 <span>
                   <Mail size={17} aria-hidden="true" />
                 </span>
-                <a href={`mailto:${SITE_CONTACT.email}`}>{SITE_CONTACT.email}</a>
+                <a href={`mailto:${contact.email}`}>{contact.email}</a>
               </li>
               <li>
                 <span>
                   <Phone size={17} aria-hidden="true" />
                 </span>
-                <a href={phoneHref(SITE_CONTACT.phone)}>{SITE_CONTACT.phone}</a>
+                <a href={phoneHref(contact.phone)}>{contact.phone}</a>
               </li>
               <li>
                 <span>
                   <Clock size={17} aria-hidden="true" />
                 </span>
-                {SITE_CONTACT.hours}
+                {contact.hours}
               </li>
             </ul>
           </div>

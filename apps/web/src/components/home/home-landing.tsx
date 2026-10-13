@@ -1,14 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  ArrowRight,
-  Check,
-  PhoneCall,
-  Quote,
-  ScrollText,
-  Smartphone,
-  X,
-} from 'lucide-react';
+import { ArrowRight, Check, PhoneCall, Quote, ScrollText, Smartphone, X } from 'lucide-react';
 
 import { ArticleCard } from '@/components/articles/article-card';
 import { PricingTable } from '@/components/pricing/pricing-table';
@@ -20,14 +12,7 @@ import type { PricingPlan } from '@/types/pricing';
 
 import { Faq } from './faq';
 import { FeatureShowcase } from './feature-showcase';
-import {
-  overview,
-  paperVsOnline,
-  questions,
-  reasons,
-  steps,
-  testimonials,
-} from './home-content';
+import { overview, paperVsOnline, questions, reasons, steps, testimonials } from './home-content';
 import { HomeFooter } from './home-footer';
 import { HomeHeader } from './home-header';
 import styles from './home.module.css';

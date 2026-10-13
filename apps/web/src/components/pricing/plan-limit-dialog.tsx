@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { useEffect, useId, useRef } from 'react';
 
 import { Presence } from '@/components/ui/presence';
-import { SITE_CONTACT, phoneHref, zaloHref } from '@/lib/site-contact';
+import { useSiteContact } from '@/components/social/site-contact-provider';
+import { phoneHref, zaloHref } from '@/lib/site-contact';
 import { cn } from '@/lib/utils';
 
 import styles from './plan-limit-dialog.module.css';
@@ -34,6 +35,7 @@ function PlanLimitDialogPanel({ message, onClose }: { message: string; onClose: 
   const titleId = useId();
   const messageId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
+  const contact = useSiteContact();
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -109,25 +111,25 @@ function PlanLimitDialogPanel({ message, onClose }: { message: string; onClose: 
           <div className={styles.contact}>
             <p className={styles.contactLabel}>Liên hệ quản trị viên để nâng cấp gói</p>
             <a
-              href={phoneHref(SITE_CONTACT.phone)}
+              href={phoneHref(contact.phone)}
               className={styles.phoneRow}
-              aria-label={`Gọi quản trị viên số ${SITE_CONTACT.phone}`}
+              aria-label={`Gọi quản trị viên số ${contact.phone}`}
             >
               <span className={styles.phoneIcon}>
                 <Phone className="size-5" fill="currentColor" strokeWidth={0} aria-hidden="true" />
               </span>
-              <span className={styles.phoneNumber}>{SITE_CONTACT.phone}</span>
+              <span className={styles.phoneNumber}>{contact.phone}</span>
             </a>
             <p className={styles.hours}>
               <Clock className="size-4" aria-hidden="true" />
-              {SITE_CONTACT.hours}
+              {contact.hours}
             </p>
           </div>
         </div>
 
         <div className={styles.actions}>
           <a
-            href={zaloHref(SITE_CONTACT.phone)}
+            href={zaloHref(contact)}
             target="_blank"
             rel="noreferrer"
             className={cn(styles.action, styles.zalo)}
