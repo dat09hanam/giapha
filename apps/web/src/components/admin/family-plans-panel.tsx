@@ -1,15 +1,31 @@
 'use client';
 
-import { CalendarPlus, ExternalLink, Layers } from 'lucide-react';
+import {
+  CalendarPlus,
+  Check,
+  Copy,
+  ExternalLink,
+  KeyRound,
+  Layers,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
 import { SectionCard } from '@/components/admin/admin-layout';
 import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { InlineLoader } from '@/components/ui/heritage-loader';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { changeFamilyPlan, renewFamilyPlan, type AdminFamily } from '@/lib/family-api';
+import {
+  changeFamilyPlan,
+  renewFamilyPlan,
+  resetClanHeadPassword,
+  type AdminFamily,
+  type ClanHeadCredential,
+} from '@/lib/family-api';
 import { formatMegabytes } from '@/lib/plan-catalog';
 import { formatPlanDuration } from '@/lib/pricing-plans';
 import { cn } from '@/lib/utils';
@@ -76,6 +92,55 @@ function PlanUsage({ family }: { family: AdminFamily }) {
   );
 }
 
+function ClanHeadCredentialCard({
+  credential,
+  onCopy,
+  onClose,
+}: {
+  credential: ClanHeadCredential & { copied: boolean };
+  onCopy: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="grid gap-3 rounded-2xl border border-brand-200 bg-brand-50/70 p-4"
+      role="status"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-semibold text-brand-950">Mật khẩu mới của trưởng họ</p>
+        <div className="flex items-center gap-1.5">
+          <Button type="button" size="sm" variant="outline" onClick={onCopy}>
+            {credential.copied ? (
+              <Check className="size-3.5" aria-hidden="true" />
+            ) : (
+              <Copy className="size-3.5" aria-hidden="true" />
+            )}
+            {credential.copied ? 'Đã sao chép' : 'Sao chép'}
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={onClose} aria-label="Đóng">
+            <X className="size-3.5" aria-hidden="true" />
+          </Button>
+        </div>
+      </div>
+      <dl className="grid gap-1.5 rounded-xl border bg-white p-4 text-sm">
+        <div className="flex flex-wrap justify-between gap-2">
+          <dt className="text-stone-500">Tên đăng nhập</dt>
+          <dd className="break-all font-mono font-medium">{credential.username}</dd>
+        </div>
+        <div className="flex flex-wrap justify-between gap-2">
+          <dt className="text-stone-500">Mật khẩu</dt>
+          <dd className="break-all font-mono font-medium">{credential.password}</dd>
+        </div>
+      </dl>
+      <p className="flex gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-900">
+        <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+        Mật khẩu tạm chỉ hiển thị một lần tại đây. Hãy gửi riêng cho trưởng họ; họ sẽ phải đổi mật
+        khẩu ở lần đăng nhập tới.
+      </p>
+    </div>
+  );
+}
+
 export function FamilyPlansPanel({
   families,
   plans,
@@ -87,6 +152,44 @@ export function FamilyPlansPanel({
   // Rows changed here since the page loaded; the list itself comes from the server.
   const [changed, setChanged] = useState<Record<string, AdminFamily>>({});
   const [busySlug, setBusySlug] = useState<string | null>(null);
+  // The new clan-head password is shown once, under the row it belongs to.
+  const [credential, setCredential] = useState<
+    (ClanHeadCredential & { slug: string; copied: boolean }) | null
+  >(null);
+  const confirm = useConfirm();
+
+  async function resetHeadPassword(family: AdminFamily): Promise<void> {
+    if (
+      !(await confirm({
+        title: `Cấp lại mật khẩu trưởng họ ${family.name}?`,
+        message:
+          'Mật khẩu cũ hết hiệu lực ngay, tài khoản trưởng họ bị đăng xuất khỏi mọi thiết bị và phải đổi mật khẩu ở lần đăng nhập tới.',
+        confirmLabel: 'Cấp lại',
+      }))
+    )
+      return;
+    setBusySlug(family.slug);
+    try {
+      const result = await resetClanHeadPassword(family.slug);
+      setCredential({ ...result, slug: family.slug, copied: false });
+      showToast({ kind: 'success', message: `Đã cấp lại mật khẩu trưởng họ ${family.name}.` });
+    } catch (error: unknown) {
+      showToast({
+        kind: 'error',
+        message: getApiErrorMessage(error, 'cấp lại mật khẩu trưởng họ'),
+      });
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
+  async function copyCredential(): Promise<void> {
+    if (!credential) return;
+    await navigator.clipboard.writeText(
+      `Tên đăng nhập: ${credential.username}\nMật khẩu: ${credential.password}`,
+    );
+    setCredential({ ...credential, copied: true });
+  }
 
   async function run(
     family: AdminFamily,
@@ -123,90 +226,110 @@ export function FamilyPlansPanel({
             const renewable = family.plan.durationMonths !== null && !family.isDemo;
             const busy = busySlug === family.slug;
             return (
-              <li
-                key={family.id}
-                className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 md:flex-row md:items-center"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <label htmlFor={selectId} className="font-medium text-brand-950">
-                      {family.name}
-                    </label>
-                    {family.isDemo ? (
-                      <span className="rounded bg-gold-100 px-1.5 py-0.5 text-xs font-medium text-wood-700">
-                        Gia phả mẫu
-                      </span>
-                    ) : null}
-                    {status ? (
-                      <span
-                        className={cn(
-                          'rounded px-1.5 py-0.5 text-xs font-medium',
-                          isExpired(family)
-                            ? 'bg-red-50 text-red-700'
-                            : 'bg-stone-100 text-stone-600',
-                        )}
-                      >
-                        {status}
-                      </span>
-                    ) : null}
+              <li key={family.id} className="grid gap-3 py-4 first:pt-0 last:pb-0">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <label htmlFor={selectId} className="font-medium text-brand-950">
+                        {family.name}
+                      </label>
+                      {family.isDemo ? (
+                        <span className="rounded bg-gold-100 px-1.5 py-0.5 text-xs font-medium text-wood-700">
+                          Gia phả mẫu
+                        </span>
+                      ) : null}
+                      {status ? (
+                        <span
+                          className={cn(
+                            'rounded px-1.5 py-0.5 text-xs font-medium',
+                            isExpired(family)
+                              ? 'bg-red-50 text-red-700'
+                              : 'bg-stone-100 text-stone-600',
+                          )}
+                        >
+                          {status}
+                        </span>
+                      ) : null}
+                    </div>
+                    <Link
+                      href={`/${encodeURIComponent(family.slug)}`}
+                      target="_blank"
+                      className="inline-flex max-w-full items-center gap-1 break-all text-sm text-stone-500 hover:text-brand-700"
+                    >
+                      /{family.slug}
+                      <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
+                    </Link>
+                    <PlanUsage family={family} />
                   </div>
-                  <Link
-                    href={`/${encodeURIComponent(family.slug)}`}
-                    target="_blank"
-                    className="inline-flex max-w-full items-center gap-1 break-all text-sm text-stone-500 hover:text-brand-700"
-                  >
-                    /{family.slug}
-                    <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
-                  </Link>
-                  <PlanUsage family={family} />
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {busy ? <InlineLoader className="size-4 shrink-0 text-stone-400" /> : null}
-                  <select
-                    id={selectId}
-                    value={family.plan.id}
-                    disabled={busySlug !== null}
-                    onChange={(event) => {
-                      const planId = event.currentTarget.value;
-                      void run(
-                        family,
-                        () => changeFamilyPlan(family.slug, planId),
-                        (saved) => `${saved.name} đã chuyển sang gói “${saved.plan.name}”.`,
-                        'đổi gói dịch vụ',
-                      );
-                    }}
-                    className={SELECT_CLASS}
-                  >
-                    {plans.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.name}
-                        {option.isActive ? '' : ' (đang ẩn)'}
-                      </option>
-                    ))}
-                  </select>
-                  {renewable ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
+                  <div className="flex flex-wrap items-center gap-2">
+                    {busy ? <InlineLoader className="size-4 shrink-0 text-stone-400" /> : null}
+                    <select
+                      id={selectId}
+                      value={family.plan.id}
                       disabled={busySlug !== null}
-                      onClick={() =>
+                      onChange={(event) => {
+                        const planId = event.currentTarget.value;
                         void run(
                           family,
-                          () => renewFamilyPlan(family.slug),
-                          (saved) =>
-                            `Đã gia hạn ${saved.name} thêm ${formatPlanDuration(saved.plan.durationMonths)}${
-                              saved.planExpiresAt ? `, tới ${formatDate(saved.planExpiresAt)}` : ''
-                            }.`,
-                          'gia hạn gói dịch vụ',
-                        )
-                      }
+                          () => changeFamilyPlan(family.slug, planId),
+                          (saved) => `${saved.name} đã chuyển sang gói “${saved.plan.name}”.`,
+                          'đổi gói dịch vụ',
+                        );
+                      }}
+                      className={SELECT_CLASS}
                     >
-                      <CalendarPlus className="size-3.5" aria-hidden="true" />
-                      Gia hạn
-                    </Button>
-                  ) : null}
+                      {plans.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.name}
+                          {option.isActive ? '' : ' (đang ẩn)'}
+                        </option>
+                      ))}
+                    </select>
+                    {renewable ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={busySlug !== null}
+                        onClick={() =>
+                          void run(
+                            family,
+                            () => renewFamilyPlan(family.slug),
+                            (saved) =>
+                              `Đã gia hạn ${saved.name} thêm ${formatPlanDuration(saved.plan.durationMonths)}${
+                                saved.planExpiresAt
+                                  ? `, tới ${formatDate(saved.planExpiresAt)}`
+                                  : ''
+                              }.`,
+                            'gia hạn gói dịch vụ',
+                          )
+                        }
+                      >
+                        <CalendarPlus className="size-3.5" aria-hidden="true" />
+                        Gia hạn
+                      </Button>
+                    ) : null}
+                    {family.isDemo ? null : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={busySlug !== null}
+                        onClick={() => void resetHeadPassword(family)}
+                      >
+                        <KeyRound className="size-3.5" aria-hidden="true" />
+                        Cấp lại mật khẩu
+                      </Button>
+                    )}
+                  </div>
                 </div>
+                {credential?.slug === family.slug ? (
+                  <ClanHeadCredentialCard
+                    credential={credential}
+                    onCopy={() => void copyCredential()}
+                    onClose={() => setCredential(null)}
+                  />
+                ) : null}
               </li>
             );
           })}

@@ -197,6 +197,8 @@ export type FamilyPlanLimits = {
 
 export type FamilySlugCheck = { slug: string; available: boolean; withOrigin: boolean };
 
+export type ClanHeadCredential = { username: string; password: string };
+
 export type CreatedFamilyResult = {
   family: FamilySummary & {
     deathAnniversary: string;
@@ -337,6 +339,33 @@ export class FamiliesService {
     return this.setPlanPeriod(family, {
       planExpiresAt: planExpiry(durationMonths, from, false),
     });
+  }
+
+  async resetClanHeadPassword(slug: string): Promise<ClanHeadCredential> {
+    const family = await this.prisma.family.findFirst({
+      where: { slug, deletedAt: null },
+      select: { id: true },
+    });
+    if (!family) throw new NotFoundException('Không tìm thấy dòng họ.');
+    const head = await this.prisma.user.findFirst({
+      where: { familyId: family.id, role: UserRole.MEMBER_PLUS, deletedAt: null },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, username: true },
+    });
+    if (!head) throw new NotFoundException('Dòng họ này chưa có tài khoản trưởng họ.');
+
+    const password = generateClanHeadPassword();
+    const passwordHash = await hashPassword(password);
+    // Old sessions end so only the holder of the new password stays signed in.
+    await this.prisma.$transaction([
+      this.prisma.authSession.deleteMany({ where: { userId: head.id } }),
+      this.prisma.user.update({
+        where: { id: head.id },
+        data: { passwordHash, mustChangePassword: true },
+        select: { id: true },
+      }),
+    ]);
+    return { username: head.username, password };
   }
 
   private async findFamilyForPlan(slug: string): Promise<FamilyPlanState> {

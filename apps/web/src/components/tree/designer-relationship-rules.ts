@@ -83,16 +83,8 @@ export function plannedChildParents(
     };
   }
 
-  const wives = wivesOf(draft, source.id);
-  return {
-    fatherId: source.id,
-    motherId:
-      chosenMotherId !== undefined
-        ? chosenMotherId
-        : wives.length === 1
-          ? wives[0]!.member.id
-          : null,
-  };
+  // From the father the mother is always chosen; no choice means his child alone.
+  return { fatherId: source.id, motherId: chosenMotherId ?? null };
 }
 
 export function needsMotherChoice(
@@ -100,7 +92,7 @@ export function needsMotherChoice(
   source: DesignerMember,
   kind: RelationshipKind,
 ): boolean {
-  return isChildKind(kind) && source.gender === 'MALE' && wivesOf(draft, source.id).length > 1;
+  return isChildKind(kind) && source.gender === 'MALE' && wivesOf(draft, source.id).length > 0;
 }
 
 export function findDuplicatePair(draft: DesignerDraft): [DesignerMember, DesignerMember] | null {

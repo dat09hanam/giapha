@@ -61,6 +61,16 @@ export function changeFamilyPlan(slug: string, planId: string): Promise<AdminFam
   );
 }
 
+export type ClanHeadCredential = { username: string; password: string };
+
+export function resetClanHeadPassword(slug: string): Promise<ClanHeadCredential> {
+  return apiFetch<ClanHeadCredential>(
+    `${API_URL}/families/${encodeURIComponent(slug)}/clan-head/password`,
+    { method: 'POST', credentials: 'include', headers: { Accept: 'application/json' } },
+    'cấp lại mật khẩu trưởng họ',
+  );
+}
+
 export type CreatedDemoFamilyResult = {
   family: CreatedFamilyResult['family'];
   accounts: null;

@@ -106,7 +106,10 @@ type RelationshipChoice = {
   icon: LucideIcon;
 };
 
-type AdditionState = { step: 'choose' } | { step: 'mother'; kind: RelationshipKind };
+type AdditionState =
+  | { step: 'choose' }
+  | { step: 'mother'; kind: RelationshipKind }
+  | { step: 'sharedChildren'; kind: 'WIFE'; childIds: string[] };
 
 type DesignerNodeData = {
   member: DesignerMember;
@@ -480,9 +483,9 @@ function createInitialDraft(initialTree: FamilyTreeResponse): DesignerDraft {
   const sourcePeople = [...initialTree.people].sort(
     (left, right) =>
       (left.generation ?? Number.MAX_SAFE_INTEGER) -
-        (right.generation ?? Number.MAX_SAFE_INTEGER) ||
+      (right.generation ?? Number.MAX_SAFE_INTEGER) ||
       (left.orderInFamily ?? Number.MAX_SAFE_INTEGER) -
-        (right.orderInFamily ?? Number.MAX_SAFE_INTEGER) ||
+      (right.orderInFamily ?? Number.MAX_SAFE_INTEGER) ||
       left.name.localeCompare(right.name, 'vi'),
   );
   const peopleById = new Map(sourcePeople.map((person) => [person.id, person]));
@@ -629,6 +632,13 @@ function withMarriage(draft: DesignerDraft, husbandId: string, wifeId: string): 
       { husbandId, wifeId, wifeOrder: nextWifeOrder(draft, husbandId) },
     ],
   };
+}
+
+/** The husband's children with no mother yet: when he takes a wife, each is hers or his alone. */
+function motherlessChildren(draft: DesignerDraft, husbandId: string): DesignerMember[] {
+  return draft.people
+    .filter((member) => member.fatherId === husbandId && !member.motherId)
+    .sort(sortMembers);
 }
 
 function memberChildren(draft: DesignerDraft, memberId: string): DesignerMember[] {
@@ -1028,12 +1038,12 @@ export function FamilyTreeDesigner({
       : null;
   const [selectedMemberId, setSelectedMemberId] = useState(
     focusMemberId ??
-      (editScope.fullAccess
-        ? null
-        : editScope.rootPersonIds.find((id) =>
-            initialDraft.people.some((member) => member.id === id),
-          )) ??
-      initialDraft.protectedMemberId,
+    (editScope.fullAccess
+      ? null
+      : editScope.rootPersonIds.find((id) =>
+        initialDraft.people.some((member) => member.id === id),
+      )) ??
+    initialDraft.protectedMemberId,
   );
   const branchScope = useMemo<BranchScope | null>(
     () =>
@@ -1156,6 +1166,14 @@ export function FamilyTreeDesigner({
     if (mother) parents.push({ role: 'Mẹ', member: mother });
     return parents;
   }, [draft, selectedMember]);
+  // A child added before the father's wife has no mother yet; offer the father's wives.
+  const motherChoices = useMemo(
+    () =>
+      selectedMember?.fatherId && !selectedMember.motherId
+        ? wivesOf(draft, selectedMember.fatherId)
+        : [],
+    [draft, selectedMember],
+  );
   const selectedSpouseCount =
     selectedMember?.gender === 'MALE' ? selectedWives.length : selectedHusbands.length;
   const relativeCount = selectedParents.length + selectedSpouseCount + selectedChildren.length;
@@ -1238,6 +1256,10 @@ export function FamilyTreeDesigner({
       setAddition({ step: 'mother', kind });
       return;
     }
+    if (kind === 'WIFE' && motherlessChildren(draft, relationshipTarget.id).length > 0) {
+      setAddition({ step: 'sharedChildren', kind, childIds: [] });
+      return;
+    }
     createRelationship(
       kind,
       isChildKind(kind) ? plannedChildParents(draft, relationshipTarget, undefined) : null,
@@ -1249,7 +1271,11 @@ export function FamilyTreeDesigner({
     createRelationship(kind, plannedChildParents(draft, relationshipTarget, motherId));
   }
 
-  function createRelationship(kind: RelationshipKind, parents: PlannedParents | null): void {
+  function createRelationship(
+    kind: RelationshipKind,
+    parents: PlannedParents | null,
+    sharedChildIds: readonly string[] = [],
+  ): void {
     if (!relationshipTargetId || !relationshipTarget) return;
     if (memberLimitReached) {
       warnMemberLimit();
@@ -1288,16 +1314,25 @@ export function FamilyTreeDesigner({
         return recalculateGenerations(
           otherParentId
             ? withMarriage(
-                withParent,
-                kind === 'FATHER' ? member.id : otherParentId,
-                kind === 'FATHER' ? otherParentId : member.id,
-              )
+              withParent,
+              kind === 'FATHER' ? member.id : otherParentId,
+              kind === 'FATHER' ? otherParentId : member.id,
+            )
             : withParent,
         );
       }
 
       if (kind === 'WIFE') {
-        return recalculateGenerations(withMarriage(withMember, target.id, member.id));
+        const married = withMarriage(withMember, target.id, member.id);
+        const shared = new Set(sharedChildIds);
+        return recalculateGenerations({
+          ...married,
+          people: married.people.map((person) =>
+            shared.has(person.id) && person.fatherId === target.id && !person.motherId
+              ? { ...person, motherId: member.id }
+              : person,
+          ),
+        });
       }
 
       const siblings = memberChildren(current, target.id);
@@ -1333,9 +1368,9 @@ export function FamilyTreeDesigner({
         relationships: current.relationships.map((relationship) =>
           relationship.husbandId === selectedMemberId
             ? {
-                ...relationship,
-                wifeOrder: orders.get(relationship.wifeId) ?? relationship.wifeOrder,
-              }
+              ...relationship,
+              wifeOrder: orders.get(relationship.wifeId) ?? relationship.wifeOrder,
+            }
             : relationship,
         ),
       };
@@ -1424,16 +1459,16 @@ export function FamilyTreeDesigner({
     patchSelectedMember(
       isAlive
         ? {
-            isAlive,
-            courtesyName: '',
-            deathDate: '',
-            lunarDeathAnniversary: '',
-            burialPlace: '',
-            ageAtDeath: '',
-            worshipPlace: '',
-            worshipKeeperId: '',
-            deathAnniversaryText: '',
-          }
+          isAlive,
+          courtesyName: '',
+          deathDate: '',
+          lunarDeathAnniversary: '',
+          burialPlace: '',
+          ageAtDeath: '',
+          worshipPlace: '',
+          worshipKeeperId: '',
+          deathAnniversaryText: '',
+        }
         : { isAlive },
     );
   }
@@ -2276,6 +2311,41 @@ export function FamilyTreeDesigner({
                           Chưa có cha mẹ trong phả — thành viên đứng đầu nhánh này.
                         </p>
                       )}
+                      {motherChoices.length > 0 ? (
+                        <div className="mt-3 grid gap-1.5">
+                          <label
+                            htmlFor="designer-member-mother"
+                            className="text-sm font-medium text-brand-950"
+                          >
+                            Mẹ
+                          </label>
+                          <div className="relative">
+                            <select
+                              id="designer-member-mother"
+                              value=""
+                              onChange={(event) => {
+                                const motherId = event.currentTarget.value;
+                                if (motherId) patchSelectedMember({ motherId });
+                              }}
+                              className={cn(fieldClassName, 'w-full appearance-none pr-10')}
+                            >
+                              <option value="">Chưa xác định mẹ</option>
+                              {motherChoices.map((wife) => (
+                                <option key={wife.member.id} value={wife.member.id}>
+                                  {wife.member.name}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown
+                              className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-stone-500"
+                              aria-hidden="true"
+                            />
+                          </div>
+                          <p className="text-xs leading-5 text-stone-500">
+                            Chọn mẹ để nối người này vào đường nối của cặp bố mẹ.
+                          </p>
+                        </div>
+                      ) : null}
                     </EditorSection>
 
                     <EditorSection
@@ -2293,12 +2363,12 @@ export function FamilyTreeDesigner({
                               onMove={
                                 selectedWives.length > 1
                                   ? {
-                                      up: index > 0 ? () => moveWife(index, -1) : null,
-                                      down:
-                                        index < selectedWives.length - 1
-                                          ? () => moveWife(index, 1)
-                                          : null,
-                                    }
+                                    up: index > 0 ? () => moveWife(index, -1) : null,
+                                    down:
+                                      index < selectedWives.length - 1
+                                        ? () => moveWife(index, 1)
+                                        : null,
+                                  }
                                   : undefined
                               }
                             />
@@ -2343,12 +2413,12 @@ export function FamilyTreeDesigner({
                               onMove={
                                 selectedChildren.length > 1
                                   ? {
-                                      up: index > 0 ? () => moveChild(index, -1) : null,
-                                      down:
-                                        index < selectedChildren.length - 1
-                                          ? () => moveChild(index, 1)
-                                          : null,
-                                    }
+                                    up: index > 0 ? () => moveChild(index, -1) : null,
+                                    down:
+                                      index < selectedChildren.length - 1
+                                        ? () => moveChild(index, 1)
+                                        : null,
+                                  }
                                   : undefined
                               }
                             />
@@ -2591,18 +2661,16 @@ export function FamilyTreeDesigner({
               {addition.step === 'mother' ? (
                 <>
                   <p className="mt-2 text-sm leading-6 text-stone-600">
-                    {relationshipTarget.name} có nhiều vợ. Chọn mẹ của người con để đặt con dưới
-                    đúng cặp bố – mẹ.
                   </p>
                   <div className="mt-5 grid gap-2">
-                    {wivesOf(draft, relationshipTarget.id).map((wife, index) => (
+                    {wivesOf(draft, relationshipTarget.id).map((wife, index, wives) => (
                       <button
                         key={wife.member.id}
                         type="button"
                         className="rounded-2xl border border-amber-900/15 bg-white px-4 py-3 text-left text-sm font-medium text-brand-950 transition hover:border-brand-800/35 hover:bg-brand-50"
                         onClick={() => chooseMother(addition.kind, wife.member.id)}
                       >
-                        Vợ {index + 1} – {wife.member.name}
+                        Mẹ là {wife.member.name}
                       </button>
                     ))}
                     <button
@@ -2610,7 +2678,7 @@ export function FamilyTreeDesigner({
                       className="rounded-2xl border border-dashed border-amber-900/25 bg-white px-4 py-3 text-left text-sm font-medium text-stone-600 transition hover:bg-stone-50"
                       onClick={() => chooseMother(addition.kind, null)}
                     >
-                      Chưa xác định mẹ
+                      Con riêng của {relationshipTarget.name}
                     </button>
                   </div>
                   <div className="mt-5 flex justify-end">
@@ -2620,6 +2688,76 @@ export function FamilyTreeDesigner({
                       onClick={() => setAddition({ step: 'choose' })}
                     >
                       Quay lại
+                    </Button>
+                  </div>
+                </>
+              ) : null}
+
+              {addition.step === 'sharedChildren' ? (
+                <>
+                  <p className="mt-2 text-sm leading-6 text-stone-600">
+                    Chọn con chung của {relationshipTarget.name} với người người vợ này.
+                  </p>
+                  <ul className="mt-5 grid gap-2">
+                    {motherlessChildren(draft, relationshipTarget.id).map((child) => {
+                      const shared = addition.childIds.includes(child.id);
+                      const setShared = (next: boolean): void =>
+                        setAddition({
+                          ...addition,
+                          childIds: next
+                            ? [...addition.childIds.filter((id) => id !== child.id), child.id]
+                            : addition.childIds.filter((id) => id !== child.id),
+                        });
+                      return (
+                        <li
+                          key={child.id}
+                          className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-amber-900/15 bg-white px-4 py-3 text-sm"
+                        >
+                          <span className="min-w-0 flex-1 font-medium text-brand-950">
+                            {child.name}
+                          </span>
+                          <span
+                            role="group"
+                            aria-label={'Quan hệ của ' + child.name}
+                            className="flex shrink-0 items-center gap-4"
+                          >
+                            {(
+                              [
+                                [true, 'Con chung'],
+                                [false, 'Con riêng'],
+                              ] as const
+                            ).map(([value, label]) => (
+                              <label
+                                key={label}
+                                className="flex cursor-pointer items-center gap-1.5 text-stone-700"
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="size-4 accent-brand-700"
+                                  checked={shared === value}
+                                  onChange={() => setShared(value)}
+                                />
+                                {label}
+                              </label>
+                            ))}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <div className="mt-5 flex flex-wrap justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setAddition({ step: 'choose' })}
+                    >
+                      Quay lại
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => createRelationship(addition.kind, null, addition.childIds)}
+                    >
+                      Thêm vợ
                     </Button>
                   </div>
                 </>

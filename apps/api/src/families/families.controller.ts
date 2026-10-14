@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   Header,
+  HttpCode,
+  HttpStatus,
   Inject,
   Param,
   Patch,
@@ -32,6 +34,7 @@ import { UpdateFamilyDto } from './dto/update-family.dto.js';
 import {
   FamiliesService,
   type AdminFamilyListItem,
+  type ClanHeadCredential,
   type CreatedFamilyResult,
   type FamilyPlanLimits,
   type FamilyStats,
@@ -114,6 +117,14 @@ export class FamiliesController {
   @Header('Cache-Control', 'no-store')
   renewPlan(@Param('slug', FamilySlugPipe) slug: string): Promise<AdminFamilyListItem> {
     return this.families.renewPlan(slug);
+  }
+
+  @Post(':slug/clan-head/password')
+  @UseGuards(SessionAuthGuard, PlatformAdminGuard)
+  @HttpCode(HttpStatus.OK)
+  @Header('Cache-Control', 'no-store')
+  resetClanHeadPassword(@Param('slug', FamilySlugPipe) slug: string): Promise<ClanHeadCredential> {
+    return this.families.resetClanHeadPassword(slug);
   }
 
   @Patch(':slug')
