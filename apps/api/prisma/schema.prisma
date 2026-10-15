@@ -604,7 +604,7 @@ model ServiceRegistration {
   plan      PricingPlan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
   planName  String                    @db.VarChar(60)
   fullName  String                    @db.VarChar(100)
-  email     String                    @db.VarChar(191)
+  email     String?                   @db.VarChar(191)
   phone     String                    @db.VarChar(30)
   consentAt DateTime
   status    ServiceRegistrationStatus @default(NEW)

@@ -107,7 +107,7 @@ export function HomeFooter() {
             </ul>
             <nav className={styles.footerLinks} aria-label="Thông tin pháp lý">
               <a href={SITE_POLICY_LINKS.privacy}>Chính sách bảo mật</a>
-              <a href={SITE_POLICY_LINKS.terms}>Điều khoản sử dụng</a>
+              <a href={SITE_POLICY_LINKS.terms}>Quy định sử dụng</a>
               <a href="#lien-he">Liên hệ</a>
             </nav>
           </div>

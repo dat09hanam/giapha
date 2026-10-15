@@ -119,7 +119,7 @@ export function ServiceRegistrationsPanel({ initial }: { initial: ServiceRegistr
         (filter === 'ALL' || entry.status === filter) &&
         (!needle ||
           plain(
-            `${entry.fullName} ${entry.email} ${entry.phone} ${displayPhone(entry.phone)} ${entry.planName}`,
+            `${entry.fullName} ${entry.email ?? ''} ${entry.phone} ${displayPhone(entry.phone)} ${entry.planName}`,
           ).includes(needle)),
     );
   }, [registrations, filter, query]);
@@ -254,13 +254,20 @@ export function ServiceRegistrationsPanel({ initial }: { initial: ServiceRegistr
                         <Phone className="size-4 shrink-0 text-gold-700" aria-hidden="true" />
                         <span className="truncate">{displayPhone(entry.phone)}</span>
                       </a>
-                      <a
-                        href={`mailto:${entry.email}`}
-                        className="inline-flex min-w-0 items-center gap-2 text-wood-800 hover:text-brand-800 hover:underline"
-                      >
-                        <Mail className="size-4 shrink-0 text-gold-700" aria-hidden="true" />
-                        <span className="truncate">{entry.email}</span>
-                      </a>
+                      {entry.email ? (
+                        <a
+                          href={`mailto:${entry.email}`}
+                          className="inline-flex min-w-0 items-center gap-2 text-wood-800 hover:text-brand-800 hover:underline"
+                        >
+                          <Mail className="size-4 shrink-0 text-gold-700" aria-hidden="true" />
+                          <span className="truncate">{entry.email}</span>
+                        </a>
+                      ) : (
+                        <span className="inline-flex min-w-0 items-center gap-2 text-stone-400">
+                          <Mail className="size-4 shrink-0" aria-hidden="true" />
+                          <span className="truncate">Không có email</span>
+                        </span>
+                      )}
                     </div>
                     <div className="min-w-0">
                       <span className="text-xs text-stone-500">Gói</span>

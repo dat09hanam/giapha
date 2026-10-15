@@ -9,6 +9,8 @@ const PLATFORM_SEGMENTS = new Set([
   'gia-pha-mau',
   'mau-bai-cung',
   'thu-vien',
+  'chinh-sach-bao-mat',
+  'quy-dinh-su-dung',
 ]);
 
 export function isFamilyRoute(pathname: string): boolean {

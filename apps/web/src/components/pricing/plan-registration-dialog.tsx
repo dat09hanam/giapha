@@ -55,7 +55,7 @@ export function PlanRegistrationDialog({
       await submitServiceRegistration({
         planId: plan.id,
         fullName,
-        email,
+        email: email.trim() || undefined,
         phone: phoneDigits(phone),
         agreed,
       });
@@ -138,15 +138,14 @@ export function PlanRegistrationDialog({
                   />
                   <Field
                     id="signup-email"
-                    label="Email *"
+                    label="Email"
                     icon={<Mail />}
                     className={styles.input}
                     type="email"
                     value={email}
                     autoComplete="email"
                     maxLength={191}
-                    required
-                    placeholder="Nhập địa chỉ email của bạn"
+                    placeholder="Nhập địa chỉ email của bạn (không bắt buộc)"
                     onChange={(event) => setEmail(event.currentTarget.value)}
                   />
                   <Field

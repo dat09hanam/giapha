@@ -8,7 +8,13 @@ import { SiteHeaderContent } from '@/components/layout/site-header-content';
 import { isFamilyAdminRoute, isFamilyRoute } from '@/lib/family-nav';
 import { SITE_BRAND } from '@/lib/site-brand';
 
-const PUBLIC_SITE_SECTIONS = ['/gia-pha-mau', '/mau-bai-cung', '/thu-vien'];
+const PUBLIC_SITE_SECTIONS = [
+  '/gia-pha-mau',
+  '/mau-bai-cung',
+  '/thu-vien',
+  '/chinh-sach-bao-mat',
+  '/quy-dinh-su-dung',
+];
 
 export function SiteHeader() {
   const pathname = usePathname();

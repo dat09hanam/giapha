@@ -85,7 +85,7 @@ export type ServiceRegistration = {
   planId: string | null;
   planName: string;
   fullName: string;
-  email: string;
+  email: string | null;
   phone: string;
   status: ServiceRegistrationStatus;
   adminNote: string | null;
@@ -96,7 +96,7 @@ export type ServiceRegistration = {
 export type ServiceRegistrationInput = {
   planId: string;
   fullName: string;
-  email: string;
+  email?: string;
   phone: string;
   agreed: boolean;
 };

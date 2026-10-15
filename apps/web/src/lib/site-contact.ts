@@ -13,8 +13,8 @@ export const DEFAULT_SITE_CONTACT: SiteContact = {
 };
 
 export const SITE_POLICY_LINKS = {
-  privacy: '#',
-  terms: '#',
+  privacy: '/chinh-sach-bao-mat',
+  terms: '/quy-dinh-su-dung',
 };
 
 export function phoneHref(phone: string): string {

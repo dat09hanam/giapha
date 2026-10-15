@@ -28,7 +28,7 @@ export type ServiceRegistrationResponse = {
   planId: string | null;
   planName: string;
   fullName: string;
-  email: string;
+  email: string | null;
   phone: string;
   status: ServiceRegistrationStatus;
   adminNote: string | null;
@@ -61,7 +61,7 @@ export class ServiceRegistrationsService {
         planId: plan.id,
         planName: plan.name,
         fullName: input.fullName.trim(),
-        email: input.email.trim().toLowerCase(),
+        email: input.email?.trim().toLowerCase() || null,
         phone: input.phone.trim(),
         consentAt: new Date(),
       },

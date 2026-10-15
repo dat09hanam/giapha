@@ -20,9 +20,10 @@ export class CreateServiceRegistrationDto {
   @MaxLength(100)
   fullName!: string;
 
+  @IsOptional()
   @IsEmail({}, { message: 'Email không hợp lệ.' })
   @MaxLength(191)
-  email!: string;
+  email?: string;
 
   @IsString()
   @Matches(/^0\d{9}$/, { message: 'Số điện thoại gồm 10 chữ số, bắt đầu bằng 0.' })
