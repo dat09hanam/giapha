@@ -514,10 +514,13 @@ span.cta {
   }
 }
 
+/* Rod rows are max-content, not auto: while the sheet row animates below 1fr, auto rows would
+   absorb the leftover height and open a gap between the top rod and the paper's top edge. */
 .scroll {
   position: relative;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: max-content 1fr max-content;
+  align-content: center;
   width: min(100%, 30rem);
   max-height: calc(100dvh - 2rem);
   filter: drop-shadow(0 28px 40px rgb(43 26 12 / 45%));
@@ -539,13 +542,13 @@ span.cta {
 
 @keyframes scroll-unroll {
   from {
-    grid-template-rows: auto 0fr auto;
+    grid-template-rows: max-content 0fr max-content;
   }
 }
 
 @keyframes scroll-roll-up {
   to {
-    grid-template-rows: auto 0fr auto;
+    grid-template-rows: max-content 0fr max-content;
     opacity: 0;
   }
 }
