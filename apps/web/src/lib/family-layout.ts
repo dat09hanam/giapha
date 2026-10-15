@@ -81,12 +81,90 @@ export function sortMembers(left: LayoutPerson, right: LayoutPerson): number {
   );
 }
 
-type ChildGroup = { key: string; junction: number; left: number; children: string[] };
+type ChildGroup = {
+  key: string;
+  junction: number;
+  left: number;
+  children: string[];
+  offsets: number[];
+};
 
-type UnitLayout = { minX: number; width: number; groups: ChildGroup[] };
+// Horizontal extent a subtree occupies on each generation row, relative to its unit origin.
+type Contour = Map<number, { left: number; right: number }>;
+
+type UnitLayout = { contour: Contour; groups: ChildGroup[] };
 
 function coupleKey(husbandId: string, wifeId: string): string {
   return husbandId + '|' + wifeId;
+}
+
+function extendContour(contour: Contour, generation: number, left: number, right: number): void {
+  const existing = contour.get(generation);
+  contour.set(
+    generation,
+    existing
+      ? { left: Math.min(existing.left, left), right: Math.max(existing.right, right) }
+      : { left, right },
+  );
+}
+
+function mergeContour(target: Contour, source: Contour, offset: number): void {
+  source.forEach((extent, generation) =>
+    extendContour(target, generation, extent.left + offset, extent.right + offset),
+  );
+}
+
+function mirrorContour(contour: Contour): Contour {
+  return new Map(
+    [...contour].map(([generation, extent]) => [
+      generation,
+      { left: -extent.right, right: -extent.left },
+    ]),
+  );
+}
+
+/** Smallest offset for `right` that keeps it clear of `left` on every shared generation row. */
+function separation(left: Contour, right: Contour, gapFor: (generation: number) => number): number {
+  if (left.size === 0) return Number.NEGATIVE_INFINITY;
+
+  let offset = Number.NEGATIVE_INFINITY;
+  right.forEach((extent, generation) => {
+    const other = left.get(generation);
+    if (other) offset = Math.max(offset, other.right + gapFor(generation) - extent.left);
+  });
+  if (Number.isFinite(offset)) return offset;
+
+  const leftEdge = Math.max(...[...left.values()].map((extent) => extent.right));
+  const rightEdge = Math.min(...[...right.values()].map((extent) => extent.left));
+  return leftEdge + Math.min(...[...left.keys()].map(gapFor)) - rightEdge;
+}
+
+/**
+ * Packs subtrees left to right as tightly as their contours allow. Packing from the left
+ * alone bunches small subtrees against their left neighbour, so the result averages a
+ * left-to-right and a right-to-left sweep; both satisfy every clearance, so the average does.
+ */
+function packContours(
+  contours: readonly Contour[],
+  gapFor: (generation: number) => number,
+): number[] {
+  function sweep(list: readonly Contour[]): number[] {
+    const placed: Contour = new Map();
+    return list.map((contour, index) => {
+      const offset = index === 0 ? 0 : separation(placed, contour, gapFor);
+      mergeContour(placed, contour, offset);
+      return offset;
+    });
+  }
+
+  const fromLeft = sweep(contours);
+  const fromRight = sweep([...contours].reverse().map(mirrorContour))
+    .map((offset) => -offset)
+    .reverse();
+  const last = contours.length - 1;
+  return fromLeft.map(
+    (offset, index) => (offset + fromRight[index]! - fromRight[last]! + fromLeft[last]!) / 2,
+  );
 }
 
 function orderLinearMembers(
@@ -319,15 +397,12 @@ export function layoutFamily(draft: LayoutInput, dimensions: LayoutDimensions): 
   const claimedUnitIds = new Set<string>();
   const unitLayouts = new Map<string, UnitLayout>();
 
-  function siblingGapOf(children: readonly string[]): number {
-    return children[0] ? unitRow(children[0]).siblingGap : SIBLING_GAP;
+  function gapFor(generation: number): number {
+    return (rowForGeneration?.(generation) ?? defaultRow).siblingGap;
   }
 
-  function spanWidth(children: string[]): number {
-    return (
-      children.reduce((total, childId) => total + unitLayouts.get(childId)!.width, 0) +
-      Math.max(0, children.length - 1) * siblingGapOf(children)
-    );
+  function contourOf(unitId: string): Contour {
+    return unitLayouts.get(unitId)!.contour;
   }
 
   function measure(unitId: string): void {
@@ -346,30 +421,67 @@ export function layoutFamily(draft: LayoutInput, dimensions: LayoutDimensions): 
       };
       const existing = groupsByKey.get(group.key);
       if (existing) existing.children.push(childId);
-      else groupsByKey.set(group.key, { ...group, left: 0, children: [childId] });
+      else groupsByKey.set(group.key, { ...group, left: 0, children: [childId], offsets: [] });
     });
 
     const groups = [...groupsByKey.values()].sort((left, right) => left.junction - right.junction);
-    let previousRight = Number.NEGATIVE_INFINITY;
+    const groupContours = groups.map((group) => {
+      group.offsets = packContours(group.children.map(contourOf), gapFor);
+      const contour: Contour = new Map();
+      group.children.forEach((childId, index) =>
+        mergeContour(contour, contourOf(childId), group.offsets[index]!),
+      );
+      return contour;
+    });
+
+    // Centre each group's whole subtree (not just its top row) under its parents' junction, so
+    // every ancestor stays on the centre line of its descendants; then push groups apart only
+    // as far as their contours overlap.
+    const placed: Contour = new Map();
     let displacement = 0;
-    groups.forEach((group) => {
-      const width = spanWidth(group.children);
-      const desired = group.junction - width / 2;
-      group.left = Math.max(desired, previousRight + siblingGapOf(group.children));
+    groups.forEach((group, index) => {
+      const extents = [...groupContours[index]!.values()];
+      const left = Math.min(...extents.map((extent) => extent.left));
+      const right = Math.max(...extents.map((extent) => extent.right));
+      const desired = group.junction - (left + right) / 2;
+      group.left = Math.max(desired, separation(placed, groupContours[index]!, gapFor));
       displacement += group.left - desired;
-      previousRight = group.left + width;
+      mergeContour(placed, groupContours[index]!, group.left);
     });
     const shift = groups.length > 0 ? displacement / groups.length : 0;
     groups.forEach((group) => {
       group.left -= shift;
     });
 
-    const minX = Math.min(0, ...groups.map((group) => group.left));
-    const maxX = Math.max(
-      ownWidth(unitId),
-      ...groups.map((group) => group.left + spanWidth(group.children)),
-    );
-    unitLayouts.set(unitId, { minX, width: maxX - minX, groups });
+    const row = unitRow(unitId);
+    const contour: Contour = new Map();
+    arrangedUnits.get(unitId)!.forEach((member, index) => {
+      const left = index * (row.nodeWidth + row.spouseGap);
+      extendContour(contour, member.generation, left, left + row.nodeWidth);
+    });
+    groups.forEach((group, groupIndex) => {
+      mergeContour(contour, groupContours[groupIndex]!, group.left);
+      // Reserve the connector lines too, so another family's bus never runs through them.
+      group.children.forEach((childId, index) => {
+        const child = unitKeys.get(childId)!;
+        const childCenter = group.left + group.offsets[index]! + centerOffset(child.id);
+        const parentGeneration = arrangedUnits.get(unitId)![0]!.generation;
+        for (
+          let generation = parentGeneration + 1;
+          generation < child.generation;
+          generation += 1
+        ) {
+          extendContour(contour, generation, group.junction, group.junction);
+        }
+        extendContour(
+          contour,
+          child.generation,
+          Math.min(group.junction, childCenter),
+          Math.max(group.junction, childCenter),
+        );
+      });
+    });
+    unitLayouts.set(unitId, { contour, groups });
   }
 
   const hasParentUnit = new Set([...childUnitIds.values()].flat());
@@ -387,9 +499,8 @@ export function layoutFamily(draft: LayoutInput, dimensions: LayoutDimensions): 
 
   const positions = new Map<string, { x: number; y: number }>();
 
-  function place(unitId: string, left: number): void {
+  function place(unitId: string, origin: number): void {
     const layout = unitLayouts.get(unitId)!;
-    const origin = left - layout.minX;
     const row = unitRow(unitId);
     arrangedUnits.get(unitId)!.forEach((member, index) => {
       positions.set(member.id, {
@@ -398,23 +509,26 @@ export function layoutFamily(draft: LayoutInput, dimensions: LayoutDimensions): 
       });
     });
 
-    layout.groups.forEach((group) => {
-      let childLeft = origin + group.left;
-      group.children.forEach((childId) => {
-        place(childId, childLeft);
-        childLeft += unitLayouts.get(childId)!.width + siblingGapOf(group.children);
-      });
-    });
+    layout.groups.forEach((group) =>
+      group.children.forEach((childId, index) =>
+        place(childId, origin + group.left + group.offsets[index]!),
+      ),
+    );
   }
 
-  const totalWidth =
-    rootUnitIds.reduce((total, unitId) => total + unitLayouts.get(unitId)!.width, 0) +
-    Math.max(0, rootUnitIds.length - 1) * SIBLING_GAP;
-  let rootLeft = -totalWidth / 2;
-  rootUnitIds.forEach((unitId) => {
-    place(unitId, rootLeft);
-    rootLeft += unitLayouts.get(unitId)!.width + SIBLING_GAP;
-  });
+  const rootOffsets = packContours(rootUnitIds.map(contourOf), gapFor);
+  const forest: Contour = new Map();
+  rootUnitIds.forEach((unitId, index) =>
+    mergeContour(forest, contourOf(unitId), rootOffsets[index]!),
+  );
+  const extents = [...forest.values()];
+  const forestCenter =
+    extents.length > 0
+      ? (Math.min(...extents.map((extent) => extent.left)) +
+          Math.max(...extents.map((extent) => extent.right))) /
+        2
+      : 0;
+  rootUnitIds.forEach((unitId, index) => place(unitId, rootOffsets[index]! - forestCenter));
 
   function sides(couple: Couple): { leftId: string; rightId: string } {
     return (memberIndex.get(couple.husbandId) ?? 0) <= (memberIndex.get(couple.wifeId) ?? 0)
