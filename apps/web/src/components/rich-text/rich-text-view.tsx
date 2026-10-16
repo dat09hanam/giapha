@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 
-import type { RichTextImageSrc } from '@/lib/rich-text';
+import { isExternalLink, normalizeLink, type RichTextImageSrc } from '@/lib/rich-text';
 import { cn } from '@/lib/utils';
 import type {
   RichTextBlock,
@@ -18,6 +18,19 @@ function Run({ run }: { run: RichTextRun }) {
   if (run.underline) node = <u>{node}</u>;
   if (run.italic) node = <em>{node}</em>;
   if (run.bold) node = <strong>{node}</strong>;
+  const link = normalizeLink(run.link);
+  if (link) {
+    const external = isExternalLink(link);
+    node = (
+      <a
+        href={link}
+        className="font-medium text-brand-700 underline decoration-brand-300 underline-offset-4 transition hover:text-brand-900 hover:decoration-brand-700"
+        {...(external ? { target: '_blank', rel: 'noopener noreferrer nofollow' } : {})}
+      >
+        {node}
+      </a>
+    );
+  }
   return <>{node}</>;
 }
 

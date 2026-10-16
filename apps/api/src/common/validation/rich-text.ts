@@ -10,6 +10,11 @@ const MAX_PLAIN_LENGTH = 5000;
 const MAX_IMAGES = 60;
 const MAX_CAPTION_LENGTH = 300;
 const MAX_IMAGE_EDGE = 20_000;
+const MAX_LINK_LENGTH = 500;
+
+/** Where a link may point: the web (http/https), a page of this site, an email or a phone. */
+const LINK =
+  /^(https?:\/\/[^\s<>"'`]+|\/(?!\/)[^\s<>"'`]*|mailto:[^\s<>"'`]+|tel:\+?[0-9.\- ]{3,20})$/i;
 
 /** A picture stored by the API (`{uuid}.{jpg|png|webp}`); never a link to somewhere else. */
 const IMAGE_FILE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/;
@@ -25,6 +30,7 @@ const textRunSchema = z
       .string()
       .regex(/^#[0-9a-fA-F]{6}$/)
       .optional(),
+    link: z.string().max(MAX_LINK_LENGTH).regex(LINK).optional(),
   })
   .strict();
 
@@ -73,7 +79,8 @@ function sameMarks(a: RichTextRun, b: RichTextRun): boolean {
     a.italic === b.italic &&
     a.underline === b.underline &&
     a.strike === b.strike &&
-    a.color?.toLowerCase() === b.color?.toLowerCase()
+    a.color?.toLowerCase() === b.color?.toLowerCase() &&
+    a.link === b.link
   );
 }
 
@@ -117,14 +124,14 @@ function normalizeBlock(block: RichTextBlock): RichTextBlock {
 }
 
 /**
- * Validates an editor document. Picture blocks are refused unless `allowImages` is set, so only
- * the places that store and serve those pictures (articles) accept them.
+ * Validates an editor document. Picture blocks and links are refused unless `allowImages` /
+ * `allowLinks` is set, so only articles (written by the platform admin) can carry them.
  */
 export function parseRichText(
   value: unknown,
   message: string,
   subject = 'Nội dung giới thiệu',
-  { allowImages = false }: { allowImages?: boolean } = {},
+  { allowImages = false, allowLinks = false }: { allowImages?: boolean; allowLinks?: boolean } = {},
 ): RichTextDocument | null {
   const parsed = documentSchema.safeParse(value);
   if (!parsed.success) throw new BadRequestException(message);
@@ -132,6 +139,10 @@ export function parseRichText(
   const blocks = parsed.data.blocks.map(normalizeBlock);
   const images = blocks.filter((block) => block.type === 'image').length;
   if (images > 0 && !allowImages) throw new BadRequestException(message);
+  const hasLinks = blocks.some((block) =>
+    blockLines(block).some((line) => line.some((run) => run.link)),
+  );
+  if (hasLinks && !allowLinks) throw new BadRequestException(message);
   if (images > MAX_IMAGES) {
     throw new BadRequestException(`${subject} có tối đa ${MAX_IMAGES} hình ảnh.`);
   }

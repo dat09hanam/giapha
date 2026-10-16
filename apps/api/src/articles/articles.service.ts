@@ -49,6 +49,7 @@ const SLUG_TAKEN = 'Đường dẫn này đã có bài viết khác trong cùng 
 function parseContent(value: unknown): RichTextDocument {
   const document = parseRichText(value, 'Nội dung bài viết không hợp lệ.', 'Nội dung bài viết', {
     allowImages: true,
+    allowLinks: true,
   });
   if (!document) throw new BadRequestException('Bài viết cần có nội dung.');
   return document;

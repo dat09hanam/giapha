@@ -5,6 +5,8 @@ export type RichTextRun = {
   underline?: true;
   strike?: true;
   color?: string;
+  /** Where the text links to (articles only); see `normalizeLink`. */
+  link?: string;
 };
 
 export type RichTextAlign = 'center' | 'right' | 'justify';

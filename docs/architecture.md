@@ -195,7 +195,8 @@ always a name the API stored under `MEDIA_ROOT/articles/images/` via `POST /api/
 (`ADMIN` only), never an outside link; a save is refused if a referenced file is missing, and
 pictures an update drops, or the whole article's on delete, are removed from disk. They are served
 publicly at `GET /api/articles/images/:file`. A picture uploaded but never saved into an article
-stays on disk. `GET /api/articles?category=` and
+stays on disk. Text runs of an article may also carry a `link` (`http(s)://`, a site path `/…`,
+`mailto:` or `tel:` only); `Family.introduction` refuses links too. `GET /api/articles?category=` and
 `GET /api/articles/:category/:slug` are public and only ever return published rows (a draft is a
 404); `GET /api/articles/admin` and the writes are `ADMIN` only; covers are served publicly. The web
 shows them at `/mau-bai-cung` and `/thu-vien` (both reserved Family slugs) under the home page's

@@ -8,6 +8,7 @@ import {
   Bold,
   ImagePlus,
   Italic,
+  Link2,
   List,
   ListOrdered,
   LoaderCircle,
@@ -28,6 +29,7 @@ import {
   RICH_TEXT_COLORS,
   richTextIsEmpty,
   richTextToEditorHtml,
+  normalizeLink,
   type RichTextImageSrc,
 } from '@/lib/rich-text';
 import { cn } from '@/lib/utils';
@@ -48,6 +50,7 @@ type Active = {
   italic: boolean;
   underline: boolean;
   strikeThrough: boolean;
+  link: boolean;
   block: BlockValue;
 };
 
@@ -56,6 +59,7 @@ const IDLE: Active = {
   italic: false,
   underline: false,
   strikeThrough: false,
+  link: false,
   block: 'p',
 };
 
@@ -104,6 +108,13 @@ function topLevelBlock(editor: HTMLElement, node: Node | null): HTMLElement | nu
   return current instanceof HTMLElement ? current : null;
 }
 
+/** The link the node sits in, if any, without leaving the editor. */
+function linkAround(editor: HTMLElement, node: Node | null): HTMLAnchorElement | null {
+  const element = node instanceof HTMLElement ? node : (node?.parentElement ?? null);
+  const link = element?.closest('a');
+  return link && editor.contains(link) ? link : null;
+}
+
 function isEmptyParagraph(element: HTMLElement): boolean {
   return element.tagName === 'P' && !element.textContent?.trim() && !element.querySelector('img');
 }
@@ -120,6 +131,7 @@ export function RichTextEditor({
   labelledBy,
   imageSrc,
   onUploadImage,
+  allowLinks = false,
 }: {
   id?: string;
   initial: RichTextDocument;
@@ -130,6 +142,8 @@ export function RichTextEditor({
   imageSrc?: RichTextImageSrc;
   /** Uploads a chosen picture; when given, the toolbar offers "Chèn ảnh". */
   onUploadImage?: (file: File) => Promise<RichTextImage>;
+  /** Offers "Gắn liên kết" for selected words. */
+  allowLinks?: boolean;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -138,7 +152,10 @@ export function RichTextEditor({
   const [active, setActive] = useState<Active>(IDLE);
   const [colorsOpen, setColorsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const linkRange = useRef<Range | null>(null);
+  const [linkEditor, setLinkEditor] = useState<{ value: string; existing: boolean } | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const canInsertImages = Boolean(imageSrc && onUploadImage);
 
   useEffect(() => {
@@ -152,6 +169,7 @@ export function RichTextEditor({
       if (!editor || !anchor || !editor.contains(anchor)) return;
       const block = String(document.queryCommandValue('formatBlock')).toLowerCase();
       setActive({
+        link: Boolean(linkAround(editor, anchor)),
         bold: document.queryCommandState('bold'),
         italic: document.queryCommandState('italic'),
         underline: document.queryCommandState('underline'),
@@ -187,7 +205,7 @@ export function RichTextEditor({
     const selection = document.getSelection();
     const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
     savedRange.current = editor && range && editor.contains(range.startContainer) ? range : null;
-    setUploadError(null);
+    setNotice(null);
     fileRef.current?.click();
   }
 
@@ -226,10 +244,68 @@ export function RichTextEditor({
     try {
       insertImage(await onUploadImage(file));
     } catch (error: unknown) {
-      setUploadError(error instanceof Error ? error.message : 'Không tải được ảnh này lên.');
+      setNotice(error instanceof Error ? error.message : 'Không tải được ảnh này lên.');
     } finally {
       setUploading(false);
     }
+  }
+
+  /** Opens the link box for the selected words, or for the whole link the caret sits in. */
+  function openLink(): void {
+    const editor = editorRef.current;
+    const selection = document.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0) return;
+    let range = selection.getRangeAt(0);
+    if (!editor.contains(range.commonAncestorContainer)) {
+      setNotice('Bôi đen từ hoặc cụm từ cần gắn liên kết trước.');
+      return;
+    }
+    const existing = linkAround(editor, range.commonAncestorContainer);
+    if (range.collapsed && existing) {
+      range = document.createRange();
+      range.selectNodeContents(existing);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    if (range.collapsed || !range.toString().trim()) {
+      setNotice('Bôi đen từ hoặc cụm từ cần gắn liên kết trước.');
+      return;
+    }
+    setNotice(null);
+    setColorsOpen(false);
+    setLinkError(null);
+    linkRange.current = range.cloneRange();
+    setLinkEditor({ value: existing?.getAttribute('href') ?? '', existing: Boolean(existing) });
+  }
+
+  function restoreLinkRange(): boolean {
+    const editor = editorRef.current;
+    const range = linkRange.current;
+    if (!editor || !range) return false;
+    editor.focus();
+    const selection = document.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    return true;
+  }
+
+  function applyLink(): void {
+    const link = normalizeLink(linkEditor?.value);
+    if (!link) {
+      setLinkError('Địa chỉ chưa đúng. Ví dụ: https://giapha.vn hoặc /thu-vien/cach-xung-ho');
+      return;
+    }
+    if (!restoreLinkRange()) return;
+    run('createLink', link);
+    setLinkEditor(null);
+    emit();
+  }
+
+  function removeLink(): void {
+    if (!restoreLinkRange()) return;
+    run('unlink');
+    setLinkEditor(null);
+    emit();
   }
 
   function setColor(color: string | null): void {
@@ -326,6 +402,14 @@ export function RichTextEditor({
             </div>
           ) : null}
         </div>
+        {allowLinks ? (
+          <ToolButton
+            icon={Link2}
+            label="Gắn liên kết cho chữ đã bôi đen"
+            active={active.link || linkEditor !== null}
+            onRun={openLink}
+          />
+        ) : null}
         <Divider />
         <ToolButton
           icon={List}
@@ -385,10 +469,71 @@ export function RichTextEditor({
         <ToolButton icon={Redo2} label="Làm lại (Ctrl+Y)" onRun={() => format('redo')} />
       </div>
 
-      {uploadError ? (
+      {notice ? (
         <p role="alert" className="border-b border-line bg-red-50 px-3 py-1.5 text-sm text-red-700">
-          {uploadError}
+          {notice}
         </p>
+      ) : null}
+
+      {linkEditor ? (
+        <div className="grid gap-2 border-b border-line bg-gold-50/70 px-3 py-2.5">
+          <label
+            htmlFor={`${id ?? 'rich-text'}-link`}
+            className="text-sm font-medium text-stone-700"
+          >
+            Liên kết cho “{linkRange.current?.toString().trim()}”
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id={`${id ?? 'rich-text'}-link`}
+              autoFocus
+              type="text"
+              inputMode="url"
+              value={linkEditor.value}
+              placeholder="https://… hoặc /thu-vien/…"
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                setLinkError(null);
+                setLinkEditor((current) => (current ? { ...current, value } : current));
+              }}
+              onKeyDown={(event) => {
+                // Inside the article form, Enter would submit the whole article.
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  applyLink();
+                } else if (event.key === 'Escape') {
+                  event.preventDefault();
+                  setLinkEditor(null);
+                }
+              }}
+              className="h-9 min-w-0 flex-1 rounded-lg border border-line bg-white px-3 text-base outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 sm:text-sm"
+            />
+            <button
+              type="button"
+              onClick={applyLink}
+              className="h-9 rounded-lg bg-brand-700 px-3 text-sm font-semibold text-white hover:bg-brand-800"
+            >
+              Gắn link
+            </button>
+            {linkEditor.existing ? (
+              <button
+                type="button"
+                onClick={removeLink}
+                className="h-9 rounded-lg border border-line bg-white px-3 text-sm font-medium text-red-700 hover:bg-red-50"
+              >
+                Bỏ link
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setLinkEditor(null)}
+              className="h-9 rounded-lg px-2 text-sm text-stone-600 hover:bg-stone-100"
+            >
+              Hủy
+            </button>
+          </div>
+          {linkError ? <p className="text-sm text-red-700">{linkError}</p> : null}
+        </div>
       ) : null}
 
       <div className="relative">
@@ -433,6 +578,7 @@ export function RichTextEditor({
             '[&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-brand-900',
             '[&_blockquote]:border-l-4 [&_blockquote]:border-brand-300 [&_blockquote]:bg-brand-50/60 [&_blockquote]:py-1 [&_blockquote]:pl-3 [&_blockquote]:italic',
             '[&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6',
+            '[&_a]:font-medium [&_a]:text-brand-700 [&_a]:underline [&_a]:decoration-brand-300 [&_a]:underline-offset-4',
             '[&_figure]:relative [&_figure]:mx-auto [&_figure]:my-3 [&_figure]:grid [&_figure]:w-fit [&_figure]:max-w-full [&_figure]:justify-items-center [&_figure]:gap-1.5',
             '[&_figure_img]:max-h-80 [&_figure_img]:w-auto [&_figure_img]:max-w-full [&_figure_img]:rounded-xl [&_figure_img]:border [&_figure_img]:border-line [&_figure_img]:object-contain',
             '[&_figcaption]:min-w-40 [&_figcaption]:text-center [&_figcaption]:text-sm [&_figcaption]:italic [&_figcaption]:text-stone-500 [&_figcaption]:outline-none',

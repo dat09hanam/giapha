@@ -393,6 +393,7 @@ function ArticleEditor({
             placeholder="Viết nội dung bài văn khấn hoặc bài viết…"
             imageSrc={articleImageSrc}
             onUploadImage={uploadArticleImage}
+            allowLinks
           />
         </div>
       </form>

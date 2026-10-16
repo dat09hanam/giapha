@@ -19,6 +19,30 @@ export const RICH_TEXT_COLORS: readonly { value: string; label: string }[] = [
 export const EMPTY_RICH_TEXT: RichTextDocument = { version: 1, blocks: [] };
 
 const HEX = /^#[0-9a-f]{6}$/i;
+const MAX_LINK_LENGTH = 500;
+/** Same rule as the API: the web (http/https), a page of this site, an email or a phone. */
+const SAFE_LINK =
+  /^(https?:\/\/[^\s<>"'`]+|\/(?!\/)[^\s<>"'`]*|mailto:[^\s<>"'`]+|tel:\+?[0-9.\- ]{3,20})$/i;
+
+/**
+ * Turns what someone typed into a link the API accepts, or null when it is not one. A bare
+ * address such as `giapha.vn/abc` becomes `https://giapha.vn/abc`.
+ */
+export function normalizeLink(input: string | null | undefined): string | null {
+  let value = (input ?? '').trim();
+  if (!value) return null;
+  if (/^www\./i.test(value) || /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$)/i.test(value)) {
+    value = `https://${value}`;
+  } else if (/^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/.test(value)) {
+    value = `mailto:${value}`;
+  }
+  return value.length <= MAX_LINK_LENGTH && SAFE_LINK.test(value) ? value : null;
+}
+
+/** Links that leave the site open in a new tab. */
+export function isExternalLink(href: string): boolean {
+  return /^https?:\/\//i.test(href);
+}
 
 export function plainToRichText(text: string | null): RichTextDocument {
   if (!text?.trim()) return EMPTY_RICH_TEXT;
@@ -56,6 +80,8 @@ function runToHtml(run: RichTextRun): string {
   if (run.underline) html = `<u>${html}</u>`;
   if (run.italic) html = `<i>${html}</i>`;
   if (run.bold) html = `<b>${html}</b>`;
+  const link = normalizeLink(run.link);
+  if (link) html = `<a href="${escapeHtml(link)}">${html}</a>`;
   return html;
 }
 
@@ -140,6 +166,10 @@ function marksOf(element: HTMLElement, inherited: Marks): Marks {
   }
   const color = normalizeColor(style.color) ?? normalizeColor(element.getAttribute('color'));
   if (color) marks.color = color;
+  if (tag === 'A') {
+    const link = normalizeLink(element.getAttribute('href'));
+    if (link) marks.link = link;
+  }
   return marks;
 }
 
@@ -168,7 +198,8 @@ function tidyLine(runs: RichTextRun[]): RichTextRun[] {
       previous.italic === run.italic &&
       previous.underline === run.underline &&
       previous.strike === run.strike &&
-      previous.color === run.color;
+      previous.color === run.color &&
+      previous.link === run.link;
     if (same) previous.text += run.text;
     else result.push({ ...run });
   }
@@ -196,6 +227,7 @@ function withAlign<T extends RichTextBlock>(block: T, align: RichTextAlign | und
 }
 
 const INLINE_TAGS = new Set([
+  'A',
   'B',
   'STRONG',
   'I',
