@@ -28,6 +28,8 @@ const FIELD_LABELS: Record<string, string> = {
   isAlive: 'trạng thái còn sống',
   burialPlace: 'nơi an táng',
   phone: 'số điện thoại',
+  position: 'số thứ tự',
+  direction: 'hướng di chuyển',
   avatarUrl: 'đường dẫn ảnh đại diện',
   biography: 'tiểu sử',
   generation: 'đời thứ',

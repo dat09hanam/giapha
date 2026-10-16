@@ -204,8 +204,9 @@ masthead; `slug` is unique per category, and `publishedAt` is set on first publi
 `sortOrder` is the admin-chosen position within a category (lower first; ties fall back to newest
 publication): every list, public and admin, orders by it. A new article, or one moved to another
 category, goes to the end of that category, and `PATCH /api/articles/:id/position` (`ADMIN` only,
-`{ direction: 'up' | 'down' }`) swaps an article with its neighbour and renumbers the category
-without touching `updatedAt`.
+`{ direction: 'up' | 'down' }` or `{ position }`, 1-based, past the end meaning last) moves an
+article one step or straight to that place, keeps the others' relative order and renumbers the
+category without touching `updatedAt`.
 
 `PricingPlan` and its `PricingPlanFeature` lines are the home page's pricing table (the Bảng giá
 section, `#bang-gia`). They are platform-level and **not** tenant-owned: no `familyId`, written only

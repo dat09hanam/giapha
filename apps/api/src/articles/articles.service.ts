@@ -33,6 +33,7 @@ import type {
   ArticleCoverDto,
   ArticleImageDto,
   CreateArticleDto,
+  MoveArticleDto,
   UpdateArticleDto,
 } from './dto/article.dto.js';
 
@@ -185,11 +186,15 @@ export class ArticlesService {
   }
 
   /**
-   * Swaps an article with its neighbour in the same category and renumbers that category 1..n,
-   * then returns the whole admin list in its new order. `updatedAt` is left as it was: moving is
-   * not an edit of the article.
+   * Moves an article one step (`direction`) or to a 1-based `position` within its category; a
+   * position past the end puts it last. The others keep their relative order, the category is
+   * renumbered 1..n, and the whole admin list comes back in its new order. `updatedAt` is left as
+   * it was: moving is not an edit of the article.
    */
-  async move(id: string, direction: 'up' | 'down'): Promise<AdminArticleResponse[]> {
+  async move(id: string, target: MoveArticleDto): Promise<AdminArticleResponse[]> {
+    if (target.direction !== undefined && target.position !== undefined) {
+      throw new BadRequestException('Chỉ chọn lên/xuống hoặc nhập số thứ tự, không cả hai.');
+    }
     await this.prisma.$transaction(async (tx) => {
       const article = await tx.article.findUnique({ where: { id }, select: { category: true } });
       if (!article) throw new NotFoundException(NOT_FOUND);
@@ -199,9 +204,15 @@ export class ArticlesService {
         select: { id: true, sortOrder: true, updatedAt: true },
       });
       const from = siblings.findIndex((item) => item.id === id);
-      const to = direction === 'up' ? from - 1 : from + 1;
-      if (to < 0 || to >= siblings.length) return;
-      [siblings[from], siblings[to]] = [siblings[to]!, siblings[from]!];
+      const to =
+        target.position !== undefined
+          ? Math.min(target.position, siblings.length) - 1
+          : target.direction === 'up'
+            ? from - 1
+            : from + 1;
+      if (to < 0 || to >= siblings.length || to === from) return;
+      const [moved] = siblings.splice(from, 1);
+      siblings.splice(to, 0, moved!);
       for (const [index, item] of siblings.entries()) {
         if (item.sortOrder === index + 1) continue;
         await tx.article.update({

@@ -39,6 +39,7 @@ import {
   moveArticle,
   updateArticle,
   uploadArticleImage,
+  type ArticleMove,
   type ArticleCoverUpload,
   type ArticleInput,
 } from '@/lib/article-api';
@@ -421,6 +422,8 @@ export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }
   const [filter, setFilter] = useState<ArticleCategory>('PRAYER');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  /** Numbers typed in the order boxes, by article id, until they are saved. */
+  const [positionDrafts, setPositionDrafts] = useState<Record<string, string>>({});
 
   const shown = articles.filter((item) => item.category === filter);
 
@@ -430,15 +433,40 @@ export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }
     );
   }
 
-  async function move(article: AdminArticle, direction: 'up' | 'down'): Promise<void> {
+  async function move(article: AdminArticle, target: ArticleMove): Promise<void> {
     setBusyId(article.id);
     try {
-      setArticles([...(await moveArticle(article.id, direction))].sort(byDisplayOrder));
+      setArticles([...(await moveArticle(article.id, target))].sort(byDisplayOrder));
+      setPositionDrafts({});
     } catch (error: unknown) {
       showToast({ kind: 'error', message: getApiErrorMessage(error, 'đổi thứ tự bài viết') });
     } finally {
       setBusyId(null);
     }
+  }
+
+  function clearPositionDraft(id: string): void {
+    setPositionDrafts((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+  }
+
+  /** Moves the article to the number typed in its box; 0, negative or empty are refused. */
+  function savePosition(article: AdminArticle, current: number): void {
+    const typed = positionDrafts[article.id];
+    if (typed === undefined) return;
+    const position = Number(typed);
+    if (!typed || !Number.isInteger(position) || position < 1) {
+      showToast({ kind: 'error', message: 'Nhập số thứ tự từ 1 trở lên.' });
+      return;
+    }
+    if (position === current) {
+      clearPositionDraft(article.id);
+      return;
+    }
+    void move(article, { position });
   }
 
   async function togglePublished(article: AdminArticle): Promise<void> {
@@ -532,39 +560,74 @@ export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }
               const busy = busyId === article.id;
               const sameCategory = articles.filter((item) => item.category === article.category);
               const position = sameCategory.indexOf(article);
+              const draftPosition = positionDrafts[article.id];
               return (
                 <li key={article.id} className="flex items-center gap-3 px-4 py-4">
                   <div
-                    className="flex shrink-0 flex-col items-center gap-1"
+                    className="flex shrink-0 items-center gap-2"
                     role="group"
                     aria-label={`Thứ tự của “${article.title}” trong ${ARTICLE_SECTIONS[article.category].label}`}
                   >
+                    <div className="flex flex-col items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="size-8"
+                        onClick={() => void move(article, { direction: 'up' })}
+                        disabled={busyId !== null || position <= 0}
+                        aria-label={`Đưa “${article.title}” lên trên`}
+                        title="Đưa lên trên"
+                      >
+                        <ArrowUp className="size-4" aria-hidden="true" />
+                      </Button>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={6}
+                        value={draftPosition ?? String(position + 1)}
+                        onChange={(event) => {
+                          const digits = event.currentTarget.value.replace(/\D/g, '');
+                          setPositionDrafts((current) => ({ ...current, [article.id]: digits }));
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            savePosition(article, position + 1);
+                          } else if (event.key === 'Escape') {
+                            clearPositionDraft(article.id);
+                          }
+                        }}
+                        disabled={busyId !== null}
+                        aria-label={`Số thứ tự của “${article.title}” (1 đến ${sameCategory.length})`}
+                        className="h-8 w-12 rounded-lg border border-line bg-white text-center text-sm font-semibold tabular-nums text-stone-800 outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 disabled:opacity-60"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="size-8"
+                        onClick={() => void move(article, { direction: 'down' })}
+                        disabled={busyId !== null || position >= sameCategory.length - 1}
+                        aria-label={`Đưa “${article.title}” xuống dưới`}
+                        title="Đưa xuống dưới"
+                      >
+                        <ArrowDown className="size-4" aria-hidden="true" />
+                      </Button>
+                    </div>
                     <Button
                       type="button"
-                      variant="outline"
-                      size="icon"
-                      className="size-8"
-                      onClick={() => void move(article, 'up')}
-                      disabled={busyId !== null || position <= 0}
-                      aria-label={`Đưa “${article.title}” lên trên`}
-                      title="Đưa lên trên"
+                      size="sm"
+                      onClick={() => savePosition(article, position + 1)}
+                      disabled={
+                        busyId !== null ||
+                        draftPosition === undefined ||
+                        draftPosition === String(position + 1)
+                      }
+                      aria-label={`Lưu số thứ tự của “${article.title}”`}
                     >
-                      <ArrowUp className="size-4" aria-hidden="true" />
-                    </Button>
-                    <span className="text-xs font-semibold tabular-nums text-stone-500">
-                      {position + 1}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="size-8"
-                      onClick={() => void move(article, 'down')}
-                      disabled={busyId !== null || position >= sameCategory.length - 1}
-                      aria-label={`Đưa “${article.title}” xuống dưới`}
-                      title="Đưa xuống dưới"
-                    >
-                      <ArrowDown className="size-4" aria-hidden="true" />
+                      Lưu
                     </Button>
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">

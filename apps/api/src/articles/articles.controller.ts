@@ -107,7 +107,7 @@ export class ArticlesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() input: MoveArticleDto,
   ): Promise<AdminArticleResponse[]> {
-    return this.articles.move(id, input.direction);
+    return this.articles.move(id, input);
   }
 
   @Delete(':id')

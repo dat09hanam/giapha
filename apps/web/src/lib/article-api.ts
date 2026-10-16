@@ -99,15 +99,18 @@ export function updateArticle(id: string, input: Partial<ArticleInput>): Promise
   );
 }
 
-/** Swaps the article with its neighbour in the same category; returns the reordered list. */
-export function moveArticle(id: string, direction: 'up' | 'down'): Promise<AdminArticle[]> {
+/** One step up/down, or straight to a 1-based position in the category (past the end = last). */
+export type ArticleMove = { direction: 'up' | 'down' } | { position: number };
+
+/** Moves the article within its category; returns the whole list in its new order. */
+export function moveArticle(id: string, move: ArticleMove): Promise<AdminArticle[]> {
   return apiFetch<AdminArticle[]>(
     `${API_URL}/articles/${encodeURIComponent(id)}/position`,
     {
       method: 'PATCH',
       credentials: 'include',
       headers: JSON_HEADERS,
-      body: JSON.stringify({ direction }),
+      body: JSON.stringify(move),
     },
     'đổi thứ tự bài viết',
   );

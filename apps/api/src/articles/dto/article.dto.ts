@@ -6,11 +6,15 @@ import {
   IsDefined,
   IsEnum,
   IsIn,
+  IsInt,
   IsOptional,
   IsString,
   Matches,
+  Max,
   MaxLength,
+  Min,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -34,9 +38,17 @@ export class ArticleCoverDto {
 /** A picture uploaded for the article content, same rules as the cover. */
 export class ArticleImageDto extends ArticleCoverDto {}
 
+/** Either one step (`direction`) or straight to a 1-based `position` within the category. */
 export class MoveArticleDto {
+  @ValidateIf((input: MoveArticleDto) => input.position === undefined)
   @IsIn(['up', 'down'])
-  direction!: 'up' | 'down';
+  direction?: 'up' | 'down';
+
+  @ValidateIf((input: MoveArticleDto) => input.direction === undefined)
+  @IsInt()
+  @Min(1)
+  @Max(1_000_000)
+  position?: number;
 }
 
 export class ListArticlesQueryDto {
