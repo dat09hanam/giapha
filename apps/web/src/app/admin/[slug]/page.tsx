@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { FilePenLine, Frame, Landmark, Palette, UsersRound } from 'lucide-react';
+import { FilePenLine, FileSpreadsheet, Frame, Landmark, Palette, UsersRound } from 'lucide-react';
 
 import { EditSuggestionsPanel } from '@/components/admin/edit-suggestions-panel';
 import { FamilyAccountsPanel } from '@/components/admin/family-accounts-panel';
+import { FamilyImportPanel } from '@/components/admin/family-import-panel';
 import { FamilyPosterForm } from '@/components/admin/family-poster-form';
 import { FamilyProfileForm } from '@/components/admin/family-profile-form';
 import { Button } from '@/components/ui/button';
@@ -122,6 +123,13 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
                 tree={tree}
               />
             ),
+          },
+          {
+            id: 'nhap-excel',
+            label: 'Nhập dữ liệu Excel',
+            shortLabel: 'Nhập Excel',
+            icon: <FileSpreadsheet aria-hidden="true" />,
+            content: <FamilyImportPanel familySlug={profile.family.slug} />,
           },
           suggestionsOn && {
             id: 'de-xuat',
