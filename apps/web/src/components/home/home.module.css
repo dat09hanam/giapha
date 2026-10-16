@@ -521,6 +521,13 @@
   background: var(--paper-light);
 }
 
+/* Mobile-only hero pieces (seal, perks, phone stage); the desktop hero keeps its side art. */
+.heroSeal,
+.heroPerks,
+.heroStage {
+  display: none;
+}
+
 .overview {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -2408,25 +2415,40 @@
   }
 }
 
-/* Mobile hero: the village-gate art leads at the top and fades into the paper, with the
-   centred copy (pill eyebrow, larger title over a gold flourish, full-width actions) below. */
+/* Mobile hero: centred copy (pill eyebrow, large title with a red family seal, full-width
+   actions, short perks) above a stage where the app rises out of the village-gate art. */
 @media (max-width: 640px) {
   .hero {
     min-height: 0;
     flex-direction: column;
     align-items: stretch;
-    padding: 28px 16px 44px;
+    padding: 26px 16px 0;
     text-align: center;
     background:
       url('/images/home/header-cloud.webp') left -70px top 18px / 150px auto no-repeat,
-      url('/images/home/header-cloud.webp') right -84px top 132px / 160px auto no-repeat,
-      radial-gradient(ellipse at 50% 0%, rgb(197 160 89 / 24%), transparent 62%),
+      url('/images/home/header-cloud.webp') right -84px top 150px / 160px auto no-repeat,
+      radial-gradient(ellipse at 50% 0%, rgb(197 160 89 / 30%), transparent 60%),
       linear-gradient(180deg, #f6ead2 0%, var(--paper) 100%);
+  }
+
+  /* Fades the bottom of the stage into the paper of the next section. */
+  .hero::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    height: 72px;
+    background: linear-gradient(180deg, transparent, var(--paper));
+    content: '';
+    pointer-events: none;
   }
 
   /* Kept to the screen's width: a title wider than the screen would otherwise widen the whole
      column and push the copy and the buttons off its right edge. */
   .heroCopy {
+    position: relative;
+    z-index: 2;
     display: grid;
     justify-items: center;
     width: 100%;
@@ -2451,10 +2473,10 @@
 
   .hero h1 {
     justify-items: center;
-    margin-top: 18px;
+    margin-top: 16px;
     max-width: 100%;
-    font-size: clamp(30px, 9.5vw, 48px);
-    line-height: 1.12;
+    font-size: clamp(28px, 8.6vw, 44px);
+    line-height: 1.1;
   }
 
   /* One line on most phones; on a narrow screen or with a larger system font it wraps instead of
@@ -2466,8 +2488,35 @@
   }
 
   .hero h1 span:first-child {
-    font-size: 1.18em;
+    display: inline-flex;
+    align-items: flex-start;
+    font-size: 1.55em;
+    letter-spacing: -0.01em;
     text-shadow: 0 2px 0 rgb(255 253 248 / 90%);
+  }
+
+  /* Red family seal stamped beside the title, like the chop on a paper genealogy. */
+  .heroSeal {
+    display: inline-grid;
+    flex-shrink: 0;
+    width: 2.6em;
+    height: 2.6em;
+    margin: 0.3em 0 0 0.6em;
+    place-content: center;
+    border-radius: 0.3em;
+    background: #a3232a;
+    box-shadow:
+      inset 0 0 0 2px #a3232a,
+      inset 0 0 0 3px rgb(255 244 228 / 80%),
+      0 6px 12px -6px rgb(122 22 28 / 70%);
+    color: #fff4e4;
+    font-size: 0.24em;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.05;
+    text-shadow: none;
+    transform: rotate(-8deg);
   }
 
   /* Gold rule with a bead in the middle, under the title. */
@@ -2484,7 +2533,7 @@
 
   .heroCopy > p {
     max-width: 32ch;
-    margin-top: 14px;
+    margin-top: 12px;
     color: #5a4d44;
     font-size: 15.5px;
   }
@@ -2493,33 +2542,243 @@
     flex-direction: column;
     gap: 10px;
     width: 100%;
-    margin-top: 24px;
+    margin-top: 22px;
   }
 
   .heroActions a {
     width: 100%;
-    height: 50px;
-    font-size: 15.5px;
+    height: 52px;
+    font-size: 16px;
   }
 
   .heroActions .primary {
-    box-shadow: 0 14px 24px -14px rgb(22 56 41 / 85%);
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, #2a5f4b 0%, var(--green-dark) 100%);
+    box-shadow:
+      inset 0 0 0 1px rgb(197 160 89 / 60%),
+      inset 0 1px 0 rgb(255 255 255 / 18%),
+      0 16px 26px -14px rgb(22 56 41 / 90%);
   }
 
+  .heroPerks {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 10px;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .heroPerks li {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .heroPerks svg {
+    width: 16px;
+    height: 16px;
+    padding: 2px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: #fff;
+  }
+
+  /* The gate art sits behind the stage at the bottom of the hero. */
   .heroArt {
-    position: relative;
     top: auto;
-    right: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
     z-index: -1;
-    flex-shrink: 0;
-    width: calc(100% + 32px);
-    max-width: none;
-    height: 260px;
-    margin: -28px -16px -36px;
-    mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
+    width: 100%;
+    height: 340px;
+    object-position: 50% 16%;
+    mask-image: linear-gradient(180deg, transparent 0%, #000 36%);
+  }
+
+  .heroStage {
+    position: relative;
+    display: block;
+    height: 290px;
+    margin: 18px -16px 0;
+    overflow: hidden;
+  }
+
+  /* Warm glow behind the phone. */
+  .heroStage::before {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    width: 300px;
+    height: 300px;
+    margin-left: -150px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgb(246 215 160 / 85%) 0%, transparent 65%);
+    content: '';
+  }
+
+  .heroStage .heroPhone {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    width: 184px;
+    margin-left: -92px;
+  }
+
+  .heroBadge {
+    position: absolute;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 11px;
+    border: 1px solid rgb(197 160 89 / 70%);
+    border-radius: 999px;
+    background: rgb(255 253 248 / 94%);
+    box-shadow: 0 12px 22px -12px rgb(74 46 18 / 60%);
+    color: var(--brown);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .heroBadge svg {
+    color: #a3232a;
+  }
+
+  .heroBadgeLeft {
+    top: 88px;
+    right: calc(50% + 46px);
+  }
+
+  .heroBadgeRight {
+    top: 168px;
+    left: calc(50% + 46px);
   }
 
   .sun {
     display: none;
+  }
+}
+
+@media (max-width: 640px) and (prefers-reduced-motion: no-preference) {
+  .heroCopy > * {
+    animation: heroIn 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .heroCopy > :nth-child(2) {
+    animation-delay: 0.08s;
+  }
+
+  .heroCopy > :nth-child(3) {
+    animation-delay: 0.16s;
+  }
+
+  .heroCopy > :nth-child(4) {
+    animation-delay: 0.24s;
+  }
+
+  .heroCopy > :nth-child(5) {
+    animation-delay: 0.32s;
+  }
+
+  .heroSeal {
+    animation: heroStamp 0.5s 0.55s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+  }
+
+  .heroStage .heroPhone {
+    animation:
+      heroRise 0.9s 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both,
+      heroFloat 6s 1.2s ease-in-out infinite;
+  }
+
+  .heroBadgeLeft {
+    animation:
+      heroIn 0.6s 0.8s both,
+      heroFloat 5s 1.4s ease-in-out infinite;
+  }
+
+  .heroBadgeRight {
+    animation:
+      heroIn 0.6s 1s both,
+      heroFloat 5.5s 1.6s ease-in-out infinite reverse;
+  }
+
+  /* A soft light sweeps across the main action now and then. */
+  .heroActions .primary::after {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      rgb(255 255 255 / 26%) 50%,
+      transparent 65%
+    );
+    content: '';
+    animation: heroShine 4.5s 1.5s ease-in-out infinite;
+    transform: translateX(-100%);
+    pointer-events: none;
+  }
+}
+
+@keyframes heroIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes heroStamp {
+  from {
+    opacity: 0;
+    transform: rotate(-8deg) scale(1.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: rotate(-8deg) scale(1);
+  }
+}
+
+@keyframes heroRise {
+  from {
+    opacity: 0;
+    transform: translateY(60px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes heroFloat {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -8px;
+  }
+}
+
+@keyframes heroShine {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  40%,
+  100% {
+    transform: translateX(100%);
   }
 }

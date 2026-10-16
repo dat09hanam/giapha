@@ -1,6 +1,16 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, Check, PhoneCall, Quote, ScrollText, Smartphone, X } from 'lucide-react';
+import {
+  ArrowRight,
+  CalendarHeart,
+  Check,
+  Network,
+  PhoneCall,
+  Quote,
+  ScrollText,
+  Smartphone,
+  X,
+} from 'lucide-react';
 
 import { ArticleCard } from '@/components/articles/article-card';
 import { PricingTable } from '@/components/pricing/pricing-table';
@@ -16,7 +26,10 @@ import { overview, paperVsOnline, questions, reasons, steps, testimonials } from
 import { HomeFooter } from './home-footer';
 import { HomeHashScroll } from './home-hash-scroll';
 import { HomeHeader } from './home-header';
+import { PhoneFrame } from './phone-frame';
 import styles from './home.module.css';
+
+const heroPerks = ['Không cần cài đặt', 'Ngày giỗ âm lịch', 'In phả đồ khổ lớn'] as const;
 
 function Eyebrow({ children }: { children: string }) {
   return (
@@ -147,7 +160,14 @@ export function HomeLanding({
         <div className={styles.heroCopy}>
           <Eyebrow>Gìn giữ cội nguồn</Eyebrow>
           <h1 id="hero-title">
-            <span>Gia phả</span>
+            <span>
+              Gia phả
+              <i className={styles.heroSeal} aria-hidden="true">
+                Đời
+                <br />
+                Đời
+              </i>
+            </span>
             <span>Kết nối muôn đời</span>
           </h1>
           <p>{SITE_BRAND.description}</p>
@@ -159,6 +179,29 @@ export function HomeLanding({
               <PhoneCall size={17} aria-hidden="true" /> Đăng ký cho dòng họ
             </ContactLink>
           </div>
+          <ul className={styles.heroPerks}>
+            {heroPerks.map((perk) => (
+              <li key={perk}>
+                <Check size={13} strokeWidth={3} aria-hidden="true" />
+                {perk}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className={styles.heroStage} aria-hidden="true">
+          <PhoneFrame
+            className={styles.heroPhone}
+            src="/images/decorations/screen-tree.webp"
+            alt=""
+            sizes="190px"
+            animated
+          />
+          <span className={cn(styles.heroBadge, styles.heroBadgeLeft)}>
+            <Network size={15} /> Tra cứu vai vế
+          </span>
+          <span className={cn(styles.heroBadge, styles.heroBadgeRight)}>
+            <CalendarHeart size={15} /> Nhắc ngày giỗ
+          </span>
         </div>
       </section>
 
