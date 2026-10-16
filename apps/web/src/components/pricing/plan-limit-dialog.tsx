@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 import styles from './plan-limit-dialog.module.css';
 
-const LOTUS_SRC = '/images/decorations/lotus-bloom.webp';
+const LOTUS_SRC = '/images/decorations/lotus-bloom.png';
 
 /** A small lotus between two rules, under the title. */
 function LotusOrnament() {

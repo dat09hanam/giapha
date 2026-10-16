@@ -20,8 +20,10 @@ import {
 
 import { SITE_BRAND } from '@/lib/site-brand';
 
-/** Screenshots come from the demo family via `scripts/capture-home-screens.mjs`. */
-const SCREEN = '/images/decorations';
+import type { ImageFit } from './phone-frame';
+
+/** Illustrations for the "Cách bắt đầu" section. */
+const STEPS_DIR = '/images/home';
 
 export const overview = [
   {
@@ -63,11 +65,42 @@ export type Feature = {
   title: string;
   text: string;
   group: FeatureGroup;
-  /** Phone-sized screenshot; features without one show an illustrated screen. */
+  /** Picture for the feature; features without one show an illustrated phone screen. */
   image?: string;
-  /** Landscape artwork shown as a printed sheet instead of a phone. */
-  print?: string;
+  /**
+   * How the picture is framed: `'phone'` (default) puts it inside the phone, `'print'` shows it
+   * as a landscape printed sheet, `'none'` shows the picture on its own with no frame.
+   */
+  frame?: FeatureFrame;
+  /**
+   * How the picture fills its box: `'cover'` fills it and crops the overflow, `'contain'` shows the
+   * whole picture inside the box, `'width'` spans the full width and lets the height follow the
+   * picture (the sides are never cut). Defaults to `'cover'` in the phone and `'contain'` with
+   * `frame: 'none'`.
+   */
+  fit?: ImageFit;
+  /**
+   * CSS object-position: which part of the picture stays in view with `'cover'` or `'contain'`,
+   * e.g. `'top center'` (default), `'center'`, `'left center'`, `'30% 60%'`. Ignored with `'width'`.
+   */
+  focus?: string;
 };
+
+type FeatureFrame = 'phone' | 'print' | 'none';
+
+const FEATURES_DIR = '/images/features';
+
+const featureImages: readonly (string | undefined)[] = [
+  `${FEATURES_DIR}/function1.webp`,
+  `${FEATURES_DIR}/function2.webp`,
+  `${FEATURES_DIR}/function3.webp`,
+  `${FEATURES_DIR}/function4.webp`,
+  `${FEATURES_DIR}/function5.webp`,
+  `${FEATURES_DIR}/function6.webp`,
+  `${FEATURES_DIR}/function7.webp`,
+  `${FEATURES_DIR}/function8.webp`,
+  `${FEATURES_DIR}/function9.webp`,
+];
 
 export const features: readonly Feature[] = [
   {
@@ -75,58 +108,90 @@ export const features: readonly Feature[] = [
     title: 'Cây Gia Phả Dòng Họ',
     text: 'Cây gia phả nhiều đời, phân theo từng thế hệ.',
     group: 'pha-he',
-    image: `${SCREEN}/screen-tree.webp`,
+    image: featureImages[0],
+    frame: 'phone', // 'phone' | 'print' | 'none'
+    fit: 'cover', // 'cover' | 'contain' | 'width'
+    focus: 'top center', // 'center', 'left center', '30% 60%'
   },
   {
     icon: Contact,
     title: 'Hồ Sơ Thành Viên',
     text: 'Thông tin đầy đủ cho mỗi thành viên trên cây.',
     group: 'pha-he',
-    image: `${SCREEN}/screen-profile.webp`,
+    image: featureImages[1],
+    frame: 'phone',
+    fit: 'cover',
+    focus: 'top center',
   },
   {
     icon: MessagesSquare,
     title: 'Tra Cứu Vai Vế',
     text: 'Chọn hai người để biết nên gọi nhau thế nào.',
     group: 'pha-he',
-    image: `${SCREEN}/screen-kinship.webp`,
+    image: featureImages[2],
+    frame: 'phone',
+    fit: 'cover',
+    focus: 'top center',
   },
   {
     icon: Newspaper,
     title: 'Tin Tức Dòng Họ',
     text: 'Nơi con cháu chia sẻ tin tức, thông báo.',
     group: 'sinh-hoat',
+    image: featureImages[3],
+    frame: 'phone',
+    fit: 'cover',
+    focus: 'top center',
   },
   {
     icon: Wallet,
     title: 'Quỹ Chung Dòng Họ',
     text: 'Sổ thu chi chung, minh bạch, ai cũng xem được.',
     group: 'sinh-hoat',
+    image: featureImages[4],
+    frame: 'phone',
+    fit: 'cover',
+    focus: 'top center',
   },
   {
     icon: HandHeart,
     title: 'Sổ Vàng Công Đức',
     text: 'Ghi nhận tấm lòng của con cháu.',
     group: 'sinh-hoat',
+    image: featureImages[5],
+    frame: 'phone',
+    fit: 'cover',
+    focus: 'top center',
   },
   {
     icon: Images,
     title: 'Ảnh & Tư Liệu Dòng Họ',
     text: 'Kho ảnh và giấy tờ quý của dòng họ.',
     group: 'luu-tru',
+    image: featureImages[6],
+    frame: 'phone',
+    fit: 'cover',
+    focus: 'top center',
   },
   {
     icon: FilePen,
     title: 'Góp Ý Gia Phả',
     text: 'Cả họ cùng giữ cho gia phả chính xác.',
     group: 'luu-tru',
+    image: featureImages[7],
+    frame: 'phone',
+    fit: 'cover',
+    focus: 'top center',
   },
   {
     icon: Printer,
     title: 'In & Xuất Gia Phả',
     text: 'In phả đồ khổ lớn hoặc xuất cả quyển ra PDF.',
     group: 'luu-tru',
-    print: `${SCREEN}/screen-poster.webp`,
+    image: featureImages[8],
+    frame: 'phone',
+    fit: 'cover',
+    focus: 'top center',
   },
 ];
 
@@ -141,23 +206,23 @@ export const steps: readonly {
   {
     title: 'Khởi Tạo Gia Phả',
     text: 'Tạo không gian gia phả riêng cho dòng họ, lưu giữ thông tin tổ tiên và thiết lập tài khoản Trưởng họ.',
-    image: `${SCREEN}/step1.png`,
-    alt: 'Cây gia phả hoàn chỉnh',
+    image: `${STEPS_DIR}/step-1-khoi-tao.webp`,
+    alt: 'Minh hoạ tạo gia phả mới cho dòng họ và tài khoản Trưởng họ',
     focus: 'center',
   },
   {
     title: 'Gìn Giữ Cội Nguồn',
     text: 'Bổ sung các thế hệ, thông tin thành viên, tiểu sử, hình ảnh và những câu chuyện của dòng họ.',
-    image: `${SCREEN}/step2.png`,
-    alt: 'Hồ sơ thành viên',
-    focus: 'center 64%',
+    image: `${STEPS_DIR}/step-2-gin-giu.webp`,
+    alt: 'Minh hoạ cây gia phả nhiều đời kèm ảnh và tiểu sử',
+    focus: 'center',
   },
   {
     title: 'Kết Nối Cháu Con',
     text: 'Mời con cháu cùng tìm hiểu cội nguồn, tra cứu quan hệ họ hàng và chung tay gìn giữ truyền thống.',
-    image: `${SCREEN}/step3.png`,
-    alt: 'Các thế hệ trong gia đình',
-    focus: 'center 80%',
+    image: `${STEPS_DIR}/step-3-ket-noi.webp`,
+    alt: 'Minh hoạ con cháu ở xa kết nối với gia phả qua điện thoại',
+    focus: 'center',
   },
 ];
 

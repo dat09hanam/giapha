@@ -8,7 +8,7 @@ import { ContactLink } from '@/components/social/contact-link';
 import { cn } from '@/lib/utils';
 
 import { featureGroups, features } from './home-content';
-import { PhoneFrame, PrintSheet } from './phone-frame';
+import { BareImage, PhoneFrame, PrintSheet } from './phone-frame';
 import styles from './showcase.module.css';
 
 /** How long each feature stays in the spotlight. */
@@ -75,7 +75,6 @@ export function FeatureShowcase() {
   }, [active]);
 
   const current = features[active]!;
-  const CurrentIcon = current.icon;
 
   return (
     <div ref={rootRef} className={styles.showcase} style={{ '--progress': 0 } as CSSProperties}>
@@ -151,30 +150,32 @@ export function FeatureShowcase() {
           <span className={styles.scenery} aria-hidden="true" />
 
           <div className={styles.float}>
-            {features.map(({ icon, title, image, print }, index) => (
+            {features.map(({ icon, title, image, frame = 'phone', fit, focus }, index) => (
               <div
                 key={title}
-                className={cn(styles.screenSlot, print && styles.screenSlotWide)}
+                className={cn(
+                  styles.screenSlot,
+                  frame !== 'phone' && image && styles.screenSlotWide,
+                )}
                 data-active={index === active || undefined}
                 aria-hidden={index !== active}
               >
-                {print ? (
-                  <PrintSheet src={print} alt={`${title}: phả đồ dòng họ mẫu`} sizes="420px" />
+                {frame === 'print' && image ? (
+                  <PrintSheet src={image} alt={`${title}: phả đồ dòng họ mẫu`} sizes="420px" />
+                ) : frame === 'none' && image ? (
+                  <BareImage src={image} alt={title} sizes="420px" fit={fit} focus={focus} />
                 ) : (
                   <PhoneFrame
                     src={image}
                     icon={icon}
                     alt={image ? `${title}: màn hình trên điện thoại` : title}
                     sizes="(max-width: 900px) 62vw, 300px"
+                    fit={fit}
+                    focus={focus}
                   />
                 )}
               </div>
             ))}
-
-            <span key={active} className={styles.badge} aria-hidden="true">
-              <CurrentIcon size={16} />
-              {groupLabel[current.group]}
-            </span>
           </div>
         </div>
 

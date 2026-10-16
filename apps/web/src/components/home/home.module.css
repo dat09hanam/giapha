@@ -1026,7 +1026,7 @@
   border: 1px solid var(--gold);
   border-radius: 20px;
   background:
-    url('/images/decorations/lotus-bloom.webp') right -40px bottom -50px / 200px auto no-repeat,
+    url('/images/decorations/lotus-bloom.png') right -40px bottom -50px / 200px auto no-repeat,
     var(--paper-light) var(--paper-texture);
   box-shadow:
     inset 0 0 0 6px var(--paper-light),
@@ -2415,14 +2415,14 @@
   }
 }
 
-/* Mobile hero: centred copy (pill eyebrow, large title with a red family seal, full-width
-   actions, short perks) above a stage where the app rises out of the village-gate art. */
+/* Mobile hero: centred copy (large title with a red family seal, short perks), then full-width
+   actions over the village-gate art at the bottom. */
 @media (max-width: 640px) {
   .hero {
     min-height: 0;
     flex-direction: column;
     align-items: stretch;
-    padding: 26px 16px 0;
+    padding: 26px 16px 72px;
     text-align: center;
     background:
       url('/images/home/header-cloud.webp') left -70px top 18px / 150px auto no-repeat,
@@ -2455,25 +2455,15 @@
     min-width: 0;
   }
 
-  .hero .eyebrow {
-    gap: 8px;
-    padding: 6px 14px;
-    border: 1px solid rgb(197 160 89 / 65%);
-    border-radius: 999px;
-    background: rgb(255 253 248 / 85%);
-    box-shadow: 0 8px 18px -12px rgb(74 46 18 / 50%);
-    font-size: 11.5px;
-    letter-spacing: 0.16em;
-  }
-
-  .hero .eyebrow span {
-    width: 14px;
-    background: var(--gold);
+  /* Phones show only the brand title: the eyebrow tag and the "Kết nối muôn đời" line are hidden. */
+  .hero .eyebrow,
+  .hero h1 span:nth-child(2) {
+    display: none;
   }
 
   .hero h1 {
     justify-items: center;
-    margin-top: 16px;
+    margin-top: 0;
     max-width: 100%;
     font-size: clamp(28px, 8.6vw, 44px);
     line-height: 1.1;
@@ -2538,17 +2528,19 @@
     font-size: 15.5px;
   }
 
+  /* The actions sit last, over the village-gate art at the bottom of the hero. */
   .heroActions {
+    order: 1;
     flex-direction: column;
-    gap: 10px;
-    width: 100%;
-    margin-top: 22px;
+    gap: 8px;
+    width: min(100%, 260px);
+    margin-top: 150px;
   }
 
   .heroActions a {
     width: 100%;
-    height: 52px;
-    font-size: 16px;
+    height: 42px;
+    font-size: 14px;
   }
 
   .heroActions .primary {
@@ -2587,7 +2579,7 @@
     color: #fff;
   }
 
-  /* The gate art sits behind the stage at the bottom of the hero. */
+  /* The gate art sits behind the actions at the bottom of the hero. */
   .heroArt {
     top: auto;
     right: 0;
@@ -2601,63 +2593,7 @@
   }
 
   .heroStage {
-    position: relative;
-    display: block;
-    height: 290px;
-    margin: 18px -16px 0;
-    overflow: hidden;
-  }
-
-  /* Warm glow behind the phone. */
-  .heroStage::before {
-    position: absolute;
-    top: 24px;
-    left: 50%;
-    width: 300px;
-    height: 300px;
-    margin-left: -150px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgb(246 215 160 / 85%) 0%, transparent 65%);
-    content: '';
-  }
-
-  .heroStage .heroPhone {
-    position: absolute;
-    top: 30px;
-    left: 50%;
-    width: 184px;
-    margin-left: -92px;
-  }
-
-  .heroBadge {
-    position: absolute;
-    z-index: 1;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 11px;
-    border: 1px solid rgb(197 160 89 / 70%);
-    border-radius: 999px;
-    background: rgb(255 253 248 / 94%);
-    box-shadow: 0 12px 22px -12px rgb(74 46 18 / 60%);
-    color: var(--brown);
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  .heroBadge svg {
-    color: #a3232a;
-  }
-
-  .heroBadgeLeft {
-    top: 88px;
-    right: calc(50% + 46px);
-  }
-
-  .heroBadgeRight {
-    top: 168px;
-    left: calc(50% + 46px);
+    display: none;
   }
 
   .sun {
@@ -2688,24 +2624,6 @@
 
   .heroSeal {
     animation: heroStamp 0.5s 0.55s cubic-bezier(0.3, 1.5, 0.5, 1) both;
-  }
-
-  .heroStage .heroPhone {
-    animation:
-      heroRise 0.9s 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both,
-      heroFloat 6s 1.2s ease-in-out infinite;
-  }
-
-  .heroBadgeLeft {
-    animation:
-      heroIn 0.6s 0.8s both,
-      heroFloat 5s 1.4s ease-in-out infinite;
-  }
-
-  .heroBadgeRight {
-    animation:
-      heroIn 0.6s 1s both,
-      heroFloat 5.5s 1.6s ease-in-out infinite reverse;
   }
 
   /* A soft light sweeps across the main action now and then. */
@@ -2746,29 +2664,6 @@
   to {
     opacity: 1;
     transform: rotate(-8deg) scale(1);
-  }
-}
-
-@keyframes heroRise {
-  from {
-    opacity: 0;
-    transform: translateY(60px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes heroFloat {
-  0%,
-  100% {
-    translate: 0 0;
-  }
-
-  50% {
-    translate: 0 -8px;
   }
 }
 

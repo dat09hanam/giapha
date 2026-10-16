@@ -105,8 +105,41 @@ const SHOTS = [
   { name: 'screen-login', url: '/login' },
   { name: 'screen-home', url: DEMO, login: true },
   { name: 'screen-feed', url: `${DEMO}/bang-tin`, login: true },
-  { name: 'screen-fund', url: `${DEMO}/quy-ho`, login: true },
+  {
+    name: 'screen-fund',
+    url: `${DEMO}/quy-ho`,
+    login: true,
+    // Hide the entry form so the balance sits right above the ledger.
+    actions: [
+      `document.querySelector('[aria-label="Ghi khoản thu chi mới"]')?.style.setProperty('display', 'none'); await __sleep(300)`,
+    ],
+  },
   { name: 'screen-merit', url: `${DEMO}/cong-duc`, login: true },
+  // The renovation drive seeded by `apps/api/prisma/seed-demo-content.ts`.
+  {
+    name: 'screen-merit-event',
+    url: `${DEMO}/cong-duc/00000000-0000-4000-8e00-000000000001`,
+    login: true,
+  },
+  {
+    name: 'screen-suggestion',
+    url: `${DEMO}/gia-pha`,
+    login: true,
+    actions: [
+      `await __click('.react-flow__node-person', '')`,
+      `await __click('button', 'Đề xuất chỉnh sửa')`,
+      `const form = document.querySelector('form[aria-label^="Đề xuất chỉnh sửa"]');
+       const fill = (el, value) => {
+         const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+         Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value);
+         el.dispatchEvent(new Event('input', { bubbles: true }));
+       };
+       fill(form.querySelector('input'), 'Nguyễn Văn Khải (chi trưởng)');
+       fill(form.querySelector('textarea'), 'Theo bản gia phả chép tay, cụ mất ngày 12 tháng Giêng chứ không phải ngày 15. Đề nghị sửa lại ngày giỗ.');
+       form.scrollIntoView({ block: 'end' });
+       await __sleep(600)`,
+    ],
+  },
   { name: 'screen-library', url: `${DEMO}/tu-lieu`, login: true },
   { name: 'screen-print', url: `${DEMO}/in-gia-pha`, login: true },
 ];

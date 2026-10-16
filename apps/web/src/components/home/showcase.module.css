@@ -27,6 +27,12 @@
   object-position: top center;
 }
 
+/* `fit: 'width'` in the phone: full screen width, height follows the picture from the top. */
+.screen .screenFullWidth {
+  width: 100%;
+  height: auto;
+}
+
 .notch {
   position: absolute;
   top: 11px;
@@ -67,7 +73,7 @@
   gap: 14px;
   padding: 24px 18px 96px;
   background:
-    url('/images/decorations/lotus-bloom.webp') center bottom -12px / 92% auto no-repeat,
+    url('/images/decorations/lotus-bloom.png') center bottom -12px / 92% auto no-repeat,
     radial-gradient(circle at 50% 34%, rgb(197 160 89 / 28%), transparent 60%),
     var(--paper-texture),
     var(--paper);
@@ -139,6 +145,34 @@
     0 30px 40px -24px rgb(43 26 12 / 55%);
 }
 
+/* A frameless picture keeps its own shape inside the slot. */
+.bareImage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 24px 24px rgb(43 26 12 / 35%));
+}
+
+/* Softly rounded corners; with `fit: 'contain'` the bands around the picture stay square. */
+.bareImage img {
+  border-radius: 16px;
+}
+
+/* `fit: 'width'` without a frame: a wide picture spans the slot's width, a tall one is capped at
+   the slot's height; either way it keeps its shape and sits centred. */
+.bareImageFitted {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bareImageFitted .bareImageNatural {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 100%;
+}
+
 .printSheet img {
   object-fit: cover;
 }
@@ -208,7 +242,7 @@
   border: 1px solid rgb(197 160 89 / 55%);
   border-radius: 16px;
   background:
-    url('/images/decorations/lotus-bloom.webp') right -26px bottom -34px / 120px auto no-repeat,
+    url('/images/decorations/lotus-bloom.png') right -26px bottom -34px / 120px auto no-repeat,
     linear-gradient(135deg, var(--green), var(--green-dark));
   color: #fff;
   box-shadow: 0 22px 36px -24px rgb(22 56 41 / 75%);
@@ -529,7 +563,8 @@
   -webkit-box-reflect: below 6px linear-gradient(transparent 80%, rgb(0 0 0 / 34%));
 }
 
-/* The printed scroll is landscape, so it borrows width beyond the phone box. */
+/* The printed scroll and frameless pictures may be landscape, so they borrow width beyond the
+   phone box. */
 .screenSlotWide {
   inset: 0 -42%;
 }
@@ -539,26 +574,6 @@
     inset 0 0 0 1.5px rgb(197 160 89 / 55%),
     0 50px 60px -30px rgb(43 26 12 / 55%),
     0 14px 24px -12px rgb(43 26 12 / 35%);
-}
-
-.badge {
-  position: absolute;
-  right: -64px;
-  bottom: 72px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: 1px solid rgb(197 160 89 / 55%);
-  border-radius: 999px;
-  background: rgb(255 253 248 / 82%);
-  color: var(--brown);
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  box-shadow: 0 16px 30px -18px rgb(74 46 18 / 60%);
-  backdrop-filter: blur(10px);
-  animation: rise 0.6s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @keyframes rise {
@@ -672,13 +687,6 @@
 
   .screenSlotWide {
     inset: 0 -26%;
-  }
-
-  .badge {
-    right: -28%;
-    bottom: 56px;
-    padding: 8px 12px;
-    font-size: 12px;
   }
 
   .caption {

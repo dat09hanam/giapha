@@ -631,8 +631,8 @@ span.cta {
   inset: 0;
   z-index: -1;
   background:
-    url('/images/decorations/lotus-bloom.webp') left -40px bottom -24px / 170px auto no-repeat,
-    url('/images/decorations/lotus-bloom.webp') right -30px bottom 30px / 96px auto no-repeat;
+    url('/images/decorations/lotus-bloom.png') left -40px bottom -24px / 170px auto no-repeat,
+    url('/images/decorations/lotus-bloom.png') right -30px bottom 30px / 96px auto no-repeat;
   opacity: 0.9;
   pointer-events: none;
 }
@@ -875,8 +875,8 @@ a.policy:hover {
 
   .sheetArt {
     background:
-      url('/images/decorations/lotus-bloom.webp') left -50px bottom -30px / 160px auto no-repeat,
-      url('/images/decorations/lotus-bloom.webp') right -40px bottom 30px / 90px auto no-repeat;
+      url('/images/decorations/lotus-bloom.png') left -50px bottom -30px / 160px auto no-repeat,
+      url('/images/decorations/lotus-bloom.png') right -40px bottom 30px / 90px auto no-repeat;
   }
 }
 

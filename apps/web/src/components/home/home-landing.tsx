@@ -29,7 +29,7 @@ import { HomeHeader } from './home-header';
 import { PhoneFrame } from './phone-frame';
 import styles from './home.module.css';
 
-const heroPerks = ['Không cần cài đặt', 'Ngày giỗ âm lịch', 'In phả đồ khổ lớn'] as const;
+const heroPerks = ['Không cần cài đặt', 'Phả hệ trực quan', 'Xem mọi lúc mọi nơi', 'In/Xuất phả đồ ', 'Dễ dàng thao tác'] as const;
 
 function Eyebrow({ children }: { children: string }) {
   return (
