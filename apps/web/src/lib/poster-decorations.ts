@@ -38,7 +38,6 @@ export type FamilyPoster = {
 
 export const MAX_INSET_PERCENT = 80;
 export const MAX_OPPOSITE_INSETS_PERCENT = 80;
-export const MAX_NAME_INSET_PERCENT = 95;
 export const MIN_NAME_AREA_PERCENT = 5;
 export const DEFAULT_NAME_COLOR = '#d4af37';
 export const MAX_DECORATION_IMAGE_BYTES = 4 * 1024 * 1024;

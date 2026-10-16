@@ -4,7 +4,6 @@ import { planRightsSelect, resolvePlanRights } from './plan-rights.js';
 
 export {
   FAMILY_FEATURES,
-  isFamilyFeature,
   type FamilyFeature,
   type FamilyFeatures,
 } from './family-feature-keys.js';

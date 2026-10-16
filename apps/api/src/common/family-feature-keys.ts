@@ -12,7 +12,3 @@ export const FAMILY_FEATURES = [
 export type FamilyFeature = (typeof FAMILY_FEATURES)[number];
 
 export type FamilyFeatures = Record<FamilyFeature, boolean>;
-
-export function isFamilyFeature(value: string): value is FamilyFeature {
-  return (FAMILY_FEATURES as readonly string[]).includes(value);
-}
