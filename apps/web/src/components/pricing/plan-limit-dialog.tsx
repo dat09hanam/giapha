@@ -7,6 +7,7 @@ import { useEffect, useId, useRef } from 'react';
 import { Presence } from '@/components/ui/presence';
 import { useSiteContact } from '@/components/social/site-contact-provider';
 import { phoneHref, zaloHref } from '@/lib/site-contact';
+import { displayPhone } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 
 import styles from './plan-limit-dialog.module.css';
@@ -113,12 +114,12 @@ function PlanLimitDialogPanel({ message, onClose }: { message: string; onClose: 
             <a
               href={phoneHref(contact.phone)}
               className={styles.phoneRow}
-              aria-label={`Gọi quản trị viên số ${contact.phone}`}
+              aria-label={`Gọi quản trị viên số ${displayPhone(contact.phone)}`}
             >
               <span className={styles.phoneIcon}>
                 <Phone className="size-5" fill="currentColor" strokeWidth={0} aria-hidden="true" />
               </span>
-              <span className={styles.phoneNumber}>{contact.phone}</span>
+              <span className={styles.phoneNumber}>{displayPhone(contact.phone)}</span>
             </a>
             <p className={styles.hours}>
               <Clock className="size-4" aria-hidden="true" />

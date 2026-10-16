@@ -4,6 +4,7 @@ import { Mail, MapPin, Phone } from 'lucide-react';
 
 import { useSiteContact } from '@/components/social/site-contact-provider';
 import { phoneHref } from '@/lib/site-contact';
+import { displayPhone } from '@/lib/phone';
 
 /** Contact block at the end of the legal pages; values come from the admin-edited site contact. */
 export function LegalContact() {
@@ -23,7 +24,7 @@ export function LegalContact() {
         <li className="flex items-center gap-2">
           <Phone className="size-4 shrink-0 text-gold-700" aria-hidden="true" />
           <a href={phoneHref(contact.phone)} className="hover:text-brand-700 hover:underline">
-            {contact.phone}
+            {displayPhone(contact.phone)}
           </a>
         </li>
         <li className="flex items-center gap-2">

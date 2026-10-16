@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { FacebookIcon, TiktokIcon, YoutubeIcon, ZaloIcon } from '@/components/social/social-icons';
 import { useSiteContact } from '@/components/social/site-contact-provider';
 import { phoneHref, zaloHref } from '@/lib/site-contact';
+import { displayPhone } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import type { SiteContact } from '@/types/site-contact';
 
@@ -24,7 +25,7 @@ function channels(contact: SiteContact): Channel[] {
     {
       key: 'phone',
       label: 'Hotline',
-      value: contact.phone,
+      value: displayPhone(contact.phone),
       href: phoneHref(contact.phone),
       icon: <Phone className="size-5" aria-hidden="true" />,
       tint: 'bg-brand-700 text-white',
@@ -32,7 +33,7 @@ function channels(contact: SiteContact): Channel[] {
     {
       key: 'zalo',
       label: 'Zalo',
-      value: contact.zalo ?? contact.phone,
+      value: displayPhone(contact.zalo ?? contact.phone),
       href: zaloHref(contact),
       icon: <ZaloIcon size={24} />,
       tint: 'bg-[#0068ff] text-white [--zalo-ink:#0068ff]',

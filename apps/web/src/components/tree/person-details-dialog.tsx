@@ -23,6 +23,8 @@ import { EditSuggestionForm } from '@/components/tree/edit-suggestion-form';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { familyMediaSrc } from '@/lib/media-api';
 import { displayPersonTitle } from '@/lib/person-name';
+import { displayPhone } from '@/lib/phone';
+import { phoneHref } from '@/lib/site-contact';
 import type { FamilyTreeRelationship, Gender, MaritalStatus, Person } from '@/types/family-tree';
 import { sortKeyOf, formatPartialDate, yearOf } from '@/lib/partial-date';
 
@@ -264,8 +266,8 @@ export function PersonDetailsDialog({
           icon: <Phone />,
           label: 'Số điện thoại',
           value: (
-            <a href={`tel:${person.phone}`} className="text-brand-800 hover:underline">
-              {person.phone}
+            <a href={phoneHref(person.phone)} className="text-brand-800 hover:underline">
+              {displayPhone(person.phone)}
             </a>
           ),
         }

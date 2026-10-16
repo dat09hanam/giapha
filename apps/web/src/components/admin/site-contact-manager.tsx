@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { InlineLoader } from '@/components/ui/heritage-loader';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { displayPhone, formatPhone, phoneOrNull } from '@/lib/phone';
 import { updateSiteContact } from '@/lib/site-contact-api';
 import type { SiteContact } from '@/types/site-contact';
 
@@ -18,8 +19,8 @@ type Draft = Record<keyof SiteContact, string>;
 
 function toDraft(contact: SiteContact): Draft {
   return {
-    phone: contact.phone,
-    zalo: contact.zalo ?? '',
+    phone: displayPhone(contact.phone),
+    zalo: contact.zalo ? displayPhone(contact.zalo) : '',
     email: contact.email,
     address: contact.address,
     hours: contact.hours,
@@ -32,8 +33,8 @@ function toDraft(contact: SiteContact): Draft {
 function toInput(draft: Draft): SiteContact {
   const optional = (value: string): string | null => value.trim() || null;
   return {
-    phone: draft.phone.trim(),
-    zalo: optional(draft.zalo),
+    phone: phoneOrNull(draft.phone) ?? '',
+    zalo: phoneOrNull(draft.zalo),
     email: draft.email.trim(),
     address: draft.address.trim(),
     hours: draft.hours.trim(),
@@ -104,20 +105,20 @@ export function SiteContactManager({ initial }: { initial: SiteContact }) {
               type="tel"
               inputMode="tel"
               required
-              maxLength={30}
+              maxLength={12}
               value={draft.phone}
-              placeholder="0912 345 678"
-              onChange={(event) => set('phone', event.currentTarget.value)}
+              placeholder="0912.345.678"
+              onChange={(event) => set('phone', formatPhone(event.currentTarget.value))}
             />
             <Field
               id="contact-zalo"
               label="Số Zalo — để trống nếu trùng hotline"
               type="tel"
               inputMode="tel"
-              maxLength={30}
+              maxLength={12}
               value={draft.zalo}
               placeholder={draft.phone || 'Dùng số hotline'}
-              onChange={(event) => set('zalo', event.currentTarget.value)}
+              onChange={(event) => set('zalo', formatPhone(event.currentTarget.value))}
             />
             <Field
               id="contact-email"

@@ -10,6 +10,7 @@ import { FacebookIcon, TiktokIcon, YoutubeIcon, ZaloIcon } from '@/components/so
 import { LogoMark } from '@/components/layout/logo-mark';
 import { SITE_BRAND } from '@/lib/site-brand';
 import { SITE_POLICY_LINKS, phoneHref, zaloHref } from '@/lib/site-contact';
+import { displayPhone } from '@/lib/phone';
 
 import styles from './home.module.css';
 
@@ -141,7 +142,7 @@ export function HomeFooter() {
                 <span>
                   <Phone size={17} aria-hidden="true" />
                 </span>
-                <a href={phoneHref(contact.phone)}>{contact.phone}</a>
+                <a href={phoneHref(contact.phone)}>{displayPhone(contact.phone)}</a>
               </li>
               <li>
                 <span>

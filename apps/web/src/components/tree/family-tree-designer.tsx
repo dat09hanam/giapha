@@ -55,6 +55,7 @@ import { Segmented } from '@/components/ui/segmented';
 import { PartialDatePicker } from '@/components/ui/partial-date-picker';
 import { canChiYear } from '@/lib/han-viet';
 import { yearOf, formatPartialDate } from '@/lib/partial-date';
+import { displayPhone, formatPhone, phoneOrNull } from '@/lib/phone';
 import { ImageCropper } from '@/components/ui/image-cropper';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { Presence, usePresence } from '@/components/ui/presence';
@@ -400,7 +401,7 @@ function toDesignerMember(person: Person): DesignerMember {
     lunarDeathAnniversary: lunarAnniversaryInput(person.lunarDeathDay, person.lunarDeathMonth),
     isAlive: person.isAlive,
     burialPlace: person.burialPlace ?? '',
-    phone: person.phone ?? '',
+    phone: person.phone ? displayPhone(person.phone) : '',
     avatarUrl: person.avatarUrl ?? '',
     biography: person.biography ?? '',
     fatherId: person.fatherId,
@@ -737,7 +738,7 @@ function buildDesignPayload(
         lunarDeathMonth: lunar.month,
         isAlive: member.isAlive,
         burialPlace: trimmedOrNull(member.burialPlace),
-        phone: trimmedOrNull(member.phone),
+        phone: phoneOrNull(member.phone),
         avatarUrl: trimmedOrNull(member.avatarUrl),
         biography: trimmedOrNull(member.biography),
         generation: member.generation,
@@ -2208,9 +2209,9 @@ export function FamilyTreeDesigner({
                         label="Số điện thoại"
                         type="tel"
                         value={selectedMember.phone}
-                        maxLength={30}
-                        placeholder="Nhập số điện thoại"
-                        onChange={(value) => patchSelectedMember({ phone: value })}
+                        maxLength={12}
+                        placeholder="0912.345.678"
+                        onChange={(value) => patchSelectedMember({ phone: formatPhone(value) })}
                       />
 
                       <div className="grid gap-1.5">
