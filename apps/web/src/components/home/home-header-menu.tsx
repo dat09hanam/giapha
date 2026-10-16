@@ -34,6 +34,21 @@ export function HomeHeaderMenu({ onHomePage = true }: { onHomePage?: boolean }) 
           !href.startsWith('#') && (pathname === href || pathname.startsWith(`${href}/`)),
       )?.href;
 
+  // Arriving from another page at `/#bang-gia` should underline that tab, not "Trang chủ".
+  useEffect(() => {
+    if (!onHomePage) return;
+    const syncFromHash = (): void => {
+      const hash = window.location.hash;
+      if (LINKS.some(({ href }) => href === hash)) setChosenSection(hash);
+    };
+    window.addEventListener('hashchange', syncFromHash);
+    const frame = window.requestAnimationFrame(syncFromHash);
+    return () => {
+      window.removeEventListener('hashchange', syncFromHash);
+      window.cancelAnimationFrame(frame);
+    };
+  }, [onHomePage]);
+
   useEffect(() => {
     if (!menuOpen) return;
     const close = (event: KeyboardEvent): void => {

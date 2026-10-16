@@ -736,14 +736,31 @@
   line-height: 1.7;
 }
 
+/* The showcase is a full-bleed screenshot, so instead of sitting on the paper as a hard rectangle
+   its edges fade into it (longest on the left, where the dark app sidebar is) over a gold glow. */
 .devices {
+  position: relative;
+  isolation: isolate;
   margin: 0;
+}
+
+.devices::before {
+  position: absolute;
+  inset: -12% -8%;
+  z-index: -1;
+  background: radial-gradient(ellipse at 62% 50%, rgb(232 190 110 / 40%), transparent 62%);
+  content: '';
+  pointer-events: none;
 }
 
 .devices img {
   width: 100%;
   height: auto;
-  filter: drop-shadow(0 30px 40px rgb(74 46 18 / 22%));
+  filter: sepia(0.1);
+  mask-image:
+    linear-gradient(90deg, transparent 0%, #000 24%, #000 90%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, #000 14%, #000 84%, transparent 100%);
+  mask-composite: intersect;
 }
 
 .reasons {

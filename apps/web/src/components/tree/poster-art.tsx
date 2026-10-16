@@ -166,6 +166,22 @@ export function PosterFamilyName({
     >
       <defs>
         <path ref={pathRef} id={`${id}-arc`} d={path} />
+        {/* A pale-gold highlight over the admin's colour and a warm halo keep the name bright on
+            dark banners without replacing the chosen colour. */}
+        <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff6cf" />
+          <stop offset="0.55" stopColor={area.color} />
+          <stop offset="1" stopColor={area.color} />
+        </linearGradient>
+        <filter id={`${id}-glow`} x="-5%" y="-20%" width="110%" height="140%">
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation={fontSize * fit * 0.03}
+            floodColor="#ffe08a"
+            floodOpacity="0.35"
+          />
+        </filter>
       </defs>
       <text
         ref={probeRef}
@@ -177,10 +193,11 @@ export function PosterFamilyName({
         {text}
       </text>
       <text
-        fill={area.color}
-        stroke="rgba(60, 10, 0, 0.35)"
-        strokeWidth={fontSize * fit * 0.05}
+        fill={`url(#${id}-fill)`}
+        stroke="rgba(80, 15, 0, 0.45)"
+        strokeWidth={fontSize * fit * 0.045}
         paintOrder="stroke"
+        filter={`url(#${id}-glow)`}
         {...textProps}
       >
         <textPath href={`#${id}-arc`} startOffset={Math.max(0, (arcLength - textWidth * fit) / 2)}>
