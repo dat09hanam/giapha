@@ -201,6 +201,11 @@ stays on disk. Text runs of an article may also carry a `link` (`http(s)://`, a 
 404); `GET /api/articles/admin` and the writes are `ADMIN` only; covers are served publicly. The web
 shows them at `/mau-bai-cung` and `/thu-vien` (both reserved Family slugs) under the home page's
 masthead; `slug` is unique per category, and `publishedAt` is set on first publication and kept.
+`sortOrder` is the admin-chosen position within a category (lower first; ties fall back to newest
+publication): every list, public and admin, orders by it. A new article, or one moved to another
+category, goes to the top of that category, and `PATCH /api/articles/:id/position` (`ADMIN` only,
+`{ direction: 'up' | 'down' }`) swaps an article with its neighbour and renumbers the category
+without touching `updatedAt`.
 
 `PricingPlan` and its `PricingPlanFeature` lines are the home page's pricing table (the Bảng giá
 section, `#bang-gia`). They are platform-level and **not** tenant-owned: no `familyId`, written only

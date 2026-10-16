@@ -99,6 +99,20 @@ export function updateArticle(id: string, input: Partial<ArticleInput>): Promise
   );
 }
 
+/** Swaps the article with its neighbour in the same category; returns the reordered list. */
+export function moveArticle(id: string, direction: 'up' | 'down'): Promise<AdminArticle[]> {
+  return apiFetch<AdminArticle[]>(
+    `${API_URL}/articles/${encodeURIComponent(id)}/position`,
+    {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ direction }),
+    },
+    'đổi thứ tự bài viết',
+  );
+}
+
 export function deleteArticle(id: string): Promise<void> {
   return apiFetch<void>(
     `${API_URL}/articles/${encodeURIComponent(id)}`,

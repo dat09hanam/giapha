@@ -513,11 +513,14 @@ model Article {
   coverFile   String?         @db.VarChar(64)
   isPublished Boolean         @default(false)
   publishedAt DateTime?
+  /// Position within its category on the public lists; lower comes first, set from the admin.
+  sortOrder   Int             @default(0)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
   @@unique([category, slug])
   @@index([category, isPublished, publishedAt])
+  @@index([category, sortOrder])
 }
 
 enum PricingPlanTone {

@@ -31,6 +31,7 @@ import {
   ArticleImageDto,
   CreateArticleDto,
   ListArticlesQueryDto,
+  MoveArticleDto,
   UpdateArticleDto,
 } from './dto/article.dto.js';
 
@@ -97,6 +98,16 @@ export class ArticlesController {
     @Body() input: UpdateArticleDto,
   ): Promise<AdminArticleResponse> {
     return this.articles.update(id, input);
+  }
+
+  @Patch(':id/position')
+  @UseGuards(SessionAuthGuard, PlatformAdminGuard)
+  @Header('Cache-Control', 'no-store')
+  move(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() input: MoveArticleDto,
+  ): Promise<AdminArticleResponse[]> {
+    return this.articles.move(id, input.direction);
   }
 
   @Delete(':id')

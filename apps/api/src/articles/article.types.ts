@@ -12,6 +12,7 @@ export const articleSelect = {
   coverFile: true,
   isPublished: true,
   publishedAt: true,
+  sortOrder: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.ArticleSelect;
@@ -43,6 +44,8 @@ export type AdminArticleResponse = {
   coverUrl: string | null;
   isPublished: boolean;
   publishedAt: string | null;
+  /** Position within the category; lower is shown first. */
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -106,6 +109,7 @@ export function toAdminArticle(record: ArticleRecord): AdminArticleResponse {
     coverUrl: coverUrl(record),
     isPublished: record.isPublished,
     publishedAt: record.publishedAt?.toISOString() ?? null,
+    sortOrder: record.sortOrder,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };

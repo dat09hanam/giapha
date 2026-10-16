@@ -24,6 +24,8 @@ export type AdminArticle = {
   coverUrl: string | null;
   isPublished: boolean;
   publishedAt: string | null;
+  /** Position within the category on the public lists; lower is shown first. */
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 };

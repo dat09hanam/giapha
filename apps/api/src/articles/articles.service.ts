@@ -55,6 +55,13 @@ function parseContent(value: unknown): RichTextDocument {
   return document;
 }
 
+/** Admin-chosen position first; ties (never reordered) keep the newest publication first. */
+const ARTICLE_ORDER = [
+  { sortOrder: 'asc' },
+  { publishedAt: 'desc' },
+  { createdAt: 'desc' },
+] satisfies Prisma.ArticleOrderByWithRelationInput[];
+
 function isSlugConflict(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 }
@@ -75,7 +82,7 @@ export class ArticlesService {
   async listPublished(category: ArticleCategory): Promise<ArticleSummaryResponse[]> {
     const records = await this.prisma.article.findMany({
       where: { category, isPublished: true },
-      orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+      orderBy: ARTICLE_ORDER,
       select: articleSelect,
     });
     return records.map(toArticleSummary);
@@ -92,7 +99,7 @@ export class ArticlesService {
 
   async listAll(): Promise<AdminArticleResponse[]> {
     const records = await this.prisma.article.findMany({
-      orderBy: [{ updatedAt: 'desc' }],
+      orderBy: [{ category: 'asc' }, ...ARTICLE_ORDER],
       select: articleSelect,
     });
     return records.map(toAdminArticle);
@@ -105,6 +112,7 @@ export class ArticlesService {
     try {
       const record = await this.prisma.article.create({
         data: {
+          sortOrder: await this.topOf(input.category),
           category: input.category,
           slug: input.slug,
           title: input.title.trim(),
@@ -127,7 +135,7 @@ export class ArticlesService {
   async update(id: string, input: UpdateArticleDto): Promise<AdminArticleResponse> {
     const existing = await this.prisma.article.findUnique({
       where: { id },
-      select: { coverFile: true, publishedAt: true, content: true },
+      select: { coverFile: true, publishedAt: true, content: true, category: true },
     });
     if (!existing) throw new NotFoundException(NOT_FOUND);
 
@@ -143,7 +151,9 @@ export class ArticlesService {
       const record = await this.prisma.article.update({
         where: { id },
         data: {
-          ...(input.category === undefined ? {} : { category: input.category }),
+          ...(input.category === undefined || input.category === existing.category
+            ? {}
+            : { category: input.category, sortOrder: await this.topOf(input.category) }),
           ...(input.slug === undefined ? {} : { slug: input.slug }),
           ...(input.title === undefined ? {} : { title: input.title.trim() }),
           ...(input.summary === undefined ? {} : { summary: input.summary?.trim() || null }),
@@ -172,6 +182,44 @@ export class ArticlesService {
       if (isSlugConflict(error)) throw new ConflictException(SLUG_TAKEN);
       throw error;
     }
+  }
+
+  /**
+   * Swaps an article with its neighbour in the same category and renumbers that category 1..n,
+   * then returns the whole admin list in its new order. `updatedAt` is left as it was: moving is
+   * not an edit of the article.
+   */
+  async move(id: string, direction: 'up' | 'down'): Promise<AdminArticleResponse[]> {
+    await this.prisma.$transaction(async (tx) => {
+      const article = await tx.article.findUnique({ where: { id }, select: { category: true } });
+      if (!article) throw new NotFoundException(NOT_FOUND);
+      const siblings = await tx.article.findMany({
+        where: { category: article.category },
+        orderBy: ARTICLE_ORDER,
+        select: { id: true, sortOrder: true, updatedAt: true },
+      });
+      const from = siblings.findIndex((item) => item.id === id);
+      const to = direction === 'up' ? from - 1 : from + 1;
+      if (to < 0 || to >= siblings.length) return;
+      [siblings[from], siblings[to]] = [siblings[to]!, siblings[from]!];
+      for (const [index, item] of siblings.entries()) {
+        if (item.sortOrder === index + 1) continue;
+        await tx.article.update({
+          where: { id: item.id },
+          data: { sortOrder: index + 1, updatedAt: item.updatedAt },
+        });
+      }
+    });
+    return this.listAll();
+  }
+
+  /** A position above every article already in the category, so new ones show first. */
+  private async topOf(category: ArticleCategory): Promise<number> {
+    const first = await this.prisma.article.aggregate({
+      where: { category },
+      _min: { sortOrder: true },
+    });
+    return (first._min.sortOrder ?? 1) - 1;
   }
 
   async remove(id: string): Promise<void> {

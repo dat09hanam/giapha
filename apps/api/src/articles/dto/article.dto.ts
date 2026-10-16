@@ -34,6 +34,11 @@ export class ArticleCoverDto {
 /** A picture uploaded for the article content, same rules as the cover. */
 export class ArticleImageDto extends ArticleCoverDto {}
 
+export class MoveArticleDto {
+  @IsIn(['up', 'down'])
+  direction!: 'up' | 'down';
+}
+
 export class ListArticlesQueryDto {
   @IsEnum(ArticleCategory)
   category!: ArticleCategory;

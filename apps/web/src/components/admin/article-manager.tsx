@@ -7,6 +7,8 @@ import {
   EyeOff,
   ImageMinus,
   Newspaper,
+  ArrowDown,
+  ArrowUp,
   Pencil,
   Plus,
   Save,
@@ -34,6 +36,7 @@ import {
   articleSlug,
   createArticle,
   deleteArticle,
+  moveArticle,
   updateArticle,
   uploadArticleImage,
   type ArticleCoverUpload,
@@ -61,6 +64,16 @@ type Draft = {
 };
 
 const CATEGORIES: readonly ArticleCategory[] = ['PRAYER', 'LIBRARY'];
+
+/** Same order as the API and the public lists: by category, then the admin-chosen position. */
+function byDisplayOrder(a: AdminArticle, b: AdminArticle): number {
+  return (
+    CATEGORIES.indexOf(a.category) - CATEGORIES.indexOf(b.category) ||
+    a.sortOrder - b.sortOrder ||
+    (b.publishedAt ?? '').localeCompare(a.publishedAt ?? '') ||
+    b.createdAt.localeCompare(a.createdAt)
+  );
+}
 
 const UPDATED_FORMAT = new Intl.DateTimeFormat('vi-VN', {
   day: '2-digit',
@@ -404,7 +417,9 @@ function ArticleEditor({
 export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }) {
   const confirm = useConfirm();
   const showToast = useToast();
-  const [articles, setArticles] = useState<readonly AdminArticle[]>(initial);
+  const [articles, setArticles] = useState<readonly AdminArticle[]>(() =>
+    [...initial].sort(byDisplayOrder),
+  );
   const [filter, setFilter] = useState<Filter>('ALL');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -412,7 +427,20 @@ export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }
   const shown = filter === 'ALL' ? articles : articles.filter((item) => item.category === filter);
 
   function replace(saved: AdminArticle): void {
-    setArticles((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
+    setArticles((current) =>
+      [saved, ...current.filter((item) => item.id !== saved.id)].sort(byDisplayOrder),
+    );
+  }
+
+  async function move(article: AdminArticle, direction: 'up' | 'down'): Promise<void> {
+    setBusyId(article.id);
+    try {
+      setArticles([...(await moveArticle(article.id, direction))].sort(byDisplayOrder));
+    } catch (error: unknown) {
+      showToast({ kind: 'error', message: getApiErrorMessage(error, 'đổi thứ tự bài viết') });
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function togglePublished(article: AdminArticle): Promise<void> {
@@ -509,68 +537,104 @@ export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }
           <ul className="divide-y divide-line rounded-xl border border-line">
             {shown.map((article) => {
               const busy = busyId === article.id;
+              const sameCategory = articles.filter((item) => item.category === article.category);
+              const position = sameCategory.indexOf(article);
               return (
-                <li
-                  key={article.id}
-                  className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{ARTICLE_SECTIONS[article.category].label}</Badge>
-                      {article.isPublished ? (
-                        <Badge variant="default">Đã đăng</Badge>
-                      ) : (
-                        <Badge variant="secondary">Bản nháp</Badge>
-                      )}
-                    </div>
-                    <p className="mt-1.5 truncate font-semibold text-stone-900">{article.title}</p>
-                    <p className="text-xs text-stone-500">
-                      Cập nhật {UPDATED_FORMAT.format(new Date(article.updatedAt))}
-                    </p>
+                <li key={article.id} className="flex items-center gap-3 px-4 py-4">
+                  <div
+                    className="flex shrink-0 flex-col items-center gap-1"
+                    role="group"
+                    aria-label={`Thứ tự của “${article.title}” trong ${ARTICLE_SECTIONS[article.category].label}`}
+                  >
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="size-8"
+                      onClick={() => void move(article, 'up')}
+                      disabled={busyId !== null || position <= 0}
+                      aria-label={`Đưa “${article.title}” lên trên`}
+                      title="Đưa lên trên"
+                    >
+                      <ArrowUp className="size-4" aria-hidden="true" />
+                    </Button>
+                    <span className="text-xs font-semibold tabular-nums text-stone-500">
+                      {position + 1}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="size-8"
+                      onClick={() => void move(article, 'down')}
+                      disabled={busyId !== null || position >= sameCategory.length - 1}
+                      aria-label={`Đưa “${article.title}” xuống dưới`}
+                      title="Đưa xuống dưới"
+                    >
+                      <ArrowDown className="size-4" aria-hidden="true" />
+                    </Button>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDraft(draftOf(article))}
-                      disabled={busy}
-                    >
-                      <Pencil className="size-4" aria-hidden="true" />
-                      Sửa
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void togglePublished(article)}
-                      disabled={busy}
-                    >
-                      {article.isPublished ? (
-                        <EyeOff className="size-4" aria-hidden="true" />
-                      ) : (
-                        <Eye className="size-4" aria-hidden="true" />
-                      )}
-                      {article.isPublished ? 'Ẩn' : 'Đăng'}
-                    </Button>
-                    {article.isPublished ? (
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={articleHref(article.category, article.slug)} target="_blank">
-                          <ExternalLink className="size-4" aria-hidden="true" />
-                          Xem
-                        </Link>
+                  <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">{ARTICLE_SECTIONS[article.category].label}</Badge>
+                        {article.isPublished ? (
+                          <Badge variant="default">Đã đăng</Badge>
+                        ) : (
+                          <Badge variant="secondary">Bản nháp</Badge>
+                        )}
+                      </div>
+                      <p className="mt-1.5 truncate font-semibold text-stone-900">
+                        {article.title}
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        Cập nhật {UPDATED_FORMAT.format(new Date(article.updatedAt))}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDraft(draftOf(article))}
+                        disabled={busy}
+                      >
+                        <Pencil className="size-4" aria-hidden="true" />
+                        Sửa
                       </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void remove(article)}
-                      disabled={busy}
-                      aria-label={`Xoá bài viết ${article.title}`}
-                    >
-                      <Trash2 className="size-4" aria-hidden="true" />
-                    </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void togglePublished(article)}
+                        disabled={busy}
+                      >
+                        {article.isPublished ? (
+                          <EyeOff className="size-4" aria-hidden="true" />
+                        ) : (
+                          <Eye className="size-4" aria-hidden="true" />
+                        )}
+                        {article.isPublished ? 'Ẩn' : 'Đăng'}
+                      </Button>
+                      {article.isPublished ? (
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={articleHref(article.category, article.slug)} target="_blank">
+                            <ExternalLink className="size-4" aria-hidden="true" />
+                            Xem
+                          </Link>
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void remove(article)}
+                        disabled={busy}
+                        aria-label={`Xoá bài viết ${article.title}`}
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </Button>
+                    </div>
                   </div>
                 </li>
               );
