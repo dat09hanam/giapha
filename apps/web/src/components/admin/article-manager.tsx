@@ -48,8 +48,6 @@ import { cn } from '@/lib/utils';
 import type { AdminArticle, ArticleCategory } from '@/types/article';
 import type { RichTextDocument } from '@/types/rich-text';
 
-type Filter = 'ALL' | ArticleCategory;
-
 type Draft = {
   id: string | null;
   category: ArticleCategory;
@@ -420,11 +418,11 @@ export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }
   const [articles, setArticles] = useState<readonly AdminArticle[]>(() =>
     [...initial].sort(byDisplayOrder),
   );
-  const [filter, setFilter] = useState<Filter>('ALL');
+  const [filter, setFilter] = useState<ArticleCategory>('PRAYER');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const shown = filter === 'ALL' ? articles : articles.filter((item) => item.category === filter);
+  const shown = articles.filter((item) => item.category === filter);
 
   function replace(saved: AdminArticle): void {
     setArticles((current) =>
@@ -492,6 +490,7 @@ export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }
         }}
         onSaved={(saved) => {
           replace(saved);
+          setFilter(saved.category);
           setDraft(null);
         }}
       />
@@ -504,10 +503,7 @@ export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }
       title="Bài viết"
       description="Bài của hai mục Mẫu bài cúng và Thư viện trên trang công khai. Bản nháp chỉ quản trị viên thấy; bài đã đăng ai cũng đọc được và được Google tìm thấy."
       actions={
-        <Button
-          type="button"
-          onClick={() => setDraft(newDraft(filter === 'ALL' ? 'PRAYER' : filter))}
-        >
+        <Button type="button" onClick={() => setDraft(newDraft(filter))}>
           <Plus className="size-4" aria-hidden="true" />
           Viết bài mới
         </Button>
@@ -517,14 +513,11 @@ export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }
         <Segmented
           label="Lọc theo mục"
           className="sm:max-w-lg"
-          options={[
-            { value: 'ALL' as const, label: 'Tất cả', count: articles.length },
-            ...CATEGORIES.map((category) => ({
-              value: category,
-              label: ARTICLE_SECTIONS[category].label,
-              count: articles.filter((item) => item.category === category).length,
-            })),
-          ]}
+          options={CATEGORIES.map((category) => ({
+            value: category,
+            label: ARTICLE_SECTIONS[category].label,
+            count: articles.filter((item) => item.category === category).length,
+          }))}
           value={filter}
           onChange={setFilter}
         />

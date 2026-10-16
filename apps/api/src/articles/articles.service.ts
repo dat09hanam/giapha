@@ -112,7 +112,7 @@ export class ArticlesService {
     try {
       const record = await this.prisma.article.create({
         data: {
-          sortOrder: await this.topOf(input.category),
+          sortOrder: await this.bottomOf(input.category),
           category: input.category,
           slug: input.slug,
           title: input.title.trim(),
@@ -153,7 +153,7 @@ export class ArticlesService {
         data: {
           ...(input.category === undefined || input.category === existing.category
             ? {}
-            : { category: input.category, sortOrder: await this.topOf(input.category) }),
+            : { category: input.category, sortOrder: await this.bottomOf(input.category) }),
           ...(input.slug === undefined ? {} : { slug: input.slug }),
           ...(input.title === undefined ? {} : { title: input.title.trim() }),
           ...(input.summary === undefined ? {} : { summary: input.summary?.trim() || null }),
@@ -213,13 +213,16 @@ export class ArticlesService {
     return this.listAll();
   }
 
-  /** A position above every article already in the category, so new ones show first. */
-  private async topOf(category: ArticleCategory): Promise<number> {
-    const first = await this.prisma.article.aggregate({
+  /**
+   * A position after every article already in the category, so a new one joins at the end and the
+   * order the admin already arranged stays as it is.
+   */
+  private async bottomOf(category: ArticleCategory): Promise<number> {
+    const last = await this.prisma.article.aggregate({
       where: { category },
-      _min: { sortOrder: true },
+      _max: { sortOrder: true },
     });
-    return (first._min.sortOrder ?? 1) - 1;
+    return (last._max.sortOrder ?? 0) + 1;
   }
 
   async remove(id: string): Promise<void> {

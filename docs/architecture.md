@@ -203,7 +203,7 @@ shows them at `/mau-bai-cung` and `/thu-vien` (both reserved Family slugs) under
 masthead; `slug` is unique per category, and `publishedAt` is set on first publication and kept.
 `sortOrder` is the admin-chosen position within a category (lower first; ties fall back to newest
 publication): every list, public and admin, orders by it. A new article, or one moved to another
-category, goes to the top of that category, and `PATCH /api/articles/:id/position` (`ADMIN` only,
+category, goes to the end of that category, and `PATCH /api/articles/:id/position` (`ADMIN` only,
 `{ direction: 'up' | 'down' }`) swaps an article with its neighbour and renumbers the category
 without touching `updatedAt`.
 
