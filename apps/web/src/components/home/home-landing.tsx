@@ -24,6 +24,7 @@ import { Faq } from './faq';
 import { FeatureShowcase } from './feature-showcase';
 import { overview, paperVsOnline, questions, reasons, steps, testimonials } from './home-content';
 import { HomeFooter } from './home-footer';
+import { HomeHashScroll } from './home-hash-scroll';
 import { HomeHeader } from './home-header';
 import { PhoneFrame } from './phone-frame';
 import styles from './home.module.css';
@@ -141,6 +142,7 @@ export function HomeLanding({
   const hasPricing = pricingPlans.length > 0;
   return (
     <main className={styles.home} id="top">
+      <HomeHashScroll />
       <HomeHeader />
 
       <section className={styles.hero} aria-labelledby="hero-title">
@@ -248,10 +250,10 @@ export function HomeLanding({
         </div>
         <figure className={cn(styles.devices, styles.reveal)} id="hinh-anh">
           <Image
-            src="/images/decorations/devices-reference.png"
-            alt="Cây gia phả hiển thị trên máy tính xách tay, máy tính bảng và điện thoại"
-            width={1774}
-            height={887}
+            src="/images/decorations/devices-showcase.jpeg"
+            alt="Gia phả mẫu trên máy tính xách tay, trang chủ Gia Phả Đời Đời trên máy tính bảng và điện thoại"
+            width={1024}
+            height={572}
             sizes="(max-width: 900px) 100vw, 55vw"
           />
         </figure>
