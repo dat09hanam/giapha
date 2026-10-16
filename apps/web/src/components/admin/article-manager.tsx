@@ -30,10 +30,12 @@ import {
   MAX_ARTICLE_COVER_BYTES,
   articleCoverSrc,
   articleHref,
+  articleImageSrc,
   articleSlug,
   createArticle,
   deleteArticle,
   updateArticle,
+  uploadArticleImage,
   type ArticleCoverUpload,
   type ArticleInput,
 } from '@/lib/article-api';
@@ -389,6 +391,8 @@ function ArticleEditor({
             initial={draft.content}
             onChange={(content) => onChange({ ...draft, content })}
             placeholder="Viết nội dung bài văn khấn hoặc bài viết…"
+            imageSrc={articleImageSrc}
+            onUploadImage={uploadArticleImage}
           />
         </div>
       </form>

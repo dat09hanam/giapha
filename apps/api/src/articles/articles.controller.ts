@@ -27,7 +27,12 @@ import type {
 } from './article.types.js';
 import { ArticlesService } from './articles.service.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { CreateArticleDto, ListArticlesQueryDto, UpdateArticleDto } from './dto/article.dto.js';
+import {
+  ArticleImageDto,
+  CreateArticleDto,
+  ListArticlesQueryDto,
+  UpdateArticleDto,
+} from './dto/article.dto.js';
 
 @Controller('articles')
 export class ArticlesController {
@@ -53,6 +58,22 @@ export class ArticlesController {
       .header('Cache-Control', 'public, max-age=31536000, immutable')
       .type(contentType)
       .send(bytes);
+  }
+
+  @Get('images/:file')
+  async image(@Param('file') file: string, @Res() reply: FastifyReply): Promise<void> {
+    const { bytes, contentType } = await this.articles.readImage(file);
+    await reply
+      .header('Cross-Origin-Resource-Policy', 'cross-origin')
+      .header('Cache-Control', 'public, max-age=31536000, immutable')
+      .type(contentType)
+      .send(bytes);
+  }
+
+  @Post('images')
+  @UseGuards(SessionAuthGuard, PlatformAdminGuard)
+  uploadImage(@Body() input: ArticleImageDto): Promise<{ file: string }> {
+    return this.articles.storeImage(input);
   }
 
   @Get(':category/:slug')

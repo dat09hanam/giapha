@@ -2,6 +2,7 @@ import type {
   RichTextAlign,
   RichTextBlock,
   RichTextDocument,
+  RichTextImage,
   RichTextRun,
 } from '@/types/rich-text';
 
@@ -31,10 +32,12 @@ export function plainToRichText(text: string | null): RichTextDocument {
 }
 
 export function richTextIsEmpty(document: RichTextDocument): boolean {
-  return document.blocks.every((block) =>
-    ('items' in block ? block.items : [block.content]).every((line) =>
-      line.every((run) => !run.text.trim()),
-    ),
+  return document.blocks.every(
+    (block) =>
+      block.type !== 'image' &&
+      ('items' in block ? block.items : [block.content]).every((line) =>
+        line.every((run) => !run.text.trim()),
+      ),
   );
 }
 
@@ -63,10 +66,34 @@ function lineToHtml(line: RichTextRun[]): string {
 
 const BLOCK_TAGS = { paragraph: 'p', heading: 'h2', subheading: 'h3', quote: 'blockquote' };
 
-export function richTextToEditorHtml(document: RichTextDocument): string {
+/** Turns a stored picture name into the address the browser loads it from. */
+export type RichTextImageSrc = (file: string) => string;
+
+/**
+ * A picture inside the editor: the frame itself is not editable (it is removed as one piece),
+ * only its caption is. `data-*` attributes carry what is saved.
+ */
+export function imageFigureHtml(image: RichTextImage, imageSrc: RichTextImageSrc): string {
+  const caption = escapeHtml(image.caption ?? '');
+  return (
+    `<figure contenteditable="false" data-file="${escapeHtml(image.file)}" ` +
+    `data-width="${image.width}" data-height="${image.height}">` +
+    `<img src="${escapeHtml(imageSrc(image.file))}" alt="${caption}" ` +
+    `width="${image.width}" height="${image.height}">` +
+    `<button type="button" data-remove-image aria-label="Xóa ảnh" title="Xóa ảnh">×</button>` +
+    `<figcaption contenteditable="true" data-placeholder="Thêm chú thích cho ảnh…">${caption}</figcaption>` +
+    `</figure>`
+  );
+}
+
+export function richTextToEditorHtml(
+  document: RichTextDocument,
+  imageSrc?: RichTextImageSrc,
+): string {
   if (document.blocks.length === 0) return '<p><br></p>';
   return document.blocks
     .map((block) => {
+      if (block.type === 'image') return imageSrc ? imageFigureHtml(block, imageSrc) : '';
       const style = block.align ? ` style="text-align:${block.align}"` : '';
       if ('items' in block) {
         const tag = block.type === 'numbered' ? 'ol' : 'ul';
@@ -181,7 +208,31 @@ const INLINE_TAGS = new Set([
   'FONT',
   'BR',
 ]);
-const BLOCK_TAGS_IN_DOM = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'BLOCKQUOTE', 'UL', 'OL']);
+const BLOCK_TAGS_IN_DOM = new Set([
+  'P',
+  'DIV',
+  'H1',
+  'H2',
+  'H3',
+  'H4',
+  'BLOCKQUOTE',
+  'UL',
+  'OL',
+  'FIGURE',
+]);
+
+function imageOf(figure: HTMLElement): RichTextImage | null {
+  const file = figure.dataset.file;
+  const width = Number(figure.dataset.width);
+  const height = Number(figure.dataset.height);
+  if (!file || !(width > 0) || !(height > 0)) return null;
+  const caption = (figure.querySelector('figcaption')?.textContent ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return caption
+    ? { type: 'image', file, width, height, caption }
+    : { type: 'image', file, width, height };
+}
 
 function readBlocks(container: Node, blocks: RichTextBlock[]): void {
   let loose: Node[] = [];
@@ -202,6 +253,11 @@ function readBlocks(container: Node, blocks: RichTextBlock[]): void {
     const align = alignOf(node);
     const wrapsBlocks = [...node.children].some((child) => BLOCK_TAGS_IN_DOM.has(child.tagName));
     switch (node.tagName) {
+      case 'FIGURE': {
+        const image = imageOf(node);
+        if (image) blocks.push(image);
+        break;
+      }
       case 'H1':
       case 'H2':
         blocks.push(withAlign({ type: 'heading', content: lineOf(node) }, align));
@@ -239,7 +295,9 @@ export function editorDomToRichText(root: HTMLElement): RichTextDocument {
 
   while (blocks.length > 0) {
     const last = blocks.at(-1)!;
-    if ('items' in last || last.content.some((run) => run.text.trim())) break;
+    if (last.type === 'image' || 'items' in last || last.content.some((run) => run.text.trim())) {
+      break;
+    }
     blocks.pop();
   }
   return { version: 1, blocks };

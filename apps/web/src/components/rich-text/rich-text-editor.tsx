@@ -6,9 +6,11 @@ import {
   AlignLeft,
   AlignRight,
   Bold,
+  ImagePlus,
   Italic,
   List,
   ListOrdered,
+  LoaderCircle,
   Palette,
   Quote,
   Redo2,
@@ -22,12 +24,14 @@ import { useEffect, useRef, useState } from 'react';
 
 import {
   editorDomToRichText,
+  imageFigureHtml,
   RICH_TEXT_COLORS,
   richTextIsEmpty,
   richTextToEditorHtml,
+  type RichTextImageSrc,
 } from '@/lib/rich-text';
 import { cn } from '@/lib/utils';
-import type { RichTextDocument } from '@/types/rich-text';
+import type { RichTextDocument, RichTextImage } from '@/types/rich-text';
 
 const RESET_COLOR = '#010203';
 
@@ -63,11 +67,15 @@ function ToolButton({
   icon: Icon,
   label,
   active = false,
+  disabled = false,
+  spin = false,
   onRun,
 }: {
   icon: LucideIcon;
   label: string;
   active?: boolean;
+  disabled?: boolean;
+  spin?: boolean;
   onRun: () => void;
 }) {
   return (
@@ -76,16 +84,28 @@ function ToolButton({
       title={label}
       aria-label={label}
       aria-pressed={active}
+      disabled={disabled}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onRun}
       className={cn(
-        'grid size-8 shrink-0 place-items-center rounded-lg transition',
+        'grid size-8 shrink-0 place-items-center rounded-lg transition disabled:cursor-wait disabled:opacity-60',
         active ? 'bg-brand-100 text-brand-800' : 'text-stone-600 hover:bg-stone-100',
       )}
     >
-      <Icon className="size-4" aria-hidden="true" />
+      <Icon className={cn('size-4', spin && 'animate-spin')} aria-hidden="true" />
     </button>
   );
+}
+
+/** The editor's direct child that holds `node`, i.e. the paragraph, list or picture it sits in. */
+function topLevelBlock(editor: HTMLElement, node: Node | null): HTMLElement | null {
+  let current = node;
+  while (current && current.parentNode !== editor) current = current.parentNode;
+  return current instanceof HTMLElement ? current : null;
+}
+
+function isEmptyParagraph(element: HTMLElement): boolean {
+  return element.tagName === 'P' && !element.textContent?.trim() && !element.querySelector('img');
 }
 
 function Divider() {
@@ -98,20 +118,31 @@ export function RichTextEditor({
   onChange,
   placeholder,
   labelledBy,
+  imageSrc,
+  onUploadImage,
 }: {
   id?: string;
   initial: RichTextDocument;
   onChange: (document: RichTextDocument) => void;
   placeholder?: string;
   labelledBy?: string;
+  /** Where stored pictures load from. Pictures can be added only with `onUploadImage` too. */
+  imageSrc?: RichTextImageSrc;
+  /** Uploads a chosen picture; when given, the toolbar offers "Chèn ảnh". */
+  onUploadImage?: (file: File) => Promise<RichTextImage>;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const savedRange = useRef<Range | null>(null);
   const [empty, setEmpty] = useState(() => richTextIsEmpty(initial));
   const [active, setActive] = useState<Active>(IDLE);
   const [colorsOpen, setColorsOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const canInsertImages = Boolean(imageSrc && onUploadImage);
 
   useEffect(() => {
-    if (editorRef.current) editorRef.current.innerHTML = richTextToEditorHtml(initial);
+    if (editorRef.current) editorRef.current.innerHTML = richTextToEditorHtml(initial, imageSrc);
   }, []);
 
   useEffect(() => {
@@ -149,6 +180,56 @@ export function RichTextEditor({
 
   function setBlock(value: BlockValue): void {
     format('formatBlock', active.block === value && value === 'blockquote' ? 'p' : value);
+  }
+
+  function pickImage(): void {
+    const editor = editorRef.current;
+    const selection = document.getSelection();
+    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    savedRange.current = editor && range && editor.contains(range.startContainer) ? range : null;
+    setUploadError(null);
+    fileRef.current?.click();
+  }
+
+  /** Puts the picture after the block holding the caret, or in place of an empty paragraph. */
+  function insertImage(image: RichTextImage): void {
+    const editor = editorRef.current;
+    if (!editor || !imageSrc) return;
+    const template = document.createElement('template');
+    template.innerHTML = imageFigureHtml(image, imageSrc);
+    const figure = template.content.firstElementChild;
+    if (!figure) return;
+
+    const anchor = topLevelBlock(editor, savedRange.current?.startContainer ?? null);
+    if (anchor && isEmptyParagraph(anchor)) anchor.replaceWith(figure);
+    else if (anchor) anchor.after(figure);
+    else editor.append(figure);
+
+    let next = figure.nextElementSibling;
+    if (!(next instanceof HTMLElement) || next.tagName !== 'P') {
+      next = document.createElement('p');
+      next.innerHTML = '<br>';
+      figure.after(next);
+    }
+    const caret = document.createRange();
+    caret.setStart(next, 0);
+    caret.collapse(true);
+    editor.focus();
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(caret);
+    emit();
+  }
+
+  async function uploadImage(file: File | undefined): Promise<void> {
+    if (!file || !onUploadImage) return;
+    setUploading(true);
+    try {
+      insertImage(await onUploadImage(file));
+    } catch (error: unknown) {
+      setUploadError(error instanceof Error ? error.message : 'Không tải được ảnh này lên.');
+    } finally {
+      setUploading(false);
+    }
   }
 
   function setColor(color: string | null): void {
@@ -262,6 +343,29 @@ export function RichTextEditor({
           active={active.block === 'blockquote'}
           onRun={() => setBlock('blockquote')}
         />
+        {canInsertImages ? (
+          <>
+            <Divider />
+            <ToolButton
+              icon={uploading ? LoaderCircle : ImagePlus}
+              label={uploading ? 'Đang tải ảnh lên…' : 'Chèn ảnh'}
+              disabled={uploading}
+              spin={uploading}
+              onRun={pickImage}
+            />
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = '';
+                void uploadImage(file);
+              }}
+            />
+          </>
+        ) : null}
         <Divider />
         <ToolButton icon={AlignLeft} label="Căn trái" onRun={() => format('justifyLeft')} />
         <ToolButton icon={AlignCenter} label="Căn giữa" onRun={() => format('justifyCenter')} />
@@ -281,6 +385,12 @@ export function RichTextEditor({
         <ToolButton icon={Redo2} label="Làm lại (Ctrl+Y)" onRun={() => format('redo')} />
       </div>
 
+      {uploadError ? (
+        <p role="alert" className="border-b border-line bg-red-50 px-3 py-1.5 text-sm text-red-700">
+          {uploadError}
+        </p>
+      ) : null}
+
       <div className="relative">
         {empty && placeholder ? (
           <p className="pointer-events-none absolute left-3 top-3 text-base text-stone-400 sm:text-sm">
@@ -298,6 +408,19 @@ export function RichTextEditor({
           onFocus={() => run('defaultParagraphSeparator', 'p')}
           onInput={emit}
           onBlur={() => setColorsOpen(false)}
+          onClick={(event) => {
+            const remove = (event.target as HTMLElement).closest('[data-remove-image]');
+            if (!remove) return;
+            event.preventDefault();
+            remove.closest('figure')?.remove();
+            emit();
+          }}
+          onKeyDown={(event) => {
+            // A caption is a single line; Enter would split the picture block.
+            if (event.key === 'Enter' && (event.target as HTMLElement).closest('figcaption')) {
+              event.preventDefault();
+            }
+          }}
           onPaste={(event) => {
             event.preventDefault();
             run('insertText', event.clipboardData.getData('text/plain'));
@@ -310,6 +433,11 @@ export function RichTextEditor({
             '[&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-brand-900',
             '[&_blockquote]:border-l-4 [&_blockquote]:border-brand-300 [&_blockquote]:bg-brand-50/60 [&_blockquote]:py-1 [&_blockquote]:pl-3 [&_blockquote]:italic',
             '[&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6',
+            '[&_figure]:relative [&_figure]:mx-auto [&_figure]:my-3 [&_figure]:grid [&_figure]:w-fit [&_figure]:max-w-full [&_figure]:justify-items-center [&_figure]:gap-1.5',
+            '[&_figure_img]:max-h-80 [&_figure_img]:w-auto [&_figure_img]:max-w-full [&_figure_img]:rounded-xl [&_figure_img]:border [&_figure_img]:border-line [&_figure_img]:object-contain',
+            '[&_figcaption]:min-w-40 [&_figcaption]:text-center [&_figcaption]:text-sm [&_figcaption]:italic [&_figcaption]:text-stone-500 [&_figcaption]:outline-none',
+            '[&_figcaption:empty]:before:text-stone-400 [&_figcaption:empty]:before:content-[attr(data-placeholder)]',
+            '[&_[data-remove-image]]:absolute [&_[data-remove-image]]:right-2 [&_[data-remove-image]]:top-2 [&_[data-remove-image]]:grid [&_[data-remove-image]]:size-7 [&_[data-remove-image]]:place-items-center [&_[data-remove-image]]:rounded-full [&_[data-remove-image]]:bg-black/55 [&_[data-remove-image]]:text-lg [&_[data-remove-image]]:leading-none [&_[data-remove-image]]:text-white',
           )}
         />
       </div>

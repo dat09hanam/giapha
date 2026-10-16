@@ -1,7 +1,8 @@
 import { apiFetch } from '@/lib/api-error';
+import { compressImage } from '@/lib/image-compress';
 import { foldVietnamese } from '@/lib/person-search';
 import type { AdminArticle, ArticleCategory } from '@/types/article';
-import type { RichTextDocument } from '@/types/rich-text';
+import type { RichTextDocument, RichTextImage } from '@/types/rich-text';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
@@ -44,6 +45,29 @@ export function articleSlug(title: string): string {
 }
 
 export const MAX_ARTICLE_COVER_BYTES = 3 * 1024 * 1024;
+const MAX_ARTICLE_IMAGE_BYTES = 3 * 1024 * 1024;
+
+/** Address of a picture placed inside article content. */
+export function articleImageSrc(file: string): string {
+  return `${API_URL}/articles/images/${encodeURIComponent(file)}`;
+}
+
+/** Shrinks a picture in the browser, uploads it and returns what an image block stores. */
+export async function uploadArticleImage(file: File): Promise<RichTextImage> {
+  const image = await compressImage(file, MAX_ARTICLE_IMAGE_BYTES, { maxEdge: 1600 });
+  URL.revokeObjectURL(image.previewUrl);
+  const stored = await apiFetch<{ file: string }>(
+    `${API_URL}/articles/images`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ contentType: image.contentType, data: image.data }),
+    },
+    'tải ảnh lên',
+  );
+  return { type: 'image', file: stored.file, width: image.width, height: image.height };
+}
 
 export type ArticleCoverUpload = { contentType: string; data: string };
 

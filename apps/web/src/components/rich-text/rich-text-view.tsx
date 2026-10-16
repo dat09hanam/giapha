@@ -1,7 +1,13 @@
 import type { CSSProperties, ReactNode } from 'react';
 
+import type { RichTextImageSrc } from '@/lib/rich-text';
 import { cn } from '@/lib/utils';
-import type { RichTextBlock, RichTextDocument, RichTextRun } from '@/types/rich-text';
+import type {
+  RichTextBlock,
+  RichTextDocument,
+  RichTextImage,
+  RichTextRun,
+} from '@/types/rich-text';
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -25,7 +31,33 @@ function Line({ line }: { line: RichTextRun[] }) {
   );
 }
 
-function Block({ block }: { block: RichTextBlock }) {
+function Figure({ image, imageSrc }: { image: RichTextImage; imageSrc: RichTextImageSrc }) {
+  return (
+    <figure className="my-2 grid justify-items-center gap-2 whitespace-normal">
+      {/* Served by the API at its own size; next/image would need the API host whitelisted. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={imageSrc(image.file)}
+        alt={image.caption ?? ''}
+        width={image.width}
+        height={image.height}
+        loading="lazy"
+        decoding="async"
+        className="h-auto max-h-[80vh] w-auto max-w-full rounded-xl border border-gold-500/25 object-contain shadow-[0_18px_30px_-24px_rgba(74,46,18,0.6)]"
+      />
+      {image.caption ? (
+        <figcaption className="max-w-prose text-center text-sm italic leading-6 text-stone-500">
+          {image.caption}
+        </figcaption>
+      ) : null}
+    </figure>
+  );
+}
+
+function Block({ block, imageSrc }: { block: RichTextBlock; imageSrc?: RichTextImageSrc }) {
+  if (block.type === 'image') {
+    return imageSrc ? <Figure image={block} imageSrc={imageSrc} /> : null;
+  }
   const style: CSSProperties | undefined = block.align ? { textAlign: block.align } : undefined;
   switch (block.type) {
     case 'heading':
@@ -80,9 +112,12 @@ function Block({ block }: { block: RichTextBlock }) {
 export function RichTextView({
   document,
   className,
+  imageSrc,
 }: {
   document: RichTextDocument;
   className?: string;
+  /** Where stored pictures load from; without it picture blocks are not shown. */
+  imageSrc?: RichTextImageSrc;
 }) {
   return (
     <div
@@ -92,7 +127,7 @@ export function RichTextView({
       )}
     >
       {document.blocks.map((block, index) => (
-        <Block key={index} block={block} />
+        <Block key={index} block={block} imageSrc={imageSrc} />
       ))}
     </div>
   );

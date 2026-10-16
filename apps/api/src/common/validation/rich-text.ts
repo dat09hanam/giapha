@@ -7,6 +7,12 @@ const MAX_RUNS_PER_LINE = 200;
 const MAX_RUN_LENGTH = 5000;
 const MAX_TOTAL_LENGTH = 50_000;
 const MAX_PLAIN_LENGTH = 5000;
+const MAX_IMAGES = 60;
+const MAX_CAPTION_LENGTH = 300;
+const MAX_IMAGE_EDGE = 20_000;
+
+/** A picture stored by the API (`{uuid}.{jpg|png|webp}`); never a link to somewhere else. */
+const IMAGE_FILE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/;
 
 const textRunSchema = z
   .object({
@@ -25,6 +31,16 @@ const textRunSchema = z
 const lineSchema = z.array(textRunSchema).max(MAX_RUNS_PER_LINE);
 const alignSchema = z.enum(['center', 'right', 'justify']).optional();
 
+const imageBlockSchema = z
+  .object({
+    type: z.literal('image'),
+    file: z.string().regex(IMAGE_FILE),
+    width: z.number().int().min(1).max(MAX_IMAGE_EDGE),
+    height: z.number().int().min(1).max(MAX_IMAGE_EDGE),
+    caption: z.string().max(MAX_CAPTION_LENGTH).optional(),
+  })
+  .strict();
+
 const blockSchema = z.discriminatedUnion('type', [
   z
     .object({
@@ -40,6 +56,7 @@ const blockSchema = z.discriminatedUnion('type', [
       items: z.array(lineSchema).min(1).max(MAX_LIST_ITEMS),
     })
     .strict(),
+  imageBlockSchema,
 ]);
 
 const documentSchema = z
@@ -80,23 +97,45 @@ function lineText(line: RichTextRun[]): string {
 }
 
 function blockLines(block: RichTextBlock): RichTextRun[][] {
+  if (block.type === 'image') return [];
   return 'items' in block ? block.items : [block.content];
 }
 
+function isBlank(block: RichTextBlock): boolean {
+  return block.type !== 'image' && blockLines(block).every((line) => !lineText(line).trim());
+}
+
+function normalizeBlock(block: RichTextBlock): RichTextBlock {
+  if (block.type === 'image') {
+    const caption = block.caption?.replace(/\s+/g, ' ').trim();
+    const { type, file, width, height } = block;
+    return caption ? { type, file, width, height, caption } : { type, file, width, height };
+  }
+  return 'items' in block
+    ? { ...block, items: block.items.map(normalizeLine) }
+    : { ...block, content: normalizeLine(block.content) };
+}
+
+/**
+ * Validates an editor document. Picture blocks are refused unless `allowImages` is set, so only
+ * the places that store and serve those pictures (articles) accept them.
+ */
 export function parseRichText(
   value: unknown,
   message: string,
   subject = 'Nội dung giới thiệu',
+  { allowImages = false }: { allowImages?: boolean } = {},
 ): RichTextDocument | null {
   const parsed = documentSchema.safeParse(value);
   if (!parsed.success) throw new BadRequestException(message);
 
-  const blocks: RichTextBlock[] = parsed.data.blocks.map((block) =>
-    'items' in block
-      ? { ...block, items: block.items.map(normalizeLine) }
-      : { ...block, content: normalizeLine(block.content) },
-  );
-  while (blocks.length > 0 && blockLines(blocks.at(-1)!).every((line) => !lineText(line).trim())) {
+  const blocks = parsed.data.blocks.map(normalizeBlock);
+  const images = blocks.filter((block) => block.type === 'image').length;
+  if (images > 0 && !allowImages) throw new BadRequestException(message);
+  if (images > MAX_IMAGES) {
+    throw new BadRequestException(`${subject} có tối đa ${MAX_IMAGES} hình ảnh.`);
+  }
+  while (blocks.length > 0 && isBlank(blocks.at(-1)!)) {
     blocks.pop();
   }
   const total = blocks.reduce(
@@ -108,8 +147,13 @@ export function parseRichText(
       `${subject} quá dài (tối đa ${MAX_TOTAL_LENGTH.toLocaleString('vi-VN')} ký tự).`,
     );
   }
-  if (total === 0) return null;
+  if (total === 0 && images === 0) return null;
   return { version: 1, blocks };
+}
+
+/** Stored picture files a document shows, so the caller can delete the ones it dropped. */
+export function richTextImageFiles(document: RichTextDocument | null): string[] {
+  return (document?.blocks ?? []).flatMap((block) => (block.type === 'image' ? [block.file] : []));
 }
 
 export function readRichText(value: unknown): RichTextDocument | null {
@@ -120,11 +164,15 @@ export function readRichText(value: unknown): RichTextDocument | null {
 export function richTextToPlain(document: RichTextDocument): string {
   const text = document.blocks
     .flatMap((block) =>
-      'items' in block
-        ? block.items.map((line, index) =>
-            `${block.type === 'numbered' ? `${index + 1}.` : '•'} ${lineText(line)}`.trim(),
-          )
-        : [lineText(block.content)],
+      block.type === 'image'
+        ? block.caption
+          ? [block.caption]
+          : []
+        : 'items' in block
+          ? block.items.map((line, index) =>
+              `${block.type === 'numbered' ? `${index + 1}.` : '•'} ${lineText(line)}`.trim(),
+            )
+          : [lineText(block.content)],
     )
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')

@@ -5,7 +5,7 @@ import { PageLoader } from '@/components/ui/heritage-loader';
 import { ArticleCard, SectionIcon, formatDate } from '@/components/articles/article-card';
 import { ArticleSearchList } from '@/components/articles/article-search-list';
 import { RichTextView } from '@/components/rich-text/rich-text-view';
-import { ARTICLE_SECTIONS, articleCoverSrc } from '@/lib/article-api';
+import { ARTICLE_SECTIONS, articleCoverSrc, articleImageSrc } from '@/lib/article-api';
 import type { Article, ArticleCategory, ArticleSummary } from '@/types/article';
 
 function SectionHero({ category }: { category: ArticleCategory }) {
@@ -108,7 +108,11 @@ export function ArticleView({
             className="mt-6 aspect-[16/9] w-full rounded-2xl border border-gold-500/30 object-cover"
           />
         ) : null}
-        <RichTextView document={article.content} className="mt-8 text-base leading-8" />
+        <RichTextView
+          document={article.content}
+          className="mt-8 text-base leading-8"
+          imageSrc={articleImageSrc}
+        />
       </article>
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6">

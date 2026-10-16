@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 import {
@@ -12,7 +12,12 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Prisma, type ArticleCategory } from '@prisma/client';
 
-import { parseRichText, type RichTextDocument } from '../common/validation/rich-text.js';
+import {
+  parseRichText,
+  readRichText,
+  richTextImageFiles,
+  type RichTextDocument,
+} from '../common/validation/rich-text.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { CONTENT_TYPE_BY_EXTENSION, decodeImage, STORED_FILE_NAME } from '../media/image-format.js';
 import {
@@ -24,16 +29,27 @@ import {
   type ArticleResponse,
   type ArticleSummaryResponse,
 } from './article.types.js';
-import type { ArticleCoverDto, CreateArticleDto, UpdateArticleDto } from './dto/article.dto.js';
+import type {
+  ArticleCoverDto,
+  ArticleImageDto,
+  CreateArticleDto,
+  UpdateArticleDto,
+} from './dto/article.dto.js';
 
 const MAX_COVER_BYTES = 3 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const ARTICLE_FOLDER = 'articles';
+/** Pictures placed inside article content, kept apart from the covers. */
+const IMAGE_FOLDER = 'images';
+const IMAGE_FILE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/;
 
 const NOT_FOUND = 'Không tìm thấy bài viết.';
 const SLUG_TAKEN = 'Đường dẫn này đã có bài viết khác trong cùng mục. Hãy chọn đường dẫn khác.';
 
 function parseContent(value: unknown): RichTextDocument {
-  const document = parseRichText(value, 'Nội dung bài viết không hợp lệ.', 'Nội dung bài viết');
+  const document = parseRichText(value, 'Nội dung bài viết không hợp lệ.', 'Nội dung bài viết', {
+    allowImages: true,
+  });
   if (!document) throw new BadRequestException('Bài viết cần có nội dung.');
   return document;
 }
@@ -45,12 +61,14 @@ function isSlugConflict(error: unknown): boolean {
 @Injectable()
 export class ArticlesService {
   private readonly directory: string;
+  private readonly imageDirectory: string;
 
   constructor(
     @Inject(ConfigService) config: ConfigService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {
     this.directory = join(resolve(config.getOrThrow<string>('MEDIA_ROOT')), ARTICLE_FOLDER);
+    this.imageDirectory = join(this.directory, IMAGE_FOLDER);
   }
 
   async listPublished(category: ArticleCategory): Promise<ArticleSummaryResponse[]> {
@@ -81,6 +99,7 @@ export class ArticlesService {
 
   async create(input: CreateArticleDto): Promise<AdminArticleResponse> {
     const content = parseContent(input.content);
+    await this.assertImagesExist(content);
     const coverFile = input.cover ? await this.storeCover(input.cover) : null;
     try {
       const record = await this.prisma.article.create({
@@ -107,11 +126,12 @@ export class ArticlesService {
   async update(id: string, input: UpdateArticleDto): Promise<AdminArticleResponse> {
     const existing = await this.prisma.article.findUnique({
       where: { id },
-      select: { coverFile: true, publishedAt: true },
+      select: { coverFile: true, publishedAt: true, content: true },
     });
     if (!existing) throw new NotFoundException(NOT_FOUND);
 
     const content = input.content === undefined ? undefined : parseContent(input.content);
+    if (content) await this.assertImagesExist(content);
     const coverFile =
       input.cover === undefined
         ? undefined
@@ -138,6 +158,13 @@ export class ArticlesService {
         select: articleSelect,
       });
       if (coverFile !== undefined && existing.coverFile) await this.removeCover(existing.coverFile);
+      if (content) {
+        const kept = new Set(richTextImageFiles(content));
+        const dropped = richTextImageFiles(readRichText(existing.content)).filter(
+          (file) => !kept.has(file),
+        );
+        await this.removeImages(dropped);
+      }
       return toAdminArticle(record);
     } catch (error: unknown) {
       if (coverFile) await this.removeCover(coverFile);
@@ -149,12 +176,13 @@ export class ArticlesService {
   async remove(id: string): Promise<void> {
     const existing = await this.prisma.article.findUnique({
       where: { id },
-      select: { coverFile: true },
+      select: { coverFile: true, content: true },
     });
     if (!existing) throw new NotFoundException(NOT_FOUND);
 
     await this.prisma.article.delete({ where: { id } });
     if (existing.coverFile) await this.removeCover(existing.coverFile);
+    await this.removeImages(richTextImageFiles(readRichText(existing.content)));
   }
 
   async readCover(id: string): Promise<{ bytes: Buffer; contentType: string }> {
@@ -172,6 +200,47 @@ export class ArticlesService {
     } catch {
       throw new NotFoundException(NOT_FOUND);
     }
+  }
+
+  /** Saves a picture for article content; it is shown once an article that uses it is saved. */
+  async storeImage(input: ArticleImageDto): Promise<{ file: string }> {
+    const { bytes, extension } = decodeImage(input.contentType, input.data, MAX_IMAGE_BYTES);
+    const file = `${randomUUID()}.${extension}`;
+    await mkdir(this.imageDirectory, { recursive: true });
+    await writeFile(join(this.imageDirectory, file), bytes);
+    return { file };
+  }
+
+  async readImage(file: string): Promise<{ bytes: Buffer; contentType: string }> {
+    const contentType = IMAGE_FILE.test(file)
+      ? CONTENT_TYPE_BY_EXTENSION[file.split('.').pop() ?? '']
+      : undefined;
+    if (!contentType) throw new NotFoundException('Không tìm thấy hình ảnh.');
+    try {
+      return { bytes: await readFile(join(this.imageDirectory, file)), contentType };
+    } catch {
+      throw new NotFoundException('Không tìm thấy hình ảnh.');
+    }
+  }
+
+  private async assertImagesExist(document: RichTextDocument): Promise<void> {
+    for (const file of richTextImageFiles(document)) {
+      try {
+        await access(join(this.imageDirectory, file));
+      } catch {
+        throw new BadRequestException(
+          'Có hình ảnh trong bài viết không còn trên máy chủ. Hãy xóa và chèn lại ảnh đó.',
+        );
+      }
+    }
+  }
+
+  private async removeImages(files: readonly string[]): Promise<void> {
+    await Promise.all(
+      files
+        .filter((file) => IMAGE_FILE.test(file))
+        .map((file) => rm(join(this.imageDirectory, file), { force: true })),
+    );
   }
 
   private async storeCover(cover: ArticleCoverDto): Promise<string> {

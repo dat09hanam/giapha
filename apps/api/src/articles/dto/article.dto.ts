@@ -31,6 +31,9 @@ export class ArticleCoverDto {
   data!: string;
 }
 
+/** A picture uploaded for the article content, same rules as the cover. */
+export class ArticleImageDto extends ArticleCoverDto {}
+
 export class ListArticlesQueryDto {
   @IsEnum(ArticleCategory)
   category!: ArticleCategory;

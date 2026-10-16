@@ -189,7 +189,13 @@ family head may only pick an active row.
 (`LIBRARY`). Like `PosterDecoration` it is platform-level and **not** tenant-owned: it has no
 `familyId`, is written only by the platform `ADMIN` (the Bài viết tab of `/admin`), and must not hold
 any Family's data. Its body is the same validated rich-text document as `Family.introduction`, and
-an optional cover image lives under `MEDIA_ROOT/articles/`. `GET /api/articles?category=` and
+an optional cover image lives under `MEDIA_ROOT/articles/`. Only an article body may also hold
+`image` blocks (`{ file, width, height, caption? }`); `Family.introduction` refuses them. `file` is
+always a name the API stored under `MEDIA_ROOT/articles/images/` via `POST /api/articles/images`
+(`ADMIN` only), never an outside link; a save is refused if a referenced file is missing, and
+pictures an update drops, or the whole article's on delete, are removed from disk. They are served
+publicly at `GET /api/articles/images/:file`. A picture uploaded but never saved into an article
+stays on disk. `GET /api/articles?category=` and
 `GET /api/articles/:category/:slug` are public and only ever return published rows (a draft is a
 404); `GET /api/articles/admin` and the writes are `ADMIN` only; covers are served publicly. The web
 shows them at `/mau-bai-cung` and `/thu-vien` (both reserved Family slugs) under the home page's
