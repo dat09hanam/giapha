@@ -91,7 +91,7 @@ type FeatureFrame = 'phone' | 'print' | 'none';
 const FEATURES_DIR = '/images/features';
 
 const featureImages: readonly (string | undefined)[] = [
-  `${FEATURES_DIR}/function1.webp`,
+  `${FEATURES_DIR}/function1.png`,
   `${FEATURES_DIR}/function2.webp`,
   `${FEATURES_DIR}/function3.webp`,
   `${FEATURES_DIR}/function4.webp`,
@@ -109,8 +109,8 @@ export const features: readonly Feature[] = [
     text: 'Cây gia phả nhiều đời, phân theo từng thế hệ.',
     group: 'pha-he',
     image: featureImages[0],
-    frame: 'phone', // 'phone' | 'print' | 'none'
-    fit: 'cover', // 'cover' | 'contain' | 'width'
+    frame: 'none', // 'phone' | 'print' | 'none'
+    fit: 'width', // 'cover' | 'contain' | 'width'
     focus: 'top center', // 'center', 'left center', '30% 60%'
   },
   {
