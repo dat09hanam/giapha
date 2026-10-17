@@ -20,6 +20,7 @@ import {
 } from '../common/validation/rich-text.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { CONTENT_TYPE_BY_EXTENSION, decodeImage, STORED_FILE_NAME } from '../media/image-format.js';
+import { optimizeImage } from '../media/image-optimize.js';
 import {
   articleSelect,
   toAdminArticle,
@@ -267,7 +268,8 @@ export class ArticlesService {
 
   /** Saves a picture for article content; it is shown once an article that uses it is saved. */
   async storeImage(input: ArticleImageDto): Promise<{ file: string }> {
-    const { bytes, extension } = decodeImage(input.contentType, input.data, MAX_IMAGE_BYTES);
+    const decoded = decodeImage(input.contentType, input.data, MAX_IMAGE_BYTES);
+    const { bytes, extension } = await optimizeImage(decoded.bytes, decoded.extension);
     const file = `${randomUUID()}.${extension}`;
     await mkdir(this.imageDirectory, { recursive: true });
     await writeFile(join(this.imageDirectory, file), bytes);
@@ -307,7 +309,8 @@ export class ArticlesService {
   }
 
   private async storeCover(cover: ArticleCoverDto): Promise<string> {
-    const { bytes, extension } = decodeImage(cover.contentType, cover.data, MAX_COVER_BYTES);
+    const decoded = decodeImage(cover.contentType, cover.data, MAX_COVER_BYTES);
+    const { bytes, extension } = await optimizeImage(decoded.bytes, decoded.extension);
     const fileName = `${randomUUID()}.${extension}`;
     await mkdir(this.directory, { recursive: true });
     await writeFile(join(this.directory, fileName), bytes);

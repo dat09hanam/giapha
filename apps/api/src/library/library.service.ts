@@ -341,7 +341,7 @@ export class LibraryService {
       const item = await save({
         fileUrl: file.url,
         thumbUrl: thumb?.url ?? null,
-        contentType: input.contentType,
+        contentType: file.contentType,
         sizeBytes: file.sizeBytes,
         width: input.width ?? null,
         height: input.height ?? null,

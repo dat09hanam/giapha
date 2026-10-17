@@ -13,6 +13,7 @@ import {
   DOCUMENT_FORMATS,
   STORED_FILE_NAME,
 } from './image-format.js';
+import { optimizeImage } from './image-optimize.js';
 
 import type { UploadFamilyMediaDto } from './dto/upload-family-media.dto.js';
 import type { UploadedMediaResponse } from './media.types.js';
@@ -42,10 +43,13 @@ export class MediaService {
     data: string,
     maxBytes: number,
     allowPdf = false,
-  ): Promise<UploadedMediaResponse & { sizeBytes: number }> {
-    const { bytes, extension } = allowPdf
+  ): Promise<UploadedMediaResponse & { sizeBytes: number; contentType: string }> {
+    const decoded = allowPdf
       ? decodeImage(contentType, data, maxBytes, DOCUMENT_FORMATS)
       : decodeImage(contentType, data, maxBytes);
+    // Pictures are always stored as WebP; PDFs are kept byte for byte.
+    const { bytes, extension } =
+      decoded.extension === 'pdf' ? decoded : await optimizeImage(decoded.bytes, decoded.extension);
     await reserveFamilyStorage(this.prisma, familyId, bytes.length);
 
     const fileName = `${randomUUID()}.${extension}`;
@@ -59,7 +63,12 @@ export class MediaService {
       throw error;
     }
 
-    return { fileName, url: `${MEDIA_URL_PREFIX}${fileName}`, sizeBytes: bytes.length };
+    return {
+      fileName,
+      url: `${MEDIA_URL_PREFIX}${fileName}`,
+      sizeBytes: bytes.length,
+      contentType: CONTENT_TYPE_BY_EXTENSION[extension] ?? contentType,
+    };
   }
 
   async removeOwnedFiles(familyId: string, urls: readonly string[]): Promise<void> {
