@@ -6,6 +6,7 @@ import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
 import { FamilyAccessGuard } from '../common/auth/family-access.guard.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { GoogleIdTokenVerifier } from './google-id-token.js';
 import { PasswordResetService } from './password-reset.service.js';
 import { MailModule } from '../mail/mail.module.js';
 
@@ -14,12 +15,19 @@ import { MailModule } from '../mail/mail.module.js';
   controllers: [AuthController],
   providers: [
     AuthService,
+    GoogleIdTokenVerifier,
     PasswordResetService,
     AuthThrottleGuard,
     SessionAuthGuard,
     FamilyAccessGuard,
     PlatformAdminGuard,
   ],
-  exports: [AuthService, SessionAuthGuard, FamilyAccessGuard, PlatformAdminGuard],
+  exports: [
+    AuthService,
+    GoogleIdTokenVerifier,
+    SessionAuthGuard,
+    FamilyAccessGuard,
+    PlatformAdminGuard,
+  ],
 })
 export class AuthModule {}

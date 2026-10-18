@@ -35,6 +35,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+import { PlanCrown } from '@/components/pricing/plan-crown';
+import {
+  LOCKED_FEATURE_TITLE,
+  PlanLimitDialog,
+  lockedFeatureMessage,
+} from '@/components/pricing/plan-limit-dialog';
 import { familyEdgeTypes } from '@/components/tree/family-link-edge';
 import { KinshipDialog } from '@/components/tree/kinship-dialog';
 import { PersonDetailsDialog } from '@/components/tree/person-details-dialog';
@@ -49,7 +55,7 @@ import type { PersonSearchEntry } from '@/lib/person-search';
 import { toPosterElements } from '@/lib/tree-layout';
 import { cn } from '@/lib/utils';
 import { decorationImageSrc, type FamilyPoster } from '@/lib/poster-decorations';
-import type { FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
+import type { FamilyFeature, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
 
 const nodeTypes = {
   person: PersonNode,
@@ -132,7 +138,13 @@ function useShowPoster(surface: RefObject<HTMLDivElement | null>, poster: Rect |
 
 type FamilyTreeProps = {
   tree: FamilyTreeResponse;
-  family: { name: string; poster: FamilyPoster; features: FamilyFeatures };
+  family: {
+    name: string;
+    poster: FamilyPoster;
+    features: FamilyFeatures;
+    /** Sections the plan leaves out that this viewer would otherwise use: shown with a crown. */
+    lockedFeatures?: readonly FamilyFeature[];
+  };
   familySlug: string;
   showToolbar?: boolean;
 };
@@ -177,10 +189,14 @@ function ShortcutCard({
 function DesktopShortcuts({
   familySlug,
   features,
+  printLocked,
+  onPrintLocked,
   onFullScreen,
 }: {
   familySlug: string;
   features: FamilyFeatures;
+  printLocked: boolean;
+  onPrintLocked: () => void;
   onFullScreen: () => void;
 }) {
   const base = `/${encodeURIComponent(familySlug)}`;
@@ -201,6 +217,16 @@ function DesktopShortcuts({
           <Link href={`${base}/in-gia-pha`} className={cardClass}>
             <ShortcutCard icon={Printer} title="In gia phả" hint="Tải file hoặc in trực tiếp" />
           </Link>
+        ) : printLocked ? (
+          <button
+            type="button"
+            onClick={onPrintLocked}
+            aria-label="In gia phả (cần nâng cấp gói)"
+            className={cn(cardClass, 'relative')}
+          >
+            <ShortcutCard icon={Printer} title="In gia phả" hint="Cần nâng cấp gói để sử dụng" />
+            <PlanCrown className="right-3 top-3 size-6" />
+          </button>
         ) : null}
       </div>
       {sections.length > 0 ? (
@@ -237,6 +263,13 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
   const closeDetails = useCallback(() => setSelectedId(null), []);
   const [kinshipFromId, setKinshipFromId] = useState<string | null | undefined>(undefined);
   const closeKinship = useCallback(() => setKinshipFromId(undefined), []);
+  const printLocked = family.lockedFeatures?.includes('printBook') ?? false;
+  const [lockedMessage, setLockedMessage] = useState<string | null>(null);
+  const closeLocked = useCallback(() => setLockedMessage(null), []);
+  const showPrintLocked = useCallback(
+    () => setLockedMessage(lockedFeatureMessage('In gia phả')),
+    [],
+  );
   const openKinshipFrom = useCallback((personId: string) => {
     setSelectedId(null);
     setKinshipFromId(personId);
@@ -369,6 +402,17 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
               <Printer className="size-4" aria-hidden="true" />
               <span className="hidden sm:inline">In gia phả</span>
             </Link>
+          ) : printLocked ? (
+            <button
+              type="button"
+              onClick={showPrintLocked}
+              aria-label="In gia phả (cần nâng cấp gói)"
+              className={cn(toolbarButtonClass, 'relative')}
+            >
+              <Printer className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">In gia phả</span>
+              <PlanCrown />
+            </button>
           ) : null}
         </div>
       ) : null}
@@ -489,9 +533,12 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
         <DesktopShortcuts
           familySlug={familySlug}
           features={family.features}
+          printLocked={printLocked}
+          onPrintLocked={showPrintLocked}
           onFullScreen={() => setLandscapeMode('on')}
         />
       )}
+      <PlanLimitDialog title={LOCKED_FEATURE_TITLE} message={lockedMessage} onClose={closeLocked} />
     </div>
   );
 }

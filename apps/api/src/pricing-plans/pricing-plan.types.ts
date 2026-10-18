@@ -15,6 +15,7 @@ export const pricingPlanSelect = {
   ctaLabel: true,
   ctaHref: true,
   isActive: true,
+  googleSignup: true,
   sortOrder: true,
   features: {
     select: { id: true, key: true, value: true, style: true },
@@ -46,6 +47,8 @@ export type PricingPlanResponse = {
   ctaLabel: string;
   ctaHref: string;
   isActive: boolean;
+  /** The plan Google self-service sign-up uses; at most one plan has it. Admin-only setting. */
+  googleSignup: boolean;
   sortOrder: number;
   features: PricingPlanFeatureResponse[];
   /** What the lines enforce for a family on this plan. */

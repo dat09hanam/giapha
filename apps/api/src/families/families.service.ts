@@ -392,7 +392,14 @@ export class FamiliesService {
     return toAdminFamily(record);
   }
 
-  async createFamily(input: CreateFamilyDto): Promise<CreatedFamilyResult> {
+  /**
+   * `googleHeadSub`: the clan head signed up with this Google account; they sign in with it, so
+   * the generated password is never shown to them and need not be changed.
+   */
+  async createFamily(
+    input: CreateFamilyDto,
+    googleHeadSub: string | null = null,
+  ): Promise<CreatedFamilyResult> {
     const name = normalizeFamilyName(input.name);
     const anniversary = parseDeathAnniversary(input.deathAnniversary);
     const ancestryOrigin = input.ancestryOrigin?.trim() || null;
@@ -455,7 +462,8 @@ export class FamiliesService {
             {
               username: usernames.memberPlus,
               passwordHash: memberPlusPasswordHash,
-              mustChangePassword: true,
+              mustChangePassword: googleHeadSub === null,
+              googleSub: googleHeadSub,
               displayName: `Trưởng họ - ${name}`,
               email: headEmail,
               role: UserRole.MEMBER_PLUS,

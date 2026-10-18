@@ -45,6 +45,7 @@ function planData(
     ctaLabel: input.ctaLabel.trim(),
     ctaHref: input.ctaHref.trim(),
     isActive: input.isActive,
+    googleSignup: input.googleSignup,
   };
 }
 
@@ -73,6 +74,17 @@ function defaultFeatureRows(): Prisma.PricingPlanFeatureCreateWithoutPlanInput[]
 
 const SORT_STEP = 10;
 
+/** Only one plan is the Google sign-up plan: turning it on for one turns it off for the rest. */
+async function clearGoogleSignup(
+  transaction: Prisma.TransactionClient,
+  keepId?: string,
+): Promise<void> {
+  await transaction.pricingPlan.updateMany({
+    where: { googleSignup: true, ...(keepId ? { id: { not: keepId } } : {}) },
+    data: { googleSignup: false },
+  });
+}
+
 @Injectable()
 export class PricingPlansService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -100,13 +112,16 @@ export class PricingPlansService {
 
   async create(input: PricingPlanDto): Promise<PricingPlanResponse> {
     const last = await this.prisma.pricingPlan.aggregate({ _max: { sortOrder: true } });
-    const record = await this.prisma.pricingPlan.create({
-      data: {
-        ...planData(input),
-        sortOrder: (last._max.sortOrder ?? 0) + SORT_STEP,
-        features: { create: defaultFeatureRows() },
-      },
-      select: pricingPlanSelect,
+    const record = await this.prisma.$transaction(async (transaction) => {
+      if (input.googleSignup) await clearGoogleSignup(transaction);
+      return transaction.pricingPlan.create({
+        data: {
+          ...planData(input),
+          sortOrder: (last._max.sortOrder ?? 0) + SORT_STEP,
+          features: { create: defaultFeatureRows() },
+        },
+        select: pricingPlanSelect,
+      });
     });
     return toPricingPlanResponse(record);
   }
@@ -117,10 +132,13 @@ export class PricingPlansService {
       select: { id: true },
     });
     if (!existing) throw new NotFoundException(NOT_FOUND);
-    const record = await this.prisma.pricingPlan.update({
-      where: { id },
-      data: planData(input),
-      select: pricingPlanSelect,
+    const record = await this.prisma.$transaction(async (transaction) => {
+      if (input.googleSignup) await clearGoogleSignup(transaction, id);
+      return transaction.pricingPlan.update({
+        where: { id },
+        data: planData(input),
+        select: pricingPlanSelect,
+      });
     });
     return toPricingPlanResponse(record);
   }

@@ -132,3 +132,52 @@ export function profileDestination(profile: AuthProfile): string {
 
   return `/${encodeURIComponent(profile.family.slug)}`;
 }
+
+/** Set when the Google sign-in button can be shown (same OAuth client as the API). */
+export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
+
+export const GOOGLE_SIGNUP_PATH = '/dang-ky';
+
+export type GoogleLoginResult =
+  | { status: 'signed-in'; profile: AuthProfile }
+  | { status: 'needs-registration'; email: string; name: string | null };
+
+export function loginWithGoogle(credential: string): Promise<GoogleLoginResult> {
+  return apiFetch<GoogleLoginResult>(
+    `${API_URL}/auth/google`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential }),
+    },
+    'đăng nhập bằng Google',
+  );
+}
+
+export type GoogleSignupInput = {
+  credential: string;
+  name: string;
+  deathAnniversary: string;
+  ancestryOrigin?: string;
+  agreed: boolean;
+};
+
+export type GoogleSignupResult = {
+  profile: AuthProfile;
+  /** The family's shared member account, shown once. */
+  member: { username: string; password: string };
+};
+
+export function signUpWithGoogle(input: GoogleSignupInput): Promise<GoogleSignupResult> {
+  return apiFetch<GoogleSignupResult>(
+    `${API_URL}/auth/google/register`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    },
+    'đăng ký dòng họ',
+  );
+}

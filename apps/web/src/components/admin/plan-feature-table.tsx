@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ChevronUp,
   EyeOff,
+  LogIn,
   PencilLine,
   Trash2,
 } from 'lucide-react';
@@ -240,6 +241,15 @@ export function PlanFeatureTable({
                         <span className="mt-1 inline-flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 text-[11px] font-medium text-stone-600">
                           <EyeOff className="size-3" aria-hidden="true" />
                           Đang ẩn
+                        </span>
+                      ) : null}
+                      {plan.googleSignup ? (
+                        <span
+                          className="mt-1 inline-flex items-center gap-1 rounded bg-sky-50 px-1.5 py-0.5 text-[11px] font-medium text-sky-800 ring-1 ring-inset ring-sky-200"
+                          title="Người tự đăng ký bằng Google được gói này"
+                        >
+                          <LogIn className="size-3" aria-hidden="true" />
+                          Đăng ký Google
                         </span>
                       ) : null}
                     </div>

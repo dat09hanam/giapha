@@ -46,6 +46,7 @@ function emptyDraft(): Draft {
     ctaLabel: 'Đăng ký ngay',
     ctaHref: '#lien-he',
     isActive: true,
+    googleSignup: false,
   };
 }
 
@@ -63,6 +64,7 @@ function toDraft(plan: PricingPlan): Draft {
     ctaLabel: plan.ctaLabel,
     ctaHref: plan.ctaHref,
     isActive: plan.isActive,
+    googleSignup: plan.googleSignup,
   };
 }
 
@@ -78,6 +80,7 @@ function toInput(draft: Draft): PricingPlanInput {
     ctaLabel: draft.ctaLabel,
     ctaHref: draft.ctaHref,
     isActive: draft.isActive,
+    googleSignup: draft.googleSignup,
     price: Math.max(0, Math.round(Number(draft.price) || 0)),
   };
 }
@@ -169,6 +172,7 @@ function CheckField({
 function PlanEditor({
   features,
   draft,
+  googleSignupOwner,
   saving,
   onChange,
   onCancel,
@@ -177,6 +181,8 @@ function PlanEditor({
   /** Display lines for the preview card. */
   features: PricingCardPlan['features'];
   draft: Draft;
+  /** Name of another plan that has Google sign-up now, if any. */
+  googleSignupOwner: string | null;
   saving: boolean;
   onChange: (draft: Draft) => void;
   onCancel: () => void;
@@ -347,6 +353,17 @@ function PlanEditor({
                 checked={draft.isActive}
                 onChange={(checked) => set('isActive', checked)}
               />
+              <CheckField
+                id="plan-google-signup"
+                label="Đăng ký bằng Google"
+                hint={
+                  googleSignupOwner && !draft.googleSignup
+                    ? `Người tự đăng ký bằng Google được gói này. Đang bật ở gói “${googleSignupOwner}”; bật ở đây sẽ tắt gói đó.`
+                    : 'Người tự đăng ký bằng Google được gói này. Chỉ một gói được bật; không hiện trên thẻ gói.'
+                }
+                checked={draft.googleSignup}
+                onChange={(checked) => set('googleSignup', checked)}
+              />
             </div>
           </div>
 
@@ -379,6 +396,8 @@ export function PricingPlanManager({
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const editing = draft?.id ? plans.find((plan) => plan.id === draft.id) : undefined;
+  const googleSignupOwner =
+    plans.find((plan) => plan.googleSignup && plan.id !== draft?.id)?.name ?? null;
 
   async function save(): Promise<void> {
     if (!draft) return;
@@ -388,8 +407,14 @@ export function PricingPlanManager({
       const saved = draft.id
         ? await updatePricingPlan(draft.id, input)
         : await createPricingPlan(input);
+      // The API turned Google sign-up off on every other plan when this one took it.
       setPlans((current) =>
-        bySortOrder([...current.filter((plan) => plan.id !== saved.id), saved]),
+        bySortOrder([
+          ...current
+            .filter((plan) => plan.id !== saved.id)
+            .map((plan) => (saved.googleSignup ? { ...plan, googleSignup: false } : plan)),
+          saved,
+        ]),
       );
       setDraft(null);
       showToast({
@@ -482,6 +507,7 @@ export function PricingPlanManager({
               : defaultFeatures(catalog)
           }
           draft={draft}
+          googleSignupOwner={googleSignupOwner}
           saving={saving}
           onChange={setDraft}
           onCancel={() => setDraft(null)}

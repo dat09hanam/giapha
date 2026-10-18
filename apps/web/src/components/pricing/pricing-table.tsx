@@ -1,10 +1,12 @@
 'use client';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Presence } from '@/components/ui/presence';
+import { GOOGLE_CLIENT_ID, GOOGLE_SIGNUP_PATH } from '@/lib/auth-api';
 import { cn } from '@/lib/utils';
 import type { PricingPlan } from '@/types/pricing';
 
@@ -13,6 +15,12 @@ import { PricingCard } from './pricing-card';
 import styles from './pricing.module.css';
 
 export function PricingTable({ plans }: { plans: readonly PricingPlan[] }) {
+  const router = useRouter();
+  // The plan the admin marked for Google sign-up is opened by the visitor themselves; the others
+  // go through a registration request the admin follows up.
+  const selfServicePlanId = GOOGLE_CLIENT_ID
+    ? plans.find((plan) => plan.googleSignup)?.id
+    : undefined;
   const [chosen, setChosen] = useState<PricingPlan | null>(null);
   const [inBrowser, setInBrowser] = useState(false);
   const [current, setCurrent] = useState(0);
@@ -77,7 +85,13 @@ export function PricingTable({ plans }: { plans: readonly PricingPlan[] }) {
       <div className={styles.carousel}>
         <div ref={gridRef} className={styles.grid}>
           {plans.map((plan) => (
-            <PricingCard key={plan.id} plan={plan} onChoose={() => setChosen(plan)} />
+            <PricingCard
+              key={plan.id}
+              plan={plan}
+              onChoose={() =>
+                plan.id === selfServicePlanId ? router.push(GOOGLE_SIGNUP_PATH) : setChosen(plan)
+              }
+            />
           ))}
         </div>
         {edges.start ? (

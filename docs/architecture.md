@@ -92,6 +92,16 @@ Endpoints:
   required); its other sessions are signed out and `mustChangePassword` is cleared.
 - `POST /api/families`: `ADMIN` only. It atomically creates one Family, one `MEMBER_PLUS` account and
   one `MEMBER` account.
+- `POST /api/auth/google`: signs in with a Google Identity Services ID token, verified against
+  Google's signing keys and `GOOGLE_CLIENT_ID` (`GoogleIdTokenVerifier`). The account is found by
+  `User.googleSub`, or the first time by `User.email` equal to the verified Google email, which then
+  links it. With no matching account it answers `needs-registration` and opens no session.
+- `POST /api/auth/google/register` (`SignupModule`): public self-service sign-up. It creates a
+  Family exactly as `POST /api/families` does, on the plan the admin marked `googleSignup` (at most
+  one plan; never a client-chosen plan; none marked closes sign-up), with the Google account as its
+  `MEMBER_PLUS` (email and
+  `googleSub` set, no forced password change) and signs it in. One Google account opens at most
+  one Family; the shared `MEMBER` credentials are returned once.
 - `/api/families/:slug/accounts`: `MEMBER_PLUS` only. `GET` lists the Family's accounts with their
   branches; `POST` creates a `MEMBER` account from a typed `usernamePrefix` (e.g. `adminchi1`) plus
   the family's suffix, giving `adminchi1HoPham1503`. The suffix (`GET username-suffix`) is what the

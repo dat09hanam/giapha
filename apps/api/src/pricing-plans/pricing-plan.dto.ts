@@ -87,6 +87,10 @@ export class PricingPlanDto {
 
   @IsBoolean()
   isActive!: boolean;
+
+  /** Google self-service sign-up opens families on this plan; turning it on turns it off elsewhere. */
+  @IsBoolean()
+  googleSignup!: boolean;
 }
 
 /** One column of the admin's feature table: a plan and its complete feature lines. */

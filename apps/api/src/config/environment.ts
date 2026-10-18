@@ -24,6 +24,10 @@ const environmentSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   MAIL_FROM: z.string().min(1).default(`${SITE_BRAND.name} <no-reply@giapha.local>`),
+  GOOGLE_CLIENT_ID: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;

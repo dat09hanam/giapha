@@ -27,12 +27,28 @@ function LotusOrnament() {
   );
 }
 
+export const PLAN_LIMIT_TITLE = 'Đã đạt giới hạn của gói';
+export const LOCKED_FEATURE_TITLE = 'Tính năng cần nâng cấp gói';
+
+/** The message for a section the family's plan does not include. */
+export function lockedFeatureMessage(feature: string): string {
+  return `Gói dịch vụ hiện tại của dòng họ chưa được sử dụng tính năng “${feature}”. Hãy nâng cấp gói để mở tính năng này.`;
+}
+
 /**
  * Shown when an addition would exceed the family's plan, whether the web caught it early or the
- * API refused it. The way out is a bigger plan, so the admin's phone is the centrepiece: tapping
- * the number calls it.
+ * API refused it, or when a section the plan does not include is opened. The way out is a bigger
+ * plan, so the admin's phone is the centrepiece: tapping the number calls it.
  */
-function PlanLimitDialogPanel({ message, onClose }: { message: string; onClose: () => void }) {
+function PlanLimitDialogPanel({
+  title,
+  message,
+  onClose,
+}: {
+  title: string;
+  message: string;
+  onClose: () => void;
+}) {
   const titleId = useId();
   const messageId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -81,7 +97,7 @@ function PlanLimitDialogPanel({ message, onClose }: { message: string; onClose: 
         </div>
 
         <h2 id={titleId} className={styles.title}>
-          Đã đạt giới hạn của gói
+          {title}
         </h2>
         <div className={styles.divider}>
           <LotusOrnament />
@@ -154,16 +170,18 @@ function PlanLimitDialogPanel({ message, onClose }: { message: string; onClose: 
 }
 
 export function PlanLimitDialog({
+  title = PLAN_LIMIT_TITLE,
   message,
   onClose,
 }: {
+  title?: string;
   /** Null keeps the dialog closed. */
   message: string | null;
   onClose: () => void;
 }) {
   return (
     <Presence>
-      {message ? <PlanLimitDialogPanel message={message} onClose={onClose} /> : null}
+      {message ? <PlanLimitDialogPanel title={title} message={message} onClose={onClose} /> : null}
     </Presence>
   );
 }

@@ -53,6 +53,8 @@ export type PricingPlan = {
   ctaLabel: string;
   ctaHref: string;
   isActive: boolean;
+  /** Google self-service sign-up opens families on this plan; at most one plan. Admin-only. */
+  googleSignup: boolean;
   sortOrder: number;
   features: PricingPlanFeature[];
   rights: PlanRights;

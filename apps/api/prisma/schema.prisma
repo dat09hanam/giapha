@@ -148,6 +148,8 @@ model User {
   passwordHash       String              @db.VarChar(255)
   displayName        String              @db.VarChar(191)
   email              String?             @unique @db.VarChar(191)
+  /// Google account id ("sub" claim) of a user who signs in with Google; one account per user.
+  googleSub          String?             @unique @db.VarChar(64)
   role               UserRole
   familyId           String?             @db.Char(36)
   status             UserStatus          @default(ACTIVE)
@@ -552,6 +554,9 @@ model PricingPlan {
   ctaLabel      String                @db.VarChar(40)
   ctaHref       String                @db.VarChar(255)
   isActive      Boolean               @default(true)
+  /// The plan a family opened by Google self-service sign-up gets. Set on at most one plan; shown
+  /// only in the admin, never on the public card.
+  googleSignup  Boolean               @default(false)
   sortOrder     Int                   @default(0)
   features      PricingPlanFeature[]
   registrations ServiceRegistration[]

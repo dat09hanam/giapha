@@ -17,6 +17,7 @@ import { MediaModule } from './media/media.module.js';
 import { MeritModule } from './merit/merit.module.js';
 import { PosterDecorationsModule } from './poster-decorations/poster-decorations.module.js';
 import { PricingPlansModule } from './pricing-plans/pricing-plans.module.js';
+import { SignupModule } from './signup/signup.module.js';
 import { SiteContactModule } from './site-contact/site-contact.module.js';
 
 @Module({
@@ -38,6 +39,7 @@ import { SiteContactModule } from './site-contact/site-contact.module.js';
     ArticlesModule,
     PricingPlansModule,
     SiteContactModule,
+    SignupModule,
   ],
 })
 export class AppModule {}
