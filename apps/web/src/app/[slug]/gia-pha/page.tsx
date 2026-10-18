@@ -32,7 +32,10 @@ export async function generateMetadata({ params }: FamilyPageProps): Promise<Met
 
   try {
     const family = await getFamily(slug);
-    return { description: family.description ?? `Gia phả của ${family.name}` };
+    return {
+      title: `Cây gia phả ${family.name}`,
+      description: family.description ?? `Gia phả của ${family.name}`,
+    };
   } catch {
     return {};
   }

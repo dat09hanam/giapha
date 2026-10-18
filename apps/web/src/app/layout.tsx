@@ -8,6 +8,7 @@ import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { ToastProvider } from '@/components/ui/toast';
 import { FormValidation } from '@/components/ui/form-validation';
 import { getSiteContact } from '@/lib/api';
+import { SITE_TITLE, SITE_URL } from '@/lib/seo';
 import { SITE_BRAND } from '@/lib/site-brand';
 import { DEFAULT_SITE_CONTACT } from '@/lib/site-contact';
 import type { SiteContact } from '@/types/site-contact';
@@ -29,7 +30,10 @@ const serif = Noto_Serif({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: `%s | ${SITE_BRAND.name}` },
   description: SITE_BRAND.description,
+  applicationName: SITE_BRAND.name,
 };
 
 /** The contact details never block a page: an unreachable API falls back to the defaults. */
@@ -45,9 +49,6 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const contact = await loadSiteContact();
   return (
     <html lang="vi" className={`${sans.variable} ${serif.variable}`}>
-      <head>
-        <title>{SITE_BRAND.name}</title>
-      </head>
       <body>
         <FormValidation />
         <NavigationProgress />

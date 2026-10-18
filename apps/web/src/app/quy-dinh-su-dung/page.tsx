@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
 
 import { LegalPage, type LegalSection } from '@/components/legal/legal-page';
+import { pageMetadata } from '@/lib/seo';
 import { SITE_BRAND } from '@/lib/site-brand';
 import { SITE_POLICY_LINKS } from '@/lib/site-contact';
 
-export const metadata: Metadata = {
-  title: `Quy định sử dụng dịch vụ | ${SITE_BRAND.name}`,
+export const metadata: Metadata = pageMetadata({
+  title: 'Quy định sử dụng dịch vụ',
   description: `Các điều khoản khi đăng ký và sử dụng dịch vụ gia phả trực tuyến ${SITE_BRAND.name}.`,
-};
+  path: '/quy-dinh-su-dung',
+});
 
 const sections: readonly LegalSection[] = [
   {

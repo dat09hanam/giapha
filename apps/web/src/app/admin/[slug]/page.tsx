@@ -24,6 +24,7 @@ import { ApiRequestError } from '@/lib/api-error';
 import type { FamilyAccount } from '@/lib/family-accounts-api';
 import { requireFamilyManager, type FamilyManagerProfile } from '@/lib/family-manager';
 import type { PosterDecoration } from '@/lib/poster-decorations';
+import { NO_INDEX } from '@/lib/seo';
 import type { EditSuggestion } from '@/types/edit-suggestion';
 import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
 
@@ -32,7 +33,9 @@ type FamilyAdminPageProps = {
 };
 
 export const metadata: Metadata = {
+  title: 'Quản trị dòng họ',
   description: 'Không gian quản trị cây gia phả của dòng họ.',
+  robots: NO_INDEX,
 };
 
 export const dynamic = 'force-dynamic';

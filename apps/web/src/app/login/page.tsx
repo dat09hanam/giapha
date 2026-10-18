@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { LoginForm } from '@/components/auth/login-form';
+import { NO_INDEX } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  title: 'Đăng nhập',
   description: 'Đăng nhập để truy cập không gian dòng họ của bạn.',
+  robots: NO_INDEX,
 };
 
 type LoginPageProps = {

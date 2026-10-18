@@ -8,9 +8,12 @@ import { LogoutButton } from '@/components/auth/logout-button';
 import { ApiUnauthorizedError, getAuthProfile } from '@/lib/api';
 import { CHANGE_PASSWORD_PATH, type AuthProfile } from '@/lib/auth-api';
 import { loginHref } from '@/lib/login-redirect';
+import { NO_INDEX } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  title: 'Đổi mật khẩu',
   description: 'Đặt mật khẩu riêng cho tài khoản Gia Phả của bạn.',
+  robots: NO_INDEX,
 };
 
 export const dynamic = 'force-dynamic';

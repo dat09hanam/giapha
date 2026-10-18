@@ -31,6 +31,7 @@ import { ApiRequestError } from '@/lib/api-error';
 import { profileDestination, type AuthProfile } from '@/lib/auth-api';
 import type { AdminFamily } from '@/lib/family-api';
 import type { AdminPosterDecoration } from '@/lib/poster-decorations';
+import { NO_INDEX } from '@/lib/seo';
 import { SITE_BRAND } from '@/lib/site-brand';
 import type { AdminArticle } from '@/types/article';
 import { requirePasswordChanged } from '@/lib/session';
@@ -39,7 +40,9 @@ import type { PlanCatalogEntry, PricingPlan, ServiceRegistration } from '@/types
 import type { SiteContact } from '@/types/site-contact';
 
 export const metadata: Metadata = {
+  title: 'Quản trị',
   description: `Khu vực quản trị nền tảng ${SITE_BRAND.name}.`,
+  robots: NO_INDEX,
 };
 
 export const dynamic = 'force-dynamic';

@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
 
 import { LegalPage, type LegalSection } from '@/components/legal/legal-page';
+import { pageMetadata } from '@/lib/seo';
 import { SITE_BRAND } from '@/lib/site-brand';
 import { SITE_POLICY_LINKS } from '@/lib/site-contact';
 
-export const metadata: Metadata = {
-  title: `Chính sách bảo mật | ${SITE_BRAND.name}`,
+export const metadata: Metadata = pageMetadata({
+  title: 'Chính sách bảo mật',
   description: `Cách ${SITE_BRAND.name} thu thập, sử dụng và bảo vệ thông tin cá nhân của bạn và dòng họ.`,
-};
+  path: '/chinh-sach-bao-mat',
+});
 
 const sections: readonly LegalSection[] = [
   {

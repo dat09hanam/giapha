@@ -7,11 +7,14 @@ import { ApiErrorState } from '@/components/ui/api-error-state';
 import { Button } from '@/components/ui/button';
 import { ApiNotFoundError, getDemoFamily, getDemoFamilyTree, getFamily } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
+import { pageMetadata } from '@/lib/seo';
 import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
+  title: 'Gia phả mẫu',
   description: 'Khám phá một cây gia phả mẫu trước khi đăng nhập.',
-};
+  path: '/gia-pha-mau',
+});
 
 export const dynamic = 'force-dynamic';
 

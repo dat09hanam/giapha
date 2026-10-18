@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: FamilyHomePageProps): Promise
   const { slug } = await params;
   try {
     const family = await getFamily(slug);
-    return { description: family.description ?? `Gia phả của ${family.name}` };
+    return { title: family.name, description: family.description ?? `Gia phả của ${family.name}` };
   } catch {
     return {};
   }

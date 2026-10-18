@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 
 import { getArticles } from '@/lib/api';
 import { ARTICLE_SECTIONS, articleHref } from '@/lib/article-api';
-import { SITE_URL } from '@/lib/site-url';
+import { SITE_URL } from '@/lib/seo';
 import type { ArticleCategory } from '@/types/article';
 
 // Built on every request so newly published articles appear without a rebuild.

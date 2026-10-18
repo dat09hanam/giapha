@@ -2,11 +2,13 @@ import type { Metadata } from 'next';
 
 import { AuthShell } from '@/components/auth/auth-shell';
 import { GoogleSignupForm } from '@/components/auth/google-signup-form';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Đăng ký',
   description: 'Tạo gia phả miễn phí cho dòng họ bằng tài khoản Google.',
-};
+  path: '/dang-ky',
+});
 
 export default function SignupPage() {
   return (
