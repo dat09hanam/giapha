@@ -1,7 +1,13 @@
 import { randomBytes } from 'node:crypto';
 
-import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { UserStatus, type Prisma } from '@prisma/client';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Prisma, UserStatus } from '@prisma/client';
 
 import { hashSessionToken } from '../common/auth/session-token.js';
 import { PrismaService } from '../database/prisma.service.js';
@@ -9,7 +15,7 @@ import { findUserByLogin } from './account-lookup.js';
 import type { ChangePasswordDto } from './dto/change-password.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
 import type { GoogleIdentity } from './google-id-token.js';
-import { hashPassword, validateOwnPassword, verifyPassword } from './password.js';
+import { generatePassword, hashPassword, validateOwnPassword, verifyPassword } from './password.js';
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const DUMMY_PASSWORD_HASH =
@@ -19,6 +25,8 @@ const profileSelect = {
   id: true,
   username: true,
   displayName: true,
+  email: true,
+  googleSub: true,
   role: true,
   mustChangePassword: true,
   family: { select: { id: true, slug: true, name: true } },
@@ -31,6 +39,9 @@ export type AuthProfile = {
   id: string;
   username: string;
   displayName: string;
+  email: string | null;
+  /** Whether a Google account signs in to this account; the Google id itself stays server-side. */
+  googleLinked: boolean;
   role: ProfileRecord['role'];
   family: { id: string; slug: string; name: string } | null;
   managesBranches: boolean;
@@ -51,11 +62,26 @@ function mapProfile(user: ProfileRecord): AuthProfile {
     id: user.id,
     username: user.username,
     displayName: user.displayName,
+    email: user.email,
+    googleLinked: user.googleSub !== null,
     role: user.role,
     family: user.family,
     managesBranches: user._count.branches > 0,
     mustChangePassword: user.mustChangePassword,
   };
+}
+
+/**
+ * When Google is first linked to an account still on a password someone else issued (admin or
+ * clan head), that password is replaced by one nobody knows: the person signs in with Google from
+ * now on, is not sent to the change-password page, and can set their own password with
+ * "Quên mật khẩu". A password the person chose themselves is kept.
+ */
+async function retireTemporaryPassword(user: {
+  mustChangePassword: boolean;
+}): Promise<{ passwordHash?: string; mustChangePassword?: false }> {
+  if (!user.mustChangePassword) return {};
+  return { passwordHash: await hashPassword(generatePassword()), mustChangePassword: false };
 }
 
 @Injectable()
@@ -85,7 +111,13 @@ export class AuthService {
    * is the verified Google email is linked to it. Null when no account matches.
    */
   async loginWithGoogle(identity: GoogleIdentity): Promise<AuthResult | null> {
-    const select = { id: true, googleSub: true, status: true, deletedAt: true } as const;
+    const select = {
+      id: true,
+      googleSub: true,
+      status: true,
+      deletedAt: true,
+      mustChangePassword: true,
+    } as const;
     const user =
       (await this.prisma.user.findUnique({ where: { googleSub: identity.sub }, select })) ??
       (await this.prisma.user.findUnique({ where: { email: identity.email }, select }));
@@ -101,11 +133,53 @@ export class AuthService {
     if (!user.googleSub) {
       await this.prisma.user.update({
         where: { id: user.id },
-        data: { googleSub: identity.sub },
+        data: { googleSub: identity.sub, ...(await retireTemporaryPassword(user)) },
         select: { id: true },
       });
     }
     return this.startSession(user.id);
+  }
+
+  /**
+   * Links the signed-in account to a Google account, or moves it to another one. Google proved the
+   * person owns it; its verified email becomes the account's email, used for password resets.
+   */
+  async linkGoogle(userId: string, identity: GoogleIdentity): Promise<AuthProfile> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { isShared: true, mustChangePassword: true },
+    });
+    if (user.isShared) {
+      throw new BadRequestException('Tài khoản dùng chung không được liên kết Google.');
+    }
+    const [bySub, byEmail] = await Promise.all([
+      this.prisma.user.findUnique({ where: { googleSub: identity.sub }, select: { id: true } }),
+      this.prisma.user.findUnique({ where: { email: identity.email }, select: { id: true } }),
+    ]);
+    if ((bySub && bySub.id !== userId) || (byEmail && byEmail.id !== userId)) {
+      throw new ConflictException(
+        'Tài khoản Google này đã được dùng cho một tài khoản Gia Phả khác.',
+      );
+    }
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          googleSub: identity.sub,
+          email: identity.email,
+          ...(await retireTemporaryPassword(user)),
+        },
+        select: { id: true },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException(
+          'Tài khoản Google này đã được dùng cho một tài khoản Gia Phả khác.',
+        );
+      }
+      throw error;
+    }
+    return this.getProfile(userId);
   }
 
   async startSession(userId: string): Promise<AuthResult> {

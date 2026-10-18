@@ -75,6 +75,21 @@ export class AuthController {
     return { status: 'signed-in', profile: replyWithSession(reply, result, this.config) };
   }
 
+  /** Links the signed-in account to the Google account that just verified in the browser. */
+  @Post('google/link')
+  @UseGuards(AuthThrottleGuard, SessionAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async linkGoogle(
+    @Body() input: GoogleCredentialDto,
+    @Req() request: AuthRequest,
+  ): Promise<AuthProfile> {
+    if (!request.auth) {
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
+    }
+    const identity = await this.google.verify(input.credential);
+    return this.authService.linkGoogle(request.auth.userId, identity);
+  }
+
   @Post('password-reset')
   @UseGuards(AuthThrottleGuard)
   @HttpCode(HttpStatus.OK)

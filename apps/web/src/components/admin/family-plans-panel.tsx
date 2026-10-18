@@ -7,6 +7,7 @@ import {
   ExternalLink,
   KeyRound,
   Layers,
+  Mail,
   TriangleAlert,
   X,
 } from 'lucide-react';
@@ -20,6 +21,7 @@ import { InlineLoader } from '@/components/ui/heritage-loader';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
 import {
+  changeClanHeadEmail,
   changeFamilyPlan,
   renewFamilyPlan,
   resetClanHeadPassword,
@@ -92,6 +94,77 @@ function PlanUsage({ family }: { family: AdminFamily }) {
   );
 }
 
+function ClanHeadLine({ family }: { family: AdminFamily }) {
+  if (!family.clanHead) return null;
+  return (
+    <p className="text-xs leading-5 text-stone-500">
+      Trưởng họ:{' '}
+      {family.clanHead.email ? (
+        <span className="break-all text-stone-700">{family.clanHead.email}</span>
+      ) : (
+        <span className="italic">chưa có email</span>
+      )}
+      {family.clanHead.googleLinked ? (
+        <span className="ml-1.5 rounded bg-sky-50 px-1.5 py-0.5 font-medium text-sky-800 ring-1 ring-inset ring-sky-200">
+          Đã liên kết Google
+        </span>
+      ) : null}
+    </p>
+  );
+}
+
+function ClanHeadEmailForm({
+  initial,
+  busy,
+  onSave,
+  onCancel,
+}: {
+  initial: string;
+  busy: boolean;
+  onSave: (email: string) => void;
+  onCancel: () => void;
+}) {
+  const [email, setEmail] = useState(initial);
+  return (
+    <form
+      className="grid gap-2 rounded-2xl border border-gold-500/30 bg-white/70 p-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave(email.trim());
+      }}
+    >
+      <label htmlFor="clan-head-email" className="text-sm font-medium text-brand-950">
+        Email Trưởng họ
+      </label>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          id="clan-head-email"
+          type="email"
+          required
+          maxLength={191}
+          autoComplete="off"
+          value={email}
+          onChange={(event) => setEmail(event.currentTarget.value)}
+          className="h-10 min-w-0 flex-1 rounded-lg border border-gold-700/45 bg-[var(--card)] px-3 text-base outline-none transition focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 sm:text-sm"
+        />
+        <div className="flex gap-2">
+          <Button type="submit" size="sm" className="h-10" disabled={busy}>
+            Lưu
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="h-10" onClick={onCancel}>
+            Huỷ
+          </Button>
+        </div>
+      </div>
+      <p className="text-xs leading-5 text-stone-500">
+        Dùng đúng email tài khoản Google của Trưởng họ để họ đăng nhập bằng Google vào gia phả này.
+        Đổi email sẽ gỡ liên kết Google hiện có; lần đăng nhập Google tới bằng email mới sẽ tự liên
+        kết lại.
+      </p>
+    </form>
+  );
+}
+
 function ClanHeadCredentialCard({
   credential,
   onCopy,
@@ -157,6 +230,7 @@ export function FamilyPlansPanel({
     (ClanHeadCredential & { slug: string; copied: boolean }) | null
   >(null);
   const confirm = useConfirm();
+  const [emailSlug, setEmailSlug] = useState<string | null>(null);
 
   async function resetHeadPassword(family: AdminFamily): Promise<void> {
     if (
@@ -260,6 +334,7 @@ export function FamilyPlansPanel({
                       <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
                     </Link>
                     <PlanUsage family={family} />
+                    <ClanHeadLine family={family} />
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {busy ? <InlineLoader className="size-4 shrink-0 text-stone-400" /> : null}
@@ -321,8 +396,38 @@ export function FamilyPlansPanel({
                         Cấp lại mật khẩu
                       </Button>
                     )}
+                    {family.clanHead ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={busySlug !== null}
+                        onClick={() => setEmailSlug(emailSlug === family.slug ? null : family.slug)}
+                      >
+                        <Mail className="size-3.5" aria-hidden="true" />
+                        Sửa email
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
+                {emailSlug === family.slug ? (
+                  <ClanHeadEmailForm
+                    initial={family.clanHead?.email ?? ''}
+                    busy={busy}
+                    onCancel={() => setEmailSlug(null)}
+                    onSave={(email) =>
+                      void run(
+                        family,
+                        () => changeClanHeadEmail(family.slug, email),
+                        (saved) => {
+                          setEmailSlug(null);
+                          return `Đã đổi email trưởng họ ${saved.name}.`;
+                        },
+                        'đổi email trưởng họ',
+                      )
+                    }
+                  />
+                ) : null}
                 {credential?.slug === family.slug ? (
                   <ClanHeadCredentialCard
                     credential={credential}

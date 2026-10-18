@@ -95,7 +95,14 @@ Endpoints:
 - `POST /api/auth/google`: signs in with a Google Identity Services ID token, verified against
   Google's signing keys and `GOOGLE_CLIENT_ID` (`GoogleIdTokenVerifier`). The account is found by
   `User.googleSub`, or the first time by `User.email` equal to the verified Google email, which then
-  links it. With no matching account it answers `needs-registration` and opens no session.
+  links it. With no matching account it answers `needs-registration` and opens no session. Linking
+  an account still on an issued password (`mustChangePassword`) replaces that password with an
+  unknown one and clears the flag; a password the person chose is kept.
+- `POST /api/auth/google/link`: the signed-in, non-shared account links (or moves) to the Google
+  account that just verified in the browser; its verified email becomes `User.email`. A Google
+  account or email held by another user is refused.
+- `PATCH /api/families/:slug/clan-head/email`: `ADMIN` only. Sets the clan head's email; a changed
+  email clears `googleSub`, so the next Google sign-in links by the new email.
 - `POST /api/auth/google/register` (`SignupModule`): public self-service sign-up. It creates a
   Family exactly as `POST /api/families` does, on the plan the admin marked `googleSignup` (at most
   one plan; never a client-chosen plan; none marked closes sign-up), with the Google account as its

@@ -7,6 +7,9 @@ export type AuthProfile = {
   id: string;
   username: string;
   displayName: string;
+  email: string | null;
+  /** Whether a Google account signs in to this account. */
+  googleLinked: boolean;
   role: UserRole;
   family: { id: string; slug: string; name: string } | null;
   managesBranches: boolean;
@@ -152,6 +155,20 @@ export function loginWithGoogle(credential: string): Promise<GoogleLoginResult> 
       body: JSON.stringify({ credential }),
     },
     'đăng nhập bằng Google',
+  );
+}
+
+/** Links the signed-in account to the Google account that just verified in the browser. */
+export function linkGoogleAccount(credential: string): Promise<AuthProfile> {
+  return apiFetch<AuthProfile>(
+    `${API_URL}/auth/google/link`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential }),
+    },
+    'liên kết tài khoản Google',
   );
 }
 

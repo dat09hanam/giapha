@@ -30,6 +30,8 @@ export type AdminFamily = {
   managerCount: number;
   /** Megabytes the family's uploads take, rounded up. */
   storageUsedMb: number;
+  /** Null for the sample family, which has no clan head. */
+  clanHead: { email: string | null; googleLinked: boolean } | null;
   plan: {
     id: string;
     name: string;
@@ -68,6 +70,19 @@ export function resetClanHeadPassword(slug: string): Promise<ClanHeadCredential>
     `${API_URL}/families/${encodeURIComponent(slug)}/clan-head/password`,
     { method: 'POST', credentials: 'include', headers: { Accept: 'application/json' } },
     'cấp lại mật khẩu trưởng họ',
+  );
+}
+
+export function changeClanHeadEmail(slug: string, email: string): Promise<AdminFamily> {
+  return apiFetch<AdminFamily>(
+    `${API_URL}/families/${encodeURIComponent(slug)}/clan-head/email`,
+    {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    },
+    'đổi email trưởng họ',
   );
 }
 

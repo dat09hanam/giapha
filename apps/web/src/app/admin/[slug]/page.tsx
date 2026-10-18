@@ -5,6 +5,7 @@ import { FilePenLine, Frame, Landmark, Palette, UsersRound } from 'lucide-react'
 
 import { EditSuggestionsPanel } from '@/components/admin/edit-suggestions-panel';
 import { FamilyAccountsPanel } from '@/components/admin/family-accounts-panel';
+import { GoogleAccountCard } from '@/components/admin/google-account-card';
 import { FamilyPosterForm } from '@/components/admin/family-poster-form';
 import { FamilyProfileForm } from '@/components/admin/family-profile-form';
 import { Button } from '@/components/ui/button';
@@ -115,12 +116,20 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
             shortLabel: 'Tài khoản',
             icon: <UsersRound aria-hidden="true" />,
             content: (
-              <FamilyAccountsPanel
-                familySlug={profile.family.slug}
-                initialAccounts={accounts}
-                usernameSuffix={usernameSuffix}
-                tree={tree}
-              />
+              <div className="grid grid-cols-1 gap-6">
+                {profile.isPlatformAdmin ? null : (
+                  <GoogleAccountCard
+                    initialEmail={profile.email}
+                    initialLinked={profile.googleLinked}
+                  />
+                )}
+                <FamilyAccountsPanel
+                  familySlug={profile.family.slug}
+                  initialAccounts={accounts}
+                  usernameSuffix={usernameSuffix}
+                  tree={tree}
+                />
+              </div>
             ),
           },
           suggestionsOn && {

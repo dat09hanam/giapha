@@ -25,7 +25,24 @@ import { GoogleSignInButton } from './google-sign-in-button';
 
 const linkClass = 'font-medium text-brand-800 underline underline-offset-4';
 
-/** Self-service sign-up: a Google account opens a family on the free plan as its clan head. */
+/**
+ * A Google account whose email differs from the one the admin stored is not recognised, so a
+ * family that already has a tree would end up with a second one.
+ */
+function ExistingFamilyNotice() {
+  return (
+    <p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-950">
+      Dòng họ của bạn <strong>đã có gia phả</strong>? Đừng đăng ký mới. Hãy nhờ quản trị viên cập
+      nhật email Trưởng họ đúng với tài khoản Google này, rồi{' '}
+      <Link href="/login" className={linkClass}>
+        đăng nhập bằng Google
+      </Link>
+      .
+    </p>
+  );
+}
+
+/** Self-service sign-up: a Google account opens a family as its clan head. */
 export function GoogleSignupForm() {
   const router = useRouter();
   const showToast = useToast();
@@ -149,6 +166,7 @@ export function GoogleSignupForm() {
             Đăng nhập
           </Link>
         </p>
+        <ExistingFamilyNotice />
       </div>
     );
   }
@@ -161,6 +179,7 @@ export function GoogleSignupForm() {
           Đổi tài khoản
         </button>
       </p>
+      <ExistingFamilyNotice />
       <Field
         id="signup-family-name"
         name="name"

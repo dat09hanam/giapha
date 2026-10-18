@@ -9,6 +9,8 @@ export type FamilyManagerProfile = AuthProfile & {
   role: 'MEMBER_PLUS' | 'MEMBER';
   family: NonNullable<AuthProfile['family']>;
   sessionToken: string;
+  /** The platform admin editing the sample family, not one of its own accounts. */
+  isPlatformAdmin: boolean;
 };
 
 type FamilyManagerArea = 'admin' | 'designer';
@@ -43,7 +45,7 @@ export async function requireFamilyManager(
       throw error;
     });
     if (!demo || demo.slug !== slug) redirect('/admin');
-    return { ...profile, role: 'MEMBER_PLUS', family: demo, sessionToken };
+    return { ...profile, role: 'MEMBER_PLUS', family: demo, sessionToken, isPlatformAdmin: true };
   }
 
   const branchManager = area === 'designer' && profile.role === 'MEMBER' && profile.managesBranches;
@@ -56,5 +58,6 @@ export async function requireFamilyManager(
     role: profile.role === 'MEMBER_PLUS' ? 'MEMBER_PLUS' : 'MEMBER',
     family: profile.family,
     sessionToken,
+    isPlatformAdmin: false,
   };
 }

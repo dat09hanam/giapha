@@ -35,6 +35,7 @@ import {
   toPosterDecorationResponse,
   type PosterDecorationResponse,
 } from '../poster-decorations/poster-decoration.types.js';
+import type { ChangeClanHeadEmailDto } from './dto/change-clan-head-email.dto.js';
 import type { ChangeFamilyPlanDto } from './dto/change-family-plan.dto.js';
 import type { CreateFamilyDto } from './dto/create-family.dto.js';
 import type { FamilySlugCheckQueryDto } from './dto/family-slug-check.dto.js';
@@ -112,6 +113,8 @@ export type AdminFamilyListItem = {
   managerCount: number;
   /** Megabytes the family's uploads take on disk, rounded up. */
   storageUsedMb: number;
+  /** The clan head account; null for the sample family, which has none. */
+  clanHead: { email: string | null; googleLinked: boolean } | null;
   plan: {
     id: string;
     name: string;
@@ -132,6 +135,12 @@ const adminFamilySelect = {
   planExpiresAt: true,
   storageUsedBytes: true,
   plan: { select: { id: true, name: true, ...planRightsSelect } },
+  users: {
+    where: { role: UserRole.MEMBER_PLUS, deletedAt: null },
+    orderBy: { createdAt: 'asc' },
+    take: 1,
+    select: { email: true, googleSub: true },
+  },
   _count: {
     select: { people: true, users: { where: { role: UserRole.MEMBER, isShared: false } } },
   },
@@ -141,6 +150,7 @@ function toAdminFamily({
   _count,
   plan,
   storageUsedBytes,
+  users,
   ...family
 }: Prisma.FamilyGetPayload<{ select: typeof adminFamilySelect }>): AdminFamilyListItem {
   const { durationMonths, maxMembers, maxManagers, maxStorageMb } = resolvePlanRights(
@@ -151,6 +161,9 @@ function toAdminFamily({
     memberCount: _count.people,
     managerCount: _count.users,
     storageUsedMb: bytesToMegabytes(storageUsedBytes),
+    clanHead: users[0]
+      ? { email: users[0].email, googleLinked: users[0].googleSub !== null }
+      : null,
     plan: { id: plan.id, name: plan.name, durationMonths, maxMembers, maxManagers, maxStorageMb },
   };
 }
@@ -366,6 +379,50 @@ export class FamiliesService {
       }),
     ]);
     return { username: head.username, password };
+  }
+
+  /**
+   * Sets the clan head's email, e.g. to the Google account they sign in with. A changed email
+   * also drops a linked Google account, so the next Google sign-in links by the new email.
+   */
+  async changeClanHeadEmail(
+    slug: string,
+    input: ChangeClanHeadEmailDto,
+  ): Promise<AdminFamilyListItem> {
+    const family = await this.prisma.family.findFirst({
+      where: { slug, deletedAt: null },
+      select: { id: true },
+    });
+    if (!family) throw new NotFoundException('Không tìm thấy dòng họ.');
+    const head = await this.prisma.user.findFirst({
+      where: { familyId: family.id, role: UserRole.MEMBER_PLUS, deletedAt: null },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, email: true },
+    });
+    if (!head) throw new NotFoundException('Dòng họ này chưa có tài khoản trưởng họ.');
+
+    const email = input.email.trim().toLowerCase();
+    if (email !== head.email) {
+      const owner = await this.prisma.user.findUnique({ where: { email }, select: { id: true } });
+      if (owner) throw new ConflictException(EMAIL_TAKEN_MESSAGE);
+      try {
+        await this.prisma.user.update({
+          where: { id: head.id },
+          data: { email, googleSub: null },
+          select: { id: true },
+        });
+      } catch (error: unknown) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          throw new ConflictException(EMAIL_TAKEN_MESSAGE);
+        }
+        throw error;
+      }
+    }
+    const record = await this.prisma.family.findUniqueOrThrow({
+      where: { id: family.id },
+      select: adminFamilySelect,
+    });
+    return toAdminFamily(record);
   }
 
   private async findFamilyForPlan(slug: string): Promise<FamilyPlanState> {
