@@ -73,6 +73,7 @@ import {
 import { updateEditSuggestionStatus } from '@/lib/edit-suggestion-api';
 import { computeBranchScope, type BranchScope, type TreeEditScope } from '@/lib/branch-scope';
 import { saveFamilyTreeDesign, type FamilyTreeDesignSaveInput } from '@/lib/family-tree-design-api';
+import { FLOW_ARIA_LABELS } from '@/lib/flow-aria-labels';
 import { computeGenerations, layoutFamily, type LayoutDimensions } from '@/lib/family-layout';
 import { familyEdges, type FamilyEdge } from '@/lib/tree-layout';
 import { cn } from '@/lib/utils';
@@ -1904,6 +1905,7 @@ export function FamilyTreeDesigner({
             }}
             deleteKeyCode={null}
             proOptions={{ hideAttribution: true }}
+            ariaLabelConfig={FLOW_ARIA_LABELS}
           >
             <Background variant={BackgroundVariant.Lines} gap={32} size={0.7} color="#dfcda7" />
             <Controls position="bottom-left" showInteractive={false} className="max-lg:!hidden" />

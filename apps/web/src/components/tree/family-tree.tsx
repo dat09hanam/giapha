@@ -52,6 +52,7 @@ import { useIsPortrait, useRotatedPanZoom } from '@/components/tree/rotated-pan-
 import { useViewportLayer } from '@/components/tree/viewport-layer';
 import { buildKinshipGraph } from '@/lib/kinship';
 import type { PersonSearchEntry } from '@/lib/person-search';
+import { FLOW_ARIA_LABELS } from '@/lib/flow-aria-labels';
 import { toPosterElements } from '@/lib/tree-layout';
 import { cn } from '@/lib/utils';
 import { decorationImageSrc, type FamilyPoster } from '@/lib/poster-decorations';
@@ -448,6 +449,7 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
         )}
         onAnimationEnd={finishLeaving}
         aria-label="Phả đồ cây gia phả"
+        data-nosnippet
       >
         <div
           ref={surfaceRef}
@@ -479,6 +481,7 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
               nodesConnectable={false}
               elementsSelectable={false}
               proOptions={{ hideAttribution: true }}
+              ariaLabelConfig={FLOW_ARIA_LABELS}
               style={{ background: 'var(--color-paper)' }}
             ></ReactFlow>
           </HighlightedPersonContext.Provider>

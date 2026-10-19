@@ -12,7 +12,8 @@ import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/
 
 export const metadata: Metadata = pageMetadata({
   title: 'Gia phả mẫu',
-  description: 'Khám phá một cây gia phả mẫu trước khi đăng nhập.',
+  description:
+    'Xem thử cây gia phả mẫu trên Gia Phả Đời Đời: phả đồ nhiều đời, quan hệ cha mẹ, vợ chồng, con cháu và thông tin từng thành viên, không cần đăng nhập.',
   path: '/gia-pha-mau',
 });
 
@@ -84,6 +85,7 @@ export default async function DemoFamilyPage() {
 
   return (
     <main className="overflow-hidden">
+      <h1 className="sr-only">Gia phả mẫu – {family.name}</h1>
       <FamilyTree
         tree={tree}
         family={{ name: family.name, poster: family.poster, features: VISITOR_FEATURES }}
