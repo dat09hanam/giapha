@@ -17,6 +17,7 @@ import {
 import { foldVietnamese } from '@/lib/person-search';
 import { cn } from '@/lib/utils';
 import { SectionCard } from '@/components/admin/admin-layout';
+import { AmbassadorCodeField } from '@/components/ambassador/ambassador-code-field';
 import { PlanSelect } from '@/components/admin/plan-select';
 import { Field } from '@/components/auth/form-fields';
 import { useToast } from '@/components/ui/toast';
@@ -63,6 +64,7 @@ export function CreateFamilyForm({ plans }: { plans: readonly PricingPlan[] }) {
   const [ancestryOrigin, setAncestryOrigin] = useState('');
   const [headEmail, setHeadEmail] = useState('');
   const [planId, setPlanId] = useState('');
+  const [ambassadorCode, setAmbassadorCode] = useState('');
   const [slugCheck, setSlugCheck] = useState<{
     key: string;
     result: FamilySlugCheck | null;
@@ -126,6 +128,7 @@ export function CreateFamilyForm({ plans }: { plans: readonly PricingPlan[] }) {
         ancestryOrigin,
         headEmail: headEmail.trim(),
         planId,
+        ambassadorCode: ambassadorCode || undefined,
       });
       setCreated(body);
       setName('');
@@ -133,6 +136,7 @@ export function CreateFamilyForm({ plans }: { plans: readonly PricingPlan[] }) {
       setAncestryOrigin('');
       setHeadEmail('');
       setPlanId('');
+      setAmbassadorCode('');
       router.refresh();
       showToast({
         kind: 'success',
@@ -200,6 +204,13 @@ export function CreateFamilyForm({ plans }: { plans: readonly PricingPlan[] }) {
             required
           />
           <PlanSelect id="family-plan" plans={plans} value={planId} onChange={setPlanId} />
+          <AmbassadorCodeField
+            id="family-ambassador-code"
+            label="Mã đại sứ giới thiệu (nếu có)"
+            value={ambassadorCode}
+            onChange={setAmbassadorCode}
+            prefill={false}
+          />
           <div className="grid gap-1.5">
             <Field
               id="family-slug"

@@ -1,5 +1,9 @@
 import { IsBoolean, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
+import {
+  AMBASSADOR_CODE_MESSAGE,
+  AMBASSADOR_CODE_PATTERN,
+} from '../../ambassadors/ambassador-code.js';
 import { GoogleCredentialDto } from '../../auth/dto/google-credential.dto.js';
 
 export class GoogleSignupDto extends GoogleCredentialDto {
@@ -19,4 +23,9 @@ export class GoogleSignupDto extends GoogleCredentialDto {
 
   @IsBoolean()
   agreed!: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Matches(AMBASSADOR_CODE_PATTERN, { message: AMBASSADOR_CODE_MESSAGE })
+  ambassadorCode?: string;
 }

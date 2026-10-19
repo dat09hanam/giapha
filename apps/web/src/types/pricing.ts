@@ -45,6 +45,8 @@ export type PricingPlan = {
   name: string;
   description: string | null;
   price: number;
+  /** Percent of `price` an ambassador earns; 0 means the plan earns none. */
+  commissionPercent: number;
   billingPeriod: string | null;
   icon: string;
   tone: PricingPlanTone;
@@ -89,6 +91,8 @@ export type ServiceRegistration = {
   fullName: string;
   email: string | null;
   phone: string;
+  /** Ambassador code the visitor entered, to carry over when opening the family. */
+  ambassadorCode: string | null;
   status: ServiceRegistrationStatus;
   adminNote: string | null;
   createdAt: string;
@@ -100,5 +104,6 @@ export type ServiceRegistrationInput = {
   fullName: string;
   email?: string;
   phone: string;
+  ambassadorCode?: string;
   agreed: boolean;
 };

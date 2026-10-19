@@ -97,6 +97,8 @@ export type CreateFamilyInput = {
   headEmail?: string;
   ancestryOrigin?: string;
   planId: string;
+  /** Code of the ambassador who referred the family; they earn the plan's commission. */
+  ambassadorCode?: string;
 };
 
 export type CreateDemoFamilyInput = CreateFamilyInput & { slug: string };

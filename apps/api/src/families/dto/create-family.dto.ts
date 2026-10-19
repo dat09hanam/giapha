@@ -10,6 +10,11 @@ import {
   ValidateIf,
 } from 'class-validator';
 
+import {
+  AMBASSADOR_CODE_MESSAGE,
+  AMBASSADOR_CODE_PATTERN,
+} from '../../ambassadors/ambassador-code.js';
+
 export class CreateFamilyDto {
   @IsString()
   @MinLength(2)
@@ -42,4 +47,9 @@ export class CreateFamilyDto {
 
   @IsUUID('all', { message: 'Hãy chọn gói dịch vụ mà dòng họ đã mua.' })
   planId!: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(AMBASSADOR_CODE_PATTERN, { message: AMBASSADOR_CODE_MESSAGE })
+  ambassadorCode?: string;
 }

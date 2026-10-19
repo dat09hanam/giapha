@@ -1,9 +1,19 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { ClipboardList, Contact, ImageIcon, Network, Newspaper, Sparkles, Tag } from 'lucide-react';
+import {
+  ClipboardList,
+  Contact,
+  HandHeart,
+  ImageIcon,
+  Network,
+  Newspaper,
+  Sparkles,
+  Tag,
+} from 'lucide-react';
 
 import { AdminWorkspace } from '@/components/admin/admin-workspace';
+import { AmbassadorsPanel } from '@/components/admin/ambassadors-panel';
 import { ArticleManager } from '@/components/admin/article-manager';
 import { CreateFamilyForm } from '@/components/admin/create-family-form';
 import { DemoFamilyPanel } from '@/components/admin/demo-family-panel';
@@ -19,6 +29,8 @@ import {
   getAdminArticles,
   getAdminFamilies,
   getAdminPricingPlans,
+  getAmbassadorCommissions,
+  getAmbassadors,
   getPlanCatalog,
   getAuthProfile,
   getDemoFamily,
@@ -33,6 +45,7 @@ import type { AdminFamily } from '@/lib/family-api';
 import type { AdminPosterDecoration } from '@/lib/poster-decorations';
 import { NO_INDEX } from '@/lib/seo';
 import { SITE_BRAND } from '@/lib/site-brand';
+import type { Ambassador, AmbassadorCommission } from '@/types/ambassador';
 import type { AdminArticle } from '@/types/article';
 import { requirePasswordChanged } from '@/lib/session';
 import type { FamilyDetails } from '@/types/family-tree';
@@ -87,20 +100,34 @@ export default async function AdminPage() {
   let families: AdminFamily[];
   let catalog: PlanCatalogEntry[];
   let contact: SiteContact;
+  let ambassadors: Ambassador[];
+  let commissions: AmbassadorCommission[];
   try {
     profile = await requireAdmin();
     const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
-    [decorations, demoFamily, articles, pricingPlans, registrations, families, catalog, contact] =
-      await Promise.all([
-        getPosterDecorations<AdminPosterDecoration>(sessionToken),
-        loadDemoFamily(),
-        getAdminArticles(sessionToken),
-        getAdminPricingPlans(sessionToken),
-        getServiceRegistrations(sessionToken),
-        getAdminFamilies(sessionToken),
-        getPlanCatalog(),
-        getSiteContact(),
-      ]);
+    [
+      decorations,
+      demoFamily,
+      articles,
+      pricingPlans,
+      registrations,
+      families,
+      catalog,
+      contact,
+      ambassadors,
+      commissions,
+    ] = await Promise.all([
+      getPosterDecorations<AdminPosterDecoration>(sessionToken),
+      loadDemoFamily(),
+      getAdminArticles(sessionToken),
+      getAdminPricingPlans(sessionToken),
+      getServiceRegistrations(sessionToken),
+      getAdminFamilies(sessionToken),
+      getPlanCatalog(),
+      getSiteContact(),
+      getAmbassadors(sessionToken),
+      getAmbassadorCommissions(sessionToken),
+    ]);
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
       return (
@@ -135,6 +162,15 @@ export default async function AdminPage() {
           icon: <ClipboardList aria-hidden="true" />,
           badge: registrations.filter((entry) => entry.status === 'NEW').length,
           content: <ServiceRegistrationsPanel initial={registrations} />,
+        },
+        {
+          id: 'dai-su',
+          label: 'Đại sứ',
+          icon: <HandHeart aria-hidden="true" />,
+          badge: commissions.filter((entry) => entry.paidAt === null).length,
+          content: (
+            <AmbassadorsPanel initialAmbassadors={ambassadors} initialCommissions={commissions} />
+          ),
         },
         {
           id: 'bang-gia',

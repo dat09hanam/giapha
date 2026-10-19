@@ -19,7 +19,8 @@ import {
   savePlanFeatureTable,
   updatePricingPlan,
 } from '@/lib/pricing-api';
-import { PRICING_PLAN_ICONS, PRICING_PLAN_TONES } from '@/lib/pricing-plans';
+import { commissionAmountFor, PRICING_PLAN_ICONS, PRICING_PLAN_TONES } from '@/lib/pricing-plans';
+import { formatVnd } from '@/lib/vietnamese-number';
 import { cn } from '@/lib/utils';
 import type {
   PlanCatalogEntry,
@@ -30,7 +31,11 @@ import type {
   PricingPlanTone,
 } from '@/types/pricing';
 
-type Draft = Omit<PricingPlanInput, 'price'> & { id: string | null; price: string };
+type Draft = Omit<PricingPlanInput, 'price' | 'commissionPercent'> & {
+  id: string | null;
+  price: string;
+  commissionPercent: string;
+};
 
 function emptyDraft(): Draft {
   return {
@@ -38,6 +43,7 @@ function emptyDraft(): Draft {
     name: '',
     description: '',
     price: '0',
+    commissionPercent: '0',
     billingPeriod: 'năm',
     icon: 'sprout',
     tone: 'BRONZE',
@@ -56,6 +62,7 @@ function toDraft(plan: PricingPlan): Draft {
     name: plan.name,
     description: plan.description ?? '',
     price: String(plan.price),
+    commissionPercent: String(plan.commissionPercent),
     billingPeriod: plan.billingPeriod ?? '',
     icon: plan.icon,
     tone: plan.tone,
@@ -82,7 +89,15 @@ function toInput(draft: Draft): PricingPlanInput {
     isActive: draft.isActive,
     googleSignup: draft.googleSignup,
     price: Math.max(0, Math.round(Number(draft.price) || 0)),
+    commissionPercent: Math.min(100, Math.max(0, Math.round(Number(draft.commissionPercent) || 0))),
   };
+}
+
+function commissionHint(draft: Draft): string {
+  const { price, commissionPercent } = toInput(draft);
+  if (commissionPercent === 0) return 'Gói này không có hoa hồng đại sứ.';
+  if (price === 0) return 'Gói miễn phí nên hoa hồng luôn là 0đ.';
+  return `Đại sứ nhận ${formatVnd(commissionAmountFor(price, commissionPercent))} cho mỗi gia phả.`;
 }
 
 function toPreview(draft: Draft, features: PricingCardPlan['features']): PricingCardPlan {
@@ -279,6 +294,23 @@ function PlanEditor({
                 placeholder="năm, tháng, trọn đời…"
                 onChange={(event) => set('billingPeriod', event.currentTarget.value)}
               />
+              <div className="grid content-start gap-1">
+                <Field
+                  id="plan-commission"
+                  label="Hoa hồng đại sứ (% giá gói) — 0 là không có"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={draft.commissionPercent}
+                  aria-describedby="plan-commission-amount"
+                  onChange={(event) => set('commissionPercent', event.currentTarget.value)}
+                />
+                <p id="plan-commission-amount" className="text-xs text-stone-500">
+                  {commissionHint(draft)}
+                </p>
+              </div>
             </div>
 
             <div className="grid gap-1.5">

@@ -14,6 +14,7 @@ const PUBLIC_SITE_SECTIONS = [
   '/thu-vien',
   '/chinh-sach-bao-mat',
   '/quy-dinh-su-dung',
+  '/dai-su',
 ];
 
 export function SiteHeader() {

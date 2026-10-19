@@ -11,6 +11,7 @@ import type { FeedPage } from '@/lib/feed-api';
 import type { FundLedger } from '@/lib/fund-api';
 import type { AlbumDetail, LibraryOverview } from '@/lib/library-api';
 import type { MeritEventDetail, MeritOverview } from '@/lib/merit-api';
+import type { Ambassador, AmbassadorCommission } from '@/types/ambassador';
 import type { AdminArticle, Article, ArticleCategory, ArticleSummary } from '@/types/article';
 import type { EditSuggestion } from '@/types/edit-suggestion';
 import type {
@@ -229,4 +230,12 @@ export const getAdminFamilies = cache((sessionToken: string) =>
 
 export const getServiceRegistrations = cache((sessionToken: string) =>
   getJson<ServiceRegistration[]>('/service-registrations', 'tải danh sách đăng ký', sessionToken),
+);
+
+export const getAmbassadors = cache((sessionToken: string) =>
+  getJson<Ambassador[]>('/ambassadors', 'tải danh sách đại sứ', sessionToken),
+);
+
+export const getAmbassadorCommissions = cache((sessionToken: string) =>
+  getJson<AmbassadorCommission[]>('/ambassadors/commissions', 'tải hoa hồng đại sứ', sessionToken),
 );

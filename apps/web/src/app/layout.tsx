@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Be_Vietnam_Pro, Noto_Serif } from 'next/font/google';
 
+import { ReferralCapture } from '@/components/ambassador/referral-capture';
 import { SiteHeader } from '@/components/layout/site-header';
 import { NavigationProgress } from '@/components/layout/navigation-progress';
 import { SiteContactProvider } from '@/components/social/site-contact-provider';
@@ -50,6 +51,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="vi" className={`${sans.variable} ${serif.variable}`}>
       <body>
+        <ReferralCapture />
         <FormValidation />
         <NavigationProgress />
         <SiteContactProvider contact={contact}>

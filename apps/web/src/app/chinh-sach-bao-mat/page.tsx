@@ -35,6 +35,11 @@ const sections: readonly LegalSection[] = [
             buộc) và gói dịch vụ bạn quan tâm.
           </li>
           <li>
+            <strong>Thông tin đại sứ:</strong> họ và tên, số điện thoại và email bạn để lại khi đăng
+            ký chương trình Đại Sứ, cùng các dòng họ được tạo bằng mã đại sứ của bạn, để ghi nhận
+            và chi trả hoa hồng.
+          </li>
+          <li>
             <strong>Thông tin tài khoản:</strong> tên đăng nhập, tên hiển thị, email (nếu có) và mật
             khẩu đã được mã hóa. Chúng tôi không lưu mật khẩu ở dạng đọc được.
           </li>

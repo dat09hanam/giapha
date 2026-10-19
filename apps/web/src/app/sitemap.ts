@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic';
 const STATIC_PAGES: readonly { path: string; priority: number }[] = [
   { path: '/', priority: 1 },
   { path: '/gia-pha-mau', priority: 0.8 },
+  { path: '/dai-su', priority: 0.7 },
   { path: ARTICLE_SECTIONS.LIBRARY.path, priority: 0.8 },
   { path: ARTICLE_SECTIONS.PRAYER.path, priority: 0.8 },
   { path: '/dang-ky', priority: 0.5 },

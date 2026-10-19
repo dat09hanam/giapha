@@ -119,7 +119,7 @@ export function ServiceRegistrationsPanel({ initial }: { initial: ServiceRegistr
         (filter === 'ALL' || entry.status === filter) &&
         (!needle ||
           plain(
-            `${entry.fullName} ${entry.email ?? ''} ${entry.phone} ${displayPhone(entry.phone)} ${entry.planName}`,
+            `${entry.fullName} ${entry.email ?? ''} ${entry.phone} ${displayPhone(entry.phone)} ${entry.planName} ${entry.ambassadorCode ?? ''}`,
           ).includes(needle)),
     );
   }, [registrations, filter, query]);
@@ -272,6 +272,17 @@ export function ServiceRegistrationsPanel({ initial }: { initial: ServiceRegistr
                     <div className="min-w-0">
                       <span className="text-xs text-stone-500">Gói</span>
                       <p className="truncate font-medium text-wood-800">{entry.planName}</p>
+                      {entry.ambassadorCode ? (
+                        <p
+                          className="mt-0.5 truncate text-xs text-stone-500"
+                          title="Nhập mã này vào ô Mã đại sứ khi tạo gia phả cho khách"
+                        >
+                          Mã đại sứ:{' '}
+                          <span className="font-mono font-semibold tracking-wide text-brand-800">
+                            {entry.ambassadorCode}
+                          </span>
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex items-center gap-1.5">
                       <label className="sr-only" htmlFor={`status-${entry.id}`}>

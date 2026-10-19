@@ -300,7 +300,32 @@ kept as a snapshot). It is platform-level, since a request comes before any Fami
 holds personal contact details: `POST /api/service-registrations` is public but throttled per
 address and only accepts an active plan; listing, the status (`NEW`, `CONTACTED`, `COMPLETED`,
 `CANCELLED`), the admin's note and deletion are `ADMIN` only, in the Đăng ký dịch vụ section of
-`/admin`.
+`/admin`. A registration may carry the `ambassadorCode` the visitor typed; it is checked on submit
+and shown to the admin, who enters it again when opening the Family.
+
+### Đại Sứ Đời Đời (ambassador programme)
+
+`Ambassador` is a person who refers Families for a commission. It is platform-level, not
+tenant-owned: `POST /api/ambassadors` (public, throttled per address) takes full name, phone and
+email, creates the row with a unique random `code` (`DD` + 6 unambiguous characters) and emails the
+code with a `/?ref=CODE` link. If the email cannot be sent the row is removed, so nobody holds a
+code they never received; signing up again with the same email re-sends the existing code. Listing,
+status (`ACTIVE`, `SUSPENDED`), note, re-sending the email and deletion (only before the ambassador
+referred any Family) are `ADMIN` only, in the Đại sứ section of `/admin`.
+
+`PricingPlan.commissionPercent` (0–100, 0 = none) is the share of the plan's `price` an
+ambassador earns; the amount is price × percent rounded to the đồng, so free plans earn nothing. `Family.ambassadorId` is set
+once, when the Family is opened with an active ambassador's code (admin create form, Google
+self-service sign-up); the demo Family never has one. An `AmbassadorCommission` row is written in
+the same transaction as the Family when it is opened (`NEW_FAMILY`) and when the admin moves it to
+another plan (`PLAN_CHANGE`); renewals of the same plan and plans without a commission write none.
+Each row snapshots the plan price, percent, amount, plan name and Family name. `paidAt`/`paidById`/`paidNote` are set by
+`POST /api/ambassadors/commissions/pay` after the admin has made the bank transfer; the money never
+moves through the system, and a paid row is never reopened.
+
+The web app remembers a `?ref=` code from any page in `localStorage` for 60 days and pre-fills the
+optional "Mã đại sứ" field of the plan registration and Google sign-up forms. The public programme
+page is `/dai-su`, which reads the commission per plan from `GET /api/pricing-plans`.
 
 An uploaded background may carry `insetTop/Right/Bottom/Left` (percent, all four or none): the tree
 area the `ADMIN` drew over the art. The web app's `poster-geometry.ts` sizes the 16:9 sheet so the

@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, Flame, House, Network } from 'lucide-react';
+import { BookOpen, Flame, HandHeart, House, Network } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -15,6 +15,7 @@ const TABS = [
   { href: '/gia-pha-mau', label: 'Gia phả mẫu', icon: Network },
   { href: '/mau-bai-cung', label: 'Bài cúng', icon: Flame },
   { href: '/thu-vien', label: 'Thư viện', icon: BookOpen },
+  { href: '/dai-su', label: 'Đại sứ', icon: HandHeart },
 ] as const;
 
 export function PublicBottomNav() {
@@ -25,7 +26,7 @@ export function PublicBottomNav() {
       className={`${styles.bottomNav} fixed inset-x-0 bottom-0 z-50 border-t border-gold-500/30 bg-paper/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_20px_rgba(74,46,18,0.08)] lg:hidden print:hidden`}
       aria-label="Điều hướng nhanh"
     >
-      <ul className="mx-auto grid h-16 max-w-xl grid-cols-5">
+      <ul className="mx-auto grid h-16 max-w-xl grid-cols-6">
         {TABS.map(({ href, label, icon }) => {
           const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
           return (
@@ -41,14 +42,14 @@ export function PublicBottomNav() {
                   }
                 }}
               >
-                <BottomTab icon={icon} label={label} active={active} />
+                <BottomTab icon={icon} label={label} active={active} compact />
               </Link>
             </li>
           );
         })}
         <li>
           <ContactLink className="block h-full">
-            <BottomTab icon={RingingPhone} label="Liên hệ" />
+            <BottomTab icon={RingingPhone} label="Liên hệ" compact />
           </ContactLink>
         </li>
       </ul>

@@ -11,6 +11,11 @@ import {
   MinLength,
 } from 'class-validator';
 
+import {
+  AMBASSADOR_CODE_MESSAGE,
+  AMBASSADOR_CODE_PATTERN,
+} from '../ambassadors/ambassador-code.js';
+
 export class CreateServiceRegistrationDto {
   @IsUUID()
   planId!: string;
@@ -28,6 +33,11 @@ export class CreateServiceRegistrationDto {
   @IsString()
   @Matches(/^0\d{9}$/, { message: 'Số điện thoại gồm 10 chữ số, bắt đầu bằng 0.' })
   phone!: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(AMBASSADOR_CODE_PATTERN, { message: AMBASSADOR_CODE_MESSAGE })
+  ambassadorCode?: string;
 
   @Equals(true, { message: 'Bạn cần đồng ý với Chính sách bảo mật và Quy định sử dụng dịch vụ.' })
   agreed!: boolean;

@@ -52,6 +52,7 @@ export class SignupService {
         ancestryOrigin: input.ancestryOrigin,
         headEmail: identity.email,
         planId: plan.id,
+        ambassadorCode: input.ambassadorCode,
       },
       identity.sub,
     );

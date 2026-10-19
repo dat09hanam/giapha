@@ -106,7 +106,8 @@ export function HomeFooter() {
                 </a>
               </li>
             </ul>
-            <nav className={styles.footerLinks} aria-label="Thông tin pháp lý">
+            <nav className={styles.footerLinks} aria-label="Liên kết thêm">
+              <Link href="/dai-su">Đại Sứ Đời Đời</Link>
               <a href={SITE_POLICY_LINKS.privacy}>Chính sách bảo mật</a>
               <a href={SITE_POLICY_LINKS.terms}>Quy định sử dụng</a>
               <a href="#lien-he">Liên hệ</a>

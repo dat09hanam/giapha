@@ -3,6 +3,7 @@
 import { ArrowRight, CheckCircle2, Mail, Phone, UserRound, X } from 'lucide-react';
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
 
+import { AmbassadorCodeField } from '@/components/ambassador/ambassador-code-field';
 import { Field } from '@/components/auth/form-fields';
 import { InlineLoader } from '@/components/ui/heritage-loader';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -10,6 +11,7 @@ import { submitServiceRegistration } from '@/lib/pricing-api';
 import { formatPlanPrice } from '@/lib/pricing-plans';
 import { formatPhone, phoneDigits } from '@/lib/phone';
 import { SITE_POLICY_LINKS } from '@/lib/site-contact';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 import type { PricingPlan } from '@/types/pricing';
 
 import styles from './pricing.module.css';
@@ -34,10 +36,12 @@ export function PlanRegistrationDialog({
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [ambassadorCode, setAmbassadorCode] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  useBodyScrollLock();
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
@@ -57,6 +61,7 @@ export function PlanRegistrationDialog({
         fullName,
         email: email.trim() || undefined,
         phone: phoneDigits(phone),
+        ambassadorCode: ambassadorCode || undefined,
         agreed,
       });
       setSent(true);
@@ -163,6 +168,12 @@ export function PlanRegistrationDialog({
                     required
                     placeholder="Nhập số điện thoại của bạn"
                     onChange={(event) => setPhone(formatPhone(event.currentTarget.value))}
+                  />
+                  <AmbassadorCodeField
+                    id="signup-ambassador-code"
+                    className={styles.input}
+                    value={ambassadorCode}
+                    onChange={setAmbassadorCode}
                   />
                   <div className="grid gap-1.5" data-field="">
                     <label className={styles.consent}>

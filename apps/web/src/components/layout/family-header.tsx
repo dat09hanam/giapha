@@ -12,6 +12,7 @@ import {
   Network,
   Images,
   Newspaper,
+  Palette,
   Wallet,
   Settings,
   UserRound,
@@ -117,17 +118,21 @@ export function BottomTab({
   active = false,
   disabled = false,
   busy = false,
+  compact = false,
 }: {
   icon: LucideIcon;
   label: string;
   active?: boolean;
   disabled?: boolean;
   busy?: boolean;
+  /** Smaller label on narrow phones, for bars with six tabs. */
+  compact?: boolean;
 }) {
   return (
     <span
       className={cn(
         'relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors duration-200',
+        compact && 'max-[400px]:text-[10px] max-[400px]:tracking-tight',
         active ? 'text-brand-700' : disabled ? 'text-stone-300' : 'text-stone-500',
       )}
     >
@@ -150,10 +155,19 @@ export function BottomTab({
           />
         ) : null}
       </span>
-      <span className="max-w-full truncate px-0.5">{label}</span>
+      <span className={cn('max-w-full truncate', compact ? 'px-0' : 'px-0.5')}>{label}</span>
     </span>
   );
 }
+
+type ManagerLink = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+  /** Drawn in the brand red, like the "Thiết kế gia phả" button on the family admin page. */
+  accent?: boolean;
+};
 
 export function FamilyHeader({
   family,
@@ -171,16 +185,22 @@ export function FamilyHeader({
     viewer?.role === 'ADMIN' ? '/admin' : `/admin/${encodeURIComponent(family.slug)}`;
   const adminActive = isManager && pathname.startsWith('/admin');
   const inDesigner = pathname.endsWith('/thiet_ke');
-  const managerLink = isManager
-    ? { href: adminHref, label: 'Quản lý dòng họ', icon: Settings, active: adminActive }
-    : viewer?.managesBranches
-      ? {
-          href: familyHref(family.slug, 'thiet_ke'),
-          label: 'Quản lý chi',
-          icon: GitBranch,
+  const designerHref = familyHref(family.slug, 'thiet_ke');
+  // Management shortcuts below the family sections; the clan head gets the tree designer too.
+  const managerLinks: ManagerLink[] = isManager
+    ? [
+        { href: adminHref, label: 'Quản lý dòng họ', icon: Settings, active: adminActive },
+        {
+          href: designerHref,
+          label: 'Thiết kế gia phả',
+          icon: Palette,
           active: inDesigner,
-        }
-      : null;
+          accent: true,
+        },
+      ]
+    : viewer?.managesBranches
+      ? [{ href: designerHref, label: 'Quản lý chi', icon: GitBranch, active: inDesigner }]
+      : [];
   const available = nav.filter(
     (item): item is FamilyNavItem & { path: string } => item.path !== null && !item.menuOnly,
   );
@@ -243,33 +263,45 @@ export function FamilyHeader({
           {nav.map((item) => (
             <SideNavEntry key={item.key} item={item} slug={family.slug} pathname={pathname} />
           ))}
-          {managerLink ? <span className="mx-3 mt-2 h-px bg-white/10" aria-hidden="true" /> : null}
-          {managerLink ? (
+          {managerLinks.length > 0 ? (
+            <span className="mx-3 mt-2 h-px bg-white/10" aria-hidden="true" />
+          ) : null}
+          {managerLinks.map((link) => (
             <Link
-              href={managerLink.href}
-              aria-current={managerLink.active ? 'page' : undefined}
+              key={link.href}
+              href={link.href}
+              aria-current={link.active ? 'page' : undefined}
               className={cn(
                 'group relative mt-1 flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-semibold transition duration-200',
-                managerLink.active
+                link.active
                   ? 'bg-paper text-brand-800 shadow-sm ring-1 ring-inset ring-gold-400/40 before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-brand-700'
-                  : 'bg-gradient-to-r from-gold-400/25 to-gold-500/10 text-gold-50 shadow-[0_0_18px_rgba(212,175,55,0.18)] ring-1 ring-inset ring-gold-300/60 hover:from-gold-400/35 hover:to-gold-500/20 hover:text-white',
+                  : link.accent
+                    ? 'border border-brand-800/40 bg-brand-700 text-white shadow-[0_8px_18px_-12px_rgba(74,46,18,0.8)] hover:bg-brand-800'
+                    : 'bg-gradient-to-r from-gold-400/25 to-gold-500/10 text-gold-50 shadow-[0_0_18px_rgba(212,175,55,0.18)] ring-1 ring-inset ring-gold-300/60 hover:from-gold-400/35 hover:to-gold-500/20 hover:text-white',
               )}
             >
               <PendingGlow className="rounded-xl bg-white/15" />
-              <managerLink.icon
-                className={cn('size-5 shrink-0', managerLink.active ? undefined : 'text-gold-300')}
+              <link.icon
+                className={cn(
+                  'size-5 shrink-0',
+                  link.active ? undefined : link.accent ? 'text-white' : 'text-gold-300',
+                )}
                 aria-hidden="true"
               />
-              <span className="min-w-0 flex-1 truncate">{managerLink.label}</span>
+              <span className="min-w-0 flex-1 truncate">{link.label}</span>
               <ChevronRight
                 className={cn(
                   'size-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5',
-                  managerLink.active ? 'text-brand-700/60' : 'text-gold-300/80',
+                  link.active
+                    ? 'text-brand-700/60'
+                    : link.accent
+                      ? 'text-white/70'
+                      : 'text-gold-300/80',
                 )}
                 aria-hidden="true"
               />
             </Link>
-          ) : null}
+          ))}
         </nav>
 
         <div className="relative mt-auto grid gap-3 border-t border-white/10 px-4 py-4">
@@ -329,21 +361,38 @@ export function FamilyHeader({
               <p className="truncate px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-stone-500">
                 {family.name}
               </p>
-              {managerLink ? (
+              {managerLinks.map((link) => (
                 <Link
-                  href={managerLink.href}
-                  aria-current={managerLink.active ? 'page' : undefined}
+                  key={link.href}
+                  href={link.href}
+                  aria-current={link.active ? 'page' : undefined}
                   onClick={() => setMenuOpen(false)}
                   className={cn(
                     'flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium transition hover:bg-paper',
-                    managerLink.active ? 'bg-brand-50 text-brand-800' : 'text-wood-800',
+                    link.active
+                      ? 'bg-brand-50 text-brand-800'
+                      : link.accent
+                        ? 'bg-brand-700 text-white hover:bg-brand-800'
+                        : 'text-wood-800',
                   )}
                 >
-                  <managerLink.icon className="size-5 text-brand-700" aria-hidden="true" />
-                  {managerLink.label}
-                  <ChevronRight className="ml-auto size-4 text-stone-400" aria-hidden="true" />
+                  <link.icon
+                    className={cn(
+                      'size-5',
+                      link.accent && !link.active ? 'text-white' : 'text-brand-700',
+                    )}
+                    aria-hidden="true"
+                  />
+                  {link.label}
+                  <ChevronRight
+                    className={cn(
+                      'ml-auto size-4',
+                      link.accent && !link.active ? 'text-white/70' : 'text-stone-400',
+                    )}
+                    aria-hidden="true"
+                  />
                 </Link>
-              ) : null}
+              ))}
               {inMenu.length > 0 ? (
                 <ul className="grid">
                   {inMenu.map((item) => {
@@ -459,7 +508,7 @@ export function FamilyHeader({
                 <BottomTab
                   icon={menuOpen ? X : Menu}
                   label="Menu"
-                  active={menuOpen || inMenuSection || Boolean(managerLink?.active)}
+                  active={menuOpen || inMenuSection || managerLinks.some((link) => link.active)}
                 />
               </button>
             </li>

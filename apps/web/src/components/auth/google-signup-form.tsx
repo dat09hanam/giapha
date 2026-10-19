@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 
+import { AmbassadorCodeField } from '@/components/ambassador/ambassador-code-field';
 import { Button } from '@/components/ui/button';
 import { DeathAnniversaryPicker } from '@/components/ui/death-anniversary-picker';
 import { InlineLoader } from '@/components/ui/heritage-loader';
@@ -52,6 +53,7 @@ export function GoogleSignupForm() {
   const [name, setName] = useState('');
   const [deathAnniversary, setDeathAnniversary] = useState('');
   const [ancestryOrigin, setAncestryOrigin] = useState('');
+  const [ambassadorCode, setAmbassadorCode] = useState('');
   const [agreed, setAgreed] = useState(false);
 
   // A Google sign-in started on the login page goes straight to the family details.
@@ -96,6 +98,7 @@ export function GoogleSignupForm() {
           name: name.trim(),
           deathAnniversary,
           ancestryOrigin: ancestryOrigin.trim() || undefined,
+          ambassadorCode: ambassadorCode || undefined,
           agreed,
         }),
       );
@@ -207,6 +210,11 @@ export function GoogleSignupForm() {
         maxLength={255}
         value={ancestryOrigin}
         onChange={(event) => setAncestryOrigin(event.target.value)}
+      />
+      <AmbassadorCodeField
+        id="signup-ambassador-code"
+        value={ambassadorCode}
+        onChange={setAmbassadorCode}
       />
       <label className="flex items-start gap-2 text-sm leading-6 text-stone-700">
         <input

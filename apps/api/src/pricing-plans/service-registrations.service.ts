@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma, ServiceRegistrationStatus } from '@prisma/client';
 
+import { findActiveAmbassadorId, normalizeAmbassadorCode } from '../ambassadors/ambassador-code.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type {
   CreateServiceRegistrationDto,
@@ -17,6 +18,7 @@ const registrationSelect = {
   fullName: true,
   email: true,
   phone: true,
+  ambassadorCode: true,
   status: true,
   adminNote: true,
   createdAt: true,
@@ -30,6 +32,7 @@ export type ServiceRegistrationResponse = {
   fullName: string;
   email: string | null;
   phone: string;
+  ambassadorCode: string | null;
   status: ServiceRegistrationStatus;
   adminNote: string | null;
   createdAt: string;
@@ -56,6 +59,8 @@ export class ServiceRegistrationsService {
       select: { id: true, name: true },
     });
     if (!plan) throw new BadRequestException(PLAN_UNAVAILABLE);
+    // A mistyped code is refused now, while the visitor can still correct it.
+    await findActiveAmbassadorId(this.prisma, input.ambassadorCode);
     await this.prisma.serviceRegistration.create({
       data: {
         planId: plan.id,
@@ -63,6 +68,7 @@ export class ServiceRegistrationsService {
         fullName: input.fullName.trim(),
         email: input.email?.trim().toLowerCase() || null,
         phone: input.phone.trim(),
+        ambassadorCode: normalizeAmbassadorCode(input.ambassadorCode),
         consentAt: new Date(),
       },
     });

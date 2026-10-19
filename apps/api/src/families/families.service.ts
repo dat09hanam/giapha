@@ -6,7 +6,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { FamilyStatus, Gender, PosterDecorationKind, Prisma, UserRole } from '@prisma/client';
+import {
+  AmbassadorCommissionKind,
+  FamilyStatus,
+  Gender,
+  PosterDecorationKind,
+  Prisma,
+  UserRole,
+} from '@prisma/client';
+
+import {
+  findActiveAmbassadorId,
+  recordAmbassadorCommission,
+} from '../ambassadors/ambassador-code.js';
 
 import { readFamilyFeaturesFor, type FamilyFeatures } from '../common/family-features.js';
 import {
@@ -174,8 +186,11 @@ function bytesToMegabytes(bytes: bigint): number {
 
 const familyPlanStateSelect = {
   id: true,
+  name: true,
   isDemo: true,
   status: true,
+  planId: true,
+  ambassadorId: true,
   planExpiresAt: true,
   plan: { select: planRightsSelect },
 } satisfies Prisma.FamilySelect;
@@ -325,19 +340,38 @@ export class FamiliesService {
       this.findFamilyForPlan(slug),
       this.prisma.pricingPlan.findUnique({
         where: { id: input.planId },
-        select: { id: true, ...planRightsSelect },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          commissionPercent: true,
+          ...planRightsSelect,
+        },
       }),
     ]);
     if (!plan) throw new BadRequestException('Không tìm thấy gói dịch vụ đã chọn.');
-    // A new plan is a new purchase: its period starts today.
-    return this.setPlanPeriod(family, {
-      planId: plan.id,
-      planExpiresAt: planExpiry(
-        resolvePlanRights(plan.features).durationMonths,
-        new Date(),
-        family.isDemo,
-      ),
-    });
+    // A new plan is a new purchase: its period starts today, and it earns the family's
+    // ambassador the plan's commission. Re-applying the same plan is not a purchase.
+    return this.setPlanPeriod(
+      family,
+      {
+        planId: plan.id,
+        planExpiresAt: planExpiry(
+          resolvePlanRights(plan.features).durationMonths,
+          new Date(),
+          family.isDemo,
+        ),
+      },
+      async (transaction) => {
+        if (plan.id === family.planId) return;
+        await recordAmbassadorCommission(transaction, {
+          ambassadorId: family.ambassadorId,
+          family,
+          plan,
+          kind: AmbassadorCommissionKind.PLAN_CHANGE,
+        });
+      },
+    );
   }
 
   async renewPlan(slug: string): Promise<AdminFamilyListItem> {
@@ -437,14 +471,19 @@ export class FamiliesService {
   private async setPlanPeriod(
     family: FamilyPlanState,
     data: { planId?: string; planExpiresAt: Date | null },
+    alongside?: (transaction: Prisma.TransactionClient) => Promise<void>,
   ): Promise<AdminFamilyListItem> {
-    const record = await this.prisma.family.update({
-      where: { id: family.id },
-      data: {
-        ...data,
-        ...(family.status === FamilyStatus.EXPIRED ? { status: FamilyStatus.ACTIVE } : {}),
-      },
-      select: adminFamilySelect,
+    const record = await this.prisma.$transaction(async (transaction) => {
+      const updated = await transaction.family.update({
+        where: { id: family.id },
+        data: {
+          ...data,
+          ...(family.status === FamilyStatus.EXPIRED ? { status: FamilyStatus.ACTIVE } : {}),
+        },
+        select: adminFamilySelect,
+      });
+      await alongside?.(transaction);
+      return updated;
     });
     return toAdminFamily(record);
   }
@@ -481,9 +520,19 @@ export class FamiliesService {
 
     const plan = await this.prisma.pricingPlan.findUnique({
       where: { id: input.planId },
-      select: { id: true, name: true, ...planRightsSelect },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        commissionPercent: true,
+        ...planRightsSelect,
+      },
     });
     if (!plan) throw new BadRequestException('Không tìm thấy gói dịch vụ đã chọn.');
+    // The demo family is the platform's own and never earns anyone a commission.
+    const ambassadorId = isDemo
+      ? null
+      : await findActiveAmbassadorId(this.prisma, input.ambassadorCode);
 
     const posterDefaults = await this.defaultPosterDecorations();
 
@@ -504,6 +553,7 @@ export class FamiliesService {
             deathAnniversaryMonth: anniversary.month,
             isDemo,
             planId: plan.id,
+            ambassadorId,
             planExpiresAt: planExpiry(
               resolvePlanRights(plan.features).durationMonths,
               new Date(),
@@ -535,6 +585,12 @@ export class FamiliesService {
               familyId: created.id,
             },
           ],
+        });
+        await recordAmbassadorCommission(transaction, {
+          ambassadorId,
+          family: created,
+          plan,
+          kind: AmbassadorCommissionKind.NEW_FAMILY,
         });
         return created;
       });

@@ -37,6 +37,7 @@ function planData(
     name: input.name.trim(),
     description: optional(input.description),
     price: input.price,
+    commissionPercent: input.commissionPercent,
     billingPeriod: optional(input.billingPeriod),
     icon: input.icon,
     tone: input.tone,

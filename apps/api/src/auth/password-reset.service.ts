@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { UserStatus } from '@prisma/client';
 
+import { escapeHtml } from '../common/html.js';
 import { SITE_BRAND } from '../common/site-brand.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { MailService } from '../mail/mail.service.js';
@@ -189,12 +190,4 @@ function maskEmail(email: string): string {
   const local = email.slice(0, at);
   const shown = local.slice(0, Math.max(1, Math.min(6, local.length - 1)));
   return `${shown}***${email.slice(at)}`;
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }

@@ -133,6 +133,11 @@ export function profileDestination(profile: AuthProfile): string {
     return '/';
   }
 
+  // The clan head signs in to manage the family, so they land on its management page.
+  if (profile.role === 'MEMBER_PLUS') {
+    return `/admin/${encodeURIComponent(profile.family.slug)}`;
+  }
+
   return `/${encodeURIComponent(profile.family.slug)}`;
 }
 
@@ -177,6 +182,7 @@ export type GoogleSignupInput = {
   name: string;
   deathAnniversary: string;
   ancestryOrigin?: string;
+  ambassadorCode?: string;
   agreed: boolean;
 };
 
