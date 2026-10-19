@@ -640,6 +640,8 @@ enum AmbassadorStatus {
   SUSPENDED
 }
 
+// Commissions are earned only when a family is opened with an ambassador's code. PLAN_CHANGE is
+// kept so rows written while upgrades still earned one stay readable; nothing writes it any more.
 enum AmbassadorCommissionKind {
   NEW_FAMILY
   PLAN_CHANGE

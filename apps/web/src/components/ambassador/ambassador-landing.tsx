@@ -16,13 +16,14 @@ import {
   Wallet,
 } from 'lucide-react';
 
-import { commissionAmountFor, formatPlanPrice } from '@/lib/pricing-plans';
+import { commissionAmountFor } from '@/lib/pricing-plans';
 import { SITE_BRAND } from '@/lib/site-brand';
 import { formatVnd } from '@/lib/vietnamese-number';
 import { cn } from '@/lib/utils';
 import type { PricingPlan } from '@/types/pricing';
 
 import { AmbassadorSignupButton } from './ambassador-signup';
+import { CommissionLadder } from './commission-ladder';
 import { EarningsCalculator } from './earnings-calculator';
 import styles from './ambassador.module.css';
 
@@ -103,7 +104,7 @@ const QUESTIONS = [
   {
     question: 'Khi nào tôi nhận được hoa hồng?',
     answer:
-      'Hoa hồng được ghi nhận khi gia phả được mở trên gói có hoa hồng, kể cả khi dòng họ nâng cấp gói sau này. Chúng tôi sẽ liên hệ để xác nhận tài khoản ngân hàng và chuyển khoản cho bạn.',
+      'Hoa hồng được ghi nhận một lần, ngay khi dòng họ tạo gia phả bằng mã đại sứ của bạn, tính theo gói dòng họ chọn lúc đó. Việc gia hạn hay nâng cấp gói về sau không phát sinh thêm hoa hồng. Chúng tôi sẽ liên hệ để xác nhận tài khoản ngân hàng và chuyển khoản cho bạn.',
   },
   {
     question: 'Tôi có thể giới thiệu bao nhiêu dòng họ?',
@@ -218,35 +219,40 @@ export function AmbassadorLanding({ plans }: { plans: readonly PricingPlan[] }) 
       </ul>
 
       <section
-        className={cn(styles.section, styles.centered)}
+        className={cn(styles.section, styles.centered, styles.tiersSection)}
         id="hoa-hong"
         aria-labelledby="tiers-title"
       >
-        <p className={styles.eyebrow}>Mức hoa hồng</p>
-        <h2 className={styles.heading} id="tiers-title">
-          Mỗi gia phả bạn giới thiệu là <em>một khoản thu nhập</em>
+        <span className={styles.tiersMist} aria-hidden="true" />
+        <Image
+          className={cn(styles.tiersLotus, styles.tiersLotusLeft)}
+          src="/images/home/hoa-sen.webp"
+          alt=""
+          aria-hidden="true"
+          width={700}
+          height={1050}
+          sizes="220px"
+        />
+        <Image
+          className={cn(styles.tiersLotus, styles.tiersLotusRight)}
+          src="/images/home/hoa-sen.webp"
+          alt=""
+          aria-hidden="true"
+          width={700}
+          height={1050}
+          sizes="220px"
+        />
+        <p className={cn(styles.eyebrow, styles.ornateEyebrow)}>Mức hoa hồng</p>
+        <h2 className={styles.tiersHeading} id="tiers-title">
+          Mỗi gia phả bạn giới thiệu là
+          <em>một khoản thu nhập</em>
         </h2>
         <p className={styles.lead}>
-          Hoa hồng là phần trăm giá gói dịch vụ dòng họ chọn, ghi nhận cả khi dòng họ nâng cấp gói
-          sau này.
+          Hoa hồng là phần trăm giá gói dòng họ chọn khi tạo gia phả bằng mã đại sứ của bạn. Gói
+          càng cao, bạn nhận càng nhiều.
         </p>
         {earning.length > 0 ? (
-          <ul className={styles.tiers}>
-            {earning.map((plan) => (
-              <li key={plan.id} className={cn(styles.tier, plan.id === top?.id && styles.tierTop)}>
-                {plan.id === top?.id ? <span className={styles.tierRibbon}>Cao nhất</span> : null}
-                <span className={styles.tierName}>Gói {plan.name}</span>
-                <span className={styles.tierPrice}>
-                  Giá gói {formatPlanPrice(plan.price)}
-                  {plan.price > 0 && plan.billingPeriod ? `/${plan.billingPeriod}` : ''}
-                </span>
-                <span className={styles.tierAmount}>{plan.commissionPercent}%</span>
-                <span className={styles.tierNote}>
-                  ≈ {formatVnd(plan.commissionAmount)} mỗi gia phả
-                </span>
-              </li>
-            ))}
-          </ul>
+          <CommissionLadder plans={earning} />
         ) : (
           <p className={styles.empty}>
             Mức hoa hồng đang được cập nhật. Hãy đăng ký trước để nhận mã và thông báo sớm nhất.

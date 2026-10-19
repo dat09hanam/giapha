@@ -59,7 +59,7 @@ ${commissions
       '1. Giới thiệu dịch vụ tới gia đình, dòng họ bạn quen biết.',
       '2. Khi đăng ký hoặc tạo gia phả mới, họ nhập mã đại sứ của bạn — hoặc mở đường link giới thiệu dưới đây, mã sẽ được điền sẵn:',
       `   ${referralLink}`,
-      '3. Khi gia phả được mở trên gói có hoa hồng, chúng tôi ghi nhận và chuyển khoản hoa hồng cho bạn.',
+      '3. Khi dòng họ tạo gia phả bằng mã của bạn trên gói có hoa hồng, chúng tôi ghi nhận và chuyển khoản hoa hồng cho bạn. Hoa hồng tính một lần theo gói lúc tạo; gia hạn hay nâng cấp gói về sau không tính thêm.',
       '',
       ...textCommissions,
       `Xem chi tiết chương trình: ${programLink}`,
@@ -79,7 +79,7 @@ ${commissions
 <ol style="margin:0;padding-left:20px">
 <li>Giới thiệu dịch vụ tới gia đình, dòng họ bạn quen biết.</li>
 <li>Khi đăng ký hoặc tạo gia phả mới, họ nhập mã đại sứ của bạn — hoặc mở <a href="${escapeHtml(referralLink)}" style="color:#8a2f1d">đường link giới thiệu của bạn</a>, mã sẽ được điền sẵn.</li>
-<li>Khi gia phả được mở trên gói có hoa hồng, chúng tôi ghi nhận và chuyển khoản hoa hồng cho bạn.</li>
+<li>Khi dòng họ tạo gia phả bằng mã của bạn trên gói có hoa hồng, chúng tôi ghi nhận và chuyển khoản hoa hồng cho bạn. Hoa hồng tính một lần theo gói lúc tạo; gia hạn hay nâng cấp gói về sau không tính thêm.</li>
 </ol>
 ${htmlCommissions}
 <p style="margin-top:20px">Link giới thiệu của bạn:<br><a href="${escapeHtml(referralLink)}" style="color:#8a2f1d;word-break:break-all">${escapeHtml(referralLink)}</a></p>

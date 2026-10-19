@@ -186,11 +186,8 @@ function bytesToMegabytes(bytes: bigint): number {
 
 const familyPlanStateSelect = {
   id: true,
-  name: true,
   isDemo: true,
   status: true,
-  planId: true,
-  ambassadorId: true,
   planExpiresAt: true,
   plan: { select: planRightsSelect },
 } satisfies Prisma.FamilySelect;
@@ -340,38 +337,20 @@ export class FamiliesService {
       this.findFamilyForPlan(slug),
       this.prisma.pricingPlan.findUnique({
         where: { id: input.planId },
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          commissionPercent: true,
-          ...planRightsSelect,
-        },
+        select: { id: true, ...planRightsSelect },
       }),
     ]);
     if (!plan) throw new BadRequestException('Không tìm thấy gói dịch vụ đã chọn.');
-    // A new plan is a new purchase: its period starts today, and it earns the family's
-    // ambassador the plan's commission. Re-applying the same plan is not a purchase.
-    return this.setPlanPeriod(
-      family,
-      {
-        planId: plan.id,
-        planExpiresAt: planExpiry(
-          resolvePlanRights(plan.features).durationMonths,
-          new Date(),
-          family.isDemo,
-        ),
-      },
-      async (transaction) => {
-        if (plan.id === family.planId) return;
-        await recordAmbassadorCommission(transaction, {
-          ambassadorId: family.ambassadorId,
-          family,
-          plan,
-          kind: AmbassadorCommissionKind.PLAN_CHANGE,
-        });
-      },
-    );
+    // A new plan is a new purchase: its period starts today. Ambassadors earn only on the
+    // family's opening, never on a later upgrade or renewal.
+    return this.setPlanPeriod(family, {
+      planId: plan.id,
+      planExpiresAt: planExpiry(
+        resolvePlanRights(plan.features).durationMonths,
+        new Date(),
+        family.isDemo,
+      ),
+    });
   }
 
   async renewPlan(slug: string): Promise<AdminFamilyListItem> {
@@ -471,19 +450,14 @@ export class FamiliesService {
   private async setPlanPeriod(
     family: FamilyPlanState,
     data: { planId?: string; planExpiresAt: Date | null },
-    alongside?: (transaction: Prisma.TransactionClient) => Promise<void>,
   ): Promise<AdminFamilyListItem> {
-    const record = await this.prisma.$transaction(async (transaction) => {
-      const updated = await transaction.family.update({
-        where: { id: family.id },
-        data: {
-          ...data,
-          ...(family.status === FamilyStatus.EXPIRED ? { status: FamilyStatus.ACTIVE } : {}),
-        },
-        select: adminFamilySelect,
-      });
-      await alongside?.(transaction);
-      return updated;
+    const record = await this.prisma.family.update({
+      where: { id: family.id },
+      data: {
+        ...data,
+        ...(family.status === FamilyStatus.EXPIRED ? { status: FamilyStatus.ACTIVE } : {}),
+      },
+      select: adminFamilySelect,
     });
     return toAdminFamily(record);
   }

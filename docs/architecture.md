@@ -317,8 +317,9 @@ referred any Family) are `ADMIN` only, in the Đại sứ section of `/admin`.
 ambassador earns; the amount is price × percent rounded to the đồng, so free plans earn nothing. `Family.ambassadorId` is set
 once, when the Family is opened with an active ambassador's code (admin create form, Google
 self-service sign-up); the demo Family never has one. An `AmbassadorCommission` row is written in
-the same transaction as the Family when it is opened (`NEW_FAMILY`) and when the admin moves it to
-another plan (`PLAN_CHANGE`); renewals of the same plan and plans without a commission write none.
+the same transaction as the Family when it is opened (`NEW_FAMILY`), and only then: a later
+plan change or renewal earns nothing, and plans without a commission write no row. `PLAN_CHANGE`
+remains in the enum only so rows from an earlier rule stay readable.
 Each row snapshots the plan price, percent, amount, plan name and Family name. `paidAt`/`paidById`/`paidNote` are set by
 `POST /api/ambassadors/commissions/pay` after the admin has made the bank transfer; the money never
 moves through the system, and a paid row is never reopened.

@@ -13,6 +13,8 @@
   --ink: #2c221e;
   --muted: #6f6258;
   --seal: #7a1c1c;
+  /* Hồi văn (square meander) tile in gold, for the lacquered commission steps. */
+  --hoi-van: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M3 25V3h22v17H8V8h12v7h-7' fill='none' stroke='rgb(231 199 122)' stroke-width='1.4' stroke-linecap='square'/%3E%3C/svg%3E");
 
   min-height: 100vh;
   overflow-x: clip;
@@ -422,77 +424,376 @@
 
 /* Commission tiers ------------------------------------------------------------------------- */
 
-.tiers {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 18px;
-  margin-top: 40px;
-}
-
-.tier {
+/* Commission tiers: misty landscape, lotus at the sides, a rising row of temple-gate cards. */
+.tiersSection {
   position: relative;
-  display: grid;
-  gap: 6px;
-  padding: 26px 22px 22px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: var(--paper-light);
-  text-align: center;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  isolation: isolate;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fbf5e8 0%, var(--paper) 100%);
 }
 
-.tier:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 22px 40px -28px rgb(44 34 30 / 55%);
-}
-
-.tierTop {
-  border-color: var(--gold);
-  background: linear-gradient(180deg, #fff9ea, var(--paper-light));
-  box-shadow: 0 0 0 3px rgb(197 160 89 / 18%);
-}
-
-.tierRibbon {
+.tiersMist {
   position: absolute;
-  top: -12px;
-  left: 50%;
-  padding: 3px 12px;
-  border-radius: 999px;
-  background: var(--seal);
-  color: #fff;
-  font-size: 12px;
+  inset: 0 0 auto;
+  z-index: -2;
+  height: 420px;
+  background: url('/images/home/mountains-strip.webp') center top / cover no-repeat;
+  opacity: 0.55;
+  mask-image: linear-gradient(180deg, #000 40%, transparent);
+}
+
+.tiersMist::after {
+  position: absolute;
+  top: 36px;
+  left: 4%;
+  width: 190px;
+  height: 48px;
+  background: url('/images/home/header-cloud.webp') center / contain no-repeat;
+  content: '';
+  opacity: 0.6;
+}
+
+.tiersLotus {
+  position: absolute;
+  bottom: 40px;
+  z-index: -1;
+  width: 220px;
+  height: auto;
+  pointer-events: none;
+}
+
+.tiersLotusLeft {
+  left: -40px;
+  transform: scaleX(-1);
+}
+
+.tiersLotusRight {
+  right: -40px;
+}
+
+.ornateEyebrow::before,
+.ornateEyebrow::after {
+  width: 64px;
+  height: 10px;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% 1px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 0 10 5 5 10 0 5Z' fill='rgb(197 160 89)'/%3E%3C/svg%3E")
+      right center / 10px 10px no-repeat;
+}
+
+.ornateEyebrow::after {
+  transform: scaleX(-1);
+}
+
+.tiersHeading {
+  display: grid;
+  margin-top: 14px;
+  color: var(--green);
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4.4vw, 46px);
   font-weight: 700;
+  line-height: 1.15;
+}
+
+.tiersHeading em {
+  color: var(--seal);
+  font-size: 1.25em;
+  font-style: italic;
+}
+
+.ladderWrap {
+  display: grid;
+  gap: 32px;
+  margin-top: 64px;
+}
+
+.ladder {
+  display: grid;
+  grid-template-columns: repeat(var(--steps), minmax(0, 1fr));
+  gap: clamp(12px, 1.8vw, 24px);
+  align-items: end;
+  max-width: 1080px;
+  margin-inline: auto;
+  padding-top: 48px;
+}
+
+/* A card: arched green head that grows with the commission over a cream base. */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid #2f6a57;
+  border-radius: 26px 26px 16px 16px;
+  background: #fffbf1;
+  box-shadow: 0 22px 40px -30px rgb(31 74 59 / 70%);
+  animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--delay);
+  transform-origin: bottom;
+}
+
+/* The thin gold line drawn just inside the frame. */
+.card::after {
+  position: absolute;
+  inset: 5px;
+  z-index: 2;
+  border: 1px solid rgb(197 160 89 / 75%);
+  border-radius: 21px 21px 11px 11px;
+  content: '';
+  pointer-events: none;
+}
+
+.cardSeal {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  z-index: 3;
+  display: grid;
+  width: 80px;
+  height: 80px;
+  place-content: center;
+  justify-items: center;
+  border: 3px solid #fffbf1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fffdf6, #f3e6c6);
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 10px 20px -10px rgb(44 34 30 / 55%);
+  color: #1f5a4a;
   transform: translateX(-50%);
+}
+
+.cardSeal strong {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.cardHead {
+  display: grid;
+  height: calc(150px + var(--fill) * 120px);
+  align-content: start;
+  justify-items: center;
+  gap: 2px;
+  padding: 52px 10px 34px;
+  border-radius: 24px 24px 0 0;
+  background:
+    url('/images/home/mountains-strip.webp') center bottom / 260% auto no-repeat,
+    linear-gradient(180deg, #2f7a64 0%, #20584a 55%, #17463a 100%);
+  background-blend-mode: soft-light, normal;
+  color: #fff;
+}
+
+.cardHead small {
+  color: #e9dcb6;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cardHead strong {
+  font-size: clamp(18px, 2vw, 26px);
+  font-weight: 800;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
-.tierName {
-  color: var(--brown);
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
+.cardHead span {
+  color: rgb(255 255 255 / 70%);
+  font-size: 12px;
 }
 
-.tierPrice {
-  color: var(--muted);
-  font-size: 14px;
+/* Cream base, separated from the head by an ogee arch. */
+.cardBase {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 4px 10px 14px;
+  color: var(--gold);
 }
 
-.tierAmount {
-  margin-top: 10px;
-  color: var(--seal);
-  font-family: var(--font-display);
-  font-size: 34px;
-  font-weight: 700;
-  line-height: 1.1;
+.cardBase::before {
+  position: absolute;
+  top: -22px;
+  right: 0;
+  left: 0;
+  height: 23px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath d='M0 24V14Q16 14 26 7Q36 0 50 0Q64 0 74 7Q84 14 100 14V24Z' fill='rgb(255 251 241)'/%3E%3Cpath d='M0 14Q16 14 26 7Q36 0 50 0Q64 0 74 7Q84 14 100 14' fill='none' stroke='rgb(197 160 89)' stroke-width='1.2' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+    center / 100% 100% no-repeat;
+  content: '';
 }
 
-.tierNote {
+.cardMark {
+  width: 30px;
+  height: auto;
+}
+
+.cardName {
   color: var(--green);
-  font-size: 13px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: clamp(17px, 1.7vw, 22px);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.cardPrice {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.cardLotus {
+  width: 64px;
+  height: 28px;
+  margin-top: 6px;
+}
+
+/* The best-paying plan: gilded card, red seal with a crown, warm glow. */
+.cardBest {
+  border-color: #c9a14a;
+  box-shadow:
+    0 0 0 4px rgb(231 199 122 / 25%),
+    0 0 40px rgb(231 199 122 / 55%),
+    0 28px 44px -30px rgb(122 80 20 / 80%);
+}
+
+.cardBest .cardSeal {
+  top: -48px;
+  width: 96px;
+  height: 96px;
+  background: radial-gradient(circle at 35% 30%, #b0432f, var(--seal) 60%, #4c1313);
+  box-shadow:
+    0 0 0 3px var(--gold-bright),
+    0 0 26px rgb(231 199 122 / 60%);
+  color: #fff;
+}
+
+.cardBest .cardSeal svg {
+  color: var(--gold-bright);
+}
+
+.cardBest .cardSeal strong {
+  font-size: 30px;
+}
+
+.cardBest .cardHead {
+  padding-top: 62px;
+  background:
+    url('/images/home/mountains-strip.webp') center bottom / 260% auto no-repeat,
+    linear-gradient(180deg, #e0bd72 0%, #c79a48 55%, #a87a2e 100%);
+  background-blend-mode: soft-light, normal;
+}
+
+.cardBest .cardHead small {
+  color: #fff6dc;
+}
+
+.cardBest .cardName {
+  color: var(--seal);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+}
+
+.ladderCallout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px 20px;
+  max-width: 1080px;
+  margin-inline: auto;
+  padding: 18px 24px;
+  border: 1px dashed var(--gold);
+  border-radius: 18px;
+  background: rgb(255 253 248 / 88%);
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.ladderCallout > svg {
+  color: var(--gold);
+}
+
+.ladderCallout strong {
+  color: var(--seal);
+}
+
+.ladderCallout .cta {
+  height: 46px;
+  font-size: 15px;
+}
+
+@media (max-width: 1180px) {
+  .tiersLotus {
+    width: 150px;
+    opacity: 0.6;
+  }
+}
+
+/* Tablets and phones: the cards scroll sideways, still rising toward the best plan. */
+@media (max-width: 900px) {
+  .tiersLotus {
+    display: none;
+  }
+
+  .ladder {
+    grid-template-columns: none;
+    grid-auto-columns: minmax(160px, 40%);
+    grid-auto-flow: column;
+    max-width: none;
+    margin-inline: -16px;
+    padding: 56px 16px 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .ladder::-webkit-scrollbar {
+    display: none;
+  }
+
+  .card {
+    scroll-snap-align: center;
+  }
+
+  .ladderWrap {
+    margin-top: 20px;
+  }
+
+  .cardHead {
+    height: calc(140px + var(--fill) * 60px);
+  }
+
+  .tiersHeading em {
+    font-size: 1.1em;
+  }
+
+  .ladderCallout {
+    padding: 16px;
+    font-size: 15px;
+    text-align: center;
+  }
+
+  .ladderCallout .cta {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .empty {
