@@ -8,6 +8,8 @@ export type Ambassador = {
   email: string;
   status: AmbassadorStatus;
   adminNote: string | null;
+  /** Null until an admin opened the list after this sign-up. */
+  seenAt: string | null;
   createdAt: string;
   /** Families opened with this ambassador's code. */
   familyCount: number;

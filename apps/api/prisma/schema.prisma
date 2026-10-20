@@ -628,6 +628,8 @@ model ServiceRegistration {
   consentAt      DateTime
   status         ServiceRegistrationStatus @default(NEW)
   adminNote      String?                   @db.VarChar(1000)
+  /// When an admin first opened the registrations list after it arrived; null counts as unread.
+  seenAt         DateTime?
   createdAt      DateTime                  @default(now())
   updatedAt      DateTime                  @updatedAt
 
@@ -657,6 +659,8 @@ model Ambassador {
   email       String                 @unique @db.VarChar(191)
   status      AmbassadorStatus       @default(ACTIVE)
   adminNote   String?                @db.VarChar(1000)
+  /// When an admin first opened the ambassadors list after this sign-up; null counts as unread.
+  seenAt      DateTime?
   consentAt   DateTime
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt

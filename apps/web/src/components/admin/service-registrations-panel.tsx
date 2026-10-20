@@ -4,6 +4,7 @@ import { ClipboardList, Mail, Phone, Search, StickyNote, Trash2 } from 'lucide-r
 import { useMemo, useState } from 'react';
 
 import { SectionCard } from '@/components/admin/admin-layout';
+import { UnreadTag } from '@/components/admin/unread-tag';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { InlineLoader } from '@/components/ui/heritage-loader';
@@ -239,8 +240,11 @@ export function ServiceRegistrationsPanel({ initial }: { initial: ServiceRegistr
                 >
                   <div className="grid gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1.4fr)_minmax(0,0.9fr)_auto] md:items-center">
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-brand-950" title={entry.fullName}>
-                        {entry.fullName}
+                      <p className="flex min-w-0 items-center gap-2 font-semibold text-brand-950">
+                        <span className="truncate" title={entry.fullName}>
+                          {entry.fullName}
+                        </span>
+                        <UnreadTag seenAt={entry.seenAt} />
                       </p>
                       <p className="text-xs text-stone-500">
                         Gửi lúc {DATE_TIME.format(new Date(entry.createdAt))}

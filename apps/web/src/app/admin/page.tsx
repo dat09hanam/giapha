@@ -160,14 +160,16 @@ export default async function AdminPage() {
           id: 'dang-ky',
           label: 'Đăng ký dịch vụ',
           icon: <ClipboardList aria-hidden="true" />,
-          badge: registrations.filter((entry) => entry.status === 'NEW').length,
+          badge: registrations.filter((entry) => entry.seenAt === null).length,
+          seenList: 'service-registrations',
           content: <ServiceRegistrationsPanel initial={registrations} />,
         },
         {
           id: 'dai-su',
           label: 'Đại sứ',
           icon: <HandHeart aria-hidden="true" />,
-          badge: commissions.filter((entry) => entry.paidAt === null).length,
+          badge: ambassadors.filter((entry) => entry.seenAt === null).length,
+          seenList: 'ambassadors',
           content: (
             <AmbassadorsPanel initialAmbassadors={ambassadors} initialCommissions={commissions} />
           ),

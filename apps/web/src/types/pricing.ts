@@ -95,6 +95,8 @@ export type ServiceRegistration = {
   ambassadorCode: string | null;
   status: ServiceRegistrationStatus;
   adminNote: string | null;
+  /** Null until an admin opened the list after this registration arrived. */
+  seenAt: string | null;
   createdAt: string;
   updatedAt: string;
 };

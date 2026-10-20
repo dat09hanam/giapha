@@ -37,6 +37,8 @@ export type AmbassadorResponse = {
   email: string;
   status: AmbassadorStatus;
   adminNote: string | null;
+  /** Null until an admin opened the list after this sign-up. */
+  seenAt: string | null;
   createdAt: string;
   familyCount: number;
   pendingAmount: number;
@@ -70,6 +72,7 @@ const ambassadorSelect = {
   email: true,
   status: true,
   adminNote: true,
+  seenAt: true,
   createdAt: true,
   _count: { select: { families: true } },
 } satisfies Prisma.AmbassadorSelect;
@@ -124,9 +127,10 @@ function addToTotals(totals: CommissionTotals, sum: CommissionSum): void {
 }
 
 function toAmbassador(record: AmbassadorRecord, totals: CommissionTotals): AmbassadorResponse {
-  const { _count, createdAt, ...ambassador } = record;
+  const { _count, createdAt, seenAt, ...ambassador } = record;
   return {
     ...ambassador,
+    seenAt: seenAt?.toISOString() ?? null,
     createdAt: createdAt.toISOString(),
     familyCount: _count.families,
     ...totals,
@@ -230,6 +234,14 @@ export class AmbassadorsService {
       totals.set(sum.ambassadorId, current);
     }
     return records.map((record) => toAmbassador(record, totals.get(record.id) ?? NO_COMMISSIONS));
+  }
+
+  /** Marks every unread sign-up as seen; the admin opened the list. */
+  async markAllSeen(): Promise<void> {
+    await this.prisma.ambassador.updateMany({
+      where: { seenAt: null },
+      data: { seenAt: new Date() },
+    });
   }
 
   async listCommissions(): Promise<AmbassadorCommissionResponse[]> {

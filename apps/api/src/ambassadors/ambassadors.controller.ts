@@ -46,6 +46,13 @@ export class AmbassadorsController {
     return this.ambassadors.listAll();
   }
 
+  @Post('seen')
+  @UseGuards(SessionAuthGuard, PlatformAdminGuard)
+  @HttpCode(204)
+  markSeen(): Promise<void> {
+    return this.ambassadors.markAllSeen();
+  }
+
   @Get('commissions')
   @UseGuards(SessionAuthGuard, PlatformAdminGuard)
   @Header('Cache-Control', 'no-store')

@@ -21,6 +21,7 @@ const registrationSelect = {
   ambassadorCode: true,
   status: true,
   adminNote: true,
+  seenAt: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.ServiceRegistrationSelect;
@@ -35,6 +36,8 @@ export type ServiceRegistrationResponse = {
   ambassadorCode: string | null;
   status: ServiceRegistrationStatus;
   adminNote: string | null;
+  /** Null until an admin opened the list after this registration arrived. */
+  seenAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -44,6 +47,7 @@ function toResponse(
 ): ServiceRegistrationResponse {
   return {
     ...record,
+    seenAt: record.seenAt?.toISOString() ?? null,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };
@@ -80,6 +84,14 @@ export class ServiceRegistrationsService {
       select: registrationSelect,
     });
     return records.map(toResponse);
+  }
+
+  /** Marks every unread registration as seen; the admin opened the list. */
+  async markAllSeen(): Promise<void> {
+    await this.prisma.serviceRegistration.updateMany({
+      where: { seenAt: null },
+      data: { seenAt: new Date() },
+    });
   }
 
   async update(

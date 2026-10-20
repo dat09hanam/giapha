@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { useMemo, useState, type ReactNode } from 'react';
 
 import { SectionCard } from '@/components/admin/admin-layout';
+import { UnreadTag } from '@/components/admin/unread-tag';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { InlineLoader } from '@/components/ui/heritage-loader';
@@ -460,11 +461,11 @@ export function AmbassadorsPanel({
                     >
                       <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_auto] lg:items-center">
                         <div className="min-w-0">
-                          <p
-                            className="truncate font-semibold text-brand-950"
-                            title={entry.fullName}
-                          >
-                            {entry.fullName}
+                          <p className="flex min-w-0 items-center gap-2 font-semibold text-brand-950">
+                            <span className="truncate" title={entry.fullName}>
+                              {entry.fullName}
+                            </span>
+                            <UnreadTag seenAt={entry.seenAt} />
                           </p>
                           <button
                             type="button"
