@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { FilePenLine, Frame, Landmark, Palette, UsersRound } from 'lucide-react';
+import { Crown, FilePenLine, Frame, Landmark, Palette, UsersRound } from 'lucide-react';
 
 import { EditSuggestionsPanel } from '@/components/admin/edit-suggestions-panel';
 import { FamilyAccountsPanel } from '@/components/admin/family-accounts-panel';
+import { FamilyPlanPanel } from '@/components/admin/family-plan-panel';
 import { GoogleAccountCard } from '@/components/admin/google-account-card';
 import { FamilyPosterForm } from '@/components/admin/family-poster-form';
 import { FamilyProfileForm } from '@/components/admin/family-profile-form';
@@ -16,9 +17,11 @@ import {
   getFamily,
   getFamilyAccounts,
   getFamilyFeatures,
+  getFamilyPlanOverview,
   getFamilyTree,
   getFamilyUsernameSuffix,
   getPosterDecorations,
+  getPricingPlans,
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import type { FamilyAccount } from '@/lib/family-accounts-api';
@@ -26,7 +29,9 @@ import { requireFamilyManager, type FamilyManagerProfile } from '@/lib/family-ma
 import type { PosterDecoration } from '@/lib/poster-decorations';
 import { NO_INDEX } from '@/lib/seo';
 import type { EditSuggestion } from '@/types/edit-suggestion';
+import type { FamilyPlanOverview } from '@/types/family-plan';
 import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
+import type { PricingPlan } from '@/types/pricing';
 
 type FamilyAdminPageProps = {
   params: Promise<{ slug: string }>;
@@ -50,22 +55,31 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
   let usernameSuffix: string;
   let tree: FamilyTreeResponse;
   let features: FamilyFeatures | null;
+  let planView: { overview: FamilyPlanOverview; plans: PricingPlan[] } | null;
   try {
     profile = await requireFamilyManager(slug, 'admin');
     const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
     let suffix: { suffix: string };
-    [family, decorations, suggestions, accounts, tree, suffix, features] = await Promise.all([
-      getFamily(profile.family.slug),
-      getPosterDecorations(sessionToken),
-      getEditSuggestions(profile.family.slug, sessionToken).catch((error: unknown) => {
-        if (error instanceof ApiRequestError) return error;
-        throw error;
-      }),
-      getFamilyAccounts(profile.family.slug, sessionToken),
-      getFamilyTree(profile.family.slug, sessionToken),
-      getFamilyUsernameSuffix(profile.family.slug, sessionToken),
-      getFamilyFeatures(profile.family.slug).catch(() => null),
-    ]);
+    [family, decorations, suggestions, accounts, tree, suffix, features, planView] =
+      await Promise.all([
+        getFamily(profile.family.slug),
+        getPosterDecorations(sessionToken),
+        getEditSuggestions(profile.family.slug, sessionToken).catch((error: unknown) => {
+          if (error instanceof ApiRequestError) return error;
+          throw error;
+        }),
+        getFamilyAccounts(profile.family.slug, sessionToken),
+        getFamilyTree(profile.family.slug, sessionToken),
+        getFamilyUsernameSuffix(profile.family.slug, sessionToken),
+        getFamilyFeatures(profile.family.slug).catch(() => null),
+        // The sample family is the platform's own and has no plan to upgrade.
+        profile.isPlatformAdmin
+          ? null
+          : Promise.all([
+              getFamilyPlanOverview(profile.family.slug, sessionToken),
+              getPricingPlans(),
+            ]).then(([overview, plans]) => ({ overview, plans })),
+      ]);
     usernameSuffix = suffix.suffix;
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
@@ -133,6 +147,21 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
                   tree={tree}
                 />
               </div>
+            ),
+          },
+          planView !== null && {
+            id: 'goi-dich-vu',
+            label: 'Gói dịch vụ',
+            shortLabel: 'Gói',
+            icon: <Crown aria-hidden="true" />,
+            content: (
+              <FamilyPlanPanel
+                familySlug={profile.family.slug}
+                overview={planView.overview}
+                plans={planView.plans}
+                defaultName={profile.displayName}
+                defaultEmail={profile.email ?? ''}
+              />
             ),
           },
           suggestionsOn && {

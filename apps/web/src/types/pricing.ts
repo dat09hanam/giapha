@@ -97,6 +97,10 @@ export type ServiceRegistration = {
   adminNote: string | null;
   /** Null until an admin opened the list after this registration arrived. */
   seenAt: string | null;
+  /** The family asking to change plan; null for a new family's sign-up. */
+  family: { name: string; slug: string; currentPlanName: string } | null;
+  /** The family's plan when it sent the request; null for a sign-up or an older request. */
+  fromPlanName: string | null;
   createdAt: string;
   updatedAt: string;
 };

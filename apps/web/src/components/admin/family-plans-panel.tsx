@@ -4,6 +4,7 @@ import {
   CalendarPlus,
   Check,
   Copy,
+  Crown,
   ExternalLink,
   KeyRound,
   Layers,
@@ -287,7 +288,7 @@ export function FamilyPlansPanel({
     <SectionCard
       icon={<Layers aria-hidden="true" />}
       title="Gói của từng dòng họ"
-      description="Đổi gói khi dòng họ nâng cấp hoặc hạ cấp: gói mới tính thời hạn từ hôm nay. Gia hạn cộng thêm một kỳ của gói hiện tại. Dòng họ hết hạn được mở lại ngay khi đổi gói hoặc gia hạn; dữ liệu đã có luôn được giữ."
+      description="Gói của dòng họ chỉ đổi khi xác nhận yêu cầu nâng cấp của trưởng họ ở mục Đăng ký dịch vụ; gói mới tính thời hạn từ hôm nay. Gia hạn cộng thêm một kỳ của gói hiện tại. Dòng họ hết hạn được mở lại ngay khi đổi gói hoặc gia hạn; dữ liệu đã có luôn được giữ."
     >
       {families.length === 0 ? (
         <p className="py-6 text-center text-sm text-stone-500">Chưa có dòng họ nào.</p>
@@ -304,9 +305,13 @@ export function FamilyPlansPanel({
                 <div className="flex flex-col gap-3 md:flex-row md:items-center">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <label htmlFor={selectId} className="font-medium text-brand-950">
-                        {family.name}
-                      </label>
+                      {family.isDemo ? (
+                        <label htmlFor={selectId} className="font-medium text-brand-950">
+                          {family.name}
+                        </label>
+                      ) : (
+                        <span className="font-medium text-brand-950">{family.name}</span>
+                      )}
                       {family.isDemo ? (
                         <span className="rounded bg-gold-100 px-1.5 py-0.5 text-xs font-medium text-wood-700">
                           Gia phả mẫu
@@ -338,28 +343,40 @@ export function FamilyPlansPanel({
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {busy ? <InlineLoader className="size-4 shrink-0 text-stone-400" /> : null}
-                    <select
-                      id={selectId}
-                      value={family.plan.id}
-                      disabled={busySlug !== null}
-                      onChange={(event) => {
-                        const planId = event.currentTarget.value;
-                        void run(
-                          family,
-                          () => changeFamilyPlan(family.slug, planId),
-                          (saved) => `${saved.name} đã chuyển sang gói “${saved.plan.name}”.`,
-                          'đổi gói dịch vụ',
-                        );
-                      }}
-                      className={SELECT_CLASS}
-                    >
-                      {plans.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.name}
-                          {option.isActive ? '' : ' (đang ẩn)'}
-                        </option>
-                      ))}
-                    </select>
+                    {/* Only the sample family's plan is set here; a real family changes plan
+                        when the admin confirms its clan head's request. */}
+                    {family.isDemo ? (
+                      <select
+                        id={selectId}
+                        value={family.plan.id}
+                        disabled={busySlug !== null}
+                        onChange={(event) => {
+                          const planId = event.currentTarget.value;
+                          void run(
+                            family,
+                            () => changeFamilyPlan(family.slug, planId),
+                            (saved) => `${saved.name} đã chuyển sang gói “${saved.plan.name}”.`,
+                            'đổi gói dịch vụ',
+                          );
+                        }}
+                        className={SELECT_CLASS}
+                      >
+                        {plans.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.name}
+                            {option.isActive ? '' : ' (đang ẩn)'}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-gold-500/40 bg-gold-50 px-3 text-sm font-semibold text-brand-900"
+                        title="Đổi gói qua yêu cầu nâng cấp ở mục Đăng ký dịch vụ"
+                      >
+                        <Crown className="size-3.5 text-gold-700" aria-hidden="true" />
+                        {family.plan.name}
+                      </span>
+                    )}
                     {renewable ? (
                       <Button
                         type="button"

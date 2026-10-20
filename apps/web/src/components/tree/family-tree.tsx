@@ -57,6 +57,7 @@ import { toPosterElements } from '@/lib/tree-layout';
 import { cn } from '@/lib/utils';
 import { decorationImageSrc, type FamilyPoster } from '@/lib/poster-decorations';
 import type { FamilyFeature, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 
 const nodeTypes = {
   person: PersonNode,
@@ -336,6 +337,7 @@ function FamilyTreeView({ tree, family, familySlug, showToolbar = true }: Family
 
   const [landscapeMode, setLandscapeMode] = useState<LandscapeMode>('off');
   const landscape = landscapeMode !== 'off';
+  useBodyScrollLock(landscape);
   const leaving = landscapeMode === 'leaving';
   const isPortrait = useIsPortrait();
   const turned = landscape && isPortrait;

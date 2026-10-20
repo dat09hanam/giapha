@@ -1,31 +1,16 @@
 'use client';
 
-import { Clock, Crown, MessageCircle, Phone, X } from 'lucide-react';
-import Image from 'next/image';
+import { Clock, MessageCircle, Phone, X } from 'lucide-react';
 import { useEffect, useId, useRef } from 'react';
 
 import { Presence } from '@/components/ui/presence';
+import { ScrollDialog } from '@/components/ui/scroll-dialog';
 import { useSiteContact } from '@/components/social/site-contact-provider';
 import { phoneHref, zaloHref } from '@/lib/site-contact';
 import { displayPhone } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 
 import styles from './plan-limit-dialog.module.css';
-
-const LOTUS_SRC = '/images/decorations/lotus-bloom.png';
-
-/** A small lotus between two rules, under the title. */
-function LotusOrnament() {
-  return (
-    <svg width="22" height="14" viewBox="0 0 22 14" fill="currentColor" aria-hidden="true">
-      <path d="M11 0c1.6 2.2 2.4 4.4 2.4 6.6S12.6 10.8 11 13c-1.6-2.2-2.4-4.2-2.4-6.4S9.4 2.2 11 0Z" />
-      <path d="M3.2 4.2c2.7.3 4.8 1.5 6.2 3.6.6.9 1 1.9 1.1 3-2.6-.2-4.6-1.3-5.9-3.2-.7-1-1.2-2.1-1.4-3.4Z" />
-      <path d="M18.8 4.2c-.2 1.3-.7 2.4-1.4 3.4-1.3 1.9-3.3 3-5.9 3.2.1-1.1.5-2.1 1.1-3 1.4-2.1 3.5-3.3 6.2-3.6Z" />
-      <path d="M0 9.6c2.4-.6 4.6-.3 6.6.9.8.5 1.5 1.1 2 1.9-2.3.6-4.4.4-6.3-.6C1.4 11.3.6 10.6 0 9.6Z" />
-      <path d="M22 9.6c-.6 1-1.4 1.7-2.3 2.2-1.9 1-4 1.2-6.3.6.5-.8 1.2-1.4 2-1.9 2-1.2 4.2-1.5 6.6-.9Z" />
-    </svg>
-  );
-}
 
 export const PLAN_LIMIT_TITLE = 'Đã đạt giới hạn của gói';
 export const LOCKED_FEATURE_TITLE = 'Tính năng cần nâng cấp gói';
@@ -49,123 +34,63 @@ function PlanLimitDialogPanel({
   message: string;
   onClose: () => void;
 }) {
-  const titleId = useId();
   const messageId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const contact = useSiteContact();
 
   useEffect(() => {
     closeRef.current?.focus();
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto p-4">
-      <button
-        type="button"
-        className="ui-backdrop absolute inset-0 bg-stone-950/50 backdrop-blur-[2px]"
-        aria-label="Đóng"
-        tabIndex={-1}
-        onClick={onClose}
-      />
-      <section
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={messageId}
-        className={cn('ui-dialog', styles.card)}
-      >
-        <span className={styles.corner} data-at="tl" aria-hidden="true" />
-        <span className={styles.corner} data-at="tr" aria-hidden="true" />
-        <span className={styles.corner} data-at="bl" aria-hidden="true" />
-        <span className={styles.corner} data-at="br" aria-hidden="true" />
-
-        <button type="button" className={styles.close} aria-label="Đóng" onClick={onClose}>
-          <X className="size-5" aria-hidden="true" />
-        </button>
-
-        <div className={styles.medallionRow} aria-hidden="true">
-          <span className={styles.rule} data-side="left" />
-          <span className={styles.medallion}>
-            <Crown className="size-8" strokeWidth={1.75} />
+    <ScrollDialog
+      title={title}
+      onClose={onClose}
+      stacked
+      role="alertdialog"
+      describedBy={messageId}
+    >
+      <p id={messageId} className={styles.message}>
+        {message}
+      </p>
+      <div className={styles.contact}>
+        <p className={styles.contactLabel}>Liên hệ quản trị viên để nâng cấp gói</p>
+        <a
+          href={phoneHref(contact.phone)}
+          className={styles.phoneRow}
+          aria-label={`Gọi quản trị viên số ${displayPhone(contact.phone)}`}
+        >
+          <span className={styles.phoneIcon}>
+            <Phone className="size-5" fill="currentColor" strokeWidth={0} aria-hidden="true" />
           </span>
-          <span className={styles.rule} data-side="right" />
-        </div>
-
-        <h2 id={titleId} className={styles.title}>
-          {title}
-        </h2>
-        <div className={styles.divider}>
-          <LotusOrnament />
-        </div>
-        <p id={messageId} className={styles.message}>
-          {message}
+          <span className={styles.phoneNumber}>{displayPhone(contact.phone)}</span>
+        </a>
+        <p className={styles.hours}>
+          <Clock className="size-4" aria-hidden="true" />
+          {contact.hours}
         </p>
-
-        <div className={styles.contactWrap}>
-          <Image
-            src={LOTUS_SRC}
-            alt=""
-            width={512}
-            height={467}
-            className={styles.lotus}
-            data-side="left"
-            aria-hidden="true"
-          />
-          <Image
-            src={LOTUS_SRC}
-            alt=""
-            width={512}
-            height={467}
-            className={styles.lotus}
-            data-side="right"
-            aria-hidden="true"
-          />
-          <div className={styles.contact}>
-            <p className={styles.contactLabel}>Liên hệ quản trị viên để nâng cấp gói</p>
-            <a
-              href={phoneHref(contact.phone)}
-              className={styles.phoneRow}
-              aria-label={`Gọi quản trị viên số ${displayPhone(contact.phone)}`}
-            >
-              <span className={styles.phoneIcon}>
-                <Phone className="size-5" fill="currentColor" strokeWidth={0} aria-hidden="true" />
-              </span>
-              <span className={styles.phoneNumber}>{displayPhone(contact.phone)}</span>
-            </a>
-            <p className={styles.hours}>
-              <Clock className="size-4" aria-hidden="true" />
-              {contact.hours}
-            </p>
-          </div>
-        </div>
-
-        <div className={styles.actions}>
-          <a
-            href={zaloHref(contact)}
-            target="_blank"
-            rel="noreferrer"
-            className={cn(styles.action, styles.zalo)}
-          >
-            <MessageCircle className="size-5" aria-hidden="true" />
-            Nhắn Zalo
-          </a>
-          <button
-            ref={closeRef}
-            type="button"
-            className={cn(styles.action, styles.dismiss)}
-            onClick={onClose}
-          >
-            <X className="size-5" aria-hidden="true" />
-            Đóng
-          </button>
-        </div>
-      </section>
-    </div>
+      </div>
+      <div className={styles.actions}>
+        <a
+          href={zaloHref(contact)}
+          target="_blank"
+          rel="noreferrer"
+          className={cn(styles.action, styles.zalo)}
+        >
+          <MessageCircle className="size-5" aria-hidden="true" />
+          Nhắn Zalo
+        </a>
+        <button
+          ref={closeRef}
+          type="button"
+          className={cn(styles.action, styles.dismiss)}
+          onClick={onClose}
+        >
+          <X className="size-5" aria-hidden="true" />
+          Đóng
+        </button>
+      </div>
+    </ScrollDialog>
   );
 }
 

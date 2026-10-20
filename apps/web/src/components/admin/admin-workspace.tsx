@@ -9,6 +9,7 @@ import { LogoutButton } from '@/components/auth/logout-button';
 import { Presence } from '@/components/ui/presence';
 import { markAdminListSeen, type AdminSeenList } from '@/lib/admin-seen-api';
 import { cn } from '@/lib/utils';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 
 export type AdminSection = {
   id: string;
@@ -79,6 +80,7 @@ export function AdminWorkspace({
 }) {
   const [activeId, setActiveId] = useState(sections[0]?.id ?? '');
   const [menuOpen, setMenuOpen] = useState(false);
+  useBodyScrollLock(menuOpen);
   const [seenIds, setSeenIds] = useState<ReadonlySet<string>>(() => new Set());
   const sectionIds = sections.map((section) => section.id).join(' ');
   const active = sections.find((section) => section.id === activeId);
@@ -240,7 +242,12 @@ export function AdminWorkspace({
                   <X className="size-5" aria-hidden="true" />
                 </button>
               </div>
-              <SectionLinks sections={shownSections} activeId={activeId} onOpen={open} tone="paper" />
+              <SectionLinks
+                sections={shownSections}
+                activeId={activeId}
+                onOpen={open}
+                tone="paper"
+              />
               <span className="mx-3 my-1 h-px bg-gold-500/20" aria-hidden="true" />
               <Link
                 href="/"

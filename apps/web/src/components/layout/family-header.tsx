@@ -31,6 +31,7 @@ import { Presence } from '@/components/ui/presence';
 import type { UserRole } from '@/lib/auth-api';
 import { familyHref, isInSection, type FamilyNavItem, type FamilyNavKey } from '@/lib/family-nav';
 import { cn } from '@/lib/utils';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 
 export type FamilyHeaderViewer = {
   id: string;
@@ -180,6 +181,7 @@ export function FamilyHeader({
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  useBodyScrollLock(menuOpen);
   const isManager = viewer?.role === 'MEMBER_PLUS' || viewer?.role === 'ADMIN';
   const adminHref =
     viewer?.role === 'ADMIN' ? '/admin' : `/admin/${encodeURIComponent(family.slug)}`;

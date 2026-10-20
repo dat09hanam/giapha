@@ -8,8 +8,10 @@ import styles from '@/components/social/contact.module.css';
 import { SocialContact } from '@/components/social/social-contact';
 import { Presence } from '@/components/ui/presence';
 import { cn } from '@/lib/utils';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 
 function ContactDialog({ onClose }: { onClose: () => void }) {
+  useBodyScrollLock();
   const titleId = useId();
 
   useEffect(() => {

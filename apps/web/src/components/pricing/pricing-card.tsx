@@ -6,11 +6,25 @@ import type { PricingCardPlan } from '@/types/pricing';
 
 import styles from './pricing.module.css';
 
-export function PricingCard({ plan, onChoose }: { plan: PricingCardPlan; onChoose?: () => void }) {
+export function PricingCard({
+  plan,
+  onChoose,
+  current = false,
+}: {
+  plan: PricingCardPlan;
+  onChoose?: () => void;
+  /** The viewer's family is on this plan: tagged "Đang dùng" and not offered as a choice. */
+  current?: boolean;
+}) {
   const Icon = pricingPlanIcon(plan.icon);
+  const badge = current ? 'Đang dùng' : plan.badge;
   return (
-    <article className={cn(styles.card, plan.isFeatured && styles.featured)} data-tone={plan.tone}>
-      {plan.badge ? <span className={styles.badge}>{plan.badge}</span> : null}
+    <article
+      className={cn(styles.card, plan.isFeatured && styles.featured, current && styles.current)}
+      data-tone={plan.tone}
+      aria-current={current || undefined}
+    >
+      {badge ? <span className={styles.badge}>{badge}</span> : null}
       <span className={styles.emblem} aria-hidden="true">
         <Icon size={28} strokeWidth={1.6} />
       </span>
@@ -45,7 +59,9 @@ export function PricingCard({ plan, onChoose }: { plan: PricingCardPlan; onChoos
           );
         })}
       </ul>
-      {onChoose ? (
+      {current ? (
+        <span className={styles.cta}>Gói đang dùng</span>
+      ) : onChoose ? (
         <button type="button" className={styles.cta} onClick={onChoose}>
           {plan.ctaLabel.trim() || 'Đăng ký ngay'}
         </button>

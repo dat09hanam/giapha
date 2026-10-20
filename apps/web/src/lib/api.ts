@@ -14,6 +14,7 @@ import type { MeritEventDetail, MeritOverview } from '@/lib/merit-api';
 import type { Ambassador, AmbassadorCommission } from '@/types/ambassador';
 import type { AdminArticle, Article, ArticleCategory, ArticleSummary } from '@/types/article';
 import type { EditSuggestion } from '@/types/edit-suggestion';
+import type { FamilyPlanOverview } from '@/types/family-plan';
 import type {
   FamilyDetails,
   FamilyFeatures,
@@ -111,6 +112,15 @@ export const getFamilyPlanLimits = cache((slug: string, sessionToken: string) =>
   getJson<FamilyPlanLimits>(
     `/families/${encodeURIComponent(slug)}/plan-limits`,
     'tải giới hạn gói dịch vụ',
+    sessionToken,
+  ),
+);
+
+/** The clan head's view of the family plan: limits, usage, expiry and any open request. */
+export const getFamilyPlanOverview = cache((slug: string, sessionToken: string) =>
+  getJson<FamilyPlanOverview>(
+    `/families/${encodeURIComponent(slug)}/plan`,
+    'tải thông tin gói dịch vụ',
     sessionToken,
   ),
 );

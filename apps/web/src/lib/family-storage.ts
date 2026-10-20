@@ -7,8 +7,8 @@ export type FamilyStorage = {
   limitMb: number | null;
 };
 
-/** Once this little room is left, the clan head is warned. */
-export const STORAGE_WARN_REMAINING_MB = 100;
+/** Share of a plan limit in use from which the clan head is warned it is nearly reached. */
+export const USAGE_WARN_RATIO = 0.9;
 
 export type StorageLevel = 'ok' | 'warn' | 'full';
 
@@ -26,7 +26,12 @@ export function storageRatio({ usedMb, limitMb }: FamilyStorage): number {
 }
 
 export function storageLevel({ usedMb, limitMb }: FamilyStorage): StorageLevel {
-  if (limitMb === null) return 'ok';
-  const remainingMb = limitMb - usedMb;
-  return remainingMb <= 0 ? 'full' : remainingMb <= STORAGE_WARN_REMAINING_MB ? 'warn' : 'ok';
+  return usageLevel(usedMb, limitMb);
+}
+
+/** How close `used` is to a plan limit; a null limit is never reached. */
+export function usageLevel(used: number, limit: number | null): StorageLevel {
+  if (limit === null) return 'ok';
+  if (used >= limit) return 'full';
+  return used >= limit * USAGE_WARN_RATIO ? 'warn' : 'ok';
 }

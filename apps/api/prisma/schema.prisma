@@ -138,6 +138,7 @@ model Family {
   plan                  PricingPlan            @relation(fields: [planId], references: [id], onDelete: Restrict)
   ambassador            Ambassador?            @relation(fields: [ambassadorId], references: [id], onDelete: Restrict)
   commissions           AmbassadorCommission[]
+  planRequests          ServiceRegistration[]
 
   @@index([status])
   @@index([deletedAt])
@@ -620,6 +621,11 @@ model ServiceRegistration {
   planId         String?                   @db.Char(36)
   plan           PricingPlan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
   planName       String                    @db.VarChar(60)
+  /// Set when an existing family's clan head asks to change plan; null for a new family's sign-up.
+  familyId       String?                   @db.Char(36)
+  family         Family?                   @relation(fields: [familyId], references: [id], onDelete: SetNull)
+  /// The family's plan when the request was sent, kept so a confirmed request still shows its change.
+  fromPlanName   String?                   @db.VarChar(60)
   fullName       String                    @db.VarChar(100)
   email          String?                   @db.VarChar(191)
   phone          String                    @db.VarChar(30)
@@ -635,6 +641,7 @@ model ServiceRegistration {
 
   @@index([status, createdAt])
   @@index([planId])
+  @@index([familyId, status])
 }
 
 enum AmbassadorStatus {

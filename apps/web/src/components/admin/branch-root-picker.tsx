@@ -1,27 +1,20 @@
 'use client';
 
-import {
-  Handle,
-  Position,
-  ReactFlow,
-  ReactFlowProvider,
-  type Node,
-  type NodeProps,
-  type NodeTypes,
-} from '@xyflow/react';
+import {Handle, Position, ReactFlow, ReactFlowProvider, type Node, type NodeProps, type NodeTypes} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { GitBranch, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import {GitBranch} from 'lucide-react';
+import {useMemo, useState} from 'react';
 
-import { InlineLoader } from '@/components/ui/heritage-loader';
-import { familyEdgeTypes } from '@/components/tree/family-link-edge';
-import { Button } from '@/components/ui/button';
-import { computeGenerations, layoutFamily, type LayoutDimensions } from '@/lib/family-layout';
-import { displayPersonName } from '@/lib/person-name';
-import { familyEdges } from '@/lib/tree-layout';
-import { cn } from '@/lib/utils';
+import {InlineLoader} from '@/components/ui/heritage-loader';
+import {familyEdgeTypes} from '@/components/tree/family-link-edge';
+import {Button} from '@/components/ui/button';
+import {computeGenerations, layoutFamily, type LayoutDimensions} from '@/lib/family-layout';
+import {displayPersonName} from '@/lib/person-name';
+import {familyEdges} from '@/lib/tree-layout';
+import {cn} from '@/lib/utils';
 import type { FamilyTreeResponse, Person } from '@/types/family-tree';
-import { yearOf } from '@/lib/partial-date';
+import {yearOf} from '@/lib/partial-date';
+import {ScrollDialog} from '@/components/ui/scroll-dialog';
 
 type Blocked = { kind: 'assigned' | 'inside' | 'contains'; owner: string };
 
@@ -205,14 +198,6 @@ function BranchRootPickerDialog({
 }: Parameters<typeof BranchRootPicker>[0]) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const close = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
-  }, [onClose]);
-
   const blocked = useMemo(() => blockedPeople(tree, claimed), [claimed, tree]);
   const current = useMemo(() => new Set(currentRootIds), [currentRootIds]);
 
@@ -261,70 +246,18 @@ function BranchRootPickerDialog({
   const selected = selectedId ? tree.people.find((person) => person.id === selectedId) : null;
 
   return (
-    <div className="fixed inset-0 z-[70] grid p-0 sm:p-4">
-      <button
-        type="button"
-        className="ui-backdrop absolute inset-0 bg-stone-950/50 backdrop-blur-[2px]"
-        aria-label="Đóng"
-        tabIndex={-1}
-        onClick={onClose}
-      />
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="branch-root-picker-title"
-        className="heritage-panel relative flex h-full w-full flex-col overflow-hidden shadow-2xl sm:rounded-2xl"
-      >
-        <header className="flex items-start gap-3 border-b border-gold-500/25 bg-gradient-to-b from-gold-50 to-[var(--card)] px-5 py-4 sm:px-6">
-          <GitBranch className="mt-1 size-5 shrink-0 text-brand-700" aria-hidden="true" />
-          <div className="min-w-0 flex-1">
-            <h2
-              id="branch-root-picker-title"
-              className="font-display text-lg font-bold text-wood-800"
-            >
-              Giao chi cho {accountName}
-            </h2>
-            <p className="text-sm text-stone-600">
-              Bấm vào người đứng đầu chi. Chi gồm người đó, toàn bộ con cháu và vợ/chồng của họ.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="grid size-9 shrink-0 place-items-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700"
-            aria-label="Đóng"
-            onClick={onClose}
-          >
-            <X className="size-5" aria-hidden="true" />
-          </button>
-        </header>
-
-        <div className="min-h-0 flex-1 bg-paper-deep">
-          {tree.people.length === 0 ? (
-            <p className="grid h-full place-items-center px-6 text-center text-sm text-stone-600">
-              Cây gia phả chưa có thành viên nào. Hãy thêm thành viên trong trang thiết kế trước.
-            </p>
-          ) : (
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              edgeTypes={familyEdgeTypes}
-              onNodeClick={(_, node) => {
-                if (!node.data.current && !node.data.blocked) setSelectedId(node.id);
-              }}
-              nodesConnectable={false}
-              nodesDraggable={false}
-              elementsSelectable={false}
-              fitView
-              fitViewOptions={{ padding: 0.15 }}
-              minZoom={0.05}
-              maxZoom={1.5}
-              proOptions={{ hideAttribution: true }}
-            />
-          )}
-        </div>
-
-        <footer className="flex flex-col gap-3 border-t border-gold-500/25 bg-paper/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <ScrollDialog
+      title={
+        <>
+          Giao chi cho <em>{accountName}</em>
+        </>
+      }
+      subtitle="Bấm vào người đứng đầu chi. Chi gồm người đó, toàn bộ con cháu và vợ/chồng của họ."
+      onClose={onClose}
+      busy={saving}
+      size="xl"
+      footer={
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-stone-700">
             {selected ? (
               <>
@@ -352,8 +285,34 @@ function BranchRootPickerDialog({
               Giao chi này
             </Button>
           </div>
-        </footer>
-      </section>
-    </div>
+        </div>
+      }
+    >
+      <div className="h-[min(60dvh,36rem)] overflow-hidden rounded-xl border border-gold-500/30 bg-paper-deep">
+        {tree.people.length === 0 ? (
+          <p className="grid h-full place-items-center px-6 text-center text-sm text-stone-600">
+            Cây gia phả chưa có thành viên nào. Hãy thêm thành viên trong trang thiết kế trước.
+          </p>
+        ) : (
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={familyEdgeTypes}
+            onNodeClick={(_, node) => {
+              if (!node.data.current && !node.data.blocked) setSelectedId(node.id);
+            }}
+            nodesConnectable={false}
+            nodesDraggable={false}
+            elementsSelectable={false}
+            fitView
+            fitViewOptions={{ padding: 0.15 }}
+            minZoom={0.05}
+            maxZoom={1.5}
+            proOptions={{ hideAttribution: true }}
+          />
+        )}
+      </div>
+    </ScrollDialog>
   );
 }

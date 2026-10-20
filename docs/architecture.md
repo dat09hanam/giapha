@@ -270,9 +270,11 @@ while it is measured is skipped until the next run. Usage is read from the colum
 and in a warning banner from 85%) and in the `ADMIN` family list.
 
 `Family.planId` records the plan a Family bought and is required for every Family, the demo family
-included: the `ADMIN` chooses it when creating the Family and can switch it later from the Family
-list on `/admin` (`GET /api/families` lists platform-level facts only: name, slug, status, plan,
-member count, expiry; `PATCH /api/families/:slug/plan`, both `ADMIN` only). The duration sets
+included: the `ADMIN` chooses it when creating the Family (`GET /api/families` lists
+platform-level facts only: name, slug, status, plan, member count, expiry; `ADMIN` only). After
+that a real Family changes plan only when the admin confirms its clan head's plan change request
+(below); `PATCH /api/families/:slug/plan` (`ADMIN` only) refuses every Family but the demo one,
+which has no clan head to send a request. The duration sets
 `Family.planExpiresAt` when the plan is chosen or changed (the new period starts that day) and
 `POST /api/families/:slug/plan/renew` adds one period after the current end, or after today if it
 has lapsed. The demo family never expires. A Family past `planExpiresAt` is expired at once:
@@ -302,6 +304,25 @@ address and only accepts an active plan; listing, the status (`NEW`, `CONTACTED`
 `CANCELLED`), the admin's note and deletion are `ADMIN` only, in the Đăng ký dịch vụ section of
 `/admin`. A registration may carry the `ambassadorCode` the visitor typed; it is checked on submit
 and shown to the admin, who enters it again when opening the Family.
+
+A registration with `familyId` set is an existing Family's plan change request instead. The clan
+head's Gói dịch vụ tab in `/admin/{slug}` reads `GET /api/families/:slug/plan` (`MEMBER_PLUS` only:
+plan, expiry and days left, members, managers and storage against the plan's caps, and any open
+request) and sends `POST /api/families/:slug/plan/requests` with an active plan other than the
+current one and a contact name and phone. The tenant comes from the session through
+`FamilyAccessGuard`, never from the body; a Family keeps at most one open (`NEW` or `CONTACTED`)
+request, which a new one overwrites. The sample family cannot send one.
+
+Every registration's status moves one step at a time, enforced by the API: `NEW` → `CONTACTED` →
+`COMPLETED` (shown as Đã xác nhận), with `CANCELLED` allowed before confirmation; `COMPLETED` and
+`CANCELLED` are final. The step is a conditional update on the status the server read, so two
+admins cannot take it twice. Confirming a plan change request also puts the Family on the
+requested plan through `FamiliesService.applyPlan` in the same transaction, with the period
+starting that day.
+
+`ServiceRegistration.seenAt` and `Ambassador.seenAt` drive the unread badges on the `/admin` sidebar:
+rows with no `seenAt` count as unread until an admin opens that section, which calls
+`POST /api/service-registrations/seen` or `POST /api/ambassadors/seen` (`ADMIN` only).
 
 ### Đại Sứ Đời Đời (ambassador programme)
 

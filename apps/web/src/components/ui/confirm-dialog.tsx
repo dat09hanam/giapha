@@ -14,6 +14,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
+import { ScrollDialog } from '@/components/ui/scroll-dialog';
 import { cn } from '@/lib/utils';
 
 export type ConfirmOptions = {
@@ -43,7 +44,6 @@ function ConfirmDialog({
   pending: ConfirmOptions;
   onAnswer: (confirmed: boolean) => void;
 }) {
-  const titleId = useId();
   const messageId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
@@ -51,47 +51,20 @@ function ConfirmDialog({
 
   useEffect(() => {
     (danger ? cancelRef : confirmRef).current?.focus();
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onAnswer(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [danger, onAnswer]);
+  }, [danger]);
 
   const Icon = danger ? AlertTriangle : HelpCircle;
   return (
-    <div className="fixed inset-0 z-[90] grid place-items-center p-4">
-      <button
-        type="button"
-        className="ui-backdrop absolute inset-0 bg-stone-950/50 backdrop-blur-[2px]"
-        aria-label={pending.cancelLabel ?? 'Hủy'}
-        tabIndex={-1}
-        onClick={() => onAnswer(false)}
-      />
-      <section
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={pending.message ? messageId : undefined}
-        className="ui-dialog heritage-panel relative w-full max-w-sm rounded-2xl p-5 text-center shadow-2xl sm:p-6"
-      >
-        <span
-          className={cn(
-            'mx-auto grid size-12 place-items-center rounded-2xl',
-            danger ? 'bg-red-100 text-red-700' : 'bg-gold-100 text-wood-700',
-          )}
-        >
-          <Icon className="size-6" aria-hidden="true" />
-        </span>
-        <h2 id={titleId} className="mt-4 font-display text-lg font-bold text-wood-800">
-          {pending.title}
-        </h2>
-        {pending.message ? (
-          <p id={messageId} className="mt-2 text-sm leading-6 text-stone-600">
-            {pending.message}
-          </p>
-        ) : null}
-        <div className="mt-6 grid grid-cols-2 gap-2">
+    <ScrollDialog
+      title={pending.title}
+      onClose={() => onAnswer(false)}
+      size="sm"
+      stacked
+      role="alertdialog"
+      describedBy={pending.message ? messageId : undefined}
+      closeLabel={pending.cancelLabel ?? 'Hủy'}
+      footer={
+        <>
           <Button ref={cancelRef} type="button" variant="outline" onClick={() => onAnswer(false)}>
             {pending.cancelLabel ?? 'Hủy'}
           </Button>
@@ -103,9 +76,27 @@ function ConfirmDialog({
           >
             {pending.confirmLabel ?? 'Đồng ý'}
           </Button>
-        </div>
-      </section>
-    </div>
+        </>
+      }
+    >
+      <div className="grid justify-items-center gap-3 text-center">
+        <span
+          className={cn(
+            'grid size-12 place-items-center rounded-full ring-1 ring-inset',
+            danger
+              ? 'bg-red-50 text-red-700 ring-red-300'
+              : 'bg-gold-50 text-wood-700 ring-gold-400/60',
+          )}
+        >
+          <Icon className="size-6" aria-hidden="true" />
+        </span>
+        {pending.message ? (
+          <p id={messageId} className="text-sm leading-6 text-stone-700">
+            {pending.message}
+          </p>
+        ) : null}
+      </div>
+    </ScrollDialog>
   );
 }
 

@@ -1,10 +1,11 @@
 'use client';
 
-import { Camera, SwitchCamera, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import {Camera, SwitchCamera} from 'lucide-react';
+import {useEffect, useRef, useState} from 'react';
 
-import { InlineLoader } from '@/components/ui/heritage-loader';
-import { Button } from '@/components/ui/button';
+import {InlineLoader} from '@/components/ui/heritage-loader';
+import {Button} from '@/components/ui/button';
+import {ScrollDialog} from '@/components/ui/scroll-dialog';
 
 type Facing = 'user' | 'environment';
 
@@ -35,14 +36,6 @@ export function CameraCapture({
   const [error, setError] = useState<string | null>(null);
   const [canSwitch, setCanSwitch] = useState(false);
   const [capturing, setCapturing] = useState(false);
-
-  useEffect(() => {
-    const close = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onCancel();
-    };
-    window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
-  }, [onCancel]);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -114,73 +107,16 @@ export function CameraCapture({
   }
 
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center p-4">
-      <button
-        type="button"
-        className="ui-backdrop absolute inset-0 bg-brand-950/55 backdrop-blur-[2px]"
-        aria-label="Đóng camera"
-        tabIndex={-1}
-        onClick={onCancel}
-      />
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="camera-capture-title"
-        className="ui-dialog heritage-panel relative w-full max-w-lg rounded-2xl p-5 shadow-2xl sm:p-6"
-      >
-        <button
-          type="button"
-          className="absolute right-4 top-4 grid size-9 place-items-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-800"
-          onClick={onCancel}
-          aria-label="Đóng"
-        >
-          <X className="size-5" aria-hidden="true" />
-        </button>
-
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
-          Ảnh đại diện
-        </p>
-        <h2 id="camera-capture-title" className="mt-2 pr-10 text-xl font-semibold text-brand-950">
-          Chụp ảnh trực tiếp
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-stone-600">
-          Đặt khuôn mặt vào giữa khung rồi bấm chụp.
-        </p>
-
-        <div className="relative mt-5 aspect-square overflow-hidden rounded-2xl bg-stone-900">
-          <video
-            ref={videoRef}
-            className={
-              'size-full object-cover transition-opacity ' +
-              (ready ? 'opacity-100' : 'opacity-0') +
-              (facing === 'user' ? ' -scale-x-100' : '')
-            }
-            playsInline
-            muted
-            aria-label="Hình ảnh từ camera"
-          />
-          {!ready && !error ? (
-            <div className="absolute inset-0 grid place-items-center text-sm text-stone-300">
-              <span className="flex items-center gap-2">
-                <InlineLoader className="size-4" />
-                Đang mở camera…
-              </span>
-            </div>
-          ) : null}
-          {error ? (
-            <div className="absolute inset-0 grid place-items-center p-6 text-center text-sm leading-6 text-stone-100">
-              {error}
-            </div>
-          ) : null}
-          {ready ? (
-            <div
-              className="pointer-events-none absolute inset-[12%] rounded-full border-2 border-dashed border-white/60"
-              aria-hidden="true"
-            />
-          ) : null}
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+    <ScrollDialog
+      title="Chụp ảnh trực tiếp"
+      subtitle="Đặt khuôn mặt vào giữa khung rồi bấm chụp."
+      onClose={onCancel}
+      busy={capturing}
+      size="lg"
+      stacked
+      closeLabel="Đóng camera"
+      footer={
+        <div className="flex w-full flex-wrap items-center justify-between gap-3">
           {canSwitch ? (
             <Button
               type="button"
@@ -204,7 +140,40 @@ export function CameraCapture({
             </Button>
           </div>
         </div>
-      </section>
-    </div>
+      }
+    >
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-stone-900">
+        <video
+          ref={videoRef}
+          className={
+            'size-full object-cover transition-opacity ' +
+            (ready ? 'opacity-100' : 'opacity-0') +
+            (facing === 'user' ? ' -scale-x-100' : '')
+          }
+          playsInline
+          muted
+          aria-label="Hình ảnh từ camera"
+        />
+        {!ready && !error ? (
+          <div className="absolute inset-0 grid place-items-center text-sm text-stone-300">
+            <span className="flex items-center gap-2">
+              <InlineLoader className="size-4" />
+              Đang mở camera…
+            </span>
+          </div>
+        ) : null}
+        {error ? (
+          <div className="absolute inset-0 grid place-items-center p-6 text-center text-sm leading-6 text-stone-100">
+            {error}
+          </div>
+        ) : null}
+        {ready ? (
+          <div
+            className="pointer-events-none absolute inset-[12%] rounded-full border-2 border-dashed border-white/60"
+            aria-hidden="true"
+          />
+        ) : null}
+      </div>
+    </ScrollDialog>
   );
 }

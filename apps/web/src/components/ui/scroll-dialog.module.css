@@ -1,0 +1,293 @@
+/* The platform's dialog: a hanging scroll with wooden rods, unrolled over a paper sheet, as on the
+   home page's sign-up forms. Every modal dialog uses it so they read as one family. */
+
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+}
+
+.root[data-stacked] {
+  z-index: 90;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(12 10 9 / 50%);
+  backdrop-filter: blur(2px);
+}
+
+/* Rod rows are max-content, not auto: while the sheet row animates below 1fr, auto rows would
+   absorb the leftover height and open a gap between the top rod and the paper's top edge. */
+.scroll {
+  position: relative;
+  display: grid;
+  grid-template-rows: max-content 1fr max-content;
+  align-content: center;
+  width: min(100%, var(--scroll-width, 30rem));
+  max-height: calc(100dvh - 24px);
+  filter: drop-shadow(0 28px 40px rgb(43 26 12 / 45%));
+  animation:
+    scroll-appear 0.26s ease-out both,
+    scroll-unroll 0.8s cubic-bezier(0.22, 0.8, 0.3, 1) 0.2s both;
+}
+
+.scroll[data-size='sm'] {
+  --scroll-width: 26rem;
+}
+
+.scroll[data-size='lg'] {
+  --scroll-width: 40rem;
+}
+
+.scroll[data-size='xl'] {
+  --scroll-width: 60rem;
+}
+
+[data-presence='closed'] .scroll {
+  animation: scroll-roll-up 0.2s ease-in both;
+}
+
+@keyframes scroll-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+}
+
+@keyframes scroll-unroll {
+  from {
+    grid-template-rows: max-content 0fr max-content;
+  }
+}
+
+@keyframes scroll-roll-up {
+  to {
+    grid-template-rows: max-content 0fr max-content;
+    opacity: 0;
+  }
+}
+
+.rod {
+  position: relative;
+  z-index: 2;
+  display: block;
+  height: 16px;
+  margin: 0 -16px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d8ad78 0%, #a8763f 42%, #6e4520 100%);
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 32%),
+    inset 0 -2px 0 rgb(43 26 12 / 25%),
+    0 3px 6px rgb(43 26 12 / 35%);
+}
+
+.rod::before,
+.rod::after {
+  position: absolute;
+  top: -4px;
+  width: 16px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #9a6a3a, #4a2e12);
+  box-shadow: inset 0 2px 0 rgb(255 255 255 / 22%);
+  content: '';
+}
+
+.rod::before {
+  left: -8px;
+}
+
+.rod::after {
+  right: -8px;
+}
+
+.rodSeal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background:
+    url('/images/home/footer-lotus.webp') center / 26px auto no-repeat,
+    url('/images/home/footer-medallion.webp') center / contain no-repeat,
+    radial-gradient(circle, #6b4423 0 58%, transparent 60%);
+  transform: translate(-50%, -50%);
+}
+
+.sheetClip {
+  display: grid;
+  align-items: center;
+  align-items: unsafe center;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sheet {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: calc(100dvh - 24px - 32px);
+  min-height: 0;
+  border-inline: 1px solid #e3cfae;
+  background:
+    url('/images/home/mountains-strip.webp') right -40px top 8px / 150% auto no-repeat,
+    linear-gradient(rgb(255 252 244 / 82%), rgb(255 252 244 / 82%)),
+    url('/images/home/paper-texture.webp');
+  color: #2c221e;
+  text-align: left;
+}
+
+.close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid #d6b887;
+  border-radius: 999px;
+  background: rgb(255 253 249 / 85%);
+  color: #6b4423;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: #f3e9d6;
+  color: #2c221e;
+}
+
+.close:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.close:focus-visible {
+  outline: 3px solid #1f4a3b;
+  outline-offset: 2px;
+}
+
+.header {
+  display: grid;
+  gap: 4px;
+  padding: 20px 22px 10px;
+}
+
+.title {
+  margin: 0;
+  padding-inline: 36px;
+  color: #2c1d12;
+  font-family: var(--font-display);
+  font-size: clamp(21px, 4.6vw, 25px);
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.title em {
+  color: #1f5a46;
+}
+
+.lotusRule {
+  display: block;
+  width: min(230px, 70%);
+  height: 16px;
+  margin: 4px auto 0;
+  background:
+    url('/images/home/footer-lotus.webp') center / auto 15px no-repeat,
+    linear-gradient(90deg, transparent, #c5a059) left center / 40% 1px no-repeat,
+    linear-gradient(90deg, #c5a059, transparent) right center / 40% 1px no-repeat;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  color: #4f443d;
+  font-size: 14px;
+  text-align: center;
+}
+
+.subtitle strong {
+  color: #1f5a46;
+  font-family: var(--font-display);
+  font-size: 17px;
+}
+
+.body {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 22px 22px;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0 22px;
+  padding: 12px 0 18px;
+  border-top: 1px dashed #d6b887;
+}
+
+/* A white card on the paper, for a form or a block of details, as the home page's forms use. */
+.card {
+  position: relative;
+  padding: 14px 16px 16px;
+  border: 1px solid rgb(214 184 135 / 55%);
+  border-radius: 14px;
+  background: rgb(255 254 250 / 80%);
+  box-shadow: 0 14px 30px -26px rgb(74 46 18 / 60%);
+}
+
+@media (min-width: 640px) {
+  .root {
+    padding: 16px;
+  }
+
+  .scroll {
+    max-height: calc(100dvh - 32px);
+  }
+
+  .sheet {
+    max-height: calc(100dvh - 32px - 32px);
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 22px 16px 8px;
+  }
+
+  .body {
+    padding: 6px 16px 20px;
+  }
+
+  .footer {
+    flex-direction: column-reverse;
+    margin: 0 16px;
+  }
+
+  .footer > * {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll,
+  [data-presence='closed'] .scroll {
+    animation: none;
+  }
+}
