@@ -4,6 +4,7 @@ import { AdminNotifyModule } from '../admin-notify/admin-notify.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { AuthThrottleGuard } from '../common/auth/auth-throttle.guard.js';
 import { FamiliesModule } from '../families/families.module.js';
+import { PaymentsModule } from '../payments/payments.module.js';
 import { FamilyPlanController } from './family-plan.controller.js';
 import { FamilyPlanService } from './family-plan.service.js';
 import { PricingPlansController } from './pricing-plans.controller.js';
@@ -12,7 +13,7 @@ import { ServiceRegistrationsController } from './service-registrations.controll
 import { ServiceRegistrationsService } from './service-registrations.service.js';
 
 @Module({
-  imports: [AdminNotifyModule, AuthModule, FamiliesModule],
+  imports: [AdminNotifyModule, AuthModule, FamiliesModule, PaymentsModule],
   controllers: [PricingPlansController, ServiceRegistrationsController, FamilyPlanController],
   providers: [
     PricingPlansService,

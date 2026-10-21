@@ -6,6 +6,7 @@ import { bytesToNumber, isFamilyExpired, managerAccountWhere } from '../common/f
 import { BYTES_PER_MEGABYTE } from '../common/family-storage.js';
 import { planRightsSelect, resolvePlanRights, type PlanRights } from '../common/plan-rights.js';
 import { PrismaService } from '../database/prisma.service.js';
+import { PlanPaymentService } from '../payments/plan-payment.service.js';
 import type { RequestPlanChangeDto } from './family-plan.dto.js';
 
 const PLAN_UNAVAILABLE = 'Gói dịch vụ này hiện không còn nhận đăng ký.';
@@ -73,6 +74,7 @@ export type FamilyPlanOverview = {
   plan: {
     id: string;
     name: string;
+    /** What this family pays per period: the price when it was put on the plan. */
     price: number;
     billingPeriod: string | null;
     /** Null: the plan never expires. */
@@ -89,6 +91,8 @@ export type FamilyPlanOverview = {
   storageMb: PlanUsage;
   /** The latest request the admin has not finished; null when there is none. */
   pendingRequest: PlanChangeRequest | null;
+  /** True when the clan head can renew by bank transfer from the plan page. */
+  canRenewOnline: boolean;
 };
 
 @Injectable()
@@ -96,6 +100,7 @@ export class FamilyPlanService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(AdminNotifyService) private readonly notifier: AdminNotifyService,
+    @Inject(PlanPaymentService) private readonly payments: PlanPaymentService,
   ) {}
 
   async getOverview(familyId: string): Promise<FamilyPlanOverview> {
@@ -104,6 +109,8 @@ export class FamilyPlanService {
         where: { id: familyId },
         select: {
           status: true,
+          isDemo: true,
+          planPrice: true,
           planExpiresAt: true,
           storageUsedBytes: true,
           plan: {
@@ -121,7 +128,7 @@ export class FamilyPlanService {
       plan: {
         id: family.plan.id,
         name: family.plan.name,
-        price: family.plan.price,
+        price: family.planPrice,
         billingPeriod: family.plan.billingPeriod,
         durationMonths: rights.durationMonths,
       },
@@ -137,6 +144,11 @@ export class FamilyPlanService {
         limit: rights.maxStorageMb,
       },
       pendingRequest: pending,
+      canRenewOnline:
+        this.payments.isEnabled &&
+        !family.isDemo &&
+        rights.durationMonths !== null &&
+        family.planPrice > 0,
     };
   }
 

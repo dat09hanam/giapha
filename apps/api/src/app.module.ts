@@ -16,6 +16,7 @@ import { FamilyTreeModule } from './family-tree/family-tree.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MediaModule } from './media/media.module.js';
 import { MeritModule } from './merit/merit.module.js';
+import { PaymentsModule } from './payments/payments.module.js';
 import { PosterDecorationsModule } from './poster-decorations/poster-decorations.module.js';
 import { PricingPlansModule } from './pricing-plans/pricing-plans.module.js';
 import { SignupModule } from './signup/signup.module.js';
@@ -42,6 +43,7 @@ import { SiteContactModule } from './site-contact/site-contact.module.js';
     SiteContactModule,
     SignupModule,
     AmbassadorsModule,
+    PaymentsModule,
   ],
 })
 export class AppModule {}

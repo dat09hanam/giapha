@@ -116,6 +116,9 @@ model Family {
   /// details, never shown on the family's own pages.
   headName              String?                @db.VarChar(100)
   headPhone             String?                @db.VarChar(30)
+  /// What the family pays to renew its plan: the plan's price when the family was put on it,
+  /// kept even if the plan's price changes later.
+  planPrice             Int                    @default(0)
   /// Bytes the family's media folder takes. Kept by every write and delete in MediaService and
   /// reset from the disk by FamilyStorageReconcileService, which corrects any drift.
   storageUsedBytes      BigInt                 @default(0)
@@ -143,6 +146,7 @@ model Family {
   ambassador            Ambassador?            @relation(fields: [ambassadorId], references: [id], onDelete: Restrict)
   commissions           AmbassadorCommission[]
   planRequests          ServiceRegistration[]
+  planPayments          PlanPayment[]
 
   @@index([status])
   @@index([deletedAt])
@@ -575,6 +579,7 @@ model PricingPlan {
   registrations     ServiceRegistration[]
   families          Family[]
   commissions       AmbassadorCommission[]
+  planPayments      PlanPayment[]
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
 
@@ -708,5 +713,44 @@ model AmbassadorCommission {
   @@index([ambassadorId, paidAt])
   @@index([paidAt, createdAt])
   @@index([familyId])
+  @@index([planId])
+}
+
+enum PlanPaymentStatus {
+  PENDING
+  PAID
+  /// Money arrived but was not applied automatically (too little, or the family changed plan
+  /// since); the admin settles it by hand.
+  REVIEW
+}
+
+// A clan head's bank transfer to renew the family plan, paid by VietQR and confirmed by the SePay
+// webhook. Tenant-owned. Plan name, amount and period are copied when the code is issued, so
+// the transfer always buys what was shown.
+model PlanPayment {
+  id                 String            @id @default(uuid()) @db.Char(36)
+  familyId           String            @db.Char(36)
+  family             Family            @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  /// The transfer content the bank must carry, e.g. GPDD7K2M9QXA; unique across payments.
+  code               String            @unique @db.VarChar(24)
+  planId             String?           @db.Char(36)
+  plan               PricingPlan?      @relation(fields: [planId], references: [id], onDelete: SetNull)
+  planName           String            @db.VarChar(60)
+  amount             Int
+  durationMonths     Int               @db.UnsignedSmallInt
+  status             PlanPaymentStatus @default(PENDING)
+  /// The QR is offered until then; a transfer arriving later is still honoured.
+  expiresAt          DateTime
+  /// SePay's transaction id; unique so a resent webhook is applied once.
+  sepayTransactionId String?           @unique @db.VarChar(32)
+  paidAmount         Int?
+  paidAt             DateTime?
+  /// The plan end date the payment moved the family to.
+  extendedTo         DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([familyId, status])
+  @@index([status, createdAt])
   @@index([planId])
 }

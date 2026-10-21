@@ -26,6 +26,7 @@ import {
   FAMILY_EXPIRED_MESSAGE,
   isFamilyExpired,
   planExpiry,
+  renewedExpiry,
 } from '../common/family-plan.js';
 import { BYTES_PER_MEGABYTE } from '../common/family-storage.js';
 import { planRightsSelect, resolvePlanRights } from '../common/plan-rights.js';
@@ -375,7 +376,7 @@ export class FamiliesService {
       }),
       db.pricingPlan.findUnique({
         where: { id: planId },
-        select: { id: true, ...planRightsSelect },
+        select: { id: true, price: true, ...planRightsSelect },
       }),
     ]);
     if (!family) throw new NotFoundException('Không tìm thấy dòng họ.');
@@ -384,6 +385,8 @@ export class FamiliesService {
       family,
       {
         planId: plan.id,
+        // The family renews at today's price from now on, whatever the plan costs later.
+        planPrice: plan.price,
         planExpiresAt: planExpiry(
           resolvePlanRights(plan.features).durationMonths,
           new Date(),
@@ -400,12 +403,25 @@ export class FamiliesService {
     if (durationMonths === null || family.isDemo) {
       throw new BadRequestException('Gói của dòng họ này không có thời hạn nên không cần gia hạn.');
     }
-    // Renewing early adds a full period after the current end; a lapsed plan restarts today.
-    const now = new Date();
-    const from = family.planExpiresAt && family.planExpiresAt > now ? family.planExpiresAt : now;
     return this.setPlanPeriod(family, {
-      planExpiresAt: planExpiry(durationMonths, from, false),
+      planExpiresAt: renewedExpiry(family.planExpiresAt, durationMonths, new Date()),
     });
+  }
+
+  /** Adds a paid renewal period to a family's plan; returns the new end date. */
+  async extendPlan(
+    familyId: string,
+    durationMonths: number,
+    db: Prisma.TransactionClient = this.prisma,
+  ): Promise<Date> {
+    const family = await db.family.findFirst({
+      where: { id: familyId, deletedAt: null },
+      select: familyPlanStateSelect,
+    });
+    if (!family) throw new NotFoundException('Không tìm thấy dòng họ.');
+    const planExpiresAt = renewedExpiry(family.planExpiresAt, durationMonths, new Date());
+    await this.setPlanPeriod(family, { planExpiresAt }, db);
+    return planExpiresAt;
   }
 
   async resetClanHeadPassword(slug: string): Promise<ClanHeadCredential> {
@@ -508,7 +524,7 @@ export class FamiliesService {
 
   private async setPlanPeriod(
     family: FamilyPlanState,
-    data: { planId?: string; planExpiresAt: Date | null },
+    data: { planId?: string; planPrice?: number; planExpiresAt: Date | null },
     db: Prisma.TransactionClient = this.prisma,
   ): Promise<AdminFamilyListItem> {
     const record = await db.family.update({
@@ -591,6 +607,7 @@ export class FamiliesService {
             headName,
             headPhone,
             planId: plan.id,
+            planPrice: plan.price,
             ambassadorId,
             planExpiresAt: planExpiry(
               resolvePlanRights(plan.features).durationMonths,

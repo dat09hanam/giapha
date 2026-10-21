@@ -39,6 +39,29 @@ const environmentSchema = z.object({
     .string()
     .optional()
     .transform((value) => value || undefined),
+  /** SePay webhook "API Key"; SePay sends it as `Authorization: Apikey <key>`. */
+  SEPAY_WEBHOOK_API_KEY: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
+  /** The receiving bank account linked to SePay, for the VietQR shown to the clan head. */
+  SEPAY_BANK: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
+  SEPAY_ACCOUNT_NUMBER: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
+  SEPAY_ACCOUNT_NAME: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
+  /** Leading letters of every payment code; must match the prefix set in SePay. */
+  SEPAY_CODE_PREFIX: z
+    .string()
+    .regex(/^[A-Z]{2,6}$/)
+    .default('GPDD'),
   GOOGLE_CLIENT_ID: z
     .string()
     .optional()

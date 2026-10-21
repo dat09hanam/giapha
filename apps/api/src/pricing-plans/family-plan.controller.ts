@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 
+import { AllowExpiredFamily } from '../common/auth/allow-expired-family.decorator.js';
 import type { AuthRequest } from '../common/auth/auth.types.js';
 import { FamilyAccessGuard } from '../common/auth/family-access.guard.js';
 import { FamilyRoles } from '../common/auth/family-roles.decorator.js';
@@ -25,10 +26,14 @@ import {
   type PlanChangeRequest,
 } from './family-plan.service.js';
 
-/** The clan head's own view of the family plan; changing it stays with the platform admin. */
+/**
+ * The clan head's own view of the family plan; changing it stays with the platform admin. Open
+ * to a family whose plan ran out, so it can still renew or upgrade.
+ */
 @Controller('families/:slug/plan')
 @UseGuards(SessionAuthGuard, FamilyAccessGuard)
 @FamilyRoles(UserRole.MEMBER_PLUS)
+@AllowExpiredFamily()
 export class FamilyPlanController {
   constructor(@Inject(FamilyPlanService) private readonly familyPlan: FamilyPlanService) {}
 

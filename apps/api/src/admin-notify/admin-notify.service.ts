@@ -32,7 +32,26 @@ export type AdminEvent =
       planName: string;
       fullName: string;
       phone: string;
+    }
+  | {
+      kind: 'PLAN_RENEWED';
+      familyName: string;
+      planName: string;
+      amount: number;
+      extendedTo: Date;
+    }
+  | {
+      kind: 'PAYMENT_REVIEW';
+      /** Why the transfer was not applied, worded for the admin. */
+      reason: string;
+      code: string;
+      amount: number;
+      familyName: string | null;
     };
+
+function money(amount: number): string {
+  return `${amount.toLocaleString('vi-VN')}đ`;
+}
 
 type AdminMessage = { title: string; lines: [label: string, value: string][]; adminPath: string };
 
@@ -73,6 +92,28 @@ function messageFor(event: AdminEvent): AdminMessage {
           ['Số điện thoại', event.phone],
         ],
         adminPath: '/admin#dang-ky',
+      };
+    case 'PLAN_RENEWED':
+      return {
+        title: 'Dòng họ đã thanh toán gia hạn',
+        lines: [
+          ['Dòng họ', event.familyName],
+          ['Gói', event.planName],
+          ['Số tiền', money(event.amount)],
+          ['Hạn dùng mới', event.extendedTo.toLocaleDateString('vi-VN')],
+        ],
+        adminPath: '/admin#dong-ho',
+      };
+    case 'PAYMENT_REVIEW':
+      return {
+        title: 'Chuyển khoản cần xử lý tay',
+        lines: [
+          ['Lý do', event.reason],
+          ['Mã thanh toán', event.code],
+          ['Số tiền nhận', money(event.amount)],
+          ...(event.familyName ? [['Dòng họ', event.familyName] as [string, string]] : []),
+        ],
+        adminPath: '/admin#dong-ho',
       };
   }
 }

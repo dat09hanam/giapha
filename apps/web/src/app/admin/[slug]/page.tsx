@@ -45,6 +45,26 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * A family whose plan ran out can reach nothing but its plan, so its clan head gets the plan tab
+ * alone, to renew or upgrade.
+ */
+async function loadExpiredPlanView(
+  profile: FamilyManagerProfile,
+): Promise<{ overview: FamilyPlanOverview; plans: PricingPlan[] } | null> {
+  if (profile.isPlatformAdmin) return null;
+  const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
+  try {
+    const [overview, plans] = await Promise.all([
+      getFamilyPlanOverview(profile.family.slug, sessionToken),
+      getPricingPlans(),
+    ]);
+    return overview.expired ? { overview, plans } : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) {
   const { slug } = await params;
   let profile: FamilyManagerProfile;
@@ -56,8 +76,10 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
   let tree: FamilyTreeResponse;
   let features: FamilyFeatures | null;
   let planView: { overview: FamilyPlanOverview; plans: PricingPlan[] } | null;
+  let signedIn: FamilyManagerProfile | null = null;
   try {
     profile = await requireFamilyManager(slug, 'admin');
+    signedIn = profile;
     const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
     let suffix: { suffix: string };
     [family, decorations, suggestions, accounts, tree, suffix, features, planView] =
@@ -82,6 +104,32 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
       ]);
     usernameSuffix = suffix.suffix;
   } catch (error: unknown) {
+    const expiredView =
+      error instanceof ApiRequestError && error.status === 403 && signedIn
+        ? await loadExpiredPlanView(signedIn)
+        : null;
+    if (expiredView && signedIn) {
+      return (
+        <main className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:gap-8 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
+          <h1 className="sr-only">Gói dịch vụ đã hết hạn</h1>
+          <p
+            role="alert"
+            className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm leading-6 text-red-800"
+          >
+            Gói dịch vụ của dòng họ đã hết hạn nên tạm thời chưa dùng được các chức năng quản trị.
+            Hãy gia hạn hoặc nâng cấp gói bên dưới; mọi dữ liệu của dòng họ vẫn được giữ nguyên và
+            mở lại ngay khi gói được gia hạn.
+          </p>
+          <FamilyPlanPanel
+            familySlug={signedIn.family.slug}
+            overview={expiredView.overview}
+            plans={expiredView.plans}
+            defaultName={signedIn.displayName}
+            defaultEmail={signedIn.email ?? ''}
+          />
+        </main>
+      );
+    }
     if (error instanceof ApiRequestError) {
       return (
         <ApiErrorState

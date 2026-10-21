@@ -2,6 +2,7 @@
 
 import {
   CalendarClock,
+  CalendarPlus,
   Clock3,
   Crown,
   HardDrive,
@@ -17,6 +18,7 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { SectionCard } from '@/components/admin/admin-layout';
 import { Field } from '@/components/auth/form-fields';
 import { PlanCarousel } from '@/components/pricing/plan-carousel';
+import { PlanRenewalDialog } from '@/components/admin/plan-renewal-dialog';
 import { PricingCard } from '@/components/pricing/pricing-card';
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
@@ -324,7 +326,11 @@ export function FamilyPlanPanel({
   const [pending, setPending] = useState(overview.pendingRequest);
   const [chosen, setChosen] = useState<PricingPlan | null>(null);
   const [blocked, setBlocked] = useState<{ plan: PricingPlan; over: string[] } | null>(null);
-  const currentListed = plans.some((plan) => plan.id === overview.plan.id);
+  const [renewing, setRenewing] = useState(false);
+  const listedCurrent = plans.find((plan) => plan.id === overview.plan.id);
+  const currentListed = listedCurrent !== undefined;
+  // The family keeps the price it signed up at, so it may differ from today's list price.
+  const keptPrice = listedCurrent !== undefined && listedCurrent.price !== overview.plan.price;
 
   function choose(plan: PricingPlan): void {
     const over = limitsExceeded(overview, plan);
@@ -351,11 +357,25 @@ export function FamilyPlanPanel({
                 {formatPlanDuration(overview.plan.durationMonths).toLowerCase()}
               </p>
             </div>
-            <p className="flex items-center gap-2 text-sm">
-              <CalendarClock className="size-4 shrink-0 text-gold-700" aria-hidden="true" />
-              <ExpiryLine overview={overview} />
-            </p>
+            <div className="grid gap-2 sm:justify-items-end">
+              <p className="flex items-center gap-2 text-sm">
+                <CalendarClock className="size-4 shrink-0 text-gold-700" aria-hidden="true" />
+                <ExpiryLine overview={overview} />
+              </p>
+              {overview.canRenewOnline ? (
+                <Button type="button" onClick={() => setRenewing(true)} className="w-full sm:w-auto">
+                  <CalendarPlus className="size-4" aria-hidden="true" />
+                  Gia hạn gói
+                </Button>
+              ) : null}
+            </div>
           </div>
+          {keptPrice && overview.canRenewOnline ? (
+            <p className="text-xs text-stone-500">
+              Dòng họ gia hạn với giá {priceLabel(overview.plan)} như lúc đăng ký gói, không theo
+              giá niêm yết hiện tại.
+            </p>
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-3">
             <UsageMeter
               icon={<UsersRound aria-hidden="true" />}
@@ -408,6 +428,12 @@ export function FamilyPlanPanel({
           )}
         </div>
       </SectionCard>
+
+      <Presence>
+        {renewing ? (
+          <PlanRenewalDialog familySlug={familySlug} onClose={() => setRenewing(false)} />
+        ) : null}
+      </Presence>
 
       <Presence>
         {blocked ? (

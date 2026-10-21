@@ -12,6 +12,24 @@ The browser keeps an opaque session token in an `HttpOnly`, `SameSite=Strict` co
 SHA-256 digest is stored in `AuthSession`. Passwords use scrypt with an independent random salt and
 plaintext credentials are never persisted.
 
+Plan renewal payments (`PaymentsModule`): a family keeps the price it was put on its plan for in
+`Family.planPrice` (set when the family is created and whenever a plan is applied); renewing costs
+that price even after the plan's list price changes, and the clan head's plan overview shows it.
+`POST /api/families/:slug/plan/renewals` (`MEMBER_PLUS`) issues a `PlanPayment` with a unique code
+(`SEPAY_CODE_PREFIX` + 8 characters), the amount, plan name and period copied at that moment, and
+returns the VietQR (`vietqr.app`) for the configured bank account; an open code for the same plan,
+price and period is handed back instead of a new one. `GET .../renewals/:paymentId` is polled by
+the dialog. `POST /api/payments/sepay/webhook` is public but requires SePay's
+`Authorization: Apikey <SEPAY_WEBHOOK_API_KEY>`; it validates its body itself (not the global DTO
+pipe, so new SePay fields never cause retries), ignores money out and transfers without one of our
+codes, and records SePay's transaction id uniquely so a resent notice is applied once. A matching
+`PENDING` payment is claimed atomically and extends the plan one period after the current end (or
+from today when lapsed, reopening an `EXPIRED` family); a transfer that is short, arrives after
+the family changed plan, or uses an unknown or already-paid code is set to `REVIEW` (or left) and
+reported to the admin instead. The plan routes (`families/:slug/plan*`) carry
+`@AllowExpiredFamily()`, so a lapsed family's clan head can still see and renew its plan while
+every other family route answers `403`; the web admin page then shows only the plan panel.
+
 Admin notices (`AdminNotifyModule`): a new service registration, a family opened by Google
 self-service sign-up, and a clan head's plan change request each send the platform admin a short
 notice through the Telegram Bot API (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, comma-separated) and
