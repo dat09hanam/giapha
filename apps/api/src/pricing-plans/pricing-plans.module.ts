@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { AdminNotifyModule } from '../admin-notify/admin-notify.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { AuthThrottleGuard } from '../common/auth/auth-throttle.guard.js';
 import { FamiliesModule } from '../families/families.module.js';
@@ -11,7 +12,7 @@ import { ServiceRegistrationsController } from './service-registrations.controll
 import { ServiceRegistrationsService } from './service-registrations.service.js';
 
 @Module({
-  imports: [AuthModule, FamiliesModule],
+  imports: [AdminNotifyModule, AuthModule, FamiliesModule],
   controllers: [PricingPlansController, ServiceRegistrationsController, FamilyPlanController],
   providers: [
     PricingPlansService,

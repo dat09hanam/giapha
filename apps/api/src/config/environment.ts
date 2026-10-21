@@ -24,6 +24,21 @@ const environmentSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   MAIL_FROM: z.string().min(1).default(`${SITE_BRAND.name} <no-reply@giapha.local>`),
+  /** Telegram bot that tells the admin about sign-ups and plan requests; both empty turns it off. */
+  TELEGRAM_BOT_TOKEN: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
+  /** One chat id, or several separated by commas (a group id starts with "-"). */
+  TELEGRAM_CHAT_ID: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
+  /** Admin inboxes for the same notices, comma-separated; needs SMTP. */
+  ADMIN_NOTIFY_EMAIL: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
   GOOGLE_CLIENT_ID: z
     .string()
     .optional()

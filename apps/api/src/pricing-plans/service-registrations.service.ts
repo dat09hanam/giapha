@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ServiceRegistrationStatus, type Prisma } from '@prisma/client';
 
+import { AdminNotifyService } from '../admin-notify/admin-notify.service.js';
 import { findActiveAmbassadorId, normalizeAmbassadorCode } from '../ambassadors/ambassador-code.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { FamiliesService } from '../families/families.service.js';
@@ -102,6 +103,7 @@ export class ServiceRegistrationsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(FamiliesService) private readonly families: FamiliesService,
+    @Inject(AdminNotifyService) private readonly notifier: AdminNotifyService,
   ) {}
 
   async create(input: CreateServiceRegistrationDto): Promise<void> {
@@ -112,7 +114,7 @@ export class ServiceRegistrationsService {
     if (!plan) throw new BadRequestException(PLAN_UNAVAILABLE);
     // A mistyped code is refused now, while the visitor can still correct it.
     await findActiveAmbassadorId(this.prisma, input.ambassadorCode);
-    await this.prisma.serviceRegistration.create({
+    const created = await this.prisma.serviceRegistration.create({
       data: {
         planId: plan.id,
         planName: plan.name,
@@ -122,7 +124,9 @@ export class ServiceRegistrationsService {
         ambassadorCode: normalizeAmbassadorCode(input.ambassadorCode),
         consentAt: new Date(),
       },
+      select: { fullName: true, phone: true, email: true, planName: true, ambassadorCode: true },
     });
+    this.notifier.notify({ kind: 'SERVICE_REGISTRATION', ...created });
   }
 
   async listAll(): Promise<ServiceRegistrationResponse[]> {

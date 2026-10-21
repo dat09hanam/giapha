@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { FamilyStatus, ServiceRegistrationStatus, type Prisma } from '@prisma/client';
 
+import { AdminNotifyService } from '../admin-notify/admin-notify.service.js';
 import { bytesToNumber, isFamilyExpired, managerAccountWhere } from '../common/family-plan.js';
 import { BYTES_PER_MEGABYTE } from '../common/family-storage.js';
 import { planRightsSelect, resolvePlanRights, type PlanRights } from '../common/plan-rights.js';
@@ -92,7 +93,10 @@ export type FamilyPlanOverview = {
 
 @Injectable()
 export class FamilyPlanService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AdminNotifyService) private readonly notifier: AdminNotifyService,
+  ) {}
 
   async getOverview(familyId: string): Promise<FamilyPlanOverview> {
     const [family, members, managers, pending] = await Promise.all([
@@ -146,6 +150,8 @@ export class FamilyPlanService {
       this.prisma.family.findFirst({
         where: { id: familyId, status: { in: [FamilyStatus.ACTIVE, FamilyStatus.EXPIRED] } },
         select: {
+          name: true,
+          slug: true,
           planId: true,
           isDemo: true,
           storageUsedBytes: true,
@@ -208,6 +214,15 @@ export class FamilyPlanService {
         data: { headName: data.fullName },
       }),
     ]);
+    this.notifier.notify({
+      kind: 'PLAN_CHANGE',
+      familyName: family.name,
+      slug: family.slug,
+      fromPlanName: family.plan.name,
+      planName: plan.name,
+      fullName: data.fullName,
+      phone: data.phone,
+    });
     return toRequest(record);
   }
 

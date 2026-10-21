@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Inject, Injectable } from '@nestjs/common';
 
+import { AdminNotifyService } from '../admin-notify/admin-notify.service.js';
 import { AuthService, type AuthResult } from '../auth/auth.service.js';
 import type { GoogleIdentity } from '../auth/google-id-token.js';
 import { PrismaService } from '../database/prisma.service.js';
@@ -17,6 +18,7 @@ export class SignupService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(FamiliesService) private readonly families: FamiliesService,
     @Inject(AuthService) private readonly auth: AuthService,
+    @Inject(AdminNotifyService) private readonly notifier: AdminNotifyService,
   ) {}
 
   /**
@@ -59,6 +61,13 @@ export class SignupService {
     const head = await this.prisma.user.findUniqueOrThrow({
       where: { googleSub: identity.sub },
       select: { id: true },
+    });
+    this.notifier.notify({
+      kind: 'GOOGLE_SIGNUP',
+      familyName: created.family.name,
+      slug: created.family.slug,
+      email: identity.email,
+      planName: created.family.plan.name,
     });
     const session = await this.auth.startSession(head.id);
     const member = created.accounts?.member;

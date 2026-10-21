@@ -12,6 +12,14 @@ The browser keeps an opaque session token in an `HttpOnly`, `SameSite=Strict` co
 SHA-256 digest is stored in `AuthSession`. Passwords use scrypt with an independent random salt and
 plaintext credentials are never persisted.
 
+Admin notices (`AdminNotifyModule`): a new service registration, a family opened by Google
+self-service sign-up, and a clan head's plan change request each send the platform admin a short
+notice through the Telegram Bot API (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, comma-separated) and
+by email over SMTP (`ADMIN_NOTIFY_EMAIL`, comma-separated). A channel left unconfigured is skipped.
+Sending runs after the write and never fails the request; a failure is logged by event kind only.
+The notice carries the contact's name and phone (and email for a registration), so it is personal
+data leaving the platform for Telegram: only admin-held chats belong in `TELEGRAM_CHAT_ID`.
+
 Quên mật khẩu: `POST /api/auth/password-reset` takes a `login` (username, or the account's email;
 a username match wins) and mails a six-digit code to the account's `User.email` (set for the clan
 head when the family is created, and optionally by the clan head for a member account on the
