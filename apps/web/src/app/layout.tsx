@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Be_Vietnam_Pro, Noto_Serif } from 'next/font/google';
 
 import { ReferralCapture } from '@/components/ambassador/referral-capture';
+import { GoogleAnalytics } from '@/components/layout/google-analytics';
 import { SiteHeader } from '@/components/layout/site-header';
 import { NavigationProgress } from '@/components/layout/navigation-progress';
 import { SiteContactProvider } from '@/components/social/site-contact-provider';
@@ -62,6 +63,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             </ConfirmProvider>
           </ToastProvider>
         </SiteContactProvider>
+        <GoogleAnalytics />
       </body>
     </html>
   );
