@@ -18,6 +18,18 @@ const DEFAULT_SHARE_IMAGE = {
   alt: `Giao diện thiết kế cây gia phả trên ${SITE_BRAND.name}`,
 };
 
+/** Roughly what Google shows of a description before cutting it off. */
+const DESCRIPTION_LENGTH = 155;
+
+/** A page's description shortened for search results: one line, cut at a word, at most ~155 characters. */
+export function metaDescription(text: string): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  if (flat.length <= DESCRIPTION_LENGTH) return flat;
+  const cut = flat.slice(0, DESCRIPTION_LENGTH - 1);
+  const end = cut.lastIndexOf(' ');
+  return `${(end > DESCRIPTION_LENGTH - 40 ? cut.slice(0, end) : cut).replace(/[\s,.;:–-]+$/, '')}…`;
+}
+
 /** Signed-in areas carry private family data and must stay out of search results. */
 export const NO_INDEX: Metadata['robots'] = { index: false, follow: false };
 
@@ -28,6 +40,8 @@ type PageSeo = {
   /** Path of the page, used as its canonical address. */
   path: string;
   image?: string | null;
+  /** Describes `image` for people and search engines; defaults to the page title. */
+  imageAlt?: string;
   article?: { publishedTime: string | null; modifiedTime?: string };
 };
 
@@ -35,9 +49,16 @@ type PageSeo = {
  * Metadata for a public, indexable page. Next.js merges `openGraph` and `twitter` shallowly,
  * so every page restates the shared fields instead of relying on the root layout.
  */
-export function pageMetadata({ title, description, path, image, article }: PageSeo): Metadata {
+export function pageMetadata({
+  title,
+  description,
+  path,
+  image,
+  imageAlt,
+  article,
+}: PageSeo): Metadata {
   const shareTitle = title ?? SITE_TITLE;
-  const images = image ? [image] : [DEFAULT_SHARE_IMAGE];
+  const images = image ? [{ url: image, alt: imageAlt ?? shareTitle }] : [DEFAULT_SHARE_IMAGE];
   return {
     ...(title ? { title } : {}),
     description,

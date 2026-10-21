@@ -105,7 +105,7 @@ export function ArticleView({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={cover}
-            alt=""
+            alt={article.title}
             className="mt-6 aspect-[16/9] w-full rounded-2xl border border-gold-500/30 object-cover"
           />
         ) : (

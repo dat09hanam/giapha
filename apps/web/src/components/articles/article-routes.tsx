@@ -6,7 +6,7 @@ import { ApiErrorState } from '@/components/ui/api-error-state';
 import { ApiNotFoundError, getArticle, getArticles } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { ARTICLE_SECTIONS, articleCoverSrc, articleHref } from '@/lib/article-api';
-import { jsonLd, pageMetadata, SITE_URL } from '@/lib/seo';
+import { jsonLd, metaDescription, pageMetadata, SITE_URL } from '@/lib/seo';
 import { SITE_BRAND } from '@/lib/site-brand';
 import type { Article, ArticleCategory } from '@/types/article';
 
@@ -26,9 +26,10 @@ export async function articleMetadata(category: ArticleCategory, slug: string): 
     const article = await getArticle(category, slug);
     return pageMetadata({
       title: article.title,
-      description: article.summary,
+      description: metaDescription(article.summary),
       path: articleHref(category, article.slug),
       image: articleCoverSrc(article.coverUrl),
+      imageAlt: article.title,
       article: { publishedTime: article.publishedAt, modifiedTime: article.updatedAt },
     });
   } catch {
@@ -46,7 +47,7 @@ function ArticleJsonLd({ article }: { article: Article }) {
       dangerouslySetInnerHTML={jsonLd({
         '@type': 'Article',
         headline: article.title,
-        description: article.summary,
+        description: metaDescription(article.summary),
         mainEntityOfPage: url,
         url,
         ...(cover ? { image: cover } : {}),

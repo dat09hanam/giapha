@@ -32,7 +32,7 @@ function Cover({ article, className }: { article: ArticleSummary; className: str
   if (!src) return <ArticleFallbackCover title={article.title} className={className} />;
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt="" className={`${className} object-cover`} loading="lazy" />
+    <img src={src} alt={article.title} className={`${className} object-cover`} loading="lazy" />
   );
 }
 
