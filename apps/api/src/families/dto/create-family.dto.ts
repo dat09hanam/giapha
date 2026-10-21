@@ -36,10 +36,20 @@ export class CreateFamilyDto {
   @Matches(/^\d{2}\/\d{2}$/)
   deathAnniversary!: string;
 
-  @ValidateIf((input: CreateFamilyDto) => input.isDemo !== true || input.headEmail !== undefined)
+  @ValidateIf((input: CreateFamilyDto) => input.headEmail !== undefined && input.headEmail !== '')
   @IsEmail({}, { message: 'Email Trưởng họ không hợp lệ.' })
   @MaxLength(191)
   headEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  headName?: string;
+
+  @ValidateIf((input: CreateFamilyDto) => input.isDemo !== true || input.headPhone !== undefined)
+  @IsString()
+  @Matches(/^0\d{9}$/, { message: 'Số điện thoại gồm 10 chữ số, bắt đầu bằng 0.' })
+  headPhone?: string;
 
   @IsOptional()
   @IsBoolean()

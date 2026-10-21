@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import {
   ClipboardList,
+  LayoutDashboard,
   Contact,
   HandHeart,
   ImageIcon,
@@ -12,6 +13,7 @@ import {
   Tag,
 } from 'lucide-react';
 
+import { AdminOverview } from '@/components/admin/admin-overview';
 import { AdminWorkspace } from '@/components/admin/admin-workspace';
 import { AmbassadorsPanel } from '@/components/admin/ambassadors-panel';
 import { ArticleManager } from '@/components/admin/article-manager';
@@ -39,6 +41,7 @@ import {
   getServiceRegistrations,
   getSiteContact,
 } from '@/lib/api';
+import { buildAdminOverview } from '@/lib/admin-overview';
 import { ApiRequestError } from '@/lib/api-error';
 import { profileDestination, type AuthProfile } from '@/lib/auth-api';
 import type { AdminFamily } from '@/lib/family-api';
@@ -145,6 +148,16 @@ export default async function AdminPage() {
     <AdminWorkspace
       displayName={profile.displayName}
       sections={[
+        {
+          id: 'tong-quan',
+          label: 'Tổng quan',
+          icon: <LayoutDashboard aria-hidden="true" />,
+          content: (
+            <AdminOverview
+              overview={buildAdminOverview({ families, registrations, ambassadors, commissions })}
+            />
+          ),
+        },
         {
           id: 'dong-ho',
           label: 'Dòng họ',

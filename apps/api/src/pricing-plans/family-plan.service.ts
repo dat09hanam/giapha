@@ -196,6 +196,18 @@ export class FamilyPlanService {
           data: { ...data, familyId },
           select: requestSelect,
         });
+    // A family opened without the clan head's phone or name gets them from this request, so the
+    // admin's family list can show who to call; contact the admin already set is kept.
+    await Promise.all([
+      this.prisma.family.updateMany({
+        where: { id: familyId, headPhone: null },
+        data: { headPhone: data.phone },
+      }),
+      this.prisma.family.updateMany({
+        where: { id: familyId, headName: null },
+        data: { headName: data.fullName },
+      }),
+    ]);
     return toRequest(record);
   }
 

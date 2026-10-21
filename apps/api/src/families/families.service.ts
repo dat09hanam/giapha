@@ -47,6 +47,7 @@ import {
   toPosterDecorationResponse,
   type PosterDecorationResponse,
 } from '../poster-decorations/poster-decoration.types.js';
+import type { ChangeClanHeadContactDto } from './dto/change-clan-head-contact.dto.js';
 import type { ChangeClanHeadEmailDto } from './dto/change-clan-head-email.dto.js';
 import type { ChangeFamilyPlanDto } from './dto/change-family-plan.dto.js';
 import type { CreateFamilyDto } from './dto/create-family.dto.js';
@@ -126,7 +127,12 @@ export type AdminFamilyListItem = {
   /** Megabytes the family's uploads take on disk, rounded up. */
   storageUsedMb: number;
   /** The clan head account; null for the sample family, which has none. */
-  clanHead: { email: string | null; googleLinked: boolean } | null;
+  clanHead: {
+    name: string | null;
+    phone: string | null;
+    email: string | null;
+    googleLinked: boolean;
+  } | null;
   plan: {
     id: string;
     name: string;
@@ -145,6 +151,8 @@ const adminFamilySelect = {
   isDemo: true,
   createdAt: true,
   planExpiresAt: true,
+  headName: true,
+  headPhone: true,
   storageUsedBytes: true,
   plan: { select: { id: true, name: true, ...planRightsSelect } },
   users: {
@@ -163,6 +171,8 @@ function toAdminFamily({
   plan,
   storageUsedBytes,
   users,
+  headName,
+  headPhone,
   ...family
 }: Prisma.FamilyGetPayload<{ select: typeof adminFamilySelect }>): AdminFamilyListItem {
   const { durationMonths, maxMembers, maxManagers, maxStorageMb } = resolvePlanRights(
@@ -174,7 +184,12 @@ function toAdminFamily({
     managerCount: _count.users,
     storageUsedMb: bytesToMegabytes(storageUsedBytes),
     clanHead: users[0]
-      ? { email: users[0].email, googleLinked: users[0].googleSub !== null }
+      ? {
+          name: headName,
+          phone: headPhone,
+          email: users[0].email,
+          googleLinked: users[0].googleSub !== null,
+        }
       : null,
     plan: { id: plan.id, name: plan.name, durationMonths, maxMembers, maxManagers, maxStorageMb },
   };
@@ -464,6 +479,24 @@ export class FamiliesService {
     return toAdminFamily(record);
   }
 
+  /** Sets the clan head's name and phone the admin keeps for contact; not shown to the family. */
+  async changeClanHeadContact(
+    slug: string,
+    input: ChangeClanHeadContactDto,
+  ): Promise<AdminFamilyListItem> {
+    const family = await this.prisma.family.findFirst({
+      where: { slug, deletedAt: null, isDemo: false },
+      select: { id: true },
+    });
+    if (!family) throw new NotFoundException('Không tìm thấy dòng họ.');
+    const record = await this.prisma.family.update({
+      where: { id: family.id },
+      data: { headName: input.name.trim() || null, headPhone: input.phone.trim() || null },
+      select: adminFamilySelect,
+    });
+    return toAdminFamily(record);
+  }
+
   private async findFamilyForPlan(slug: string): Promise<FamilyPlanState> {
     const family = await this.prisma.family.findFirst({
       where: { slug, deletedAt: null },
@@ -515,6 +548,8 @@ export class FamiliesService {
     ]);
 
     const headEmail = input.headEmail?.trim().toLowerCase() || null;
+    const headName = isDemo ? null : input.headName?.trim() || null;
+    const headPhone = isDemo ? null : input.headPhone?.trim() || null;
     if (headEmail && (await this.prisma.user.count({ where: { email: headEmail } }))) {
       throw new ConflictException(EMAIL_TAKEN_MESSAGE);
     }
@@ -553,6 +588,8 @@ export class FamiliesService {
             deathAnniversaryDay: anniversary.day,
             deathAnniversaryMonth: anniversary.month,
             isDemo,
+            headName,
+            headPhone,
             planId: plan.id,
             ambassadorId,
             planExpiresAt: planExpiry(

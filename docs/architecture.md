@@ -103,6 +103,9 @@ Endpoints:
   account or email held by another user is refused.
 - `PATCH /api/families/:slug/clan-head/email`: `ADMIN` only. Sets the clan head's email; a changed
   email clears `googleSub`, so the next Google sign-in links by the new email.
+- `PATCH /api/families/:slug/clan-head/contact`: `ADMIN` only. Sets `Family.headName` and
+  `Family.headPhone`, the clan head's real name and phone kept for the admin's family table; an
+  empty string clears a field. They are admin-only contact details, never returned to the family.
 - `POST /api/auth/google/register` (`SignupModule`): public self-service sign-up. It creates a
   Family exactly as `POST /api/families` does, on the plan the admin marked `googleSignup` (at most
   one plan; never a client-chosen plan; none marked closes sign-up), with the Google account as its
@@ -136,8 +139,13 @@ The old public clan-head registration and invitation endpoints are removed. Pend
 accounts are migrated to `SUSPENDED` and their tokens are discarded.
 
 Family creation accepts a display name, a recurring death-anniversary in `DD/MM`, an optional
-origin (`ancestryOrigin`, stored on the Family) and the clan head's email (`headEmail`, required
-except for the sample family, stored as the head account's `User.email` for password reset). The day and month are stored separately because no
+origin (`ancestryOrigin`, stored on the Family), the clan head's optional email (`headEmail`,
+stored as the head account's `User.email` for password reset and Google sign-in), the clan head's
+phone (`headPhone`, 10 digits starting with 0, required except for the sample family) and optional
+name (`headName`), both stored on the Family. Email and phone given here are the clan head's
+starting contact; the admin can correct them later. Google self-service sign-up takes the email
+from Google and asks for no phone, so those families start with `headPhone` null. A plan change
+request always carries a phone; it fills `headPhone` and `headName` when they are still null. The day and month are stored separately because no
 year is implied. The API validates real month lengths and permits `29/02`.
 
 The API derives the slug; clients no longer send one (only the sample family's path is chosen by

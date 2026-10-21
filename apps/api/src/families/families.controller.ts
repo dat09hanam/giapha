@@ -26,6 +26,8 @@ import { FamilySlugPipe } from '../common/pipes/family-slug.pipe.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { CreateFamilyDto } from './dto/create-family.dto.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { ChangeClanHeadContactDto } from './dto/change-clan-head-contact.dto.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { ChangeClanHeadEmailDto } from './dto/change-clan-head-email.dto.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { ChangeFamilyPlanDto } from './dto/change-family-plan.dto.js';
@@ -137,6 +139,16 @@ export class FamiliesController {
     @Body() input: ChangeClanHeadEmailDto,
   ): Promise<AdminFamilyListItem> {
     return this.families.changeClanHeadEmail(slug, input);
+  }
+
+  @Patch(':slug/clan-head/contact')
+  @UseGuards(SessionAuthGuard, PlatformAdminGuard)
+  @Header('Cache-Control', 'no-store')
+  changeClanHeadContact(
+    @Param('slug', FamilySlugPipe) slug: string,
+    @Body() input: ChangeClanHeadContactDto,
+  ): Promise<AdminFamilyListItem> {
+    return this.families.changeClanHeadContact(slug, input);
   }
 
   @Patch(':slug')

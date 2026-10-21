@@ -112,6 +112,10 @@ model Family {
   isDemo                Boolean                @default(false)
   planId                String                 @db.Char(36)
   planExpiresAt         DateTime?
+  /// The clan head's real name and phone as the platform admin knows them; admin-only contact
+  /// details, never shown on the family's own pages.
+  headName              String?                @db.VarChar(100)
+  headPhone             String?                @db.VarChar(30)
   /// Bytes the family's media folder takes. Kept by every write and delete in MediaService and
   /// reset from the disk by FamilyStorageReconcileService, which corrects any drift.
   storageUsedBytes      BigInt                 @default(0)

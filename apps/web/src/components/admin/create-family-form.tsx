@@ -15,6 +15,7 @@ import {
   type FamilySlugCheck,
 } from '@/lib/family-api';
 import { foldVietnamese } from '@/lib/person-search';
+import { formatPhone, phoneDigits } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { SectionCard } from '@/components/admin/admin-layout';
 import { AmbassadorCodeField } from '@/components/ambassador/ambassador-code-field';
@@ -63,6 +64,8 @@ export function CreateFamilyForm({ plans }: { plans: readonly PricingPlan[] }) {
   const [deathAnniversary, setDeathAnniversary] = useState('');
   const [ancestryOrigin, setAncestryOrigin] = useState('');
   const [headEmail, setHeadEmail] = useState('');
+  const [headName, setHeadName] = useState('');
+  const [headPhone, setHeadPhone] = useState('');
   const [planId, setPlanId] = useState('');
   const [ambassadorCode, setAmbassadorCode] = useState('');
   const [slugCheck, setSlugCheck] = useState<{
@@ -126,7 +129,9 @@ export function CreateFamilyForm({ plans }: { plans: readonly PricingPlan[] }) {
         name,
         deathAnniversary,
         ancestryOrigin,
-        headEmail: headEmail.trim(),
+        headEmail: headEmail.trim() || undefined,
+        headName: headName.trim() || undefined,
+        headPhone: phoneDigits(headPhone),
         planId,
         ambassadorCode: ambassadorCode || undefined,
       });
@@ -135,6 +140,8 @@ export function CreateFamilyForm({ plans }: { plans: readonly PricingPlan[] }) {
       setDeathAnniversary('');
       setAncestryOrigin('');
       setHeadEmail('');
+      setHeadName('');
+      setHeadPhone('');
       setPlanId('');
       setAmbassadorCode('');
       router.refresh();
@@ -195,12 +202,35 @@ export function CreateFamilyForm({ plans }: { plans: readonly PricingPlan[] }) {
             id="family-head-email"
             name="headEmail"
             type="email"
-            label="Email Trưởng họ"
+            label="Email Trưởng họ (không bắt buộc)"
             placeholder="truongho@gmail.com"
             maxLength={191}
             autoComplete="off"
             value={headEmail}
             onChange={(event) => setHeadEmail(event.target.value)}
+          />
+          <Field
+            id="family-head-name"
+            name="headName"
+            label="Tên Trưởng họ"
+            placeholder="Nguyễn Văn An"
+            maxLength={100}
+            autoComplete="off"
+            value={headName}
+            onChange={(event) => setHeadName(event.target.value)}
+          />
+          <Field
+            id="family-head-phone"
+            name="headPhone"
+            type="tel"
+            inputMode="numeric"
+            label="Số điện thoại Trưởng họ"
+            placeholder="0912.345.678"
+            pattern="0\d{3}\.\d{3}\.\d{3}"
+            title="Số điện thoại gồm 10 chữ số, bắt đầu bằng 0."
+            autoComplete="off"
+            value={headPhone}
+            onChange={(event) => setHeadPhone(formatPhone(event.target.value))}
             required
           />
           <PlanSelect id="family-plan" plans={plans} value={planId} onChange={setPlanId} />

@@ -85,9 +85,17 @@ export function AdminWorkspace({
   const sectionIds = sections.map((section) => section.id).join(' ');
   const active = sections.find((section) => section.id === activeId);
 
+  // The hash picks the section on load and when an in-page link such as `#dong-ho` is followed.
   useEffect(() => {
-    const fromHash = window.location.hash.slice(1);
-    if (sectionIds.split(' ').includes(fromHash)) setActiveId(fromHash);
+    const syncFromHash = (): void => {
+      const fromHash = window.location.hash.slice(1);
+      if (!sectionIds.split(' ').includes(fromHash)) return;
+      setActiveId(fromHash);
+      window.scrollTo({ top: 0 });
+    };
+    syncFromHash();
+    window.addEventListener('hashchange', syncFromHash);
+    return () => window.removeEventListener('hashchange', syncFromHash);
   }, [sectionIds]);
 
   const activeSeenList = active?.badge ? active.seenList : undefined;
