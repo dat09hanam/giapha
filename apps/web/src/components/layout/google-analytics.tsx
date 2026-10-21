@@ -27,21 +27,42 @@ function isTracked(pathname: string): boolean {
   );
 }
 
-type Gtag = (...args: unknown[]) => void;
+type GtagWindow = Window & {
+  dataLayer?: unknown[];
+  gtag?: (...args: unknown[]) => void;
+} & Record<string, unknown>;
 
-/** Google Analytics 4, loaded once and fed a page view on every tracked navigation. */
+/**
+ * The gtag queue: calls made before gtag.js loads wait in `dataLayer` and are sent once it
+ * arrives, so this never depends on which runs first. gtag.js needs the `arguments` object
+ * itself pushed, hence the plain function.
+ */
+function gtagOf(win: GtagWindow, measurementId: string): (...args: unknown[]) => void {
+  if (!win.gtag) {
+    win.dataLayer = win.dataLayer ?? [];
+    win.gtag = function gtag() {
+      // eslint-disable-next-line prefer-rest-params
+      win.dataLayer?.push(arguments);
+    };
+    win.gtag('js', new Date());
+    win.gtag('config', measurementId, { send_page_view: false });
+  }
+  return win.gtag;
+}
+
+/** Google Analytics 4: one page view per tracked page, including client-side navigations. */
 export function GoogleAnalytics() {
   const pathname = usePathname();
   const tracked = isTracked(pathname);
 
   useEffect(() => {
     if (!MEASUREMENT_ID) return;
-    // Google's own opt-out switch: once loaded, gtag sends nothing at all (not even its
-    // automatic history-based page views) while the visitor is on a private page.
-    (window as unknown as Record<string, unknown>)[`ga-disable-${MEASUREMENT_ID}`] = !tracked;
-    const gtag = (window as unknown as { gtag?: Gtag }).gtag;
-    if (!tracked || !gtag) return;
-    gtag('event', 'page_view', {
+    const win = window as unknown as GtagWindow;
+    // Google's own opt-out switch: gtag sends nothing at all (not even its automatic
+    // history-based page views) while the visitor is on a private page.
+    win[`ga-disable-${MEASUREMENT_ID}`] = !tracked;
+    if (!tracked) return;
+    gtagOf(win, MEASUREMENT_ID)('event', 'page_view', {
       page_location: window.location.href,
       page_title: document.title,
     });
@@ -49,15 +70,9 @@ export function GoogleAnalytics() {
 
   if (!MEASUREMENT_ID || !tracked) return null;
   return (
-    <>
-      <Script
-        src={`https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`}
-        strategy="afterInteractive"
-      />
-      {/* Page views are sent by the effect above, so the client-side navigations count too. */}
-      <Script id="google-analytics" strategy="afterInteractive">
-        {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${MEASUREMENT_ID}',{send_page_view:false});gtag('event','page_view',{page_location:location.href,page_title:document.title});`}
-      </Script>
-    </>
+    <Script
+      src={`https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`}
+      strategy="afterInteractive"
+    />
   );
 }

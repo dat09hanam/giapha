@@ -60,6 +60,7 @@ export function HomeFooter() {
             <Link
               href="/"
               className={styles.footerLogo}
+              data-nosnippet
               aria-label={`${SITE_BRAND.name} — Trang chủ`}
             >
               <span className={styles.footerMedal}>
@@ -68,7 +69,7 @@ export function HomeFooter() {
               <span>
                 <strong>
                   {SITE_BRAND.nameLead} <em>{SITE_BRAND.nameAccent}</em>
-                </strong>
+                </strong>{' '}
                 <small>{SITE_BRAND.tagline}</small>
               </span>
             </Link>
