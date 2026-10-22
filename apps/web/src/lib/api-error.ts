@@ -122,6 +122,31 @@ function localizeMessage(message: string, status: number, action: string): strin
   return VIETNAMESE_CHARACTER_PATTERN.test(trimmed) ? trimmed : statusMessage(status, action);
 }
 
+/**
+ * Records why a server-rendered request could not reach the API, for the hosting logs.
+ * Only the endpoint path and the failure code are logged, never request or response data.
+ */
+function logServerFailure(url: string, reason: string): void {
+  if (typeof window !== 'undefined') return;
+  let endpoint = url;
+  try {
+    const parsed = new URL(url);
+    endpoint = `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    // Keep the raw value: it is our own configured API URL.
+  }
+  console.error(`[api] ${endpoint} failed: ${reason}`);
+}
+
+function failureCause(error: unknown): string {
+  const cause = error instanceof Error ? error.cause : undefined;
+  if (cause instanceof Error) {
+    const code = 'code' in cause && typeof cause.code === 'string' ? `${cause.code} ` : '';
+    return `${code}${cause.message}`;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
 async function responseBody(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return null;
@@ -139,6 +164,7 @@ export async function apiFetch<T>(url: string, init: RequestInit, action: string
   try {
     response = await fetch(url, init);
   } catch (error: unknown) {
+    logServerFailure(url, failureCause(error));
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new ApiRequestError(
         `Không thể ${action} vì yêu cầu đã hết thời gian chờ. Vui lòng thử lại.`,
@@ -170,6 +196,7 @@ export async function apiFetch<T>(url: string, init: RequestInit, action: string
 
   // A server-side failure says nothing the visitor can act on, so its body is not shown.
   if (response.status >= 500) {
+    logServerFailure(url, `HTTP ${response.status}`);
     throw new ApiRequestError(statusMessage(response.status, action), response.status, 'http');
   }
 
