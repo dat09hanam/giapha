@@ -136,7 +136,7 @@ export default async function AdminPage() {
       return (
         <ApiErrorState
           title="Chưa thể tải khu vực quản trị"
-          message={error.message}
+          error={error}
           retryHref="/admin"
         />
       );

@@ -34,7 +34,7 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
   } catch (error: unknown) {
     if (error instanceof ApiNotFoundError) notFound();
     if (error instanceof ApiRequestError) {
-      return <ApiErrorState title="Chưa thể tải album" message={error.message} retryHref={path} />;
+      return <ApiErrorState title="Chưa thể tải album" error={error} retryHref={path} />;
     }
     throw error;
   }

@@ -83,7 +83,7 @@ export async function ArticleListRoute({
       return (
         <ApiErrorState
           title="Chưa thể tải danh sách bài viết"
-          message={error.message}
+          error={error}
           retryHref={ARTICLE_SECTIONS[category].path}
         />
       );
@@ -114,7 +114,7 @@ export async function ArticleRoute({
       return (
         <ApiErrorState
           title="Chưa thể tải bài viết"
-          message={error.message}
+          error={error}
           retryHref={`${ARTICLE_SECTIONS[category].path}/${encodeURIComponent(slug)}`}
         />
       );

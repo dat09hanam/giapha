@@ -54,7 +54,7 @@ export default async function FamilyHomePage({ params }: FamilyHomePageProps) {
       return (
         <ApiErrorState
           title="Chưa thể tải trang dòng họ"
-          message={error.message}
+          error={error}
           retryHref={path}
         />
       );

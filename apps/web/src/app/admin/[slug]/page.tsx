@@ -134,7 +134,7 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
       return (
         <ApiErrorState
           title="Chưa thể tải thông tin dòng họ"
-          message={error.message}
+          error={error}
           retryHref={'/admin/' + encodeURIComponent(slug)}
         />
       );
@@ -225,10 +225,10 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
               />
             ) : (
               <p
-                role="alert"
-                className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800"
+                role="status"
+                className="rounded-2xl border border-gold-200 bg-gold-50 px-5 py-4 text-sm leading-6 text-wood-700"
               >
-                Chưa thể tải đề xuất chỉnh sửa: {suggestions.message} Hãy tải lại trang để thử lại.
+                {suggestions.message}
               </p>
             ),
           },

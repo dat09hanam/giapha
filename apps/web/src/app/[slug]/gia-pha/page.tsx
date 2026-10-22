@@ -89,7 +89,7 @@ export default async function FamilyPage({ params }: FamilyPageProps) {
       return (
         <ApiErrorState
           title="Chưa thể tải cây gia phả"
-          message={error.message}
+          error={error}
           retryHref={'/' + encodeURIComponent(slug) + '/gia-pha'}
         />
       );

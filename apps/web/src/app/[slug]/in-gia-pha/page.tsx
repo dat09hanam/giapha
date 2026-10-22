@@ -58,7 +58,7 @@ export default async function PrintFamilyBookPage({ params }: PrintPageProps) {
       return (
         <ApiErrorState
           title="Chưa thể chuẩn bị bản in"
-          message={error.message}
+          error={error}
           retryHref={`/${encodeURIComponent(slug)}/in-gia-pha`}
         />
       );

@@ -25,7 +25,7 @@ export default async function MeritPage({ params }: MeritPageProps) {
     if (error instanceof ApiNotFoundError) notFound();
     if (error instanceof ApiRequestError) {
       return (
-        <ApiErrorState title="Chưa thể tải công đức" message={error.message} retryHref={path} />
+        <ApiErrorState title="Chưa thể tải công đức" error={error} retryHref={path} />
       );
     }
     throw error;

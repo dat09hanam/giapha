@@ -73,7 +73,7 @@ export default async function DemoFamilyPage() {
       return (
         <ApiErrorState
           title="Chưa thể tải gia phả mẫu"
-          message={error.message}
+          error={error}
           retryHref="/gia-pha-mau"
         />
       );

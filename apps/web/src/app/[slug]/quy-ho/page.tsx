@@ -28,7 +28,7 @@ export default async function FamilyFundPage({ params }: FamilyFundPageProps) {
       redirect(`/login?next=${encodeURIComponent(path)}&reason=session-expired`);
     }
     if (error instanceof ApiRequestError) {
-      return <ApiErrorState title="Chưa thể tải quỹ họ" message={error.message} retryHref={path} />;
+      return <ApiErrorState title="Chưa thể tải quỹ họ" error={error} retryHref={path} />;
     }
     throw error;
   }

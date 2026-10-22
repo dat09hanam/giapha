@@ -30,7 +30,7 @@ export default async function MeritEventPage({ params }: MeritEventPageProps) {
       return (
         <ApiErrorState
           title="Chưa thể tải sự kiện công đức"
-          message={error.message}
+          error={error}
           retryHref={path}
         />
       );
