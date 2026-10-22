@@ -1,4 +1,5 @@
-import type { LucideIcon } from 'lucide-react';
+import { ShieldCheck, type LucideIcon } from 'lucide-react';
+import Image from 'next/image';
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -24,16 +25,25 @@ type ErrorStateProps = {
   actions: ReactNode;
 };
 
+const BACKGROUND_SRC = '/images/decorations/article-cover-background.webp';
+
 const TONE_STYLES = {
   system: {
-    halo: 'bg-gold-100/80',
-    badge: 'border-gold-700/30 bg-gold-50 text-gold-700',
+    medallion: 'from-gold-300 via-gold-500 to-gold-700 text-[#fffaf0]',
+    halo: 'bg-gold-300/40',
   },
   notice: {
-    halo: 'bg-brand-100/60',
-    badge: 'border-brand-700/20 bg-brand-50 text-brand-700',
+    medallion: 'from-brand-400 via-brand-600 to-brand-800 text-[#fffaf0]',
+    halo: 'bg-brand-300/30',
   },
 } as const;
+
+const CORNERS = [
+  'left-3 top-3',
+  'right-3 top-3 rotate-90',
+  'bottom-3 right-3 rotate-180',
+  'bottom-3 left-3 -rotate-90',
+] as const;
 
 export function ErrorState({
   tone,
@@ -47,45 +57,101 @@ export function ErrorState({
   const styles = TONE_STYLES[tone];
 
   return (
-    <main className="mx-auto grid min-h-[70vh] w-full max-w-2xl place-items-center px-4 py-12">
+    <main className="relative isolate grid min-h-[calc(100dvh-4rem)] w-full place-items-center overflow-hidden px-4 pb-24 pt-20 sm:pb-32">
+      <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+        <Image
+          src={BACKGROUND_SRC}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-bottom"
+        />
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#fdfbf7] to-transparent" />
+        <div className="absolute left-1/2 top-1/2 size-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#fffaf0]/70 blur-3xl" />
+      </div>
+
       <section
-        className="heritage-panel w-full rounded-2xl px-6 py-10 text-center sm:px-12"
+        className="relative w-full max-w-xl rounded-2xl border border-gold-500/40 bg-[#fffaf0]/90 px-6 pb-9 pt-16 text-center shadow-2xl shadow-wood-950/15 backdrop-blur-sm sm:px-12"
         role={tone === 'system' ? 'status' : 'alert'}
         aria-live="polite"
       >
-        <span className="relative mx-auto grid size-20 place-items-center">
+        <div
+          className="pointer-events-none absolute inset-2 rounded-xl border border-gold-500/25"
+          aria-hidden="true"
+        />
+        {CORNERS.map((position) => (
+          <CornerOrnament key={position} className={position} />
+        ))}
+
+        <span
+          className="absolute left-1/2 top-0 grid size-24 -translate-x-1/2 -translate-y-1/2 place-items-center"
+          aria-hidden="true"
+        >
           <span
             className={cn('absolute inset-0 rounded-full motion-safe:animate-pulse', styles.halo)}
-            aria-hidden="true"
           />
           <span
             className={cn(
-              'relative grid size-14 place-items-center rounded-full border shadow-sm',
-              styles.badge,
+              'relative grid size-[4.5rem] place-items-center rounded-full bg-gradient-to-br shadow-lg shadow-wood-950/20 ring-4 ring-[#fffaf0]',
+              styles.medallion,
             )}
           >
-            <Icon className="size-7" aria-hidden="true" />
+            <span className="absolute inset-1.5 rounded-full border border-[#fffaf0]/50" />
+            <Icon className="size-8" strokeWidth={1.75} />
           </span>
         </span>
+
         {context ? (
-          <p className="mt-5 text-xs font-semibold tracking-[0.14em] text-wood-700/70 uppercase">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-700">
             {context}
           </p>
         ) : null}
-        <h1
-          className={cn(
-            'font-display text-2xl font-bold text-brand-800',
-            context ? 'mt-1' : 'mt-5',
-          )}
-        >
-          {title}
-        </h1>
-        <p className="mx-auto mt-3 max-w-md leading-7 text-stone-600">{message}</p>
+        <h1 className="mt-2 font-display text-3xl font-bold text-brand-800">{title}</h1>
+        <LotusDivider className="mx-auto mt-4 max-w-56" />
+        <p className="mx-auto mt-4 max-w-md leading-7 text-stone-700">{message}</p>
         {hint ? (
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-stone-500">{hint}</p>
+          <p className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full border border-gold-500/30 bg-gold-50 px-4 py-1.5 text-sm text-wood-700">
+            <ShieldCheck className="size-4 text-gold-700" aria-hidden="true" />
+            {hint}
+          </p>
         ) : null}
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">{actions}</div>
+        <div className="relative mt-8 flex flex-wrap items-center justify-center gap-3">
+          {actions}
+        </div>
       </section>
     </main>
+  );
+}
+
+function CornerOrnament({ className }: { className: string }) {
+  return (
+    <svg
+      viewBox="0 0 40 40"
+      className={cn('pointer-events-none absolute size-9 text-gold-600/70', className)}
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M3 37V14C3 7.9 7.9 3 14 3h23" strokeWidth="1.5" />
+      <path d="M9 37V18c0-5 4-9 9-9h19" strokeWidth="1" opacity="0.5" />
+      <path d="M14 14c0-2.5 2-4 4-3.4 1.6.5 2 2.6.6 3.6-1 .7-2.4.1-2.3-1" strokeWidth="1.2" />
+      <circle cx="3" cy="37" r="1.6" fill="currentColor" stroke="none" />
+      <circle cx="37" cy="3" r="1.6" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function LotusDivider({ className }: { className?: string }) {
+  return (
+    <div className={cn('flex items-center gap-3 text-gold-500', className)} aria-hidden="true">
+      <span className="h-px flex-1 bg-gradient-to-r from-transparent to-gold-500/60" />
+      <svg viewBox="0 0 24 12" className="h-3 w-6" fill="currentColor">
+        <path d="M12 0c1.6 2 2.4 4.2 2.4 6.4S13.6 10.4 12 12c-1.6-1.6-2.4-3.4-2.4-5.6S10.4 2 12 0Z" />
+        <path d="M0 9c3.2-1.6 6.4-1.4 9.2.6.9.7 1.8 1.5 2.8 2.4-3.6.4-6.6.2-9-.6C1.8 11 .8 10.2 0 9Zm24 0c-3.2-1.6-6.4-1.4-9.2.6-.9.7-1.8 1.5-2.8 2.4 3.6.4 6.6.2 9-.6 1.2-.4 2.2-1.2 3-2.4Z" />
+      </svg>
+      <span className="h-px flex-1 bg-gradient-to-l from-transparent to-gold-500/60" />
+    </div>
   );
 }
