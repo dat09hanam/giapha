@@ -7,7 +7,13 @@ import {
 } from '@nestjs/common';
 import { FamilyStatus } from '@prisma/client';
 
-import { daysBetween, isoDay, todayInVietnam } from '../common/lunar-calendar.js';
+import {
+  daysBetween,
+  hourInVietnam,
+  isoDay,
+  msUntilVietnamHour,
+  todayInVietnam,
+} from '../common/lunar-calendar.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { anniversaryReminderMail } from './anniversary-mail.js';
@@ -17,18 +23,24 @@ import {
   nextOccurrence,
 } from './anniversaries.service.js';
 
-const SWEEP_INTERVAL_MS = 60 * 60 * 1000;
+/** Reminder emails go out at this hour, Việt Nam time, and never earlier in the day. */
+export const SEND_HOUR = 7;
+/** Catch-up checks between the daily runs, for a send that failed or a server that was down. */
+const CATCH_UP_INTERVAL_MS = 60 * 60 * 1000;
 const BATCH_SIZE = 500;
 
 /**
- * Hourly job emailing death-anniversary reminders a week ahead. Each reminder is claimed by
- * writing the occurrence into `lastSentFor` before sending, so several API instances never send
- * the same occurrence twice; a failed send releases the claim for the next sweep.
+ * Emails death-anniversary reminders a week ahead, at 7:00 Việt Nam time. A run is scheduled for
+ * every 7:00; the hourly catch-up and the run at start-up send whatever that run missed, but only
+ * from 7:00 on, so nobody is woken at night. Each reminder is claimed by writing the occurrence
+ * into `lastSentFor` before sending, so several API instances never send the same occurrence
+ * twice, and a failed send releases the claim for the next check.
  */
 @Injectable()
 export class AnniversaryReminderSweepService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AnniversaryReminderSweepService.name);
-  private timer: NodeJS.Timeout | null = null;
+  private catchUp: NodeJS.Timeout | null = null;
+  private daily: NodeJS.Timeout | null = null;
   private running = false;
 
   constructor(
@@ -38,21 +50,32 @@ export class AnniversaryReminderSweepService implements OnModuleInit, OnModuleDe
   ) {}
 
   onModuleInit(): void {
-    this.timer = setInterval(() => void this.sweep(), SWEEP_INTERVAL_MS);
-    this.timer.unref();
+    this.catchUp = setInterval(() => void this.sweep(), CATCH_UP_INTERVAL_MS);
+    this.catchUp.unref();
+    this.scheduleDaily();
     void this.sweep();
   }
 
   onModuleDestroy(): void {
-    if (this.timer) clearInterval(this.timer);
+    if (this.catchUp) clearInterval(this.catchUp);
+    if (this.daily) clearTimeout(this.daily);
   }
 
-  async sweep(): Promise<void> {
+  private scheduleDaily(): void {
+    this.daily = setTimeout(() => {
+      void this.sweep();
+      this.scheduleDaily();
+    }, msUntilVietnamHour(SEND_HOUR));
+    this.daily.unref();
+  }
+
+  async sweep(now: Date = new Date()): Promise<void> {
+    if (hourInVietnam(now) < SEND_HOUR) return;
     if (this.running || !this.mail.isConfigured) return;
     this.running = true;
     let sent = 0;
     try {
-      const today = todayInVietnam();
+      const today = todayInVietnam(now);
       let cursor: string | undefined;
       for (;;) {
         const batch = await this.prisma.anniversaryReminder.findMany({

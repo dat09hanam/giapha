@@ -178,6 +178,21 @@ export function daysBetween(from: SolarDay, to: SolarDay): number {
   return julianDay(to) - julianDay(from);
 }
 
+/** The hour of the day (0–23) in Việt Nam. */
+export function hourInVietnam(now: Date = new Date()): number {
+  return new Date(now.getTime() + TIME_ZONE * 3_600_000).getUTCHours();
+}
+
+/** Milliseconds until the next time the clock in Việt Nam shows `hour`:00. */
+export function msUntilVietnamHour(hour: number, now: Date = new Date()): number {
+  const local = new Date(now.getTime() + TIME_ZONE * 3_600_000);
+  let target =
+    Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), hour) -
+    TIME_ZONE * 3_600_000;
+  if (target <= now.getTime()) target += 86_400_000;
+  return target - now.getTime();
+}
+
 /** Today's date in Việt Nam (UTC+7). */
 export function todayInVietnam(now: Date = new Date()): SolarDay {
   const local = new Date(now.getTime() + TIME_ZONE * 3_600_000);
