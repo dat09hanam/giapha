@@ -147,6 +147,7 @@ model Family {
   commissions           AmbassadorCommission[]
   planRequests          ServiceRegistration[]
   planPayments          PlanPayment[]
+  anniversaryReminders  AnniversaryReminder[]
 
   @@index([status])
   @@index([deletedAt])
@@ -157,27 +158,28 @@ model Family {
 }
 
 model User {
-  id                 String                 @id @default(uuid()) @db.Char(36)
-  username           String                 @unique @db.VarChar(191)
-  passwordHash       String                 @db.VarChar(255)
-  displayName        String                 @db.VarChar(191)
-  email              String?                @unique @db.VarChar(191)
+  id                   String                 @id @default(uuid()) @db.Char(36)
+  username             String                 @unique @db.VarChar(191)
+  passwordHash         String                 @db.VarChar(255)
+  displayName          String                 @db.VarChar(191)
+  email                String?                @unique @db.VarChar(191)
   /// Google account id ("sub" claim) of a user who signs in with Google; one account per user.
-  googleSub          String?                @unique @db.VarChar(64)
-  role               UserRole
-  familyId           String?                @db.Char(36)
-  status             UserStatus             @default(ACTIVE)
-  mustChangePassword Boolean                @default(false)
-  isShared           Boolean                @default(false)
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  deletedAt          DateTime?
-  family             Family?                @relation(fields: [familyId], references: [id], onDelete: Restrict)
-  sessions           AuthSession[]
-  branches           BranchManager[]
-  passwordResetCodes PasswordResetCode[]
-  uploadedMedia      Media[]                @relation("MediaUploader")
-  paidCommissions    AmbassadorCommission[]
+  googleSub            String?                @unique @db.VarChar(64)
+  role                 UserRole
+  familyId             String?                @db.Char(36)
+  status               UserStatus             @default(ACTIVE)
+  mustChangePassword   Boolean                @default(false)
+  isShared             Boolean                @default(false)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  deletedAt            DateTime?
+  family               Family?                @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  sessions             AuthSession[]
+  branches             BranchManager[]
+  passwordResetCodes   PasswordResetCode[]
+  uploadedMedia        Media[]                @relation("MediaUploader")
+  paidCommissions      AmbassadorCommission[]
+  anniversaryReminders AnniversaryReminder[]
 
   @@index([familyId, role, status])
   @@index([deletedAt])
@@ -210,50 +212,51 @@ model AuthSession {
 }
 
 model Person {
-  id                   String           @id @default(uuid()) @db.Char(36)
-  familyId             String           @db.Char(36)
-  fatherId             String?          @db.Char(36)
-  motherId             String?          @db.Char(36)
-  name                 String           @db.VarChar(191)
-  honorific            String?          @db.VarChar(100)
-  nickname             String?          @db.VarChar(191)
-  courtesyName         String?          @db.VarChar(191)
-  gender               Gender           @default(UNKNOWN)
-  birthDate            String?          @db.VarChar(100)
-  deathDate            String?          @db.VarChar(100)
-  lunarDeathDay        Int?             @db.UnsignedTinyInt
-  lunarDeathMonth      Int?             @db.UnsignedTinyInt
-  isAlive              Boolean          @default(true)
-  burialPlace          String?          @db.VarChar(255)
-  phone                String?          @db.VarChar(30)
-  avatarUrl            String?          @db.VarChar(500)
-  biography            String?          @db.Text
+  id                   String                @id @default(uuid()) @db.Char(36)
+  familyId             String                @db.Char(36)
+  fatherId             String?               @db.Char(36)
+  motherId             String?               @db.Char(36)
+  name                 String                @db.VarChar(191)
+  honorific            String?               @db.VarChar(100)
+  nickname             String?               @db.VarChar(191)
+  courtesyName         String?               @db.VarChar(191)
+  gender               Gender                @default(UNKNOWN)
+  birthDate            String?               @db.VarChar(100)
+  deathDate            String?               @db.VarChar(100)
+  lunarDeathDay        Int?                  @db.UnsignedTinyInt
+  lunarDeathMonth      Int?                  @db.UnsignedTinyInt
+  isAlive              Boolean               @default(true)
+  burialPlace          String?               @db.VarChar(255)
+  phone                String?               @db.VarChar(30)
+  avatarUrl            String?               @db.VarChar(500)
+  biography            String?               @db.Text
   generation           Int?
-  orderInFamily        Int?             @db.UnsignedSmallInt
+  orderInFamily        Int?                  @db.UnsignedSmallInt
   maritalStatus        MaritalStatus?
-  education            String?          @db.VarChar(191)
-  occupation           String?          @db.VarChar(191)
-  hometown             String?          @db.VarChar(255)
-  currentAddress       String?          @db.VarChar(255)
-  mapUrl               String?          @db.VarChar(500)
-  ageAtDeath           Int?             @db.UnsignedTinyInt
-  worshipPlace         String?          @db.VarChar(255)
-  worshipKeeperId      String?          @db.Char(36)
-  deathAnniversaryText String?          @db.VarChar(191)
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
-  family               Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  father               Person?          @relation("FatherChildren", fields: [familyId, fatherId], references: [familyId, id], onDelete: Restrict, map: "Person_father_fkey")
-  mother               Person?          @relation("MotherChildren", fields: [familyId, motherId], references: [familyId, id], onDelete: Restrict, map: "Person_mother_fkey")
-  worshipKeeper        Person?          @relation("WorshipKeeper", fields: [familyId, worshipKeeperId], references: [familyId, id], onDelete: Restrict, map: "Person_worship_keeper_fkey")
-  worshipKeeperOf      Person[]         @relation("WorshipKeeper")
-  childrenAsFather     Person[]         @relation("FatherChildren")
-  childrenAsMother     Person[]         @relation("MotherChildren")
-  husbandInMarriages   Relationship[]   @relation("HusbandRelationships")
-  wifeInMarriages      Relationship[]   @relation("WifeRelationships")
-  uploadedMedia        Media[]          @relation("MediaAuthor")
+  education            String?               @db.VarChar(191)
+  occupation           String?               @db.VarChar(191)
+  hometown             String?               @db.VarChar(255)
+  currentAddress       String?               @db.VarChar(255)
+  mapUrl               String?               @db.VarChar(500)
+  ageAtDeath           Int?                  @db.UnsignedTinyInt
+  worshipPlace         String?               @db.VarChar(255)
+  worshipKeeperId      String?               @db.Char(36)
+  deathAnniversaryText String?               @db.VarChar(191)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  family               Family                @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  father               Person?               @relation("FatherChildren", fields: [familyId, fatherId], references: [familyId, id], onDelete: Restrict, map: "Person_father_fkey")
+  mother               Person?               @relation("MotherChildren", fields: [familyId, motherId], references: [familyId, id], onDelete: Restrict, map: "Person_mother_fkey")
+  worshipKeeper        Person?               @relation("WorshipKeeper", fields: [familyId, worshipKeeperId], references: [familyId, id], onDelete: Restrict, map: "Person_worship_keeper_fkey")
+  worshipKeeperOf      Person[]              @relation("WorshipKeeper")
+  childrenAsFather     Person[]              @relation("FatherChildren")
+  childrenAsMother     Person[]              @relation("MotherChildren")
+  husbandInMarriages   Relationship[]        @relation("HusbandRelationships")
+  wifeInMarriages      Relationship[]        @relation("WifeRelationships")
+  uploadedMedia        Media[]               @relation("MediaAuthor")
   editSuggestions      EditSuggestion[]
   branchManagers       BranchManager[]
+  anniversaryReminders AnniversaryReminder[]
 
   @@unique([familyId, id])
   @@index([familyId, fatherId])
@@ -753,4 +756,27 @@ model PlanPayment {
   @@index([familyId, status])
   @@index([status, createdAt])
   @@index([planId])
+}
+
+// An email asking to be reminded of one person's death anniversary (ngày giỗ) a week ahead.
+// Tenant-owned and removed with the person. `lastSentFor` is the solar date of the anniversary
+// already reminded, so a sweep sends each occurrence once. `unsubscribeToken` is the secret in the
+// email's unsubscribe link; anyone holding it may cancel this one reminder.
+model AnniversaryReminder {
+  id               String    @id @default(uuid()) @db.Char(36)
+  familyId         String    @db.Char(36)
+  personId         String    @db.Char(36)
+  email            String    @db.VarChar(191)
+  createdById      String?   @db.Char(36)
+  unsubscribeToken String    @unique @db.VarChar(64)
+  lastSentFor      DateTime? @db.Date
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  family           Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  person           Person    @relation(fields: [familyId, personId], references: [familyId, id], onDelete: Cascade, map: "AnniversaryReminder_person_fkey")
+  createdBy        User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([personId, email])
+  @@index([familyId, createdById])
+  @@index([createdById])
 }

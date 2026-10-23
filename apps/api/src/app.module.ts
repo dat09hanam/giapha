@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
 import { AmbassadorsModule } from './ambassadors/ambassadors.module.js';
+import { AnniversariesModule } from './anniversaries/anniversaries.module.js';
 import { ArticlesModule } from './articles/articles.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { validateEnvironment } from './config/environment.js';
@@ -38,6 +39,7 @@ import { SiteContactModule } from './site-contact/site-contact.module.js';
     EditSuggestionsModule,
     FeedModule,
     FundModule,
+    AnniversariesModule,
     MeritModule,
     LibraryModule,
     ArticlesModule,

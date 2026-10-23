@@ -1,6 +1,7 @@
 import { cache } from 'react';
 
 import { ApiRequestError, apiFetch } from '@/lib/api-error';
+import type { AnniversaryCalendar } from '@/lib/anniversary-api';
 import type { AuthProfile } from '@/lib/auth-api';
 import type { TreeEditScope } from '@/lib/branch-scope';
 import type { FamilyAccount } from '@/lib/family-accounts-api';
@@ -171,6 +172,14 @@ export const getAlbum = cache((slug: string, albumId: string, sessionToken: stri
 
 export const getFundLedger = cache((slug: string, sessionToken: string) =>
   getJson<FundLedger>(`/families/${encodeURIComponent(slug)}/fund`, 'tải quỹ họ', sessionToken),
+);
+
+export const getAnniversaryCalendar = cache((slug: string, sessionToken: string) =>
+  getJson<AnniversaryCalendar>(
+    `/families/${encodeURIComponent(slug)}/anniversaries`,
+    'tải lịch giỗ',
+    sessionToken,
+  ),
 );
 
 export const getFeedFirstPage = cache((slug: string, sessionToken: string) =>

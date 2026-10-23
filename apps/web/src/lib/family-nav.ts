@@ -12,6 +12,7 @@ const PLATFORM_SEGMENTS = new Set([
   'chinh-sach-bao-mat',
   'quy-dinh-su-dung',
   'dai-su',
+  'huy-nhac-gio',
 ]);
 
 export function isFamilyRoute(pathname: string): boolean {
@@ -25,7 +26,7 @@ export function isFamilyAdminRoute(pathname: string): boolean {
 }
 
 export type FamilyNavKey =
-  'home' | 'tree' | 'feed' | 'fund' | 'merit' | 'library' | 'announcements';
+  'home' | 'tree' | 'feed' | 'fund' | 'merit' | 'library' | 'anniversaries' | 'announcements';
 
 export type FamilyNavItem = {
   key: FamilyNavKey;
@@ -42,6 +43,7 @@ export const FAMILY_NAV: readonly FamilyNavItem[] = [
   { key: 'fund', label: 'Quỹ họ', path: 'quy-ho', feature: 'fund' },
   { key: 'merit', label: 'Công đức', path: 'cong-duc', feature: 'merit' },
   { key: 'library', label: 'Album', path: 'tu-lieu', feature: 'library' },
+  { key: 'anniversaries', label: 'Lịch giỗ', path: 'lich-gio', menuOnly: true },
   { key: 'announcements', label: 'Thông báo', path: null },
 ];
 

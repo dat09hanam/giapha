@@ -2,6 +2,7 @@
 
 import {
   Bell,
+  CalendarHeart,
   ChevronRight,
   GitBranch,
   HandHeart,
@@ -47,6 +48,7 @@ const NAV_ICONS: Record<FamilyNavKey, LucideIcon> = {
   fund: Wallet,
   merit: HandHeart,
   library: Images,
+  anniversaries: CalendarHeart,
   announcements: Bell,
 };
 
