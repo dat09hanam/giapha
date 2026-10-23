@@ -3,6 +3,7 @@
 import {
   BellRing,
   CalendarHeart,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Flame,
@@ -28,6 +29,7 @@ import {
   type AnniversaryCalendar,
   type AnniversaryEntry,
   type AnniversaryReminder,
+  type CreatedAnniversaryReminder,
 } from '@/lib/anniversary-api';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { familyMediaSrc } from '@/lib/media-api';
@@ -57,6 +59,10 @@ function utc(isoDay: string): number {
 
 function daysUntil(today: string, date: string): number {
   return Math.round((utc(date) - utc(today)) / 86_400_000);
+}
+
+function addDays(isoDay: string, days: number): string {
+  return new Date(utc(isoDay) + days * 86_400_000).toISOString().slice(0, 10);
 }
 
 function weekday(isoDay: string): string {
@@ -300,7 +306,7 @@ function EntryRow({
 }) {
   const days = daysUntil(today, entry.date);
   return (
-    <li className={cn('flex items-center gap-2 py-1 pr-2 sm:pr-3', days < 0 && 'opacity-60')}>
+    <li className="flex items-center gap-2 py-1 pr-2 sm:pr-3">
       <button
         type="button"
         onClick={onOpen}
@@ -394,6 +400,7 @@ function ReminderDialog({
   const [saving, setSaving] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<CreatedAnniversaryReminder | null>(null);
   const days = daysUntil(today, entry.date);
 
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -411,16 +418,7 @@ function ReminderDialog({
         email: value,
       });
       onCreated({ id: reminder.id, personId: reminder.personId, email: reminder.email });
-      const when =
-        reminder.daysLeft === 0
-          ? 'Hôm nay là ngày giỗ'
-          : `Còn ${reminder.daysLeft} ngày nữa là đến ngày giỗ`;
-      showToast({
-        kind: 'success',
-        message: reminder.sentNow
-          ? `${when}, đã gửi email nhắc tới ${reminder.email}. Các năm sau sẽ nhắc trước 1 tuần.`
-          : `Đã đặt nhắc. Mỗi năm ${reminder.email} sẽ nhận email trước ngày giỗ 1 tuần.`,
-      });
+      setSaved(reminder);
     } catch (caught: unknown) {
       setError(getApiErrorMessage(caught, 'đặt nhắc lịch giỗ'));
     } finally {
@@ -439,6 +437,74 @@ function ReminderDialog({
     } finally {
       setRemovingId(null);
     }
+  }
+
+  if (saved) {
+    const nextDate = addDays(today, saved.daysLeft);
+    return (
+      <SheetDialog
+        title="Đã đặt nhắc"
+        onClose={onClose}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setSaved(null);
+                setEmail('');
+              }}
+            >
+              Thêm email khác
+            </Button>
+            <Button type="button" onClick={onClose}>
+              Xong
+            </Button>
+          </>
+        }
+      >
+        <div role="status" className="grid justify-items-center gap-4 py-2 text-center">
+          <span className="grid size-16 place-items-center rounded-full bg-emerald-100 text-emerald-700 ring-8 ring-emerald-50">
+            <CheckCircle2 className="size-9" aria-hidden="true" />
+          </span>
+          <div className="grid gap-1">
+            <p className="font-display text-xl font-bold text-brand-900">Đặt nhắc thành công</p>
+            <p className="text-sm text-stone-600">
+              Giỗ <strong className="text-stone-900">{fullName(entry)}</strong> · {entry.lunarDay}/
+              {entry.lunarMonth} âm lịch
+            </p>
+          </div>
+          <div className="grid w-full gap-2 rounded-2xl border border-gold-200 bg-gold-50/60 p-4 text-left text-sm text-stone-700">
+            <p className="flex items-start gap-2">
+              <Mail className="mt-0.5 size-4 shrink-0 text-brand-700" aria-hidden="true" />
+              <span>
+                Gửi tới <strong className="break-all text-stone-900">{saved.email}</strong>
+              </span>
+            </p>
+            <p className="flex items-start gap-2">
+              <BellRing className="mt-0.5 size-4 shrink-0 text-brand-700" aria-hidden="true" />
+              <span>
+                {saved.sentNow
+                  ? `${saved.daysLeft === 0 ? 'Hôm nay là ngày giỗ' : `Còn ${saved.daysLeft} ngày nữa là đến ngày giỗ`}, nên email nhắc đã được gửi ngay. Hãy kiểm tra hộp thư (cả mục Spam).`
+                  : `Mỗi năm, email nhắc sẽ được gửi trước ngày giỗ 1 tuần. Lần tới: ${shortDate(nextDate)}/${parseIso(nextDate).year} (${weekday(nextDate)}).`}
+              </span>
+            </p>
+            {saved.sentNow ? (
+              <p className="flex items-start gap-2">
+                <CalendarHeart
+                  className="mt-0.5 size-4 shrink-0 text-brand-700"
+                  aria-hidden="true"
+                />
+                <span>Từ năm sau, email nhắc sẽ đến trước ngày giỗ 1 tuần.</span>
+              </p>
+            ) : null}
+          </div>
+          <p className="text-xs text-stone-500">
+            Muốn ngừng nhận, bấm “Hủy nhắc” trong email hoặc mở lại ngày giỗ này.
+          </p>
+        </div>
+      </SheetDialog>
+    );
   }
 
   return (
@@ -488,7 +554,9 @@ function ReminderDialog({
           </div>
           <div className="col-span-2 flex items-center gap-2 text-sm font-semibold text-brand-800">
             <Flame className="size-4" aria-hidden="true" />
-            {days >= 0 ? countdown(days) : `Đã qua ${-days} ngày`}
+            {days >= 0
+              ? countdown(days)
+              : `Ngày giỗ năm nay đã qua ${-days} ngày; đặt nhắc sẽ nhắc từ năm sau.`}
           </div>
         </dl>
 
@@ -532,7 +600,7 @@ function ReminderDialog({
               <label htmlFor="reminder-email" className="text-sm text-stone-700">
                 {reminders.length > 0
                   ? 'Thêm một email khác cũng muốn nhận lịch nhắc:'
-                  : 'Nhập email, chúng tôi sẽ gửi thư nhắc trước ngày giỗ 1 tuần, mỗi năm.'}
+                  : 'Nhập email, chúng tôi sẽ gửi thư nhắc trước ngày giỗ 1 tuần hàng năm'}
               </label>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <input
