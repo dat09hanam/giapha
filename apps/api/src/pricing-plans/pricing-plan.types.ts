@@ -7,6 +7,7 @@ export const pricingPlanSelect = {
   name: true,
   description: true,
   price: true,
+  commissionPercent: true,
   billingPeriod: true,
   icon: true,
   tone: true,
@@ -15,6 +16,7 @@ export const pricingPlanSelect = {
   ctaLabel: true,
   ctaHref: true,
   isActive: true,
+  googleSignup: true,
   sortOrder: true,
   features: {
     select: { id: true, key: true, value: true, style: true },
@@ -38,6 +40,8 @@ export type PricingPlanResponse = {
   name: string;
   description: string | null;
   price: number;
+  /** Percent of `price` an ambassador earns; 0 means none. Shown on the ambassador page. */
+  commissionPercent: number;
   billingPeriod: string | null;
   icon: string;
   tone: PricingPlanTone;
@@ -46,6 +50,8 @@ export type PricingPlanResponse = {
   ctaLabel: string;
   ctaHref: string;
   isActive: boolean;
+  /** The plan Google self-service sign-up uses; at most one plan has it. Admin-only setting. */
+  googleSignup: boolean;
   sortOrder: number;
   features: PricingPlanFeatureResponse[];
   /** What the lines enforce for a family on this plan. */

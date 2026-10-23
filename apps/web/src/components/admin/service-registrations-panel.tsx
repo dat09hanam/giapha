@@ -1,9 +1,22 @@
 'use client';
 
-import { ClipboardList, Mail, Phone, Search, StickyNote, Trash2 } from 'lucide-react';
+import {
+  ArrowRight,
+  BadgeCheck,
+  ClipboardList,
+  Mail,
+  Phone,
+  PhoneCall,
+  Search,
+  StickyNote,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
 import { SectionCard } from '@/components/admin/admin-layout';
+import { UnreadTag } from '@/components/admin/unread-tag';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { InlineLoader } from '@/components/ui/heritage-loader';
@@ -28,7 +41,7 @@ const STATUSES: ReadonlyArray<{
   },
   {
     value: 'COMPLETED',
-    label: 'Hoàn tất',
+    label: 'Đã xác nhận',
     className: 'bg-emerald-50 text-emerald-900 ring-emerald-700/25',
   },
   {
@@ -39,6 +52,63 @@ const STATUSES: ReadonlyArray<{
 ];
 
 type Filter = ServiceRegistrationStatus | 'ALL';
+
+/** The plan a family request moves away from; an open request falls back to the live plan. */
+function fromPlanOf(entry: ServiceRegistration): string | null {
+  if (entry.fromPlanName) return entry.fromPlanName;
+  const open = entry.status === 'NEW' || entry.status === 'CONTACTED';
+  return open ? (entry.family?.currentPlanName ?? null) : null;
+}
+
+/** The order a registration moves through; cancelling is allowed until it is confirmed. */
+const STEPS: readonly ServiceRegistrationStatus[] = ['NEW', 'CONTACTED', 'COMPLETED'];
+
+function StatusSteps({ status }: { status: ServiceRegistrationStatus }) {
+  if (status === 'CANCELLED') {
+    const cancelled = STATUSES.find((choice) => choice.value === 'CANCELLED');
+    return (
+      <span
+        className={cn(
+          'inline-flex h-7 items-center rounded-full px-3 text-xs font-semibold ring-1 ring-inset',
+          cancelled?.className,
+        )}
+      >
+        Đã hủy
+      </span>
+    );
+  }
+  const current = STEPS.indexOf(status);
+  return (
+    <ol className="flex items-center gap-1 text-xs font-medium" aria-label="Tiến trình xử lý">
+      {STEPS.map((step, index) => {
+        const label = STATUSES.find((choice) => choice.value === step)?.label ?? step;
+        return (
+          <li key={step} className="flex items-center gap-1">
+            {index > 0 ? (
+              <span
+                aria-hidden="true"
+                className={cn('h-px w-3', index <= current ? 'bg-brand-700' : 'bg-stone-300')}
+              />
+            ) : null}
+            <span
+              aria-current={index === current ? 'step' : undefined}
+              className={cn(
+                'rounded-full px-2 py-0.5 whitespace-nowrap',
+                index === current
+                  ? 'bg-brand-700 text-white'
+                  : index < current
+                    ? 'bg-brand-50 text-brand-800'
+                    : 'bg-stone-100 text-stone-400',
+              )}
+            >
+              {label}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 const DATE_TIME = new Intl.DateTimeFormat('vi-VN', {
   dateStyle: 'short',
@@ -98,6 +168,7 @@ function NoteEditor({
 export function ServiceRegistrationsPanel({ initial }: { initial: ServiceRegistration[] }) {
   const confirm = useConfirm();
   const showToast = useToast();
+  const router = useRouter();
   const [registrations, setRegistrations] = useState(initial);
   const [filter, setFilter] = useState<Filter>('ALL');
   const [query, setQuery] = useState('');
@@ -119,7 +190,7 @@ export function ServiceRegistrationsPanel({ initial }: { initial: ServiceRegistr
         (filter === 'ALL' || entry.status === filter) &&
         (!needle ||
           plain(
-            `${entry.fullName} ${entry.email ?? ''} ${entry.phone} ${displayPhone(entry.phone)} ${entry.planName}`,
+            `${entry.fullName} ${entry.email ?? ''} ${entry.phone} ${displayPhone(entry.phone)} ${entry.planName} ${entry.ambassadorCode ?? ''} ${entry.family?.name ?? ''}`,
           ).includes(needle)),
     );
   }, [registrations, filter, query]);
@@ -132,9 +203,43 @@ export function ServiceRegistrationsPanel({ initial }: { initial: ServiceRegistr
     entry: ServiceRegistration,
     status: ServiceRegistrationStatus,
   ): Promise<void> {
+    if (status === 'COMPLETED') {
+      const ok = await confirm(
+        entry.family
+          ? {
+              title: `Xác nhận đổi gói cho ${entry.family.name}?`,
+              message: `Dòng họ chuyển từ gói “${entry.family.currentPlanName}” sang gói “${entry.planName}” ngay bây giờ; thời hạn gói mới tính từ hôm nay. Chỉ xác nhận khi đã nhận thanh toán.`,
+              confirmLabel: 'Xác nhận đổi gói',
+            }
+          : {
+              title: `Xác nhận đăng ký của ${entry.fullName}?`,
+              message:
+                'Đăng ký được đóng lại. Hãy tạo gia phả cho khách ở mục Dòng họ nếu chưa tạo.',
+              confirmLabel: 'Xác nhận',
+            },
+      );
+      if (!ok) return;
+    }
+    if (status === 'CANCELLED') {
+      const ok = await confirm({
+        title: `Hủy đăng ký của ${entry.fullName}?`,
+        message: 'Đăng ký đã hủy không thể chuyển lại trạng thái khác.',
+        confirmLabel: 'Hủy đăng ký',
+        tone: 'danger',
+      });
+      if (!ok) return;
+    }
     setBusyId(entry.id);
     try {
       replace(await updateServiceRegistration(entry.id, { status }));
+      if (status === 'COMPLETED' && entry.family) {
+        showToast({
+          kind: 'success',
+          message: `Đã chuyển ${entry.family.name} sang gói “${entry.planName}”.`,
+        });
+        // The Dòng họ section reads the families from the server.
+        router.refresh();
+      }
     } catch (error: unknown) {
       showToast({ kind: 'error', message: getApiErrorMessage(error, 'cập nhật trạng thái') });
     } finally {
@@ -189,7 +294,7 @@ export function ServiceRegistrationsPanel({ initial }: { initial: ServiceRegistr
     <SectionCard
       icon={<ClipboardList aria-hidden="true" />}
       title="Đăng ký dịch vụ"
-      description="Người xem gửi form khi bấm nút đăng ký trên Bảng giá ở trang chủ. Đổi trạng thái khi đã liên hệ, ghi chú lại để cả nhóm cùng theo dõi."
+      description="Đăng ký mới từ Bảng giá ở trang chủ và yêu cầu đổi gói của các trưởng họ. Mỗi đăng ký đi lần lượt Mới → Đã liên hệ → Đã xác nhận; xác nhận yêu cầu đổi gói sẽ chuyển dòng họ sang gói mong muốn ngay."
     >
       <div className="grid gap-4">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-center">
@@ -225,7 +330,6 @@ export function ServiceRegistrationsPanel({ initial }: { initial: ServiceRegistr
         ) : (
           <ul className="grid gap-3">
             {shown.map((entry) => {
-              const status = STATUSES.find((choice) => choice.value === entry.status);
               const noteOpen = openNoteId === entry.id;
               return (
                 <li
@@ -239,12 +343,18 @@ export function ServiceRegistrationsPanel({ initial }: { initial: ServiceRegistr
                 >
                   <div className="grid gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1.4fr)_minmax(0,0.9fr)_auto] md:items-center">
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-brand-950" title={entry.fullName}>
-                        {entry.fullName}
+                      <p className="flex min-w-0 items-center gap-2 font-semibold text-brand-950">
+                        <span className="truncate" title={entry.fullName}>
+                          {entry.fullName}
+                        </span>
+                        <UnreadTag seenAt={entry.seenAt} />
                       </p>
                       <p className="text-xs text-stone-500">
                         Gửi lúc {DATE_TIME.format(new Date(entry.createdAt))}
                       </p>
+                      <div className="mt-2">
+                        <StatusSteps status={entry.status} />
+                      </div>
                     </div>
                     <div className="grid min-w-0 gap-1 text-sm">
                       <a
@@ -270,34 +380,82 @@ export function ServiceRegistrationsPanel({ initial }: { initial: ServiceRegistr
                       )}
                     </div>
                     <div className="min-w-0">
-                      <span className="text-xs text-stone-500">Gói</span>
-                      <p className="truncate font-medium text-wood-800">{entry.planName}</p>
+                      <span className="text-xs text-stone-500">
+                        {entry.family ? 'Đổi gói' : 'Gói'}
+                      </span>
+                      {entry.family ? (
+                        <>
+                          <p
+                            className="flex min-w-0 items-center gap-1.5 font-medium text-wood-800"
+                            title={`Gói hiện tại → gói mong muốn`}
+                          >
+                            <span className="truncate text-stone-500">
+                              {fromPlanOf(entry) ?? '—'}
+                            </span>
+                            <ArrowRight
+                              className="size-3.5 shrink-0 text-gold-700"
+                              aria-label="sang"
+                            />
+                            <span className="truncate">{entry.planName}</span>
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-stone-500">
+                            Dòng họ{' '}
+                            <span className="font-semibold text-brand-800">
+                              {entry.family.name}
+                            </span>
+                          </p>
+                        </>
+                      ) : (
+                        <p className="truncate font-medium text-wood-800">{entry.planName}</p>
+                      )}
+                      {entry.ambassadorCode ? (
+                        <p
+                          className="mt-0.5 truncate text-xs text-stone-500"
+                          title="Nhập mã này vào ô Mã đại sứ khi tạo gia phả cho khách"
+                        >
+                          Mã đại sứ:{' '}
+                          <span className="font-mono font-semibold tracking-wide text-brand-800">
+                            {entry.ambassadorCode}
+                          </span>
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <label className="sr-only" htmlFor={`status-${entry.id}`}>
-                        Trạng thái đăng ký của {entry.fullName}
-                      </label>
-                      <select
-                        id={`status-${entry.id}`}
-                        value={entry.status}
-                        disabled={busyId === entry.id}
-                        onChange={(event) =>
-                          void changeStatus(
-                            entry,
-                            event.currentTarget.value as ServiceRegistrationStatus,
-                          )
-                        }
-                        className={cn(
-                          'h-9 rounded-full px-3 text-sm font-medium ring-1 ring-inset outline-none focus-visible:ring-2 focus-visible:ring-brand-700',
-                          status?.className,
-                        )}
-                      >
-                        {STATUSES.map((choice) => (
-                          <option key={choice.value} value={choice.value}>
-                            {choice.label}
-                          </option>
-                        ))}
-                      </select>
+                      {entry.status === 'NEW' ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busyId !== null}
+                          onClick={() => void changeStatus(entry, 'CONTACTED')}
+                        >
+                          <PhoneCall className="size-4" aria-hidden="true" />
+                          Đã liên hệ
+                        </Button>
+                      ) : entry.status === 'CONTACTED' ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={busyId !== null}
+                          onClick={() => void changeStatus(entry, 'COMPLETED')}
+                        >
+                          <BadgeCheck className="size-4" aria-hidden="true" />
+                          {entry.family ? 'Xác nhận đổi gói' : 'Xác nhận'}
+                        </Button>
+                      ) : null}
+                      {entry.status === 'NEW' || entry.status === 'CONTACTED' ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Hủy đăng ký của ${entry.fullName}`}
+                          title="Hủy đăng ký"
+                          disabled={busyId !== null}
+                          onClick={() => void changeStatus(entry, 'CANCELLED')}
+                        >
+                          <X className="size-4 text-stone-600" aria-hidden="true" />
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
                         variant="ghost"

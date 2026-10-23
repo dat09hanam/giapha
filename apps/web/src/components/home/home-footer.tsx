@@ -60,6 +60,7 @@ export function HomeFooter() {
             <Link
               href="/"
               className={styles.footerLogo}
+              data-nosnippet
               aria-label={`${SITE_BRAND.name} — Trang chủ`}
             >
               <span className={styles.footerMedal}>
@@ -68,7 +69,7 @@ export function HomeFooter() {
               <span>
                 <strong>
                   {SITE_BRAND.nameLead} <em>{SITE_BRAND.nameAccent}</em>
-                </strong>
+                </strong>{' '}
                 <small>{SITE_BRAND.tagline}</small>
               </span>
             </Link>
@@ -106,7 +107,8 @@ export function HomeFooter() {
                 </a>
               </li>
             </ul>
-            <nav className={styles.footerLinks} aria-label="Thông tin pháp lý">
+            <nav className={styles.footerLinks} aria-label="Liên kết thêm">
+              <Link href="/dai-su">Đại Sứ Đời Đời</Link>
               <a href={SITE_POLICY_LINKS.privacy}>Chính sách bảo mật</a>
               <a href={SITE_POLICY_LINKS.terms}>Quy định sử dụng</a>
               <a href="#lien-he">Liên hệ</a>

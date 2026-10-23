@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Presence } from '@/components/ui/presence';
 import { cn } from '@/lib/utils';
 import { formatDay, mondayIndex, parseDay, todayInVietnam, toIsoDay } from '@/lib/vietnam-date';
+import { ScrollDialog, ScrollDialogCard } from '@/components/ui/scroll-dialog';
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const WEEKDAY_NAMES = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
@@ -39,12 +40,7 @@ function Calendar({
 
   useEffect(() => {
     selectedRef.current?.focus();
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, []);
 
   function typeYear(text: string): void {
     const digits = text.replace(/\D/g, '').slice(0, 4);
@@ -70,20 +66,8 @@ function Calendar({
   const todayAllowed = today >= min && today <= max;
 
   return (
-    <div className="fixed inset-0 z-[75] grid place-items-center p-4">
-      <button
-        type="button"
-        className="ui-backdrop absolute inset-0 bg-stone-950/40 backdrop-blur-[2px]"
-        aria-label="Đóng lịch"
-        tabIndex={-1}
-        onClick={onClose}
-      />
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-label="Chọn ngày"
-        className="ui-dialog relative w-full max-w-[22rem] rounded-2xl bg-white p-4 shadow-2xl"
-      >
+    <ScrollDialog title="Chọn ngày" onClose={onClose} size="sm" stacked closeLabel="Đóng lịch">
+      <ScrollDialogCard className="p-3">
         <div className="flex items-center gap-1.5">
           <button
             type="button"
@@ -202,8 +186,8 @@ function Calendar({
             Hôm nay
           </button>
         </div>
-      </section>
-    </div>
+      </ScrollDialogCard>
+    </ScrollDialog>
   );
 }
 

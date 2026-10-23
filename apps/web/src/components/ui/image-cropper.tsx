@@ -1,10 +1,11 @@
 'use client';
 
-import { Check, Crop, Minus, Plus, RotateCcw, RotateCw, X } from 'lucide-react';
+import { Check, Crop, Minus, Plus, RotateCcw, RotateCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { encodeCanvas } from '@/lib/image-compress';
+import { ScrollDialog } from '@/components/ui/scroll-dialog';
 
 const VIEWPORT = 288;
 const OUTPUT = 512;
@@ -222,165 +223,14 @@ export function ImageCropper({
 
   const scale = source ? photoScale(source, rotation, zoom) : 1;
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto p-4">
-      <button
-        type="button"
-        className="ui-backdrop absolute inset-0 bg-brand-950/45 backdrop-blur-[2px]"
-        aria-label="Đóng hộp cắt ảnh"
-        onClick={onCancel}
-      />
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="image-cropper-title"
-        className="ui-dialog heritage-panel relative w-full max-w-md rounded-2xl p-5 shadow-2xl sm:p-6"
-      >
-        <button
-          type="button"
-          className="absolute right-4 top-4 grid size-9 place-items-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-800"
-          onClick={onCancel}
-          aria-label="Đóng"
-        >
-          <X className="size-5" aria-hidden="true" />
-        </button>
-
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
-          Ảnh đại diện
-        </p>
-        <h2 id="image-cropper-title" className="mt-2 pr-10 text-xl font-semibold text-brand-950">
-          Chọn vùng hiển thị
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-stone-600">
-          Kéo ảnh để chỉnh vị trí, phóng to để chọn khung và xoay nếu ảnh bị nghiêng.
-        </p>
-
-        {loadError ? (
-          <p role="alert" className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
-            {loadError}
-          </p>
-        ) : null}
-
-        <div
-          className="relative mx-auto mt-5 touch-none overflow-hidden rounded-2xl border border-amber-900/20 bg-stone-100"
-          style={{ width: VIEWPORT, height: VIEWPORT, cursor: source ? 'grab' : 'default' }}
-          onPointerDown={startDrag}
-          onPointerMove={moveDrag}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
-        >
-          {source ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={source.image.src}
-              alt="Ảnh đang được cắt"
-              draggable={false}
-              className="pointer-events-none absolute max-w-none select-none"
-              style={{
-                width: source.width * scale,
-                height: source.height * scale,
-                left: VIEWPORT / 2 + pan.x - (source.width * scale) / 2,
-                top: VIEWPORT / 2 + pan.y - (source.height * scale) / 2,
-                transform: `rotate(${rotation}deg)`,
-              }}
-            />
-          ) : (
-            <span className="grid size-full place-items-center text-sm text-stone-500">
-              Đang mở ảnh…
-            </span>
-          )}
-          {tilt !== 0 ? (
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.35)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.35)_1px,transparent_1px)] bg-size-[33.333%_33.333%]"
-            />
-          ) : null}
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/70"
-          />
-        </div>
-
-        <div className="mt-4 grid gap-3">
-          <div className="flex items-center gap-3">
-            <RoundButton
-              label="Thu nhỏ"
-              disabled={!source || zoom <= MIN_ZOOM}
-              onClick={() => changeZoom(zoom - ZOOM_STEP)}
-            >
-              <Minus className="size-4" aria-hidden="true" />
-            </RoundButton>
-            <input
-              type="range"
-              min={MIN_ZOOM}
-              max={MAX_ZOOM}
-              step={0.01}
-              value={zoom}
-              disabled={!source}
-              aria-label="Mức phóng to ảnh"
-              className="h-1.5 min-w-0 flex-1 accent-brand-700"
-              onChange={(event) => changeZoom(Number(event.currentTarget.value))}
-            />
-            <RoundButton
-              label="Phóng to"
-              disabled={!source || zoom >= MAX_ZOOM}
-              onClick={() => changeZoom(zoom + ZOOM_STEP)}
-            >
-              <Plus className="size-4" aria-hidden="true" />
-            </RoundButton>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <RoundButton
-              label="Xoay trái 90°"
-              disabled={!source}
-              onClick={() => changeRotation(quarterTurns - 1, tilt)}
-            >
-              <RotateCcw className="size-4" aria-hidden="true" />
-            </RoundButton>
-            <label className="grid min-w-0 flex-1 gap-1">
-              <span className="flex items-center justify-between text-xs text-stone-500">
-                <span>Xoay thẳng ảnh</span>
-                <span className="flex items-center gap-2">
-                  <span className="tabular-nums font-medium text-stone-700">
-                    {tilt > 0 ? '+' : ''}
-                    {tilt}°
-                  </span>
-                  {tilt !== 0 ? (
-                    <button
-                      type="button"
-                      className="font-medium text-brand-800 hover:underline"
-                      onClick={() => changeRotation(quarterTurns, 0)}
-                    >
-                      Đặt lại
-                    </button>
-                  ) : null}
-                </span>
-              </span>
-              <input
-                type="range"
-                min={-MAX_TILT}
-                max={MAX_TILT}
-                step={0.5}
-                value={tilt}
-                disabled={!source}
-                aria-label="Góc xoay thẳng ảnh"
-                className="h-1.5 min-w-0 accent-brand-700"
-                onChange={(event) =>
-                  changeRotation(quarterTurns, Number(event.currentTarget.value))
-                }
-              />
-            </label>
-            <RoundButton
-              label="Xoay phải 90°"
-              disabled={!source}
-              onClick={() => changeRotation(quarterTurns + 1, tilt)}
-            >
-              <RotateCw className="size-4" aria-hidden="true" />
-            </RoundButton>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+    <ScrollDialog
+      title="Chọn vùng hiển thị"
+      subtitle="Kéo ảnh để chỉnh vị trí, phóng to để chọn khung và xoay nếu ảnh bị nghiêng."
+      onClose={onCancel}
+      stacked
+      closeLabel="Đóng hộp cắt ảnh"
+      footer={
+        <>
           <Button type="button" variant="outline" onClick={onCancel}>
             Hủy
           </Button>
@@ -388,13 +238,137 @@ export function ImageCropper({
             <Check className="size-4" aria-hidden="true" />
             Lưu ảnh
           </Button>
+        </>
+      }
+    >
+      {loadError ? (
+        <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+          {loadError}
+        </p>
+      ) : null}
+
+      <div
+        className="relative mx-auto touch-none overflow-hidden rounded-2xl border border-amber-900/20 bg-stone-100"
+        style={{ width: VIEWPORT, height: VIEWPORT, cursor: source ? 'grab' : 'default' }}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        {source ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={source.image.src}
+            alt="Ảnh đang được cắt"
+            draggable={false}
+            className="pointer-events-none absolute max-w-none select-none"
+            style={{
+              width: source.width * scale,
+              height: source.height * scale,
+              left: VIEWPORT / 2 + pan.x - (source.width * scale) / 2,
+              top: VIEWPORT / 2 + pan.y - (source.height * scale) / 2,
+              transform: `rotate(${rotation}deg)`,
+            }}
+          />
+        ) : (
+          <span className="grid size-full place-items-center text-sm text-stone-500">
+            Đang mở ảnh…
+          </span>
+        )}
+        {tilt !== 0 ? (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.35)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.35)_1px,transparent_1px)] bg-size-[33.333%_33.333%]"
+          />
+        ) : null}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/70"
+        />
+      </div>
+
+      <div className="grid gap-3">
+        <div className="flex items-center gap-3">
+          <RoundButton
+            label="Thu nhỏ"
+            disabled={!source || zoom <= MIN_ZOOM}
+            onClick={() => changeZoom(zoom - ZOOM_STEP)}
+          >
+            <Minus className="size-4" aria-hidden="true" />
+          </RoundButton>
+          <input
+            type="range"
+            min={MIN_ZOOM}
+            max={MAX_ZOOM}
+            step={0.01}
+            value={zoom}
+            disabled={!source}
+            aria-label="Mức phóng to ảnh"
+            className="h-1.5 min-w-0 flex-1 accent-brand-700"
+            onChange={(event) => changeZoom(Number(event.currentTarget.value))}
+          />
+          <RoundButton
+            label="Phóng to"
+            disabled={!source || zoom >= MAX_ZOOM}
+            onClick={() => changeZoom(zoom + ZOOM_STEP)}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+          </RoundButton>
         </div>
 
-        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-stone-500">
-          <Crop className="size-3.5" aria-hidden="true" />
-          Ảnh được cắt vuông {OUTPUT}×{OUTPUT} trước khi tải lên.
-        </p>
-      </section>
-    </div>
+        <div className="flex items-center gap-3">
+          <RoundButton
+            label="Xoay trái 90°"
+            disabled={!source}
+            onClick={() => changeRotation(quarterTurns - 1, tilt)}
+          >
+            <RotateCcw className="size-4" aria-hidden="true" />
+          </RoundButton>
+          <label className="grid min-w-0 flex-1 gap-1">
+            <span className="flex items-center justify-between text-xs text-stone-500">
+              <span>Xoay thẳng ảnh</span>
+              <span className="flex items-center gap-2">
+                <span className="tabular-nums font-medium text-stone-700">
+                  {tilt > 0 ? '+' : ''}
+                  {tilt}°
+                </span>
+                {tilt !== 0 ? (
+                  <button
+                    type="button"
+                    className="font-medium text-brand-800 hover:underline"
+                    onClick={() => changeRotation(quarterTurns, 0)}
+                  >
+                    Đặt lại
+                  </button>
+                ) : null}
+              </span>
+            </span>
+            <input
+              type="range"
+              min={-MAX_TILT}
+              max={MAX_TILT}
+              step={0.5}
+              value={tilt}
+              disabled={!source}
+              aria-label="Góc xoay thẳng ảnh"
+              className="h-1.5 min-w-0 accent-brand-700"
+              onChange={(event) => changeRotation(quarterTurns, Number(event.currentTarget.value))}
+            />
+          </label>
+          <RoundButton
+            label="Xoay phải 90°"
+            disabled={!source}
+            onClick={() => changeRotation(quarterTurns + 1, tilt)}
+          >
+            <RotateCw className="size-4" aria-hidden="true" />
+          </RoundButton>
+        </div>
+      </div>
+
+      <p className="flex items-center justify-center gap-1.5 text-xs text-stone-500">
+        <Crop className="size-3.5" aria-hidden="true" />
+        Ảnh được cắt vuông {OUTPUT}×{OUTPUT} trước khi tải lên.
+      </p>
+    </ScrollDialog>
   );
 }

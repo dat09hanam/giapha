@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ChevronUp,
   EyeOff,
+  LogIn,
   PencilLine,
   Trash2,
 } from 'lucide-react';
@@ -208,7 +209,7 @@ export function PlanFeatureTable({
   const disabled = locked || saving;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div className="overflow-x-auto rounded-xl border border-gold-500/30 bg-white/80">
         <table className="w-full min-w-max border-collapse text-sm">
           <caption className="sr-only">
@@ -219,7 +220,7 @@ export function PlanFeatureTable({
             <tr className="align-top">
               <th
                 scope="col"
-                className="sticky left-0 z-10 w-72 min-w-72 bg-white p-3 pl-11 text-left text-xs font-semibold uppercase tracking-[0.12em] text-stone-500"
+                className="sticky left-0 z-10 w-40 min-w-40 bg-white p-3 pl-11 sm:w-72 sm:min-w-72 text-left text-xs font-semibold uppercase tracking-[0.12em] text-stone-500"
               >
                 Tính năng
               </th>
@@ -240,6 +241,15 @@ export function PlanFeatureTable({
                         <span className="mt-1 inline-flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 text-[11px] font-medium text-stone-600">
                           <EyeOff className="size-3" aria-hidden="true" />
                           Đang ẩn
+                        </span>
+                      ) : null}
+                      {plan.googleSignup ? (
+                        <span
+                          className="mt-1 inline-flex items-center gap-1 rounded bg-sky-50 px-1.5 py-0.5 text-[11px] font-medium text-sky-800 ring-1 ring-inset ring-sky-200"
+                          title="Người tự đăng ký bằng Google được gói này"
+                        >
+                          <LogIn className="size-3" aria-hidden="true" />
+                          Đăng ký Google
                         </span>
                       ) : null}
                     </div>
@@ -302,7 +312,7 @@ export function PlanFeatureTable({
               <tr key={entry.key} className="border-t border-gold-500/20 align-top">
                 <th
                   scope="row"
-                  className="sticky left-0 z-10 w-72 min-w-72 bg-white p-3 pl-1.5 text-left font-normal"
+                  className="sticky left-0 z-10 w-40 min-w-40 bg-white p-3 pl-1.5 sm:w-72 sm:min-w-72 text-left font-normal"
                 >
                   <div className="flex items-start gap-1.5">
                     <div className="flex shrink-0 flex-col">
@@ -329,7 +339,7 @@ export function PlanFeatureTable({
                     </div>
                     <div className="min-w-0">
                       <span className="block font-medium text-brand-950">{entry.label}</span>
-                      <span className="mt-0.5 block text-xs leading-5 text-stone-500">
+                      <span className="mt-0.5 hidden text-xs leading-5 text-stone-500 sm:block">
                         {entry.description}
                       </span>
                     </div>

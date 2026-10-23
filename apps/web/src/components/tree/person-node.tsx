@@ -82,23 +82,40 @@ const MIN_NAME_SHRINK = 0.6;
 const FOUNDER_TEXT = { nameWeight: 900, name: 'font-black', honorific: 'font-extrabold' };
 const DEFAULT_TEXT = { nameWeight: 700, name: 'font-bold', honorific: 'font-semibold' };
 
+/**
+ * The founder's scroll keeps its shape while its text scale follows the row width, so on a large
+ * family's shrunken cards the honorific would fill the paper; it keeps to this share of it.
+ */
+const FOUNDER_HONORIFIC_SHARE = 0.15;
+/** Largest name size, as a share of the paper height; the founder's name gets most of the scroll. */
+const NAME_HEIGHT_SHARE = { founder: 0.5, default: 0.4 };
+
+function honorificFontSize(isFounder: boolean, inner: CardFrame['inner'], textScale: number) {
+  const size = HONORIFIC_SIZE * textScale;
+  return isFounder ? Math.min(size, inner.height * FOUNDER_HONORIFIC_SHARE) : size;
+}
+
 function nameFontSize(
   name: string,
   inner: CardFrame['inner'],
   textScale: number,
-  hasHonorific: boolean,
+  honorificSize: number | null,
   weight: number,
+  isFounder: boolean,
 ): number {
   const innerWidth = inner.width * 0.9;
   const innerHeight =
-    inner.height * 0.9 - (hasHonorific ? HONORIFIC_SIZE * textScale * HONORIFIC_LINE_HEIGHT : 0);
+    inner.height * 0.9 - (honorificSize === null ? 0 : honorificSize * HONORIFIC_LINE_HEIGHT);
   return fitTextSize({
     text: name,
     width: innerWidth,
     height: innerHeight,
     font: `${weight} ${NAME_FONT_FAMILY}`,
     minSize: 10 * textScale,
-    maxSize: Math.min(inner.height * 0.4, inner.width * 0.22),
+    maxSize: Math.min(
+      inner.height * (isFounder ? NAME_HEIGHT_SHARE.founder : NAME_HEIGHT_SHARE.default),
+      inner.width * 0.22,
+    ),
     maxLines: inner.height / inner.width > 0.8 ? 4 : 3,
     fallback: 18 * textScale,
   });
@@ -132,12 +149,16 @@ export function PersonCard({
   const isBrowser = useIsBrowser();
   const isFounder = data.generation === 1;
   const text = isFounder ? FOUNDER_TEXT : DEFAULT_TEXT;
+  const honorificSize = data.honorific
+    ? honorificFontSize(isFounder, frame.inner, data.textScale)
+    : null;
   const fittedSize = nameFontSize(
     data.name,
     frame.inner,
     data.textScale,
-    Boolean(data.honorific),
+    honorificSize,
     text.nameWeight,
+    isFounder,
   );
   const baseNameSize = isBrowser ? fittedSize : 18 * data.textScale;
   const nameRef = useRef<HTMLHeadingElement>(null);
@@ -198,7 +219,7 @@ export function PersonCard({
           <p
             className={`max-w-full shrink-0 truncate uppercase tracking-wider ${text.honorific} ${honorificColor}`}
             style={{
-              fontSize: HONORIFIC_SIZE * data.textScale,
+              fontSize: honorificSize ?? undefined,
               lineHeight: HONORIFIC_LINE_HEIGHT,
             }}
             title={data.honorific}

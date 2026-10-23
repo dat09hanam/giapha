@@ -45,6 +45,8 @@ export type PricingPlan = {
   name: string;
   description: string | null;
   price: number;
+  /** Percent of `price` an ambassador earns; 0 means the plan earns none. */
+  commissionPercent: number;
   billingPeriod: string | null;
   icon: string;
   tone: PricingPlanTone;
@@ -53,6 +55,8 @@ export type PricingPlan = {
   ctaLabel: string;
   ctaHref: string;
   isActive: boolean;
+  /** Google self-service sign-up opens families on this plan; at most one plan. Admin-only. */
+  googleSignup: boolean;
   sortOrder: number;
   features: PricingPlanFeature[];
   rights: PlanRights;
@@ -87,8 +91,16 @@ export type ServiceRegistration = {
   fullName: string;
   email: string | null;
   phone: string;
+  /** Ambassador code the visitor entered, to carry over when opening the family. */
+  ambassadorCode: string | null;
   status: ServiceRegistrationStatus;
   adminNote: string | null;
+  /** Null until an admin opened the list after this registration arrived. */
+  seenAt: string | null;
+  /** The family asking to change plan; null for a new family's sign-up. */
+  family: { name: string; slug: string; currentPlanName: string } | null;
+  /** The family's plan when it sent the request; null for a sign-up or an older request. */
+  fromPlanName: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -98,5 +110,6 @@ export type ServiceRegistrationInput = {
   fullName: string;
   email?: string;
   phone: string;
+  ambassadorCode?: string;
   agreed: boolean;
 };

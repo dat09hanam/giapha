@@ -48,6 +48,8 @@ export function PageLoader({
     <div
       role="status"
       aria-live="polite"
+      // Streamed before the page itself, so search engines must not quote it as the snippet.
+      data-nosnippet
       className={cn('grid min-h-[60vh] w-full place-items-center px-4 py-12', className)}
     >
       <div className="grid justify-items-center gap-4">

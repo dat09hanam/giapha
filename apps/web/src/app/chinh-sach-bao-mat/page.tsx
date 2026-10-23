@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
 
 import { LegalPage, type LegalSection } from '@/components/legal/legal-page';
+import { pageMetadata } from '@/lib/seo';
 import { SITE_BRAND } from '@/lib/site-brand';
 import { SITE_POLICY_LINKS } from '@/lib/site-contact';
 
-export const metadata: Metadata = {
-  title: `Chính sách bảo mật | ${SITE_BRAND.name}`,
+export const metadata: Metadata = pageMetadata({
+  title: 'Chính sách bảo mật',
   description: `Cách ${SITE_BRAND.name} thu thập, sử dụng và bảo vệ thông tin cá nhân của bạn và dòng họ.`,
-};
+  path: '/chinh-sach-bao-mat',
+});
 
 const sections: readonly LegalSection[] = [
   {
@@ -31,6 +33,11 @@ const sections: readonly LegalSection[] = [
           <li>
             <strong>Thông tin đăng ký dịch vụ:</strong> họ và tên, số điện thoại, email (không bắt
             buộc) và gói dịch vụ bạn quan tâm.
+          </li>
+          <li>
+            <strong>Thông tin đại sứ:</strong> họ và tên, số điện thoại và email bạn để lại khi đăng
+            ký chương trình Đại Sứ, cùng các dòng họ được tạo bằng mã đại sứ của bạn, để ghi nhận
+            và chi trả hoa hồng.
           </li>
           <li>
             <strong>Thông tin tài khoản:</strong> tên đăng nhập, tên hiển thị, email (nếu có) và mật

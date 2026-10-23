@@ -11,8 +11,10 @@ import type { FeedPage } from '@/lib/feed-api';
 import type { FundLedger } from '@/lib/fund-api';
 import type { AlbumDetail, LibraryOverview } from '@/lib/library-api';
 import type { MeritEventDetail, MeritOverview } from '@/lib/merit-api';
+import type { Ambassador, AmbassadorCommission } from '@/types/ambassador';
 import type { AdminArticle, Article, ArticleCategory, ArticleSummary } from '@/types/article';
 import type { EditSuggestion } from '@/types/edit-suggestion';
+import type { FamilyPlanOverview } from '@/types/family-plan';
 import type {
   FamilyDetails,
   FamilyFeatures,
@@ -110,6 +112,15 @@ export const getFamilyPlanLimits = cache((slug: string, sessionToken: string) =>
   getJson<FamilyPlanLimits>(
     `/families/${encodeURIComponent(slug)}/plan-limits`,
     'tải giới hạn gói dịch vụ',
+    sessionToken,
+  ),
+);
+
+/** The clan head's view of the family plan: limits, usage, expiry and any open request. */
+export const getFamilyPlanOverview = cache((slug: string, sessionToken: string) =>
+  getJson<FamilyPlanOverview>(
+    `/families/${encodeURIComponent(slug)}/plan`,
+    'tải thông tin gói dịch vụ',
     sessionToken,
   ),
 );
@@ -229,4 +240,12 @@ export const getAdminFamilies = cache((sessionToken: string) =>
 
 export const getServiceRegistrations = cache((sessionToken: string) =>
   getJson<ServiceRegistration[]>('/service-registrations', 'tải danh sách đăng ký', sessionToken),
+);
+
+export const getAmbassadors = cache((sessionToken: string) =>
+  getJson<Ambassador[]>('/ambassadors', 'tải danh sách đại sứ', sessionToken),
+);
+
+export const getAmbassadorCommissions = cache((sessionToken: string) =>
+  getJson<AmbassadorCommission[]>('/ambassadors/commissions', 'tải hoa hồng đại sứ', sessionToken),
 );

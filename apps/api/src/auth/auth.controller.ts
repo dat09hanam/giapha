@@ -18,15 +18,12 @@ import type { AuthRequest } from '../common/auth/auth.types.js';
 import { AuthThrottleGuard } from '../common/auth/auth-throttle.guard.js';
 import { AllowPendingPasswordChange } from '../common/auth/password-change.decorator.js';
 import { SessionAuthGuard } from '../common/auth/session-auth.guard.js';
-import {
-  expiredSessionCookie,
-  extractSessionToken,
-  sessionCookie,
-  type SessionCookieOptions,
-} from '../common/auth/session-token.js';
-import { AuthService, type AuthProfile, type AuthResult } from './auth.service.js';
+import { expiredSessionCookie, extractSessionToken } from '../common/auth/session-token.js';
+import { AuthService, type AuthProfile } from './auth.service.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { ChangePasswordDto } from './dto/change-password.dto.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { GoogleCredentialDto } from './dto/google-credential.dto.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { LoginDto } from './dto/login.dto.js';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -35,13 +32,21 @@ import {
   RequestPasswordResetDto,
   VerifyPasswordResetDto,
 } from './dto/password-reset.dto.js';
+import { GoogleIdTokenVerifier } from './google-id-token.js';
 import { PasswordResetService, type PasswordResetRequested } from './password-reset.service.js';
+import { replyWithSession, sessionCookieOptions } from './session-reply.js';
+
+/** A Google sign-in either opens a session or asks the person to register a family first. */
+export type GoogleLoginResult =
+  | { status: 'signed-in'; profile: AuthProfile }
+  | { status: 'needs-registration'; email: string; name: string | null };
 
 @Controller('auth')
 export class AuthController {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
     @Inject(PasswordResetService) private readonly passwordReset: PasswordResetService,
+    @Inject(GoogleIdTokenVerifier) private readonly google: GoogleIdTokenVerifier,
     @Inject(ConfigService) private readonly config: ConfigService,
   ) {}
 
@@ -52,7 +57,37 @@ export class AuthController {
     @Body() input: LoginDto,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<AuthProfile> {
-    return this.finishAuthentication(await this.authService.login(input), reply);
+    return replyWithSession(reply, await this.authService.login(input), this.config);
+  }
+
+  @Post('google')
+  @UseGuards(AuthThrottleGuard)
+  @HttpCode(HttpStatus.OK)
+  async loginWithGoogle(
+    @Body() input: GoogleCredentialDto,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<GoogleLoginResult> {
+    const identity = await this.google.verify(input.credential);
+    const result = await this.authService.loginWithGoogle(identity);
+    if (!result) {
+      return { status: 'needs-registration', email: identity.email, name: identity.name };
+    }
+    return { status: 'signed-in', profile: replyWithSession(reply, result, this.config) };
+  }
+
+  /** Links the signed-in account to the Google account that just verified in the browser. */
+  @Post('google/link')
+  @UseGuards(AuthThrottleGuard, SessionAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async linkGoogle(
+    @Body() input: GoogleCredentialDto,
+    @Req() request: AuthRequest,
+  ): Promise<AuthProfile> {
+    if (!request.auth) {
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện thao tác này.');
+    }
+    const identity = await this.google.verify(input.credential);
+    return this.authService.linkGoogle(request.auth.userId, identity);
   }
 
   @Post('password-reset')
@@ -85,7 +120,7 @@ export class AuthController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
     await this.authService.logout(extractSessionToken(request));
-    reply.header('Set-Cookie', expiredSessionCookie(this.cookieOptions()));
+    reply.header('Set-Cookie', expiredSessionCookie(sessionCookieOptions(this.config)));
   }
 
   @Get('me')
@@ -112,20 +147,5 @@ export class AuthController {
     }
 
     return this.authService.changePassword(request.auth.userId, request.auth.sessionId, input);
-  }
-
-  private finishAuthentication(result: AuthResult, reply: FastifyReply): AuthProfile {
-    reply.header(
-      'Set-Cookie',
-      sessionCookie(result.session.token, result.session.expiresAt, this.cookieOptions()),
-    );
-    return result.profile;
-  }
-
-  private cookieOptions(): SessionCookieOptions {
-    return {
-      secure: this.config.get<string>('NODE_ENV') === 'production',
-      domain: this.config.get<string>('SESSION_COOKIE_DOMAIN'),
-    };
   }
 }

@@ -7,13 +7,18 @@ import { useEffect, useState, type ReactNode } from 'react';
 
 import { LogoutButton } from '@/components/auth/logout-button';
 import { Presence } from '@/components/ui/presence';
+import { markAdminListSeen, type AdminSeenList } from '@/lib/admin-seen-api';
 import { cn } from '@/lib/utils';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 
 export type AdminSection = {
   id: string;
   label: string;
   icon: ReactNode;
+  /** Unread rows in this section, shown on its sidebar link. */
   badge?: number;
+  /** Opening the section marks this list as seen, which clears the badge. */
+  seenList?: AdminSeenList;
   content: ReactNode;
 };
 
@@ -75,13 +80,37 @@ export function AdminWorkspace({
 }) {
   const [activeId, setActiveId] = useState(sections[0]?.id ?? '');
   const [menuOpen, setMenuOpen] = useState(false);
+  useBodyScrollLock(menuOpen);
+  const [seenIds, setSeenIds] = useState<ReadonlySet<string>>(() => new Set());
   const sectionIds = sections.map((section) => section.id).join(' ');
   const active = sections.find((section) => section.id === activeId);
 
+  // The hash picks the section on load and when an in-page link such as `#dong-ho` is followed.
   useEffect(() => {
-    const fromHash = window.location.hash.slice(1);
-    if (sectionIds.split(' ').includes(fromHash)) setActiveId(fromHash);
+    const syncFromHash = (): void => {
+      const fromHash = window.location.hash.slice(1);
+      if (!sectionIds.split(' ').includes(fromHash)) return;
+      setActiveId(fromHash);
+      window.scrollTo({ top: 0 });
+    };
+    syncFromHash();
+    window.addEventListener('hashchange', syncFromHash);
+    return () => window.removeEventListener('hashchange', syncFromHash);
   }, [sectionIds]);
+
+  const activeSeenList = active?.badge ? active.seenList : undefined;
+  useEffect(() => {
+    if (!activeSeenList || seenIds.has(activeId)) return;
+    setSeenIds((current) => new Set(current).add(activeId));
+    // The badge comes back if the server did not record it; it is a hint, not an error to surface.
+    markAdminListSeen(activeSeenList).catch(() => {
+      setSeenIds((current) => {
+        const next = new Set(current);
+        next.delete(activeId);
+        return next;
+      });
+    });
+  }, [activeId, activeSeenList, seenIds]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -99,7 +128,10 @@ export function AdminWorkspace({
     window.scrollTo({ top: 0 });
   }
 
-  const unseen = sections.reduce((total, section) => total + (section.badge ?? 0), 0);
+  const shownSections = sections.map((section) =>
+    seenIds.has(section.id) ? { ...section, badge: 0 } : section,
+  );
+  const unseen = shownSections.reduce((total, section) => total + (section.badge ?? 0), 0);
 
   return (
     <div data-admin-workspace="">
@@ -131,7 +163,7 @@ export function AdminWorkspace({
         </div>
 
         <nav className="relative grid gap-1 overflow-y-auto px-3" aria-label="Mục quản trị">
-          <SectionLinks sections={sections} activeId={activeId} onOpen={open} tone="wood" />
+          <SectionLinks sections={shownSections} activeId={activeId} onOpen={open} tone="wood" />
           <span className="mx-3 my-2 h-px bg-white/10" aria-hidden="true" />
           <Link
             href="/"
@@ -218,7 +250,12 @@ export function AdminWorkspace({
                   <X className="size-5" aria-hidden="true" />
                 </button>
               </div>
-              <SectionLinks sections={sections} activeId={activeId} onOpen={open} tone="paper" />
+              <SectionLinks
+                sections={shownSections}
+                activeId={activeId}
+                onOpen={open}
+                tone="paper"
+              />
               <span className="mx-3 my-1 h-px bg-gold-500/20" aria-hidden="true" />
               <Link
                 href="/"

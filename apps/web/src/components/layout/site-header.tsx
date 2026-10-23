@@ -14,6 +14,7 @@ const PUBLIC_SITE_SECTIONS = [
   '/thu-vien',
   '/chinh-sach-bao-mat',
   '/quy-dinh-su-dung',
+  '/dai-su',
 ];
 
 export function SiteHeader() {
@@ -30,7 +31,10 @@ export function SiteHeader() {
 
 export function SiteHeaderBar() {
   return (
-    <header className="border-b border-gold-500/30 bg-paper/90 shadow-[0_8px_24px_-22px_rgba(74,46,18,0.8)] backdrop-blur">
+    <header
+      data-nosnippet
+      className="border-b border-gold-500/30 bg-paper/90 shadow-[0_8px_24px_-22px_rgba(74,46,18,0.8)] backdrop-blur"
+    >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
           href="/"

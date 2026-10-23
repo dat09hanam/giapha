@@ -7,6 +7,9 @@ export type AuthProfile = {
   id: string;
   username: string;
   displayName: string;
+  email: string | null;
+  /** Whether a Google account signs in to this account. */
+  googleLinked: boolean;
   role: UserRole;
   family: { id: string; slug: string; name: string } | null;
   managesBranches: boolean;
@@ -130,5 +133,74 @@ export function profileDestination(profile: AuthProfile): string {
     return '/';
   }
 
+  // The clan head signs in to manage the family, so they land on its management page.
+  if (profile.role === 'MEMBER_PLUS') {
+    return `/admin/${encodeURIComponent(profile.family.slug)}`;
+  }
+
   return `/${encodeURIComponent(profile.family.slug)}`;
+}
+
+/** Set when the Google sign-in button can be shown (same OAuth client as the API). */
+export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
+
+export const GOOGLE_SIGNUP_PATH = '/dang-ky';
+
+export type GoogleLoginResult =
+  | { status: 'signed-in'; profile: AuthProfile }
+  | { status: 'needs-registration'; email: string; name: string | null };
+
+export function loginWithGoogle(credential: string): Promise<GoogleLoginResult> {
+  return apiFetch<GoogleLoginResult>(
+    `${API_URL}/auth/google`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential }),
+    },
+    'đăng nhập bằng Google',
+  );
+}
+
+/** Links the signed-in account to the Google account that just verified in the browser. */
+export function linkGoogleAccount(credential: string): Promise<AuthProfile> {
+  return apiFetch<AuthProfile>(
+    `${API_URL}/auth/google/link`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential }),
+    },
+    'liên kết tài khoản Google',
+  );
+}
+
+export type GoogleSignupInput = {
+  credential: string;
+  name: string;
+  deathAnniversary: string;
+  ancestryOrigin?: string;
+  ambassadorCode?: string;
+  agreed: boolean;
+};
+
+export type GoogleSignupResult = {
+  profile: AuthProfile;
+  /** The family's shared member account, shown once. */
+  member: { username: string; password: string };
+};
+
+export function signUpWithGoogle(input: GoogleSignupInput): Promise<GoogleSignupResult> {
+  return apiFetch<GoogleSignupResult>(
+    `${API_URL}/auth/google/register`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    },
+    'đăng ký dòng họ',
+  );
 }

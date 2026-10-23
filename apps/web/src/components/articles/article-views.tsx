@@ -3,6 +3,7 @@ import { ArrowLeft, CalendarDays } from 'lucide-react';
 
 import { PageLoader } from '@/components/ui/heritage-loader';
 import { ArticleCard, SectionIcon, formatDate } from '@/components/articles/article-card';
+import { ArticleFallbackCover } from '@/components/articles/article-fallback-cover';
 import { ArticleSearchList } from '@/components/articles/article-search-list';
 import { RichTextView } from '@/components/rich-text/rich-text-view';
 import { ARTICLE_SECTIONS, articleCoverSrc, articleImageSrc } from '@/lib/article-api';
@@ -104,10 +105,15 @@ export function ArticleView({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={cover}
-            alt=""
+            alt={article.title}
             className="mt-6 aspect-[16/9] w-full rounded-2xl border border-gold-500/30 object-cover"
           />
-        ) : null}
+        ) : (
+          <ArticleFallbackCover
+            title={article.title}
+            className="mt-6 aspect-[16/9] w-full rounded-2xl border border-gold-500/30"
+          />
+        )}
         <RichTextView
           document={article.content}
           className="mt-8 text-base leading-8"

@@ -96,27 +96,36 @@ enum MediaStatus {
 }
 
 model Family {
-  id                    String            @id @default(uuid()) @db.Char(36)
-  slug                  String            @unique @db.VarChar(100)
-  name                  String            @db.VarChar(191)
-  description           String?           @db.Text
+  id                    String                 @id @default(uuid()) @db.Char(36)
+  slug                  String                 @unique @db.VarChar(100)
+  name                  String                 @db.VarChar(191)
+  description           String?                @db.Text
   introduction          Json?
-  status                FamilyStatus      @default(ACTIVE)
-  deathAnniversaryDay   Int?              @db.UnsignedTinyInt
-  deathAnniversaryMonth Int?              @db.UnsignedTinyInt
-  address               String?           @db.VarChar(255)
-  ancestryOrigin        String?           @db.VarChar(255)
-  posterBackgroundId    String?           @db.Char(36)
-  posterLeftText        String?           @db.VarChar(191)
-  posterRightText       String?           @db.VarChar(191)
-  isDemo                Boolean           @default(false)
-  planId                String            @db.Char(36)
+  status                FamilyStatus           @default(ACTIVE)
+  deathAnniversaryDay   Int?                   @db.UnsignedTinyInt
+  deathAnniversaryMonth Int?                   @db.UnsignedTinyInt
+  address               String?                @db.VarChar(255)
+  ancestryOrigin        String?                @db.VarChar(255)
+  posterBackgroundId    String?                @db.Char(36)
+  posterLeftText        String?                @db.VarChar(191)
+  posterRightText       String?                @db.VarChar(191)
+  isDemo                Boolean                @default(false)
+  planId                String                 @db.Char(36)
   planExpiresAt         DateTime?
+  /// The clan head's real name and phone as the platform admin knows them; admin-only contact
+  /// details, never shown on the family's own pages.
+  headName              String?                @db.VarChar(100)
+  headPhone             String?                @db.VarChar(30)
+  /// What the family pays to renew its plan: the plan's price when the family was put on it,
+  /// kept even if the plan's price changes later.
+  planPrice             Int                    @default(0)
   /// Bytes the family's media folder takes. Kept by every write and delete in MediaService and
   /// reset from the disk by FamilyStorageReconcileService, which corrects any drift.
-  storageUsedBytes      BigInt            @default(0)
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  storageUsedBytes      BigInt                 @default(0)
+  /// The ambassador whose code the family was opened with; their commissions are paid per plan.
+  ambassadorId          String?                @db.Char(36)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
   deletedAt             DateTime?
   users                 User[]
   people                Person[]
@@ -132,35 +141,43 @@ model Family {
   meritEvents           MeritEvent[]
   meritDonations        MeritDonation[]
   branchManagers        BranchManager[]
-  posterBackground      PosterDecoration? @relation("FamilyPosterBackground", fields: [posterBackgroundId], references: [id], onDelete: SetNull)
-  plan                  PricingPlan       @relation(fields: [planId], references: [id], onDelete: Restrict)
+  posterBackground      PosterDecoration?      @relation("FamilyPosterBackground", fields: [posterBackgroundId], references: [id], onDelete: SetNull)
+  plan                  PricingPlan            @relation(fields: [planId], references: [id], onDelete: Restrict)
+  ambassador            Ambassador?            @relation(fields: [ambassadorId], references: [id], onDelete: Restrict)
+  commissions           AmbassadorCommission[]
+  planRequests          ServiceRegistration[]
+  planPayments          PlanPayment[]
 
   @@index([status])
   @@index([deletedAt])
   @@index([isDemo])
   @@index([planId])
   @@index([status, planExpiresAt])
+  @@index([ambassadorId])
 }
 
 model User {
-  id                 String              @id @default(uuid()) @db.Char(36)
-  username           String              @unique @db.VarChar(191)
-  passwordHash       String              @db.VarChar(255)
-  displayName        String              @db.VarChar(191)
-  email              String?             @unique @db.VarChar(191)
+  id                 String                 @id @default(uuid()) @db.Char(36)
+  username           String                 @unique @db.VarChar(191)
+  passwordHash       String                 @db.VarChar(255)
+  displayName        String                 @db.VarChar(191)
+  email              String?                @unique @db.VarChar(191)
+  /// Google account id ("sub" claim) of a user who signs in with Google; one account per user.
+  googleSub          String?                @unique @db.VarChar(64)
   role               UserRole
-  familyId           String?             @db.Char(36)
-  status             UserStatus          @default(ACTIVE)
-  mustChangePassword Boolean             @default(false)
-  isShared           Boolean             @default(false)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  familyId           String?                @db.Char(36)
+  status             UserStatus             @default(ACTIVE)
+  mustChangePassword Boolean                @default(false)
+  isShared           Boolean                @default(false)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
   deletedAt          DateTime?
-  family             Family?             @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  family             Family?                @relation(fields: [familyId], references: [id], onDelete: Restrict)
   sessions           AuthSession[]
   branches           BranchManager[]
   passwordResetCodes PasswordResetCode[]
-  uploadedMedia      Media[]             @relation("MediaUploader")
+  uploadedMedia      Media[]                @relation("MediaUploader")
+  paidCommissions    AmbassadorCommission[]
 
   @@index([familyId, role, status])
   @@index([deletedAt])
@@ -540,24 +557,31 @@ enum PricingFeatureStyle {
 }
 
 model PricingPlan {
-  id            String                @id @default(uuid()) @db.Char(36)
-  name          String                @db.VarChar(60)
-  description   String?               @db.VarChar(200)
-  price         Int                   @default(0)
-  billingPeriod String?               @db.VarChar(20)
-  icon          String                @default("sprout") @db.VarChar(30)
-  tone          PricingPlanTone       @default(BRONZE)
-  badge         String?               @db.VarChar(40)
-  isFeatured    Boolean               @default(false)
-  ctaLabel      String                @db.VarChar(40)
-  ctaHref       String                @db.VarChar(255)
-  isActive      Boolean               @default(true)
-  sortOrder     Int                   @default(0)
-  features      PricingPlanFeature[]
-  registrations ServiceRegistration[]
-  families      Family[]
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
+  id                String                 @id @default(uuid()) @db.Char(36)
+  name              String                 @db.VarChar(60)
+  description       String?                @db.VarChar(200)
+  price             Int                    @default(0)
+  billingPeriod     String?                @db.VarChar(20)
+  icon              String                 @default("sprout") @db.VarChar(30)
+  tone              PricingPlanTone        @default(BRONZE)
+  badge             String?                @db.VarChar(40)
+  isFeatured        Boolean                @default(false)
+  ctaLabel          String                 @db.VarChar(40)
+  ctaHref           String                 @db.VarChar(255)
+  isActive          Boolean                @default(true)
+  /// The plan a family opened by Google self-service sign-up gets. Set on at most one plan; shown
+  /// only in the admin, never on the public card.
+  googleSignup      Boolean                @default(false)
+  /// Percent of `price` an ambassador earns when a family they referred is put on this plan.
+  commissionPercent Int                    @default(0) @db.UnsignedTinyInt
+  sortOrder         Int                    @default(0)
+  features          PricingPlanFeature[]
+  registrations     ServiceRegistration[]
+  families          Family[]
+  commissions       AmbassadorCommission[]
+  planPayments      PlanPayment[]
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
 
   @@index([isActive, sortOrder])
 }
@@ -602,19 +626,131 @@ enum ServiceRegistrationStatus {
 }
 
 model ServiceRegistration {
-  id        String                    @id @default(uuid()) @db.Char(36)
-  planId    String?                   @db.Char(36)
-  plan      PricingPlan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
-  planName  String                    @db.VarChar(60)
-  fullName  String                    @db.VarChar(100)
-  email     String?                   @db.VarChar(191)
-  phone     String                    @db.VarChar(30)
-  consentAt DateTime
-  status    ServiceRegistrationStatus @default(NEW)
-  adminNote String?                   @db.VarChar(1000)
-  createdAt DateTime                  @default(now())
-  updatedAt DateTime                  @updatedAt
+  id             String                    @id @default(uuid()) @db.Char(36)
+  planId         String?                   @db.Char(36)
+  plan           PricingPlan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
+  planName       String                    @db.VarChar(60)
+  /// Set when an existing family's clan head asks to change plan; null for a new family's sign-up.
+  familyId       String?                   @db.Char(36)
+  family         Family?                   @relation(fields: [familyId], references: [id], onDelete: SetNull)
+  /// The family's plan when the request was sent, kept so a confirmed request still shows its change.
+  fromPlanName   String?                   @db.VarChar(60)
+  fullName       String                    @db.VarChar(100)
+  email          String?                   @db.VarChar(191)
+  phone          String                    @db.VarChar(30)
+  /// Ambassador code the visitor entered; the admin carries it over when opening the family.
+  ambassadorCode String?                   @db.VarChar(12)
+  consentAt      DateTime
+  status         ServiceRegistrationStatus @default(NEW)
+  adminNote      String?                   @db.VarChar(1000)
+  /// When an admin first opened the registrations list after it arrived; null counts as unread.
+  seenAt         DateTime?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
 
+  @@index([status, createdAt])
+  @@index([planId])
+  @@index([familyId, status])
+}
+
+enum AmbassadorStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+// Commissions are earned only when a family is opened with an ambassador's code. PLAN_CHANGE is
+// kept so rows written while upgrades still earned one stay readable; nothing writes it any more.
+enum AmbassadorCommissionKind {
+  NEW_FAMILY
+  PLAN_CHANGE
+}
+
+// A person who refers families to the platform and earns a commission per plan. Platform-level,
+// not tenant-owned: created by the public sign-up form, managed only by the ADMIN.
+model Ambassador {
+  id          String                 @id @default(uuid()) @db.Char(36)
+  code        String                 @unique @db.VarChar(12)
+  fullName    String                 @db.VarChar(100)
+  phone       String                 @db.VarChar(30)
+  email       String                 @unique @db.VarChar(191)
+  status      AmbassadorStatus       @default(ACTIVE)
+  adminNote   String?                @db.VarChar(1000)
+  /// When an admin first opened the ambassadors list after this sign-up; null counts as unread.
+  seenAt      DateTime?
+  consentAt   DateTime
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  families    Family[]
+  commissions AmbassadorCommission[]
+
+  @@index([status, createdAt])
+}
+
+// One commission owed to an ambassador. Price, percent, amount, plan and family names are copied when it
+// is earned so later edits never change what was owed. `paidAt` is set when the ADMIN confirms
+// the bank transfer; the money itself moves outside the system.
+model AmbassadorCommission {
+  id           String                   @id @default(uuid()) @db.Char(36)
+  ambassadorId String                   @db.Char(36)
+  ambassador   Ambassador               @relation(fields: [ambassadorId], references: [id], onDelete: Restrict)
+  familyId     String                   @db.Char(36)
+  family       Family                   @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  familyName   String                   @db.VarChar(191)
+  planId       String?                  @db.Char(36)
+  plan         PricingPlan?             @relation(fields: [planId], references: [id], onDelete: SetNull)
+  planName     String                   @db.VarChar(60)
+  kind         AmbassadorCommissionKind
+  /// Plan price and percent at the time; `amount` is price × percent, rounded to the đồng.
+  planPrice    Int
+  percent      Int                      @db.UnsignedTinyInt
+  amount       Int
+  paidAt       DateTime?
+  paidById     String?                  @db.Char(36)
+  paidBy       User?                    @relation(fields: [paidById], references: [id], onDelete: SetNull)
+  paidNote     String?                  @db.VarChar(255)
+  createdAt    DateTime                 @default(now())
+
+  @@index([ambassadorId, paidAt])
+  @@index([paidAt, createdAt])
+  @@index([familyId])
+  @@index([planId])
+}
+
+enum PlanPaymentStatus {
+  PENDING
+  PAID
+  /// Money arrived but was not applied automatically (too little, or the family changed plan
+  /// since); the admin settles it by hand.
+  REVIEW
+}
+
+// A clan head's bank transfer to renew the family plan, paid by VietQR and confirmed by the SePay
+// webhook. Tenant-owned. Plan name, amount and period are copied when the code is issued, so
+// the transfer always buys what was shown.
+model PlanPayment {
+  id                 String            @id @default(uuid()) @db.Char(36)
+  familyId           String            @db.Char(36)
+  family             Family            @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  /// The transfer content the bank must carry, e.g. GPDD7K2M9QXA; unique across payments.
+  code               String            @unique @db.VarChar(24)
+  planId             String?           @db.Char(36)
+  plan               PricingPlan?      @relation(fields: [planId], references: [id], onDelete: SetNull)
+  planName           String            @db.VarChar(60)
+  amount             Int
+  durationMonths     Int               @db.UnsignedSmallInt
+  status             PlanPaymentStatus @default(PENDING)
+  /// The QR is offered until then; a transfer arriving later is still honoured.
+  expiresAt          DateTime
+  /// SePay's transaction id; unique so a resent webhook is applied once.
+  sepayTransactionId String?           @unique @db.VarChar(32)
+  paidAmount         Int?
+  paidAt             DateTime?
+  /// The plan end date the payment moved the family to.
+  extendedTo         DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([familyId, status])
   @@index([status, createdAt])
   @@index([planId])
 }

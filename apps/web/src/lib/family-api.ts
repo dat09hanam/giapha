@@ -30,6 +30,13 @@ export type AdminFamily = {
   managerCount: number;
   /** Megabytes the family's uploads take, rounded up. */
   storageUsedMb: number;
+  /** Null for the sample family, which has no clan head. */
+  clanHead: {
+    name: string | null;
+    phone: string | null;
+    email: string | null;
+    googleLinked: boolean;
+  } | null;
   plan: {
     id: string;
     name: string;
@@ -71,6 +78,35 @@ export function resetClanHeadPassword(slug: string): Promise<ClanHeadCredential>
   );
 }
 
+export function changeClanHeadEmail(slug: string, email: string): Promise<AdminFamily> {
+  return apiFetch<AdminFamily>(
+    `${API_URL}/families/${encodeURIComponent(slug)}/clan-head/email`,
+    {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    },
+    'đổi email trưởng họ',
+  );
+}
+
+export function changeClanHeadContact(
+  slug: string,
+  contact: { name: string; phone: string },
+): Promise<AdminFamily> {
+  return apiFetch<AdminFamily>(
+    `${API_URL}/families/${encodeURIComponent(slug)}/clan-head/contact`,
+    {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(contact),
+    },
+    'cập nhật thông tin trưởng họ',
+  );
+}
+
 export type CreatedDemoFamilyResult = {
   family: CreatedFamilyResult['family'];
   accounts: null;
@@ -80,8 +116,13 @@ export type CreateFamilyInput = {
   name: string;
   deathAnniversary: string;
   headEmail?: string;
+  headName?: string;
+  /** Required with `headEmail` except for the sample family. */
+  headPhone?: string;
   ancestryOrigin?: string;
   planId: string;
+  /** Code of the ambassador who referred the family; they earn the plan's commission. */
+  ambassadorCode?: string;
 };
 
 export type CreateDemoFamilyInput = CreateFamilyInput & { slug: string };

@@ -1,4 +1,4 @@
-import { Inject, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { Inject, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createTransport, type Transporter } from 'nodemailer';
 
@@ -6,6 +6,7 @@ export type MailMessage = { to: string; subject: string; text: string; html: str
 
 @Injectable()
 export class MailService {
+  private readonly logger = new Logger(MailService.name);
   private transporter: Transporter | null = null;
 
   constructor(@Inject(ConfigService) private readonly config: ConfigService) {}
@@ -15,7 +16,15 @@ export class MailService {
   }
 
   async send(message: MailMessage): Promise<void> {
-    await this.transport().sendMail({ from: this.config.get<string>('MAIL_FROM'), ...message });
+    try {
+      await this.transport().sendMail({ from: this.config.get<string>('MAIL_FROM'), ...message });
+    } catch (error) {
+      this.logger.error(
+        `Sending mail "${message.subject}" failed.`,
+        error instanceof Error ? error.stack : error,
+      );
+      throw error;
+    }
   }
 
   private transport(): Transporter {

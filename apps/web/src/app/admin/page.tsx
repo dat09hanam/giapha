@@ -1,9 +1,21 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { ClipboardList, Contact, ImageIcon, Network, Newspaper, Sparkles, Tag } from 'lucide-react';
+import {
+  ClipboardList,
+  LayoutDashboard,
+  Contact,
+  HandHeart,
+  ImageIcon,
+  Network,
+  Newspaper,
+  Sparkles,
+  Tag,
+} from 'lucide-react';
 
+import { AdminOverview } from '@/components/admin/admin-overview';
 import { AdminWorkspace } from '@/components/admin/admin-workspace';
+import { AmbassadorsPanel } from '@/components/admin/ambassadors-panel';
 import { ArticleManager } from '@/components/admin/article-manager';
 import { CreateFamilyForm } from '@/components/admin/create-family-form';
 import { DemoFamilyPanel } from '@/components/admin/demo-family-panel';
@@ -19,6 +31,8 @@ import {
   getAdminArticles,
   getAdminFamilies,
   getAdminPricingPlans,
+  getAmbassadorCommissions,
+  getAmbassadors,
   getPlanCatalog,
   getAuthProfile,
   getDemoFamily,
@@ -27,11 +41,14 @@ import {
   getServiceRegistrations,
   getSiteContact,
 } from '@/lib/api';
+import { buildAdminOverview } from '@/lib/admin-overview';
 import { ApiRequestError } from '@/lib/api-error';
 import { profileDestination, type AuthProfile } from '@/lib/auth-api';
 import type { AdminFamily } from '@/lib/family-api';
 import type { AdminPosterDecoration } from '@/lib/poster-decorations';
+import { NO_INDEX } from '@/lib/seo';
 import { SITE_BRAND } from '@/lib/site-brand';
+import type { Ambassador, AmbassadorCommission } from '@/types/ambassador';
 import type { AdminArticle } from '@/types/article';
 import { requirePasswordChanged } from '@/lib/session';
 import type { FamilyDetails } from '@/types/family-tree';
@@ -39,7 +56,9 @@ import type { PlanCatalogEntry, PricingPlan, ServiceRegistration } from '@/types
 import type { SiteContact } from '@/types/site-contact';
 
 export const metadata: Metadata = {
+  title: 'Quản trị',
   description: `Khu vực quản trị nền tảng ${SITE_BRAND.name}.`,
+  robots: NO_INDEX,
 };
 
 export const dynamic = 'force-dynamic';
@@ -84,26 +103,40 @@ export default async function AdminPage() {
   let families: AdminFamily[];
   let catalog: PlanCatalogEntry[];
   let contact: SiteContact;
+  let ambassadors: Ambassador[];
+  let commissions: AmbassadorCommission[];
   try {
     profile = await requireAdmin();
     const sessionToken = (await cookies()).get('giapha_session')?.value ?? '';
-    [decorations, demoFamily, articles, pricingPlans, registrations, families, catalog, contact] =
-      await Promise.all([
-        getPosterDecorations<AdminPosterDecoration>(sessionToken),
-        loadDemoFamily(),
-        getAdminArticles(sessionToken),
-        getAdminPricingPlans(sessionToken),
-        getServiceRegistrations(sessionToken),
-        getAdminFamilies(sessionToken),
-        getPlanCatalog(),
-        getSiteContact(),
-      ]);
+    [
+      decorations,
+      demoFamily,
+      articles,
+      pricingPlans,
+      registrations,
+      families,
+      catalog,
+      contact,
+      ambassadors,
+      commissions,
+    ] = await Promise.all([
+      getPosterDecorations<AdminPosterDecoration>(sessionToken),
+      loadDemoFamily(),
+      getAdminArticles(sessionToken),
+      getAdminPricingPlans(sessionToken),
+      getServiceRegistrations(sessionToken),
+      getAdminFamilies(sessionToken),
+      getPlanCatalog(),
+      getSiteContact(),
+      getAmbassadors(sessionToken),
+      getAmbassadorCommissions(sessionToken),
+    ]);
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
       return (
         <ApiErrorState
           title="Chưa thể tải khu vực quản trị"
-          message={error.message}
+          error={error}
           retryHref="/admin"
         />
       );
@@ -115,6 +148,16 @@ export default async function AdminPage() {
     <AdminWorkspace
       displayName={profile.displayName}
       sections={[
+        {
+          id: 'tong-quan',
+          label: 'Tổng quan',
+          icon: <LayoutDashboard aria-hidden="true" />,
+          content: (
+            <AdminOverview
+              overview={buildAdminOverview({ families, registrations, ambassadors, commissions })}
+            />
+          ),
+        },
         {
           id: 'dong-ho',
           label: 'Dòng họ',
@@ -130,8 +173,19 @@ export default async function AdminPage() {
           id: 'dang-ky',
           label: 'Đăng ký dịch vụ',
           icon: <ClipboardList aria-hidden="true" />,
-          badge: registrations.filter((entry) => entry.status === 'NEW').length,
+          badge: registrations.filter((entry) => entry.seenAt === null).length,
+          seenList: 'service-registrations',
           content: <ServiceRegistrationsPanel initial={registrations} />,
+        },
+        {
+          id: 'dai-su',
+          label: 'Đại sứ',
+          icon: <HandHeart aria-hidden="true" />,
+          badge: ambassadors.filter((entry) => entry.seenAt === null).length,
+          seenList: 'ambassadors',
+          content: (
+            <AmbassadorsPanel initialAmbassadors={ambassadors} initialCommissions={commissions} />
+          ),
         },
         {
           id: 'bang-gia',

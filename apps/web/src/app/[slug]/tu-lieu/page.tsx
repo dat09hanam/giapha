@@ -40,7 +40,7 @@ export default async function FamilyLibraryPage({ params }: FamilyLibraryPagePro
       return (
         <ApiErrorState
           title="Chưa thể tải album và tư liệu"
-          message={error.message}
+          error={error}
           retryHref={path}
         />
       );

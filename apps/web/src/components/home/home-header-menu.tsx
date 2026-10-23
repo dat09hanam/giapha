@@ -3,7 +3,18 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, Flame, House, LayoutGrid, Menu, Network, Tag, UserRound, X } from 'lucide-react';
+import {
+  BookOpen,
+  Flame,
+  HandHeart,
+  House,
+  LayoutGrid,
+  Menu,
+  Network,
+  Tag,
+  UserRound,
+  X,
+} from 'lucide-react';
 
 import { ContactLink } from '@/components/social/contact-link';
 import { RingingPhone } from '@/components/social/ringing-phone';
@@ -17,6 +28,7 @@ const LINKS = [
   { href: '/mau-bai-cung', label: 'Mẫu bài cúng', icon: Flame },
   { href: '/thu-vien', label: 'Thư viện', icon: BookOpen },
   { href: '#bang-gia', label: 'Bảng giá', icon: Tag },
+  { href: '/dai-su', label: 'Đại sứ', icon: HandHeart },
 ] as const;
 
 function linkHref(href: string, onHomePage: boolean): string {

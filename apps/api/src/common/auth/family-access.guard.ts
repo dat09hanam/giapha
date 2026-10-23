@@ -14,6 +14,7 @@ import { PrismaService } from '../../database/prisma.service.js';
 import { isFamilyFeatureOn, type FamilyFeature } from '../family-features.js';
 import { FAMILY_EXPIRED_MESSAGE, isFamilyExpired } from '../family-plan.js';
 import { normalizeFamilySlug } from '../pipes/family-slug.pipe.js';
+import { ALLOW_EXPIRED_FAMILY_KEY } from './allow-expired-family.decorator.js';
 import type { AuthRequest } from './auth.types.js';
 import { FAMILY_FEATURE_KEY } from './family-feature.decorator.js';
 import { FAMILY_ROLES_KEY } from './family-roles.decorator.js';
@@ -48,7 +49,13 @@ export class FamilyAccessGuard implements CanActivate {
     } else if (!family || family.id !== request.auth.familyId) {
       throw new ForbiddenException('Bạn không được phép truy cập dòng họ theo đường dẫn này.');
     }
-    if (isFamilyExpired(family)) throw new ForbiddenException(FAMILY_EXPIRED_MESSAGE);
+    const allowExpired = this.reflector.getAllAndOverride<boolean | undefined>(
+      ALLOW_EXPIRED_FAMILY_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (isFamilyExpired(family) && !allowExpired) {
+      throw new ForbiddenException(FAMILY_EXPIRED_MESSAGE);
+    }
     const role = platformAdmin ? UserRole.MEMBER_PLUS : request.auth.role;
 
     const roles = this.reflector.getAllAndOverride<UserRole[]>(FAMILY_ROLES_KEY, [

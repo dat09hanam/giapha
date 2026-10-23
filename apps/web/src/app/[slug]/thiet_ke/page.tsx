@@ -65,7 +65,7 @@ export default async function FamilyDesignerPage({
       return (
         <ApiErrorState
           title="Chưa thể mở trang thiết kế"
-          message={error.message}
+          error={error}
           retryHref={'/' + encodeURIComponent(slug) + '/thiet_ke'}
         />
       );

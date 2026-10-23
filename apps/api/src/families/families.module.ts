@@ -9,5 +9,6 @@ import { FamilyPlanExpiryService } from './family-plan-expiry.service.js';
   imports: [AuthModule],
   controllers: [FamiliesController],
   providers: [FamiliesService, FamilyPlanExpiryService],
+  exports: [FamiliesService],
 })
 export class FamiliesModule {}

@@ -8,6 +8,7 @@ import { PosterBackgroundMode, type PosterDecorationKind, type Prisma } from '@p
 
 import { PrismaService } from '../database/prisma.service.js';
 import { CONTENT_TYPE_BY_EXTENSION, decodeImage, STORED_FILE_NAME } from '../media/image-format.js';
+import { optimizeImage } from '../media/image-optimize.js';
 import type {
   CreatePosterDecorationDto,
   PosterDecorationImageDto,
@@ -311,7 +312,8 @@ export class PosterDecorationsService {
   }
 
   private async storeImage(image: PosterDecorationImageDto): Promise<string> {
-    const { bytes, extension } = decodeImage(image.contentType, image.data, MAX_DECORATION_BYTES);
+    const decoded = decodeImage(image.contentType, image.data, MAX_DECORATION_BYTES);
+    const { bytes, extension } = await optimizeImage(decoded.bytes, decoded.extension);
     const fileName = `${randomUUID()}.${extension}`;
     await mkdir(this.directory, { recursive: true });
     await writeFile(join(this.directory, fileName), bytes);

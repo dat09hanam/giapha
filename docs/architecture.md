@@ -12,6 +12,32 @@ The browser keeps an opaque session token in an `HttpOnly`, `SameSite=Strict` co
 SHA-256 digest is stored in `AuthSession`. Passwords use scrypt with an independent random salt and
 plaintext credentials are never persisted.
 
+Plan renewal payments (`PaymentsModule`): a family keeps the price it was put on its plan for in
+`Family.planPrice` (set when the family is created and whenever a plan is applied); renewing costs
+that price even after the plan's list price changes, and the clan head's plan overview shows it.
+`POST /api/families/:slug/plan/renewals` (`MEMBER_PLUS`) issues a `PlanPayment` with a unique code
+(`SEPAY_CODE_PREFIX` + 8 characters), the amount, plan name and period copied at that moment, and
+returns the VietQR (`vietqr.app`) for the configured bank account; an open code for the same plan,
+price and period is handed back instead of a new one. `GET .../renewals/:paymentId` is polled by
+the dialog. `POST /api/payments/sepay/webhook` is public but requires SePay's
+`Authorization: Apikey <SEPAY_WEBHOOK_API_KEY>`; it validates its body itself (not the global DTO
+pipe, so new SePay fields never cause retries), ignores money out and transfers without one of our
+codes, and records SePay's transaction id uniquely so a resent notice is applied once. A matching
+`PENDING` payment is claimed atomically and extends the plan one period after the current end (or
+from today when lapsed, reopening an `EXPIRED` family); a transfer that is short, arrives after
+the family changed plan, or uses an unknown or already-paid code is set to `REVIEW` (or left) and
+reported to the admin instead. The plan routes (`families/:slug/plan*`) carry
+`@AllowExpiredFamily()`, so a lapsed family's clan head can still see and renew its plan while
+every other family route answers `403`; the web admin page then shows only the plan panel.
+
+Admin notices (`AdminNotifyModule`): a new service registration, a family opened by Google
+self-service sign-up, and a clan head's plan change request each send the platform admin a short
+notice through the Telegram Bot API (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, comma-separated) and
+by email over SMTP (`ADMIN_NOTIFY_EMAIL`, comma-separated). A channel left unconfigured is skipped.
+Sending runs after the write and never fails the request; a failure is logged by event kind only.
+The notice carries the contact's name and phone (and email for a registration), so it is personal
+data leaving the platform for Telegram: only admin-held chats belong in `TELEGRAM_CHAT_ID`.
+
 Quên mật khẩu: `POST /api/auth/password-reset` takes a `login` (username, or the account's email;
 a username match wins) and mails a six-digit code to the account's `User.email` (set for the clan
 head when the family is created, and optionally by the clan head for a member account on the
@@ -92,6 +118,26 @@ Endpoints:
   required); its other sessions are signed out and `mustChangePassword` is cleared.
 - `POST /api/families`: `ADMIN` only. It atomically creates one Family, one `MEMBER_PLUS` account and
   one `MEMBER` account.
+- `POST /api/auth/google`: signs in with a Google Identity Services ID token, verified against
+  Google's signing keys and `GOOGLE_CLIENT_ID` (`GoogleIdTokenVerifier`). The account is found by
+  `User.googleSub`, or the first time by `User.email` equal to the verified Google email, which then
+  links it. With no matching account it answers `needs-registration` and opens no session. Linking
+  an account still on an issued password (`mustChangePassword`) replaces that password with an
+  unknown one and clears the flag; a password the person chose is kept.
+- `POST /api/auth/google/link`: the signed-in, non-shared account links (or moves) to the Google
+  account that just verified in the browser; its verified email becomes `User.email`. A Google
+  account or email held by another user is refused.
+- `PATCH /api/families/:slug/clan-head/email`: `ADMIN` only. Sets the clan head's email; a changed
+  email clears `googleSub`, so the next Google sign-in links by the new email.
+- `PATCH /api/families/:slug/clan-head/contact`: `ADMIN` only. Sets `Family.headName` and
+  `Family.headPhone`, the clan head's real name and phone kept for the admin's family table; an
+  empty string clears a field. They are admin-only contact details, never returned to the family.
+- `POST /api/auth/google/register` (`SignupModule`): public self-service sign-up. It creates a
+  Family exactly as `POST /api/families` does, on the plan the admin marked `googleSignup` (at most
+  one plan; never a client-chosen plan; none marked closes sign-up), with the Google account as its
+  `MEMBER_PLUS` (email and
+  `googleSub` set, no forced password change) and signs it in. One Google account opens at most
+  one Family; the shared `MEMBER` credentials are returned once.
 - `/api/families/:slug/accounts`: `MEMBER_PLUS` only. `GET` lists the Family's accounts with their
   branches; `POST` creates a `MEMBER` account from a typed `usernamePrefix` (e.g. `adminchi1`) plus
   the family's suffix, giving `adminchi1HoPham1503`. The suffix (`GET username-suffix`) is what the
@@ -119,8 +165,13 @@ The old public clan-head registration and invitation endpoints are removed. Pend
 accounts are migrated to `SUSPENDED` and their tokens are discarded.
 
 Family creation accepts a display name, a recurring death-anniversary in `DD/MM`, an optional
-origin (`ancestryOrigin`, stored on the Family) and the clan head's email (`headEmail`, required
-except for the sample family, stored as the head account's `User.email` for password reset). The day and month are stored separately because no
+origin (`ancestryOrigin`, stored on the Family), the clan head's optional email (`headEmail`,
+stored as the head account's `User.email` for password reset and Google sign-in), the clan head's
+phone (`headPhone`, 10 digits starting with 0, required except for the sample family) and optional
+name (`headName`), both stored on the Family. Email and phone given here are the clan head's
+starting contact; the admin can correct them later. Google self-service sign-up takes the email
+from Google and asks for no phone, so those families start with `headPhone` null. A plan change
+request always carries a phone; it fills `headPhone` and `headName` when they are still null. The day and month are stored separately because no
 year is implied. The API validates real month lengths and permits `29/02`.
 
 The API derives the slug; clients no longer send one (only the sample family's path is chosen by
@@ -253,9 +304,11 @@ while it is measured is skipped until the next run. Usage is read from the colum
 and in a warning banner from 85%) and in the `ADMIN` family list.
 
 `Family.planId` records the plan a Family bought and is required for every Family, the demo family
-included: the `ADMIN` chooses it when creating the Family and can switch it later from the Family
-list on `/admin` (`GET /api/families` lists platform-level facts only: name, slug, status, plan,
-member count, expiry; `PATCH /api/families/:slug/plan`, both `ADMIN` only). The duration sets
+included: the `ADMIN` chooses it when creating the Family (`GET /api/families` lists
+platform-level facts only: name, slug, status, plan, member count, expiry; `ADMIN` only). After
+that a real Family changes plan only when the admin confirms its clan head's plan change request
+(below); `PATCH /api/families/:slug/plan` (`ADMIN` only) refuses every Family but the demo one,
+which has no clan head to send a request. The duration sets
 `Family.planExpiresAt` when the plan is chosen or changed (the new period starts that day) and
 `POST /api/families/:slug/plan/renew` adds one period after the current end, or after today if it
 has lapsed. The demo family never expires. A Family past `planExpiresAt` is expired at once:
@@ -283,7 +336,52 @@ kept as a snapshot). It is platform-level, since a request comes before any Fami
 holds personal contact details: `POST /api/service-registrations` is public but throttled per
 address and only accepts an active plan; listing, the status (`NEW`, `CONTACTED`, `COMPLETED`,
 `CANCELLED`), the admin's note and deletion are `ADMIN` only, in the Đăng ký dịch vụ section of
-`/admin`.
+`/admin`. A registration may carry the `ambassadorCode` the visitor typed; it is checked on submit
+and shown to the admin, who enters it again when opening the Family.
+
+A registration with `familyId` set is an existing Family's plan change request instead. The clan
+head's Gói dịch vụ tab in `/admin/{slug}` reads `GET /api/families/:slug/plan` (`MEMBER_PLUS` only:
+plan, expiry and days left, members, managers and storage against the plan's caps, and any open
+request) and sends `POST /api/families/:slug/plan/requests` with an active plan other than the
+current one and a contact name and phone. The tenant comes from the session through
+`FamilyAccessGuard`, never from the body; a Family keeps at most one open (`NEW` or `CONTACTED`)
+request, which a new one overwrites. The sample family cannot send one.
+
+Every registration's status moves one step at a time, enforced by the API: `NEW` → `CONTACTED` →
+`COMPLETED` (shown as Đã xác nhận), with `CANCELLED` allowed before confirmation; `COMPLETED` and
+`CANCELLED` are final. The step is a conditional update on the status the server read, so two
+admins cannot take it twice. Confirming a plan change request also puts the Family on the
+requested plan through `FamiliesService.applyPlan` in the same transaction, with the period
+starting that day.
+
+`ServiceRegistration.seenAt` and `Ambassador.seenAt` drive the unread badges on the `/admin` sidebar:
+rows with no `seenAt` count as unread until an admin opens that section, which calls
+`POST /api/service-registrations/seen` or `POST /api/ambassadors/seen` (`ADMIN` only).
+
+### Đại Sứ Đời Đời (ambassador programme)
+
+`Ambassador` is a person who refers Families for a commission. It is platform-level, not
+tenant-owned: `POST /api/ambassadors` (public, throttled per address) takes full name, phone and
+email, creates the row with a unique random `code` (`DD` + 6 unambiguous characters) and emails the
+code with a `/?ref=CODE` link. If the email cannot be sent the row is removed, so nobody holds a
+code they never received; signing up again with the same email re-sends the existing code. Listing,
+status (`ACTIVE`, `SUSPENDED`), note, re-sending the email and deletion (only before the ambassador
+referred any Family) are `ADMIN` only, in the Đại sứ section of `/admin`.
+
+`PricingPlan.commissionPercent` (0–100, 0 = none) is the share of the plan's `price` an
+ambassador earns; the amount is price × percent rounded to the đồng, so free plans earn nothing. `Family.ambassadorId` is set
+once, when the Family is opened with an active ambassador's code (admin create form, Google
+self-service sign-up); the demo Family never has one. An `AmbassadorCommission` row is written in
+the same transaction as the Family when it is opened (`NEW_FAMILY`), and only then: a later
+plan change or renewal earns nothing, and plans without a commission write no row. `PLAN_CHANGE`
+remains in the enum only so rows from an earlier rule stay readable.
+Each row snapshots the plan price, percent, amount, plan name and Family name. `paidAt`/`paidById`/`paidNote` are set by
+`POST /api/ambassadors/commissions/pay` after the admin has made the bank transfer; the money never
+moves through the system, and a paid row is never reopened.
+
+The web app remembers a `?ref=` code from any page in `localStorage` for 60 days and pre-fills the
+optional "Mã đại sứ" field of the plan registration and Google sign-up forms. The public programme
+page is `/dai-su`, which reads the commission per plan from `GET /api/pricing-plans`.
 
 An uploaded background may carry `insetTop/Right/Bottom/Left` (percent, all four or none): the tree
 area the `ADMIN` drew over the art. The web app's `poster-geometry.ts` sizes the 16:9 sheet so the

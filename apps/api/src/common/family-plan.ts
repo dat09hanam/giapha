@@ -28,6 +28,14 @@ export function planExpiry(
   return end;
 }
 
+/** Renewing early adds a full period after the current end; a lapsed plan restarts from `now`. */
+export function renewedExpiry(currentEnd: Date | null, durationMonths: number, now: Date): Date {
+  const from = currentEnd && currentEnd > now ? currentEnd : now;
+  const end = new Date(from);
+  end.setMonth(end.getMonth() + durationMonths);
+  return end;
+}
+
 /** True once the plan has run out, even before the expiry sweep has flipped the status. */
 export function isFamilyExpired(family: {
   status: FamilyStatus;

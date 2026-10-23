@@ -19,7 +19,8 @@ import {
   savePlanFeatureTable,
   updatePricingPlan,
 } from '@/lib/pricing-api';
-import { PRICING_PLAN_ICONS, PRICING_PLAN_TONES } from '@/lib/pricing-plans';
+import { commissionAmountFor, PRICING_PLAN_ICONS, PRICING_PLAN_TONES } from '@/lib/pricing-plans';
+import { formatVnd } from '@/lib/vietnamese-number';
 import { cn } from '@/lib/utils';
 import type {
   PlanCatalogEntry,
@@ -30,7 +31,11 @@ import type {
   PricingPlanTone,
 } from '@/types/pricing';
 
-type Draft = Omit<PricingPlanInput, 'price'> & { id: string | null; price: string };
+type Draft = Omit<PricingPlanInput, 'price' | 'commissionPercent'> & {
+  id: string | null;
+  price: string;
+  commissionPercent: string;
+};
 
 function emptyDraft(): Draft {
   return {
@@ -38,6 +43,7 @@ function emptyDraft(): Draft {
     name: '',
     description: '',
     price: '0',
+    commissionPercent: '0',
     billingPeriod: 'năm',
     icon: 'sprout',
     tone: 'BRONZE',
@@ -46,6 +52,7 @@ function emptyDraft(): Draft {
     ctaLabel: 'Đăng ký ngay',
     ctaHref: '#lien-he',
     isActive: true,
+    googleSignup: false,
   };
 }
 
@@ -55,6 +62,7 @@ function toDraft(plan: PricingPlan): Draft {
     name: plan.name,
     description: plan.description ?? '',
     price: String(plan.price),
+    commissionPercent: String(plan.commissionPercent),
     billingPeriod: plan.billingPeriod ?? '',
     icon: plan.icon,
     tone: plan.tone,
@@ -63,6 +71,7 @@ function toDraft(plan: PricingPlan): Draft {
     ctaLabel: plan.ctaLabel,
     ctaHref: plan.ctaHref,
     isActive: plan.isActive,
+    googleSignup: plan.googleSignup,
   };
 }
 
@@ -78,8 +87,17 @@ function toInput(draft: Draft): PricingPlanInput {
     ctaLabel: draft.ctaLabel,
     ctaHref: draft.ctaHref,
     isActive: draft.isActive,
+    googleSignup: draft.googleSignup,
     price: Math.max(0, Math.round(Number(draft.price) || 0)),
+    commissionPercent: Math.min(100, Math.max(0, Math.round(Number(draft.commissionPercent) || 0))),
   };
+}
+
+function commissionHint(draft: Draft): string {
+  const { price, commissionPercent } = toInput(draft);
+  if (commissionPercent === 0) return 'Gói này không có hoa hồng đại sứ.';
+  if (price === 0) return 'Gói miễn phí nên hoa hồng luôn là 0đ.';
+  return `Đại sứ nhận ${formatVnd(commissionAmountFor(price, commissionPercent))} cho mỗi gia phả.`;
 }
 
 function toPreview(draft: Draft, features: PricingCardPlan['features']): PricingCardPlan {
@@ -169,6 +187,7 @@ function CheckField({
 function PlanEditor({
   features,
   draft,
+  googleSignupOwner,
   saving,
   onChange,
   onCancel,
@@ -177,6 +196,8 @@ function PlanEditor({
   /** Display lines for the preview card. */
   features: PricingCardPlan['features'];
   draft: Draft;
+  /** Name of another plan that has Google sign-up now, if any. */
+  googleSignupOwner: string | null;
   saving: boolean;
   onChange: (draft: Draft) => void;
   onCancel: () => void;
@@ -273,6 +294,23 @@ function PlanEditor({
                 placeholder="năm, tháng, trọn đời…"
                 onChange={(event) => set('billingPeriod', event.currentTarget.value)}
               />
+              <div className="grid content-start gap-1">
+                <Field
+                  id="plan-commission"
+                  label="Hoa hồng đại sứ (% giá gói) — 0 là không có"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={draft.commissionPercent}
+                  aria-describedby="plan-commission-amount"
+                  onChange={(event) => set('commissionPercent', event.currentTarget.value)}
+                />
+                <p id="plan-commission-amount" className="text-xs text-stone-500">
+                  {commissionHint(draft)}
+                </p>
+              </div>
             </div>
 
             <div className="grid gap-1.5">
@@ -347,6 +385,17 @@ function PlanEditor({
                 checked={draft.isActive}
                 onChange={(checked) => set('isActive', checked)}
               />
+              <CheckField
+                id="plan-google-signup"
+                label="Đăng ký bằng Google"
+                hint={
+                  googleSignupOwner && !draft.googleSignup
+                    ? `Người tự đăng ký bằng Google được gói này. Đang bật ở gói “${googleSignupOwner}”; bật ở đây sẽ tắt gói đó.`
+                    : 'Người tự đăng ký bằng Google được gói này. Chỉ một gói được bật; không hiện trên thẻ gói.'
+                }
+                checked={draft.googleSignup}
+                onChange={(checked) => set('googleSignup', checked)}
+              />
             </div>
           </div>
 
@@ -379,6 +428,8 @@ export function PricingPlanManager({
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const editing = draft?.id ? plans.find((plan) => plan.id === draft.id) : undefined;
+  const googleSignupOwner =
+    plans.find((plan) => plan.googleSignup && plan.id !== draft?.id)?.name ?? null;
 
   async function save(): Promise<void> {
     if (!draft) return;
@@ -388,8 +439,14 @@ export function PricingPlanManager({
       const saved = draft.id
         ? await updatePricingPlan(draft.id, input)
         : await createPricingPlan(input);
+      // The API turned Google sign-up off on every other plan when this one took it.
       setPlans((current) =>
-        bySortOrder([...current.filter((plan) => plan.id !== saved.id), saved]),
+        bySortOrder([
+          ...current
+            .filter((plan) => plan.id !== saved.id)
+            .map((plan) => (saved.googleSignup ? { ...plan, googleSignup: false } : plan)),
+          saved,
+        ]),
       );
       setDraft(null);
       showToast({
@@ -444,7 +501,7 @@ export function PricingPlanManager({
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       <SectionCard
         icon={<Tag aria-hidden="true" />}
         title="Bảng giá dịch vụ"
@@ -482,6 +539,7 @@ export function PricingPlanManager({
               : defaultFeatures(catalog)
           }
           draft={draft}
+          googleSignupOwner={googleSignupOwner}
           saving={saving}
           onChange={setDraft}
           onCancel={() => setDraft(null)}

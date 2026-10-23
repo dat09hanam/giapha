@@ -10,7 +10,8 @@ import styles from './home.module.css';
 export function HomeHeader({ onHomePage = true }: { onHomePage?: boolean }) {
   return (
     <>
-      <header className={styles.header}>
+      {/* The logo and menu are not page content; Google quotes the description instead. */}
+      <header className={styles.header} data-nosnippet>
         <div className={styles.headerBar}>
           <Link href="/" className={styles.brand} aria-label={`${SITE_BRAND.name} — Trang chủ`}>
             <span className={styles.brandSeal}>
@@ -19,7 +20,7 @@ export function HomeHeader({ onHomePage = true }: { onHomePage?: boolean }) {
             <span className={styles.brandText}>
               <strong>
                 {SITE_BRAND.nameLead} <em>{SITE_BRAND.nameAccent}</em>
-              </strong>
+              </strong>{' '}
               <small>{SITE_BRAND.tagline}</small>
             </span>
           </Link>

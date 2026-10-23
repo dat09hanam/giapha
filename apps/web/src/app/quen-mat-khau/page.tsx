@@ -2,9 +2,12 @@ import type { Metadata } from 'next';
 
 import { AuthShell } from '@/components/auth/auth-shell';
 import { ForgotPasswordForm } from '@/components/auth/forgot-password-form';
+import { NO_INDEX } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  title: 'Quên mật khẩu',
   description: 'Đặt lại mật khẩu bằng mã xác nhận gửi qua email.',
+  robots: NO_INDEX,
 };
 
 export default function ForgotPasswordPage() {

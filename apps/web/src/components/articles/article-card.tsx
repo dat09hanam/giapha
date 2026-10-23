@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, BookOpen, CalendarDays, Flame } from 'lucide-react';
 
+import { ArticleFallbackCover } from '@/components/articles/article-fallback-cover';
 import { articleCoverSrc, articleHref } from '@/lib/article-api';
 import type { ArticleCategory, ArticleSummary } from '@/types/article';
 
@@ -28,18 +29,10 @@ export function SectionIcon({
 
 function Cover({ article, className }: { article: ArticleSummary; className: string }) {
   const src = articleCoverSrc(article.coverUrl);
-  if (!src) {
-    return (
-      <div
-        className={`${className} grid place-items-center bg-gradient-to-br from-gold-100 to-paper-deep text-gold-700`}
-      >
-        <SectionIcon category={article.category} className="size-6 opacity-70 sm:size-10" />
-      </div>
-    );
-  }
+  if (!src) return <ArticleFallbackCover title={article.title} className={className} />;
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt="" className={`${className} object-cover`} loading="lazy" />
+    <img src={src} alt={article.title} className={`${className} object-cover`} loading="lazy" />
   );
 }
 

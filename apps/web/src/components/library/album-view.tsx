@@ -49,6 +49,7 @@ import { downloadFamilyMedia, familyMediaSrc } from '@/lib/media-api';
 import { searchEntriesFromPeople } from '@/lib/person-search';
 import { cn } from '@/lib/utils';
 import type { Person } from '@/types/family-tree';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 
 const MIN_COLUMNS = 2;
 const MAX_COLUMNS = 8;
@@ -735,6 +736,7 @@ export function AlbumView({
   }
 
   const viewerOpen = viewing && shown !== null;
+  useBodyScrollLock(viewerOpen);
 
   useEffect(() => {
     if (viewerOpen) {

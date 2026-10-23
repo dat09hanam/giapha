@@ -73,11 +73,13 @@ import {
 import { updateEditSuggestionStatus } from '@/lib/edit-suggestion-api';
 import { computeBranchScope, type BranchScope, type TreeEditScope } from '@/lib/branch-scope';
 import { saveFamilyTreeDesign, type FamilyTreeDesignSaveInput } from '@/lib/family-tree-design-api';
+import { FLOW_ARIA_LABELS } from '@/lib/flow-aria-labels';
 import { computeGenerations, layoutFamily, type LayoutDimensions } from '@/lib/family-layout';
 import { familyEdges, type FamilyEdge } from '@/lib/tree-layout';
 import { cn } from '@/lib/utils';
 import type { EditSuggestion } from '@/types/edit-suggestion';
 import type { FamilyTreeResponse, MaritalStatus, Person } from '@/types/family-tree';
+import { ScrollDialog } from '@/components/ui/scroll-dialog';
 
 import {
   findMember,
@@ -1904,6 +1906,7 @@ export function FamilyTreeDesigner({
             }}
             deleteKeyCode={null}
             proOptions={{ hideAttribution: true }}
+            ariaLabelConfig={FLOW_ARIA_LABELS}
           >
             <Background variant={BackgroundVariant.Lines} gap={32} size={0.7} color="#dfcda7" />
             <Controls position="bottom-left" showInteractive={false} className="max-lg:!hidden" />
@@ -2672,324 +2675,297 @@ export function FamilyTreeDesigner({
 
       <Presence>
         {relationshipTargetId && relationshipTarget ? (
-          <div className="fixed inset-0 z-50 grid place-items-center p-4">
-            <button
-              type="button"
-              className="ui-backdrop absolute inset-0 bg-brand-950/45 backdrop-blur-[2px]"
-              aria-label="Đóng hộp chọn quan hệ"
-              onClick={closeRelationshipPicker}
-            />
-            <section
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="relationship-dialog-title"
-              className="ui-dialog heritage-panel relative max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl p-5 shadow-2xl sm:p-6"
-            >
-              <button
-                type="button"
-                className="absolute right-4 top-4 grid size-9 place-items-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-800"
-                onClick={closeRelationshipPicker}
-                aria-label="Đóng"
-              >
-                <X className="size-5" aria-hidden="true" />
-              </button>
-
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
-                Mở rộng cây
-              </p>
-              <h2
-                id="relationship-dialog-title"
-                className="mt-2 pr-10 text-xl font-semibold text-brand-950"
-              >
-                {addition.step === 'choose'
-                  ? 'Thêm quan hệ cho ' + relationshipTarget.name
-                  : addition.step === 'editMother'
-                    ? 'Sửa mẹ cho ' + relationshipTarget.name
-                    : relationshipChoiceLabel(addition.kind) + ' cho ' + relationshipTarget.name}
-              </h2>
-
-              {addition.step === 'choose' ? (
-                <>
-                  <p className="mt-2 text-sm leading-6 text-stone-600">
-                    Bố/mẹ nằm ở thế hệ phía trên; vợ nằm cùng hàng và con nằm ở hàng dưới, ngay dưới
-                    cặp bố mẹ.
-                  </p>
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    {RELATIONSHIP_CHOICES.map((choice) => {
-                      const editsMother =
-                        choice.kind === 'MOTHER' && canEditMother(relationshipTarget);
-                      const Icon = editsMother ? PencilLine : choice.icon;
-                      const blockedReason = choiceBlockedReason(choice.kind, relationshipTarget);
-                      const tooltipId = 'relationship-choice-tip-' + choice.kind;
-                      return (
-                        <div
-                          key={choice.kind}
+          <ScrollDialog
+            title={
+              addition.step === 'choose'
+                ? 'Thêm quan hệ cho ' + relationshipTarget.name
+                : addition.step === 'editMother'
+                  ? 'Sửa mẹ cho ' + relationshipTarget.name
+                  : relationshipChoiceLabel(addition.kind) + ' cho ' + relationshipTarget.name
+            }
+            onClose={closeRelationshipPicker}
+            size="lg"
+            closeLabel="Đóng hộp chọn quan hệ"
+          >
+            {addition.step === 'choose' ? (
+              <>
+                <p className="mt-2 text-sm leading-6 text-stone-600">
+                  Bố/mẹ nằm ở thế hệ phía trên; vợ nằm cùng hàng và con nằm ở hàng dưới, ngay dưới
+                  cặp bố mẹ.
+                </p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {RELATIONSHIP_CHOICES.map((choice) => {
+                    const editsMother =
+                      choice.kind === 'MOTHER' && canEditMother(relationshipTarget);
+                    const Icon = editsMother ? PencilLine : choice.icon;
+                    const blockedReason = choiceBlockedReason(choice.kind, relationshipTarget);
+                    const tooltipId = 'relationship-choice-tip-' + choice.kind;
+                    return (
+                      <div
+                        key={choice.kind}
+                        className={cn(
+                          'group relative flex hover:z-20 focus-within:z-20',
+                          RELATIONSHIP_CHOICE_GRID_CLASSES[choice.kind],
+                        )}
+                      >
+                        <button
+                          type="button"
+                          aria-disabled={blockedReason ? true : undefined}
+                          aria-describedby={blockedReason ? tooltipId : undefined}
                           className={cn(
-                            'group relative flex hover:z-20 focus-within:z-20',
-                            RELATIONSHIP_CHOICE_GRID_CLASSES[choice.kind],
+                            'flex min-h-[76px] w-full items-center gap-3 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700',
+                            blockedReason
+                              ? 'cursor-not-allowed border-stone-200 bg-stone-50'
+                              : 'border-amber-900/15 bg-white hover:border-brand-800/35 hover:bg-brand-50',
                           )}
+                          onClick={() => chooseRelationship(choice.kind)}
                         >
-                          <button
-                            type="button"
-                            aria-disabled={blockedReason ? true : undefined}
-                            aria-describedby={blockedReason ? tooltipId : undefined}
+                          <span
                             className={cn(
-                              'flex min-h-[76px] w-full items-center gap-3 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700',
+                              'grid size-10 shrink-0 place-items-center rounded-xl',
                               blockedReason
-                                ? 'cursor-not-allowed border-stone-200 bg-stone-50'
-                                : 'border-amber-900/15 bg-white hover:border-brand-800/35 hover:bg-brand-50',
+                                ? 'bg-stone-100 text-stone-400'
+                                : 'bg-brand-100 text-brand-900',
                             )}
-                            onClick={() => chooseRelationship(choice.kind)}
                           >
+                            <Icon className="size-5" aria-hidden="true" />
+                          </span>
+                          <span className="min-w-0">
                             <span
                               className={cn(
-                                'grid size-10 shrink-0 place-items-center rounded-xl',
-                                blockedReason
-                                  ? 'bg-stone-100 text-stone-400'
-                                  : 'bg-brand-100 text-brand-900',
+                                'block text-sm font-semibold',
+                                blockedReason ? 'text-stone-400' : 'text-brand-950',
                               )}
                             >
-                              <Icon className="size-5" aria-hidden="true" />
-                            </span>
-                            <span className="min-w-0">
-                              <span
-                                className={cn(
-                                  'block text-sm font-semibold',
-                                  blockedReason ? 'text-stone-400' : 'text-brand-950',
-                                )}
-                              >
-                                {editsMother ? 'Sửa mẹ' : choice.label}
-                              </span>
-                              <span
-                                className={cn(
-                                  'mt-0.5 block truncate text-xs',
-                                  blockedReason ? 'text-stone-400' : 'text-stone-500',
-                                )}
-                              >
-                                {editsMother
-                                  ? 'Chọn lại mẹ hoặc con riêng của bố'
-                                  : choice.description}
-                              </span>
-                            </span>
-                          </button>
-                          {blockedReason ? (
-                            <span
-                              id={tooltipId}
-                              role="tooltip"
-                              className="pointer-events-none invisible absolute bottom-full left-1/2 mb-2 w-max max-w-[16rem] -translate-x-1/2 rounded-lg bg-brand-950 px-3 py-2 text-center text-xs font-medium leading-5 text-white shadow-xl group-focus-within:visible group-hover:visible"
-                            >
-                              {blockedReason}
-                              <span
-                                aria-hidden="true"
-                                className="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-brand-950"
-                              />
-                            </span>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : null}
-
-              {addition.step === 'mother' ? (
-                <>
-                  <p className="mt-2 text-sm leading-6 text-stone-600"></p>
-                  <div className="mt-5 grid gap-2">
-                    {wivesOf(draft, relationshipTarget.id).map((wife) => (
-                      <button
-                        key={wife.member.id}
-                        type="button"
-                        className="rounded-2xl border border-amber-900/15 bg-white px-4 py-3 text-left text-sm font-medium text-brand-950 transition hover:border-brand-800/35 hover:bg-brand-50"
-                        onClick={() => chooseMother(addition.kind, wife.member.id)}
-                      >
-                        Mẹ là {wife.member.name}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      className="rounded-2xl border border-dashed border-amber-900/25 bg-white px-4 py-3 text-left text-sm font-medium text-stone-600 transition hover:bg-stone-50"
-                      onClick={() => chooseMother(addition.kind, null)}
-                    >
-                      Con riêng của {relationshipTarget.name}
-                    </button>
-                  </div>
-                  <div className="mt-5 flex justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setAddition({ step: 'choose' })}
-                    >
-                      Quay lại
-                    </Button>
-                  </div>
-                </>
-              ) : null}
-
-              {addition.step === 'sharedChildren' ? (
-                <>
-                  <p className="mt-2 text-sm leading-6 text-stone-600">
-                    {sharedChildrenIntro(draft, addition.kind, relationshipTarget)}
-                  </p>
-                  <ul className="mt-5 grid gap-2">
-                    {sharedChildCandidates(draft, addition.kind, relationshipTarget).map(
-                      (child) => {
-                        const shared = addition.childIds.includes(child.id);
-                        const setShared = (next: boolean): void =>
-                          setAddition({
-                            ...addition,
-                            childIds: next
-                              ? [...addition.childIds.filter((id) => id !== child.id), child.id]
-                              : addition.childIds.filter((id) => id !== child.id),
-                          });
-                        return (
-                          <li
-                            key={child.id}
-                            className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-amber-900/15 bg-white px-4 py-3 text-sm"
-                          >
-                            <span className="min-w-0 flex-1 font-medium text-brand-950">
-                              {child.name}
+                              {editsMother ? 'Sửa mẹ' : choice.label}
                             </span>
                             <span
-                              role="group"
-                              aria-label={'Quan hệ của ' + child.name}
-                              className="flex shrink-0 items-center gap-4"
+                              className={cn(
+                                'mt-0.5 block truncate text-xs',
+                                blockedReason ? 'text-stone-400' : 'text-stone-500',
+                              )}
                             >
-                              {(
-                                [
-                                  [true, 'Con chung'],
-                                  [false, 'Con riêng'],
-                                ] as const
-                              ).map(([value, label]) => (
-                                <label
-                                  key={label}
-                                  className="flex cursor-pointer items-center gap-1.5 text-stone-700"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    className="size-4 accent-brand-700"
-                                    checked={shared === value}
-                                    onChange={() => setShared(value)}
-                                  />
-                                  {label}
-                                </label>
-                              ))}
+                              {editsMother
+                                ? 'Chọn lại mẹ hoặc con riêng của bố'
+                                : choice.description}
                             </span>
-                          </li>
-                        );
-                      },
-                    )}
-                  </ul>
-                  <div className="mt-5 flex flex-wrap justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setAddition({ step: 'choose' })}
-                    >
-                      Quay lại
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => createRelationship(addition.kind, null, addition.childIds)}
-                    >
-                      {relationshipChoiceLabel(addition.kind)}
-                    </Button>
-                  </div>
-                </>
-              ) : null}
-
-              {addition.step === 'editMother' && relationshipTarget.fatherId ? (
-                <>
-                  <p className="mt-2 text-sm leading-6 text-stone-600">
-                    Chọn một người vợ của bố làm mẹ để {relationshipTarget.name} là con chung, hoặc
-                    để là con riêng của bố.
-                  </p>
-                  <div className="mt-5 grid gap-2">
-                    {wivesOf(draft, relationshipTarget.fatherId).map((wife, index, wives) => {
-                      const current = wife.member.id === relationshipTarget.motherId;
-                      return (
-                        <button
-                          key={wife.member.id}
-                          type="button"
-                          aria-pressed={current}
-                          className={cn(
-                            'flex items-center gap-2 rounded-2xl border px-4 py-3 text-left text-sm font-medium text-brand-950 transition hover:border-brand-800/35 hover:bg-brand-50',
-                            current
-                              ? 'border-brand-800/40 bg-brand-50'
-                              : 'border-amber-900/15 bg-white',
-                          )}
-                          onClick={() => changeMother(wife.member.id)}
-                        >
-                          <span className="min-w-0 flex-1">
-                            Con chung với {wives.length > 1 ? 'vợ ' + (index + 1) : 'vợ'} –{' '}
-                            {wife.member.name}
                           </span>
-                          {current ? (
-                            <Check className="size-4 shrink-0 text-brand-700" aria-hidden="true" />
-                          ) : null}
                         </button>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      className="rounded-2xl border border-dashed border-amber-900/25 bg-white px-4 py-3 text-left text-sm font-medium text-stone-600 transition hover:bg-stone-50"
-                      onClick={() => changeMother(null)}
-                    >
-                      Con riêng của {findMember(draft, relationshipTarget.fatherId)?.name ?? 'bố'}
-                    </button>
-                  </div>
-                  <div className="mt-5 flex justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setAddition({ step: 'choose' })}
-                    >
-                      Quay lại
-                    </Button>
-                  </div>
-                </>
-              ) : null}
+                        {blockedReason ? (
+                          <span
+                            id={tooltipId}
+                            role="tooltip"
+                            className="pointer-events-none invisible absolute bottom-full left-1/2 mb-2 w-max max-w-[16rem] -translate-x-1/2 rounded-lg bg-brand-950 px-3 py-2 text-center text-xs font-medium leading-5 text-white shadow-xl group-focus-within:visible group-hover:visible"
+                          >
+                            {blockedReason}
+                            <span
+                              aria-hidden="true"
+                              className="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-brand-950"
+                            />
+                          </span>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : null}
 
-              {addition.step === 'existingMother' ? (
-                <>
-                  <p className="mt-2 text-sm leading-6 text-stone-600">
-                    Bố của {relationshipTarget.name} đã có vợ. Nếu {relationshipTarget.name} là con
-                    của một người vợ đó, hãy chọn bà; nếu không, thêm một người mẹ mới.
-                  </p>
-                  <div className="mt-5 grid gap-2">
-                    {wivesOf(draft, relationshipTarget.fatherId ?? '').map((wife, index, wives) => (
+            {addition.step === 'mother' ? (
+              <>
+                <p className="mt-2 text-sm leading-6 text-stone-600"></p>
+                <div className="mt-5 grid gap-2">
+                  {wivesOf(draft, relationshipTarget.id).map((wife) => (
+                    <button
+                      key={wife.member.id}
+                      type="button"
+                      className="rounded-2xl border border-amber-900/15 bg-white px-4 py-3 text-left text-sm font-medium text-brand-950 transition hover:border-brand-800/35 hover:bg-brand-50"
+                      onClick={() => chooseMother(addition.kind, wife.member.id)}
+                    >
+                      Mẹ là {wife.member.name}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="rounded-2xl border border-dashed border-amber-900/25 bg-white px-4 py-3 text-left text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+                    onClick={() => chooseMother(addition.kind, null)}
+                  >
+                    Con riêng của {relationshipTarget.name}
+                  </button>
+                </div>
+                <div className="mt-5 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAddition({ step: 'choose' })}
+                  >
+                    Quay lại
+                  </Button>
+                </div>
+              </>
+            ) : null}
+
+            {addition.step === 'sharedChildren' ? (
+              <>
+                <p className="mt-2 text-sm leading-6 text-stone-600">
+                  {sharedChildrenIntro(draft, addition.kind, relationshipTarget)}
+                </p>
+                <ul className="mt-5 grid gap-2">
+                  {sharedChildCandidates(draft, addition.kind, relationshipTarget).map((child) => {
+                    const shared = addition.childIds.includes(child.id);
+                    const setShared = (next: boolean): void =>
+                      setAddition({
+                        ...addition,
+                        childIds: next
+                          ? [...addition.childIds.filter((id) => id !== child.id), child.id]
+                          : addition.childIds.filter((id) => id !== child.id),
+                      });
+                    return (
+                      <li
+                        key={child.id}
+                        className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-amber-900/15 bg-white px-4 py-3 text-sm"
+                      >
+                        <span className="min-w-0 flex-1 font-medium text-brand-950">
+                          {child.name}
+                        </span>
+                        <span
+                          role="group"
+                          aria-label={'Quan hệ của ' + child.name}
+                          className="flex shrink-0 items-center gap-4"
+                        >
+                          {(
+                            [
+                              [true, 'Con chung'],
+                              [false, 'Con riêng'],
+                            ] as const
+                          ).map(([value, label]) => (
+                            <label
+                              key={label}
+                              className="flex cursor-pointer items-center gap-1.5 text-stone-700"
+                            >
+                              <input
+                                type="checkbox"
+                                className="size-4 accent-brand-700"
+                                checked={shared === value}
+                                onChange={() => setShared(value)}
+                              />
+                              {label}
+                            </label>
+                          ))}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="mt-5 flex flex-wrap justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAddition({ step: 'choose' })}
+                  >
+                    Quay lại
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => createRelationship(addition.kind, null, addition.childIds)}
+                  >
+                    {relationshipChoiceLabel(addition.kind)}
+                  </Button>
+                </div>
+              </>
+            ) : null}
+
+            {addition.step === 'editMother' && relationshipTarget.fatherId ? (
+              <>
+                <p className="mt-2 text-sm leading-6 text-stone-600">
+                  Chọn một người vợ của bố làm mẹ để {relationshipTarget.name} là con chung, hoặc để
+                  là con riêng của bố.
+                </p>
+                <div className="mt-5 grid gap-2">
+                  {wivesOf(draft, relationshipTarget.fatherId).map((wife, index, wives) => {
+                    const current = wife.member.id === relationshipTarget.motherId;
+                    return (
                       <button
                         key={wife.member.id}
                         type="button"
-                        className="rounded-2xl border border-amber-900/15 bg-white px-4 py-3 text-left text-sm font-medium text-brand-950 transition hover:border-brand-800/35 hover:bg-brand-50"
-                        onClick={() => chooseExistingMother(wife.member.id)}
+                        aria-pressed={current}
+                        className={cn(
+                          'flex items-center gap-2 rounded-2xl border px-4 py-3 text-left text-sm font-medium text-brand-950 transition hover:border-brand-800/35 hover:bg-brand-50',
+                          current
+                            ? 'border-brand-800/40 bg-brand-50'
+                            : 'border-amber-900/15 bg-white',
+                        )}
+                        onClick={() => changeMother(wife.member.id)}
                       >
-                        Là con của {wives.length > 1 ? 'vợ ' + (index + 1) : 'vợ'} –{' '}
-                        {wife.member.name}
+                        <span className="min-w-0 flex-1">
+                          Con chung với {wives.length > 1 ? 'vợ ' + (index + 1) : 'vợ'} –{' '}
+                          {wife.member.name}
+                        </span>
+                        {current ? (
+                          <Check className="size-4 shrink-0 text-brand-700" aria-hidden="true" />
+                        ) : null}
                       </button>
-                    ))}
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className="rounded-2xl border border-dashed border-amber-900/25 bg-white px-4 py-3 text-left text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+                    onClick={() => changeMother(null)}
+                  >
+                    Con riêng của {findMember(draft, relationshipTarget.fatherId)?.name ?? 'bố'}
+                  </button>
+                </div>
+                <div className="mt-5 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAddition({ step: 'choose' })}
+                  >
+                    Quay lại
+                  </Button>
+                </div>
+              </>
+            ) : null}
+
+            {addition.step === 'existingMother' ? (
+              <>
+                <p className="mt-2 text-sm leading-6 text-stone-600">
+                  Bố của {relationshipTarget.name} đã có vợ. Nếu {relationshipTarget.name} là con
+                  của một người vợ đó, hãy chọn bà; nếu không, thêm một người mẹ mới.
+                </p>
+                <div className="mt-5 grid gap-2">
+                  {wivesOf(draft, relationshipTarget.fatherId ?? '').map((wife, index, wives) => (
                     <button
+                      key={wife.member.id}
                       type="button"
-                      className="flex items-center gap-2 rounded-2xl border border-dashed border-amber-900/25 bg-white px-4 py-3 text-left text-sm font-medium text-stone-600 transition hover:bg-stone-50"
-                      onClick={() => addPartner('MOTHER')}
+                      className="rounded-2xl border border-amber-900/15 bg-white px-4 py-3 text-left text-sm font-medium text-brand-950 transition hover:border-brand-800/35 hover:bg-brand-50"
+                      onClick={() => chooseExistingMother(wife.member.id)}
                     >
-                      <Plus className="size-4" aria-hidden="true" />
-                      Thêm mẹ mới
+                      Là con của {wives.length > 1 ? 'vợ ' + (index + 1) : 'vợ'} –{' '}
+                      {wife.member.name}
                     </button>
-                  </div>
-                  <div className="mt-5 flex justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setAddition({ step: 'choose' })}
-                    >
-                      Quay lại
-                    </Button>
-                  </div>
-                </>
-              ) : null}
-            </section>
-          </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded-2xl border border-dashed border-amber-900/25 bg-white px-4 py-3 text-left text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+                    onClick={() => addPartner('MOTHER')}
+                  >
+                    <Plus className="size-4" aria-hidden="true" />
+                    Thêm mẹ mới
+                  </button>
+                </div>
+                <div className="mt-5 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAddition({ step: 'choose' })}
+                  >
+                    Quay lại
+                  </Button>
+                </div>
+              </>
+            ) : null}
+          </ScrollDialog>
         ) : null}
       </Presence>
 
@@ -3020,52 +2996,14 @@ export function FamilyTreeDesigner({
 
       <Presence>
         {deleteTargetId ? (
-          <div className="fixed inset-0 z-[60] grid place-items-center p-4">
-            <button
-              type="button"
-              className="ui-backdrop absolute inset-0 bg-brand-950/45 backdrop-blur-[2px]"
-              aria-label="Đóng hộp xác nhận xóa thành viên"
-              onClick={() => setDeleteTargetId(null)}
-            />
-            <section
-              role="alertdialog"
-              aria-modal="true"
-              aria-labelledby="delete-member-dialog-title"
-              aria-describedby="delete-member-dialog-description"
-              className="ui-dialog heritage-panel relative w-full max-w-md rounded-2xl border-red-900/15 p-5 shadow-2xl sm:p-6"
-            >
-              <span className="grid size-12 place-items-center rounded-2xl bg-red-100 text-red-700">
-                <Trash2 className="size-6" aria-hidden="true" />
-              </span>
-              <h2
-                id="delete-member-dialog-title"
-                className="mt-4 text-xl font-semibold text-brand-950"
-              >
-                Xóa thành viên?
-              </h2>
-              <div
-                id="delete-member-dialog-description"
-                className="mt-2 space-y-2 text-sm leading-6 text-stone-600"
-              >
-                <p>
-                  Bạn có chắc muốn xóa{' '}
-                  <strong className="font-semibold text-stone-900">
-                    {deleteTarget?.name ?? 'thành viên này'}
-                  </strong>
-                  ? Thao tác này không thể hoàn tác trong bản nháp hiện tại.
-                </p>
-                {deleteRemovesBranch ? (
-                  <p className="font-medium text-red-700">
-                    Các khung vợ/chồng và con cháu thuộc nhánh này cũng sẽ bị xóa.
-                  </p>
-                ) : deleteDetachesChildren ? (
-                  <p className="font-medium text-amber-700">
-                    Các thành viên con sẽ được giữ lại và bỏ liên kết với người này.
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <ScrollDialog
+            title="Xóa thành viên?"
+            onClose={() => setDeleteTargetId(null)}
+            role="alertdialog"
+            describedBy="delete-member-dialog-description"
+            closeLabel="Đóng hộp xác nhận xóa thành viên"
+            footer={
+              <>
                 <Button type="button" variant="outline" onClick={() => setDeleteTargetId(null)}>
                   Hủy
                 </Button>
@@ -3077,9 +3015,35 @@ export function FamilyTreeDesigner({
                   <Trash2 className="size-4" aria-hidden="true" />
                   Xóa thành viên
                 </Button>
-              </div>
-            </section>
-          </div>
+              </>
+            }
+          >
+            <span className="mx-auto grid size-12 place-items-center rounded-full bg-red-50 text-red-700 ring-1 ring-inset ring-red-300">
+              <Trash2 className="size-6" aria-hidden="true" />
+            </span>
+
+            <div
+              id="delete-member-dialog-description"
+              className="space-y-2 text-center text-sm leading-6 text-stone-700"
+            >
+              <p>
+                Bạn có chắc muốn xóa{' '}
+                <strong className="font-semibold text-stone-900">
+                  {deleteTarget?.name ?? 'thành viên này'}
+                </strong>
+                ? Thao tác này không thể hoàn tác trong bản nháp hiện tại.
+              </p>
+              {deleteRemovesBranch ? (
+                <p className="font-medium text-red-700">
+                  Các khung vợ/chồng và con cháu thuộc nhánh này cũng sẽ bị xóa.
+                </p>
+              ) : deleteDetachesChildren ? (
+                <p className="font-medium text-amber-700">
+                  Các thành viên con sẽ được giữ lại và bỏ liên kết với người này.
+                </p>
+              ) : null}
+            </div>
+          </ScrollDialog>
         ) : null}
       </Presence>
       <PlanLimitDialog message={planLimitMessage} onClose={closePlanLimit} />

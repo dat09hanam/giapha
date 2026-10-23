@@ -47,6 +47,13 @@ export class ServiceRegistrationsController {
     return this.registrations.listAll();
   }
 
+  @Post('seen')
+  @UseGuards(SessionAuthGuard, PlatformAdminGuard)
+  @HttpCode(204)
+  markSeen(): Promise<void> {
+    return this.registrations.markAllSeen();
+  }
+
   @Patch(':id')
   @UseGuards(SessionAuthGuard, PlatformAdminGuard)
   update(

@@ -33,6 +33,11 @@ export const PRICING_PLAN_TONES: ReadonlyArray<{ value: PricingPlanTone; label: 
   { value: 'ONYX', label: 'Đen huyền bí viền vàng kim' },
 ];
 
+/** What a plan earns an ambassador in đồng: the API rounds its percent of the price the same way. */
+export function commissionAmountFor(price: number, percent: number): number {
+  return Math.round((price * percent) / 100);
+}
+
 export function formatPlanDuration(months: number | null): string {
   if (months === null) return 'Vĩnh viễn';
   return months % 12 === 0 ? `${months / 12} năm` : `${months} tháng`;

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FeedImage } from '@/lib/feed-api';
 import { familyMediaSrc } from '@/lib/media-api';
 import { cn } from '@/lib/utils';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 
 const MIN_SINGLE_RATIO = 4 / 5;
 const MAX_SINGLE_RATIO = 2;
@@ -105,6 +106,7 @@ export function ImageLightbox({
     return () => window.removeEventListener('keydown', onKey);
   }, [images.length, onClose]);
 
+  useBodyScrollLock(Boolean(image));
   if (!image) return null;
   return (
     <div

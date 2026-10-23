@@ -14,7 +14,12 @@ import {
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
 import { isClanHeadOf } from '@/lib/auth-api';
-import type { FamilyDetails, FamilyFeatures, FamilyTreeResponse } from '@/types/family-tree';
+import type {
+  FamilyDetails,
+  FamilyFeature,
+  FamilyFeatures,
+  FamilyTreeResponse,
+} from '@/types/family-tree';
 
 type FamilyPageProps = {
   params: Promise<{ slug: string }>;
@@ -27,7 +32,10 @@ export async function generateMetadata({ params }: FamilyPageProps): Promise<Met
 
   try {
     const family = await getFamily(slug);
-    return { description: family.description ?? `Gia phả của ${family.name}` };
+    return {
+      title: `Cây gia phả ${family.name}`,
+      description: family.description ?? `Gia phả của ${family.name}`,
+    };
   } catch {
     return {};
   }
@@ -67,18 +75,21 @@ export default async function FamilyPage({ params }: FamilyPageProps) {
   let tree: FamilyTreeResponse;
   let family: FamilyDetails;
   let features: FamilyFeatures;
+  let lockedFeatures: FamilyFeature[];
   try {
     const loaded = await loadFamilyTree(slug);
     tree = loaded.tree;
     let familyFeatures: FamilyFeatures;
     [family, familyFeatures] = await Promise.all([getFamily(slug), getFamilyFeatures(slug)]);
     features = { ...familyFeatures, printBook: familyFeatures.printBook && loaded.isClanHead };
+    // The clan head still sees a section the plan leaves out, crowned, so they know it exists.
+    lockedFeatures = loaded.isClanHead && !familyFeatures.printBook ? ['printBook'] : [];
   } catch (error: unknown) {
     if (error instanceof ApiRequestError) {
       return (
         <ApiErrorState
           title="Chưa thể tải cây gia phả"
-          message={error.message}
+          error={error}
           retryHref={'/' + encodeURIComponent(slug) + '/gia-pha'}
         />
       );
@@ -98,7 +109,7 @@ export default async function FamilyPage({ params }: FamilyPageProps) {
     <main className="overflow-hidden">
       <FamilyTree
         tree={tree}
-        family={{ name: family.name, poster: family.poster, features }}
+        family={{ name: family.name, poster: family.poster, features, lockedFeatures }}
         familySlug={slug}
       />
     </main>

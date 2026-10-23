@@ -1,32 +1,17 @@
 'use client';
 
-import {
-  Briefcase,
-  CalendarDays,
-  Flame,
-  Flower2,
-  GraduationCap,
-  HeartHandshake,
-  House,
-  MapPin,
-  MapPinned,
-  FilePenLine,
-  MessagesSquare,
-  Phone,
-  ScrollText,
-  UsersRound,
-  X,
-} from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import {Briefcase, CalendarDays, Flame, Flower2, GraduationCap, HeartHandshake, House, MapPin, MapPinned, FilePenLine, MessagesSquare, Phone, ScrollText, UsersRound} from 'lucide-react';
+import {useState, type ReactNode} from 'react';
 
-import { EditSuggestionForm } from '@/components/tree/edit-suggestion-form';
-import { PersonAvatar } from '@/components/ui/person-avatar';
-import { familyMediaSrc } from '@/lib/media-api';
-import { displayPersonTitle } from '@/lib/person-name';
-import { displayPhone } from '@/lib/phone';
-import { phoneHref } from '@/lib/site-contact';
+import {EditSuggestionForm} from '@/components/tree/edit-suggestion-form';
+import {PersonAvatar} from '@/components/ui/person-avatar';
+import {familyMediaSrc} from '@/lib/media-api';
+import {displayPersonTitle} from '@/lib/person-name';
+import {displayPhone} from '@/lib/phone';
+import {phoneHref} from '@/lib/site-contact';
 import type { FamilyTreeRelationship, Gender, MaritalStatus, Person } from '@/types/family-tree';
-import { sortKeyOf, formatPartialDate, yearOf } from '@/lib/partial-date';
+import {sortKeyOf, formatPartialDate, yearOf} from '@/lib/partial-date';
+import {ScrollDialog} from '@/components/ui/scroll-dialog';
 
 const MARITAL_STATUS_LABEL: Record<MaritalStatus, string> = {
   SINGLE: 'Độc thân',
@@ -137,22 +122,9 @@ export function PersonDetailsDialog({
   onFindKinship: (id: string) => void;
   onClose: () => void;
 }) {
-  const closeRef = useRef<HTMLButtonElement>(null);
   const [suggestingFor, setSuggestingFor] = useState<string | null>(null);
   const suggesting = suggestingFor === person.id;
   const byId = new Map(people.map((entry) => [entry.id, entry]));
-
-  useEffect(() => {
-    closeRef.current?.focus();
-  }, [person.id]);
-
-  useEffect(() => {
-    const close = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
-  }, [onClose]);
 
   const father = person.fatherId ? byId.get(person.fatherId) : undefined;
   const mother = person.motherId ? byId.get(person.motherId) : undefined;
@@ -277,207 +249,177 @@ export function PersonDetailsDialog({
   const hasRelatives = Boolean(father || mother || spouses.length > 0 || children.length > 0);
 
   return (
-    <div className="fixed inset-0 z-[70] grid items-end p-0 sm:place-items-center sm:p-4">
-      <button
-        type="button"
-        className="ui-backdrop absolute inset-0 bg-stone-950/50 backdrop-blur-[2px]"
-        aria-label="Đóng thông tin"
-        tabIndex={-1}
-        onClick={onClose}
-      />
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="person-details-name"
-        className="ui-sheet-dialog heritage-panel relative flex max-h-[88%] w-full flex-col overflow-hidden rounded-t-3xl shadow-2xl sm:max-w-lg sm:rounded-2xl"
-      >
-        <header className="flex items-start gap-4 border-b border-gold-500/25 bg-gradient-to-b from-gold-50 to-[var(--card)] px-5 pb-5 pt-6 sm:px-6">
-          <div className="size-20 shrink-0 overflow-hidden rounded-2xl border-2 border-amber-700/30 bg-amber-100 shadow-sm">
-            {person.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={familyMediaSrc(familySlug, person.avatarUrl)}
-                alt=""
-                className="size-full object-cover"
-              />
-            ) : (
-              <PersonAvatar
-                gender={person.gender}
-                generation={generation}
-                birthDate={person.birthDate}
-                className="size-full object-cover"
-              />
-            )}
-          </div>
-          <div className="min-w-0 flex-1 pr-8">
-            <h2
-              id="person-details-name"
-              className="font-display text-xl font-bold leading-tight text-wood-800 sm:text-2xl"
-            >
-              {displayPersonTitle(person)}
-            </h2>
-            {otherNames.length > 0 ? (
-              <p className="mt-1 text-sm text-stone-600">{otherNames.join(' · ')}</p>
-            ) : null}
-            <div className="mt-2.5 flex flex-wrap gap-1.5 text-xs font-medium">
-              {generation ? (
-                <span className="rounded-full bg-amber-800 px-2.5 py-1 text-amber-50">
-                  Đời thứ {generation}
-                </span>
-              ) : null}
-              {familyRole ? (
-                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-900">
-                  {familyRole}
-                </span>
-              ) : null}
-              {genderLabel ? (
-                <span className="rounded-full bg-stone-100 px-2.5 py-1 text-stone-700">
-                  {genderLabel}
-                </span>
-              ) : null}
-              <span
-                className={
-                  'rounded-full px-2.5 py-1 ' +
-                  (person.isAlive ? 'bg-brand-100 text-brand-900' : 'bg-stone-200 text-stone-700')
-                }
-              >
-                {person.isAlive ? 'Còn sống' : 'Đã mất'}
+    <ScrollDialog
+      title={displayPersonTitle(person)}
+      subtitle={otherNames.length > 0 ? otherNames.join(' · ') : undefined}
+      onClose={onClose}
+      closeLabel="Đóng thông tin"
+    >
+      <div className="flex items-start gap-4">
+        <div className="size-20 shrink-0 overflow-hidden rounded-2xl border-2 border-amber-700/30 bg-amber-100 shadow-sm">
+          {person.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={familyMediaSrc(familySlug, person.avatarUrl)}
+              alt=""
+              className="size-full object-cover"
+            />
+          ) : (
+            <PersonAvatar
+              gender={person.gender}
+              generation={generation}
+              birthDate={person.birthDate}
+              className="size-full object-cover"
+            />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap gap-1.5 text-xs font-medium">
+            {generation ? (
+              <span className="rounded-full bg-amber-800 px-2.5 py-1 text-amber-50">
+                Đời thứ {generation}
               </span>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
+            ) : null}
+            {familyRole ? (
+              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-900">
+                {familyRole}
+              </span>
+            ) : null}
+            {genderLabel ? (
+              <span className="rounded-full bg-stone-100 px-2.5 py-1 text-stone-700">
+                {genderLabel}
+              </span>
+            ) : null}
+            <span
+              className={
+                'rounded-full px-2.5 py-1 ' +
+                (person.isAlive ? 'bg-brand-100 text-brand-900' : 'bg-stone-200 text-stone-700')
+              }
+            >
+              {person.isAlive ? 'Còn sống' : 'Đã mất'}
+            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onFindKinship(person.id)}
+              className={HEADER_ACTION_CLASS}
+            >
+              <MessagesSquare className="size-4" aria-hidden="true" />
+              Tính xưng hô
+            </button>
+            {canSuggestEdits ? (
               <button
                 type="button"
-                onClick={() => onFindKinship(person.id)}
+                onClick={() => setSuggestingFor(person.id)}
+                aria-expanded={suggesting}
                 className={HEADER_ACTION_CLASS}
               >
-                <MessagesSquare className="size-4" aria-hidden="true" />
-                Tính xưng hô
-              </button>
-              {canSuggestEdits ? (
-                <button
-                  type="button"
-                  onClick={() => setSuggestingFor(person.id)}
-                  aria-expanded={suggesting}
-                  className={HEADER_ACTION_CLASS}
-                >
-                  <FilePenLine className="size-4" aria-hidden="true" />
-                  Đề xuất chỉnh sửa
-                </button>
-              ) : null}
-            </div>
-          </div>
-          <button
-            ref={closeRef}
-            type="button"
-            className="absolute right-3 top-3 grid size-9 place-items-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700"
-            onClick={onClose}
-            aria-label="Đóng"
-          >
-            <X className="size-5" aria-hidden="true" />
-          </button>
-        </header>
-
-        <div className="grid gap-6 overflow-y-auto px-5 py-5 sm:px-6">
-          {infoRows.length > 0 ? (
-            <dl className="grid divide-y divide-amber-900/10 sm:grid-cols-2 sm:gap-x-6 sm:divide-y-0">
-              {infoRows.map((row) => (
-                <InfoRow key={row.key} icon={row.icon} label={row.label} value={row.value} />
-              ))}
-            </dl>
-          ) : null}
-
-          {hasRelatives ? (
-            <section className="grid gap-3" aria-labelledby="person-details-relatives">
-              <h3
-                id="person-details-relatives"
-                className="flex items-center gap-2 text-sm font-semibold text-brand-950"
-              >
-                <UsersRound className="size-4 text-amber-700" aria-hidden="true" />
-                Quan hệ gia đình
-              </h3>
-              <dl className="grid gap-3 text-sm">
-                {father || mother ? (
-                  <div className="grid gap-1.5">
-                    <dt className="text-xs text-stone-500">Cha mẹ</dt>
-                    <dd className="flex flex-wrap gap-2">
-                      {father ? (
-                        <RelativeChip person={father} note="cha" onSelect={onSelectPerson} />
-                      ) : null}
-                      {mother ? (
-                        <RelativeChip person={mother} note="mẹ" onSelect={onSelectPerson} />
-                      ) : null}
-                    </dd>
-                  </div>
-                ) : null}
-                {spouses.length > 0 ? (
-                  <div className="grid gap-1.5">
-                    <dt className="text-xs text-stone-500">{isHusband ? 'Vợ' : 'Chồng'}</dt>
-                    <dd className="flex flex-wrap gap-2">
-                      {spouses.map(({ spouse, note }) => (
-                        <RelativeChip
-                          key={spouse.id}
-                          person={spouse}
-                          note={note}
-                          onSelect={onSelectPerson}
-                        />
-                      ))}
-                    </dd>
-                  </div>
-                ) : null}
-                {children.length > 0 ? (
-                  <div className="grid gap-1.5">
-                    <dt className="text-xs text-stone-500">Con ({children.length})</dt>
-                    <dd className="flex flex-wrap gap-2">
-                      {children.map((child) => (
-                        <RelativeChip key={child.id} person={child} onSelect={onSelectPerson} />
-                      ))}
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
-            </section>
-          ) : null}
-
-          {person.biography ? (
-            <section className="grid gap-2" aria-labelledby="person-details-biography">
-              <h3
-                id="person-details-biography"
-                className="flex items-center gap-2 text-sm font-semibold text-brand-950"
-              >
-                <ScrollText className="size-4 text-amber-700" aria-hidden="true" />
-                Tiểu sử
-              </h3>
-              <p className="whitespace-pre-line text-sm leading-7 text-stone-700">
-                {person.biography}
-              </p>
-            </section>
-          ) : null}
-
-          {infoRows.length === 0 && !hasRelatives && !person.biography ? (
-            <p className="text-center text-sm text-stone-500">
-              Chưa có thêm thông tin về người này.
-            </p>
-          ) : null}
-
-          {suggesting ? (
-            <section className="grid gap-2" aria-labelledby="person-details-suggestion">
-              <h3
-                id="person-details-suggestion"
-                className="flex items-center gap-2 text-sm font-semibold text-brand-950"
-              >
-                <FilePenLine className="size-4 text-amber-700" aria-hidden="true" />
+                <FilePenLine className="size-4" aria-hidden="true" />
                 Đề xuất chỉnh sửa
-              </h3>
-              <EditSuggestionForm
-                familySlug={familySlug}
-                personId={person.id}
-                personTitle={displayPersonTitle(person)}
-                onCancel={() => setSuggestingFor(null)}
-              />
-            </section>
-          ) : null}
+              </button>
+            ) : null}
+          </div>
         </div>
-      </section>
-    </div>
+      </div>
+      <div className="grid gap-6">
+        {infoRows.length > 0 ? (
+          <dl className="grid divide-y divide-amber-900/10 sm:grid-cols-2 sm:gap-x-6 sm:divide-y-0">
+            {infoRows.map((row) => (
+              <InfoRow key={row.key} icon={row.icon} label={row.label} value={row.value} />
+            ))}
+          </dl>
+        ) : null}
+
+        {hasRelatives ? (
+          <section className="grid gap-3" aria-labelledby="person-details-relatives">
+            <h3
+              id="person-details-relatives"
+              className="flex items-center gap-2 text-sm font-semibold text-brand-950"
+            >
+              <UsersRound className="size-4 text-amber-700" aria-hidden="true" />
+              Quan hệ gia đình
+            </h3>
+            <dl className="grid gap-3 text-sm">
+              {father || mother ? (
+                <div className="grid gap-1.5">
+                  <dt className="text-xs text-stone-500">Cha mẹ</dt>
+                  <dd className="flex flex-wrap gap-2">
+                    {father ? (
+                      <RelativeChip person={father} note="cha" onSelect={onSelectPerson} />
+                    ) : null}
+                    {mother ? (
+                      <RelativeChip person={mother} note="mẹ" onSelect={onSelectPerson} />
+                    ) : null}
+                  </dd>
+                </div>
+              ) : null}
+              {spouses.length > 0 ? (
+                <div className="grid gap-1.5">
+                  <dt className="text-xs text-stone-500">{isHusband ? 'Vợ' : 'Chồng'}</dt>
+                  <dd className="flex flex-wrap gap-2">
+                    {spouses.map(({ spouse, note }) => (
+                      <RelativeChip
+                        key={spouse.id}
+                        person={spouse}
+                        note={note}
+                        onSelect={onSelectPerson}
+                      />
+                    ))}
+                  </dd>
+                </div>
+              ) : null}
+              {children.length > 0 ? (
+                <div className="grid gap-1.5">
+                  <dt className="text-xs text-stone-500">Con ({children.length})</dt>
+                  <dd className="flex flex-wrap gap-2">
+                    {children.map((child) => (
+                      <RelativeChip key={child.id} person={child} onSelect={onSelectPerson} />
+                    ))}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          </section>
+        ) : null}
+
+        {person.biography ? (
+          <section className="grid gap-2" aria-labelledby="person-details-biography">
+            <h3
+              id="person-details-biography"
+              className="flex items-center gap-2 text-sm font-semibold text-brand-950"
+            >
+              <ScrollText className="size-4 text-amber-700" aria-hidden="true" />
+              Tiểu sử
+            </h3>
+            <p className="whitespace-pre-line text-sm leading-7 text-stone-700">
+              {person.biography}
+            </p>
+          </section>
+        ) : null}
+
+        {infoRows.length === 0 && !hasRelatives && !person.biography ? (
+          <p className="text-center text-sm text-stone-500">Chưa có thêm thông tin về người này.</p>
+        ) : null}
+
+        {suggesting ? (
+          <section className="grid gap-2" aria-labelledby="person-details-suggestion">
+            <h3
+              id="person-details-suggestion"
+              className="flex items-center gap-2 text-sm font-semibold text-brand-950"
+            >
+              <FilePenLine className="size-4 text-amber-700" aria-hidden="true" />
+              Đề xuất chỉnh sửa
+            </h3>
+            <EditSuggestionForm
+              familySlug={familySlug}
+              personId={person.id}
+              personTitle={displayPersonTitle(person)}
+              onCancel={() => setSuggestingFor(null)}
+            />
+          </section>
+        ) : null}
+      </div>
+    </ScrollDialog>
   );
 }

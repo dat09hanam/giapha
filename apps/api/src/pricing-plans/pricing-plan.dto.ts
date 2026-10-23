@@ -54,6 +54,12 @@ export class PricingPlanDto {
   @Max(2_000_000_000)
   price!: number;
 
+  /** Percent of the price an ambassador earns for a family they referred being put on this plan. */
+  @IsInt({ message: 'Hoa hồng đại sứ là số phần trăm nguyên.' })
+  @Min(0)
+  @Max(100, { message: 'Hoa hồng đại sứ tối đa 100% giá gói.' })
+  commissionPercent!: number;
+
   @IsOptional()
   @IsString()
   @MaxLength(20)
@@ -87,6 +93,10 @@ export class PricingPlanDto {
 
   @IsBoolean()
   isActive!: boolean;
+
+  /** Google self-service sign-up opens families on this plan; turning it on turns it off elsewhere. */
+  @IsBoolean()
+  googleSignup!: boolean;
 }
 
 /** One column of the admin's feature table: a plan and its complete feature lines. */

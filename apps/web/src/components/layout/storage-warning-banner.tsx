@@ -76,7 +76,7 @@ export function StorageWarningBanner({ slug, storage }: { slug: string; storage:
             <Link href={`/${encodeURIComponent(slug)}/tu-lieu`}>Quản lý tư liệu</Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/#bang-gia">Xem các gói</Link>
+            <Link href={`/admin/${encodeURIComponent(slug)}#goi-dich-vu`}>Xem các gói</Link>
           </Button>
           <button
             type="button"

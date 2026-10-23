@@ -269,7 +269,7 @@ function ArticleEditor({
         </>
       }
     >
-      <form id="article-editor" className="grid gap-5" onSubmit={submit}>
+      <form id="article-editor" className="grid grid-cols-1 gap-5" onSubmit={submit}>
         <div className="grid gap-1.5">
           <span className="text-sm font-medium text-brand-950">Mục</span>
           <Segmented
@@ -537,7 +537,7 @@ export function ArticleManager({ initial }: { initial: readonly AdminArticle[] }
         </Button>
       }
     >
-      <div className="grid gap-5">
+      <div className="grid grid-cols-1 gap-5">
         <Segmented
           label="Lọc theo mục"
           className="sm:max-w-lg"

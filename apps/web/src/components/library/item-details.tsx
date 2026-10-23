@@ -22,6 +22,7 @@ import { familyMediaSrc } from '@/lib/media-api';
 import { displayPersonTitle } from '@/lib/person-name';
 import type { PersonSearchEntry } from '@/lib/person-search';
 import { formatDay, todayInVietnam } from '@/lib/vietnam-date';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 
 export type ItemDetailsValue = {
   title: string;
@@ -256,6 +257,7 @@ export function LibraryLightbox({
     return () => window.removeEventListener('keydown', onKey);
   }, [last, onClose]);
 
+  useBodyScrollLock(Boolean(item));
   if (!item) return null;
   const meta = itemMeta(item);
   return (

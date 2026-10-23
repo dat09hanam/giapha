@@ -6,7 +6,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { FamilyStatus, Gender, PosterDecorationKind, Prisma, UserRole } from '@prisma/client';
+import {
+  AmbassadorCommissionKind,
+  FamilyStatus,
+  Gender,
+  PosterDecorationKind,
+  Prisma,
+  UserRole,
+} from '@prisma/client';
+
+import {
+  findActiveAmbassadorId,
+  recordAmbassadorCommission,
+} from '../ambassadors/ambassador-code.js';
 
 import { readFamilyFeaturesFor, type FamilyFeatures } from '../common/family-features.js';
 import {
@@ -14,6 +26,7 @@ import {
   FAMILY_EXPIRED_MESSAGE,
   isFamilyExpired,
   planExpiry,
+  renewedExpiry,
 } from '../common/family-plan.js';
 import { BYTES_PER_MEGABYTE } from '../common/family-storage.js';
 import { planRightsSelect, resolvePlanRights } from '../common/plan-rights.js';
@@ -35,6 +48,8 @@ import {
   toPosterDecorationResponse,
   type PosterDecorationResponse,
 } from '../poster-decorations/poster-decoration.types.js';
+import type { ChangeClanHeadContactDto } from './dto/change-clan-head-contact.dto.js';
+import type { ChangeClanHeadEmailDto } from './dto/change-clan-head-email.dto.js';
 import type { ChangeFamilyPlanDto } from './dto/change-family-plan.dto.js';
 import type { CreateFamilyDto } from './dto/create-family.dto.js';
 import type { FamilySlugCheckQueryDto } from './dto/family-slug-check.dto.js';
@@ -112,6 +127,13 @@ export type AdminFamilyListItem = {
   managerCount: number;
   /** Megabytes the family's uploads take on disk, rounded up. */
   storageUsedMb: number;
+  /** The clan head account; null for the sample family, which has none. */
+  clanHead: {
+    name: string | null;
+    phone: string | null;
+    email: string | null;
+    googleLinked: boolean;
+  } | null;
   plan: {
     id: string;
     name: string;
@@ -130,8 +152,16 @@ const adminFamilySelect = {
   isDemo: true,
   createdAt: true,
   planExpiresAt: true,
+  headName: true,
+  headPhone: true,
   storageUsedBytes: true,
   plan: { select: { id: true, name: true, ...planRightsSelect } },
+  users: {
+    where: { role: UserRole.MEMBER_PLUS, deletedAt: null },
+    orderBy: { createdAt: 'asc' },
+    take: 1,
+    select: { email: true, googleSub: true },
+  },
   _count: {
     select: { people: true, users: { where: { role: UserRole.MEMBER, isShared: false } } },
   },
@@ -141,6 +171,9 @@ function toAdminFamily({
   _count,
   plan,
   storageUsedBytes,
+  users,
+  headName,
+  headPhone,
   ...family
 }: Prisma.FamilyGetPayload<{ select: typeof adminFamilySelect }>): AdminFamilyListItem {
   const { durationMonths, maxMembers, maxManagers, maxStorageMb } = resolvePlanRights(
@@ -151,6 +184,14 @@ function toAdminFamily({
     memberCount: _count.people,
     managerCount: _count.users,
     storageUsedMb: bytesToMegabytes(storageUsedBytes),
+    clanHead: users[0]
+      ? {
+          name: headName,
+          phone: headPhone,
+          email: users[0].email,
+          googleLinked: users[0].googleSub !== null,
+        }
+      : null,
     plan: { id: plan.id, name: plan.name, durationMonths, maxMembers, maxManagers, maxStorageMb },
   };
 }
@@ -308,23 +349,52 @@ export class FamiliesService {
   }
 
   async changePlan(slug: string, input: ChangeFamilyPlanDto): Promise<AdminFamilyListItem> {
+    const family = await this.findFamilyForPlan(slug);
+    // A real family changes plan only when the admin confirms its clan head's request.
+    if (!family.isDemo) {
+      throw new BadRequestException(
+        'Gói của dòng họ chỉ được đổi khi xác nhận yêu cầu nâng cấp ở mục Đăng ký dịch vụ.',
+      );
+    }
+    return this.applyPlan(family.id, input.planId);
+  }
+
+  /**
+   * Puts a family on a plan as a new purchase: its period starts today. Ambassadors earn only on
+   * the family's opening, never on a later upgrade or renewal. Pass `db` to run inside a caller's
+   * transaction, as confirming a clan head's plan request does.
+   */
+  async applyPlan(
+    familyId: string,
+    planId: string,
+    db: Prisma.TransactionClient = this.prisma,
+  ): Promise<AdminFamilyListItem> {
     const [family, plan] = await Promise.all([
-      this.findFamilyForPlan(slug),
-      this.prisma.pricingPlan.findUnique({
-        where: { id: input.planId },
-        select: { id: true, ...planRightsSelect },
+      db.family.findFirst({
+        where: { id: familyId, deletedAt: null },
+        select: familyPlanStateSelect,
+      }),
+      db.pricingPlan.findUnique({
+        where: { id: planId },
+        select: { id: true, price: true, ...planRightsSelect },
       }),
     ]);
+    if (!family) throw new NotFoundException('Không tìm thấy dòng họ.');
     if (!plan) throw new BadRequestException('Không tìm thấy gói dịch vụ đã chọn.');
-    // A new plan is a new purchase: its period starts today.
-    return this.setPlanPeriod(family, {
-      planId: plan.id,
-      planExpiresAt: planExpiry(
-        resolvePlanRights(plan.features).durationMonths,
-        new Date(),
-        family.isDemo,
-      ),
-    });
+    return this.setPlanPeriod(
+      family,
+      {
+        planId: plan.id,
+        // The family renews at today's price from now on, whatever the plan costs later.
+        planPrice: plan.price,
+        planExpiresAt: planExpiry(
+          resolvePlanRights(plan.features).durationMonths,
+          new Date(),
+          family.isDemo,
+        ),
+      },
+      db,
+    );
   }
 
   async renewPlan(slug: string): Promise<AdminFamilyListItem> {
@@ -333,12 +403,25 @@ export class FamiliesService {
     if (durationMonths === null || family.isDemo) {
       throw new BadRequestException('Gói của dòng họ này không có thời hạn nên không cần gia hạn.');
     }
-    // Renewing early adds a full period after the current end; a lapsed plan restarts today.
-    const now = new Date();
-    const from = family.planExpiresAt && family.planExpiresAt > now ? family.planExpiresAt : now;
     return this.setPlanPeriod(family, {
-      planExpiresAt: planExpiry(durationMonths, from, false),
+      planExpiresAt: renewedExpiry(family.planExpiresAt, durationMonths, new Date()),
     });
+  }
+
+  /** Adds a paid renewal period to a family's plan; returns the new end date. */
+  async extendPlan(
+    familyId: string,
+    durationMonths: number,
+    db: Prisma.TransactionClient = this.prisma,
+  ): Promise<Date> {
+    const family = await db.family.findFirst({
+      where: { id: familyId, deletedAt: null },
+      select: familyPlanStateSelect,
+    });
+    if (!family) throw new NotFoundException('Không tìm thấy dòng họ.');
+    const planExpiresAt = renewedExpiry(family.planExpiresAt, durationMonths, new Date());
+    await this.setPlanPeriod(family, { planExpiresAt }, db);
+    return planExpiresAt;
   }
 
   async resetClanHeadPassword(slug: string): Promise<ClanHeadCredential> {
@@ -368,6 +451,68 @@ export class FamiliesService {
     return { username: head.username, password };
   }
 
+  /**
+   * Sets the clan head's email, e.g. to the Google account they sign in with. A changed email
+   * also drops a linked Google account, so the next Google sign-in links by the new email.
+   */
+  async changeClanHeadEmail(
+    slug: string,
+    input: ChangeClanHeadEmailDto,
+  ): Promise<AdminFamilyListItem> {
+    const family = await this.prisma.family.findFirst({
+      where: { slug, deletedAt: null },
+      select: { id: true },
+    });
+    if (!family) throw new NotFoundException('Không tìm thấy dòng họ.');
+    const head = await this.prisma.user.findFirst({
+      where: { familyId: family.id, role: UserRole.MEMBER_PLUS, deletedAt: null },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, email: true },
+    });
+    if (!head) throw new NotFoundException('Dòng họ này chưa có tài khoản trưởng họ.');
+
+    const email = input.email.trim().toLowerCase();
+    if (email !== head.email) {
+      const owner = await this.prisma.user.findUnique({ where: { email }, select: { id: true } });
+      if (owner) throw new ConflictException(EMAIL_TAKEN_MESSAGE);
+      try {
+        await this.prisma.user.update({
+          where: { id: head.id },
+          data: { email, googleSub: null },
+          select: { id: true },
+        });
+      } catch (error: unknown) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          throw new ConflictException(EMAIL_TAKEN_MESSAGE);
+        }
+        throw error;
+      }
+    }
+    const record = await this.prisma.family.findUniqueOrThrow({
+      where: { id: family.id },
+      select: adminFamilySelect,
+    });
+    return toAdminFamily(record);
+  }
+
+  /** Sets the clan head's name and phone the admin keeps for contact; not shown to the family. */
+  async changeClanHeadContact(
+    slug: string,
+    input: ChangeClanHeadContactDto,
+  ): Promise<AdminFamilyListItem> {
+    const family = await this.prisma.family.findFirst({
+      where: { slug, deletedAt: null, isDemo: false },
+      select: { id: true },
+    });
+    if (!family) throw new NotFoundException('Không tìm thấy dòng họ.');
+    const record = await this.prisma.family.update({
+      where: { id: family.id },
+      data: { headName: input.name.trim() || null, headPhone: input.phone.trim() || null },
+      select: adminFamilySelect,
+    });
+    return toAdminFamily(record);
+  }
+
   private async findFamilyForPlan(slug: string): Promise<FamilyPlanState> {
     const family = await this.prisma.family.findFirst({
       where: { slug, deletedAt: null },
@@ -379,9 +524,10 @@ export class FamiliesService {
 
   private async setPlanPeriod(
     family: FamilyPlanState,
-    data: { planId?: string; planExpiresAt: Date | null },
+    data: { planId?: string; planPrice?: number; planExpiresAt: Date | null },
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<AdminFamilyListItem> {
-    const record = await this.prisma.family.update({
+    const record = await db.family.update({
       where: { id: family.id },
       data: {
         ...data,
@@ -392,7 +538,14 @@ export class FamiliesService {
     return toAdminFamily(record);
   }
 
-  async createFamily(input: CreateFamilyDto): Promise<CreatedFamilyResult> {
+  /**
+   * `googleHeadSub`: the clan head signed up with this Google account; they sign in with it, so
+   * the generated password is never shown to them and need not be changed.
+   */
+  async createFamily(
+    input: CreateFamilyDto,
+    googleHeadSub: string | null = null,
+  ): Promise<CreatedFamilyResult> {
     const name = normalizeFamilyName(input.name);
     const anniversary = parseDeathAnniversary(input.deathAnniversary);
     const ancestryOrigin = input.ancestryOrigin?.trim() || null;
@@ -411,15 +564,27 @@ export class FamiliesService {
     ]);
 
     const headEmail = input.headEmail?.trim().toLowerCase() || null;
+    const headName = isDemo ? null : input.headName?.trim() || null;
+    const headPhone = isDemo ? null : input.headPhone?.trim() || null;
     if (headEmail && (await this.prisma.user.count({ where: { email: headEmail } }))) {
       throw new ConflictException(EMAIL_TAKEN_MESSAGE);
     }
 
     const plan = await this.prisma.pricingPlan.findUnique({
       where: { id: input.planId },
-      select: { id: true, name: true, ...planRightsSelect },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        commissionPercent: true,
+        ...planRightsSelect,
+      },
     });
     if (!plan) throw new BadRequestException('Không tìm thấy gói dịch vụ đã chọn.');
+    // The demo family is the platform's own and never earns anyone a commission.
+    const ambassadorId = isDemo
+      ? null
+      : await findActiveAmbassadorId(this.prisma, input.ambassadorCode);
 
     const posterDefaults = await this.defaultPosterDecorations();
 
@@ -439,7 +604,11 @@ export class FamiliesService {
             deathAnniversaryDay: anniversary.day,
             deathAnniversaryMonth: anniversary.month,
             isDemo,
+            headName,
+            headPhone,
             planId: plan.id,
+            planPrice: plan.price,
+            ambassadorId,
             planExpiresAt: planExpiry(
               resolvePlanRights(plan.features).durationMonths,
               new Date(),
@@ -455,7 +624,8 @@ export class FamiliesService {
             {
               username: usernames.memberPlus,
               passwordHash: memberPlusPasswordHash,
-              mustChangePassword: true,
+              mustChangePassword: googleHeadSub === null,
+              googleSub: googleHeadSub,
               displayName: `Trưởng họ - ${name}`,
               email: headEmail,
               role: UserRole.MEMBER_PLUS,
@@ -470,6 +640,12 @@ export class FamiliesService {
               familyId: created.id,
             },
           ],
+        });
+        await recordAmbassadorCommission(transaction, {
+          ambassadorId,
+          family: created,
+          plan,
+          kind: AmbassadorCommissionKind.NEW_FAMILY,
         });
         return created;
       });

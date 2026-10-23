@@ -54,7 +54,7 @@ function statusMessage(status: number, action: string): string {
     case 405:
       return `Không thể ${action} vì phương thức gọi API không được hỗ trợ.`;
     case 408:
-      return `Không thể ${action} vì yêu cầu xử lý quá lâu. Vui lòng thử lại.`;
+      return `Hệ thống đang bận nên chưa thể ${action}. Vui lòng thử lại sau ít phút.`;
     case 409:
       return `Không thể ${action} vì dữ liệu bị trùng hoặc đã thay đổi.`;
     case 413:
@@ -65,16 +65,10 @@ function statusMessage(status: number, action: string): string {
       return `Không thể ${action} vì dữ liệu chưa thể xử lý.`;
     case 429:
       return `Không thể ${action} vì bạn thao tác quá nhanh. Vui lòng thử lại sau.`;
-    case 500:
-      return `Không thể ${action} vì hệ thống gặp lỗi. Vui lòng thử lại sau.`;
-    case 502:
-      return `Không thể ${action} vì máy chủ trung gian nhận phản hồi không hợp lệ.`;
-    case 503:
-      return `Không thể ${action} vì dịch vụ đang tạm thời gián đoạn.`;
-    case 504:
-      return `Không thể ${action} vì máy chủ phản hồi quá lâu.`;
     default:
-      return `Không thể ${action} vì máy chủ trả về mã lỗi ${status}.`;
+      return status >= 500
+        ? `Hệ thống đang bảo trì nên chưa thể ${action}. Vui lòng thử lại sau ít phút.`
+        : `Không thể ${action} vì yêu cầu chưa hợp lệ (mã ${status}).`;
   }
 }
 
@@ -128,6 +122,31 @@ function localizeMessage(message: string, status: number, action: string): strin
   return VIETNAMESE_CHARACTER_PATTERN.test(trimmed) ? trimmed : statusMessage(status, action);
 }
 
+/**
+ * Records why a server-rendered request could not reach the API, for the hosting logs.
+ * Only the endpoint path and the failure code are logged, never request or response data.
+ */
+function logServerFailure(url: string, reason: string): void {
+  if (typeof window !== 'undefined') return;
+  let endpoint = url;
+  try {
+    const parsed = new URL(url);
+    endpoint = `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    // Keep the raw value: it is our own configured API URL.
+  }
+  console.error(`[api] ${endpoint} failed: ${reason}`);
+}
+
+function failureCause(error: unknown): string {
+  const cause = error instanceof Error ? error.cause : undefined;
+  if (cause instanceof Error) {
+    const code = 'code' in cause && typeof cause.code === 'string' ? `${cause.code} ` : '';
+    return `${code}${cause.message}`;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
 async function responseBody(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return null;
@@ -145,6 +164,7 @@ export async function apiFetch<T>(url: string, init: RequestInit, action: string
   try {
     response = await fetch(url, init);
   } catch (error: unknown) {
+    logServerFailure(url, failureCause(error));
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new ApiRequestError(
         `Không thể ${action} vì yêu cầu đã hết thời gian chờ. Vui lòng thử lại.`,
@@ -154,7 +174,7 @@ export async function apiFetch<T>(url: string, init: RequestInit, action: string
     }
 
     throw new ApiRequestError(
-      `Không thể kết nối đến máy chủ để ${action}. Hãy kiểm tra kết nối mạng và thử lại.`,
+      `Chưa kết nối được đến hệ thống để ${action}. Hệ thống có thể đang bảo trì hoặc mạng đang gián đoạn; vui lòng thử lại sau ít phút.`,
       null,
       'network',
     );
@@ -172,6 +192,12 @@ export async function apiFetch<T>(url: string, init: RequestInit, action: string
     redirectToChangePasswordFromBrowser()
   ) {
     return new Promise<T>(() => undefined);
+  }
+
+  // A server-side failure says nothing the visitor can act on, so its body is not shown.
+  if (response.status >= 500) {
+    logServerFailure(url, `HTTP ${response.status}`);
+    throw new ApiRequestError(statusMessage(response.status, action), response.status, 'http');
   }
 
   if (!response.ok) {
@@ -203,6 +229,16 @@ export async function apiFetch<T>(url: string, init: RequestInit, action: string
   }
 
   return body as T;
+}
+
+/**
+ * Whether a failure belongs to the system (API down, 5xx, timeout, malformed reply) rather
+ * than to the visitor's request. System failures are shown as maintenance, not as a mistake.
+ */
+export function isSystemFailure(error: unknown): boolean {
+  if (!(error instanceof ApiRequestError)) return true;
+  if (error.kind !== 'http' || error.status === null) return true;
+  return error.status >= 500 || error.status === 408;
 }
 
 export function getApiErrorMessage(error: unknown, action: string): string {
