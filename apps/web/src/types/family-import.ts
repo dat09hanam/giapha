@@ -38,6 +38,13 @@ export type ImportRelationshipInput = {
   status: RelationshipStatus | null;
 };
 
+/** A row of a downloaded member list: its code in the file and the stored person it stands for. */
+export type ImportExistingPersonInput = {
+  row: number;
+  code: string;
+  personId: string;
+};
+
 export type ImportSheet = 'people' | 'relationships';
 
 export type ImportIssue = {
@@ -51,6 +58,7 @@ export type FamilyImportInput = {
   dryRun: boolean;
   people: ImportPersonInput[];
   relationships: ImportRelationshipInput[];
+  existingPeople: ImportExistingPersonInput[];
 };
 
 export type FamilyImportResult = {

@@ -5,24 +5,28 @@ import {
   IMPORT_MAX_ROWS,
   PEOPLE_COLUMNS,
   PEOPLE_SHEET,
-  RELATIONSHIP_COLUMNS,
-  RELATIONSHIPS_SHEET,
-  STATUS_LABELS,
+  PICK_SEPARATOR,
+  WIFE_FIELDS,
+  ageFromDates,
   looseKey,
   type ColumnSpec,
+  type PeopleField,
+  type WifeField,
 } from '@/lib/family-import/columns';
 import type { Gender } from '@/types/family-tree';
 import type {
+  ImportExistingPersonInput,
   ImportIssue,
   ImportPersonInput,
   ImportRelationshipInput,
   ImportSheet,
-  RelationshipStatus,
 } from '@/types/family-import';
 
 export type ParsedImport = {
+  /** New people only; rows standing for stored members are in `existingPeople`. */
   people: ImportPersonInput[];
   relationships: ImportRelationshipInput[];
+  existingPeople: ImportExistingPersonInput[];
   issues: ImportIssue[];
 };
 
@@ -174,6 +178,31 @@ class RowReader<Field extends string> {
   }
 }
 
+/** Rows searched for headers: the template puts group titles above them, older files do not. */
+const HEADER_SEARCH_ROWS = 5;
+
+/** The first row holding every required header, else row 1 so its gaps get reported. */
+function findHeaders<Field extends string>(
+  sheet: Worksheet,
+  columns: ColumnSpec<Field>[],
+): { headerRow: number; fieldByColumn: Map<number, Field>; missing: ColumnSpec<Field>[] } {
+  const specByHeader = new Map(columns.map((column) => [looseKey(column.header), column]));
+  let first: ReturnType<typeof findHeaders<Field>> | null = null;
+  for (let headerRow = 1; headerRow <= HEADER_SEARCH_ROWS; headerRow += 1) {
+    const fieldByColumn = new Map<number, Field>();
+    sheet.getRow(headerRow).eachCell((cell, column) => {
+      const spec = specByHeader.get(looseKey(rawCell(cell.value).text));
+      if (spec) fieldByColumn.set(column, spec.field);
+    });
+    const found = new Set(fieldByColumn.values());
+    const missing = columns.filter((column) => column.required && !found.has(column.field));
+    const result = { headerRow, fieldByColumn, missing };
+    if (missing.length === 0) return result;
+    first ??= result;
+  }
+  return first!;
+}
+
 /** Reads a data sheet by header text and hands each non-blank row to `build`. */
 function readSheet<Field extends string, Row>(
   sheet: Worksheet,
@@ -182,18 +211,11 @@ function readSheet<Field extends string, Row>(
   issues: ImportIssue[],
   build: (reader: RowReader<Field>, row: number) => Row | null,
 ): Row[] {
-  const specByHeader = new Map(columns.map((column) => [looseKey(column.header), column]));
-  const fieldByColumn = new Map<number, Field>();
-  sheet.getRow(1).eachCell((cell, column) => {
-    const spec = specByHeader.get(looseKey(rawCell(cell.value).text));
-    if (spec) fieldByColumn.set(column, spec.field);
-  });
-  const found = new Set(fieldByColumn.values());
-  const missing = columns.filter((column) => column.required && !found.has(column.field));
+  const { headerRow, fieldByColumn, missing } = findHeaders(sheet, columns);
   if (missing.length > 0) {
     issues.push({
       sheet: sheetKey,
-      row: 1,
+      row: headerRow,
       message: `Thiếu cột bắt buộc: ${missing.map((column) => column.header).join(', ')}. Hãy dùng file mẫu.`,
     });
     return [];
@@ -202,7 +224,7 @@ function readSheet<Field extends string, Row>(
   const specs = new Map(columns.map((column) => [column.field, column]));
   const rows: Row[] = [];
   sheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return;
+    if (rowNumber <= headerRow) return;
     const cells = new Map<Field, RawCell>();
     for (const [column, field] of fieldByColumn)
       cells.set(field, rawCell(row.getCell(column).value));
@@ -213,27 +235,160 @@ function readSheet<Field extends string, Row>(
   return rows;
 }
 
-/** Fills a blank gender from the role a person plays: father or husband is male, and so on. */
-function inferGenders(people: ImportPersonInput[], relationships: ImportRelationshipInput[]): void {
+function codeKey(code: string | null): string {
+  return (code ?? '').trim().toLocaleUpperCase('vi');
+}
+
+/** A wife picked on her husband's row; the wife column she sits in is her wife order. */
+type WifeLink = {
+  row: number;
+  husbandCode: string;
+  wifeCode: string;
+  field: WifeField;
+  wifeOrder: number;
+};
+
+function headerOf(field: PeopleField): string {
+  return PEOPLE_COLUMNS.find((column) => column.field === field)?.header ?? field;
+}
+
+/** Turns a picked “code - name” back into the code, but only when that code is in the file. */
+function resolvePickedCodes(people: ImportPersonInput[], links: WifeLink[]): void {
+  const codes = new Set(people.map((person) => codeKey(person.code)));
+  const resolve = (value: string): string => {
+    if (codes.has(codeKey(value))) return value;
+    const cut = value.indexOf(PICK_SEPARATOR);
+    const code = cut > 0 ? value.slice(0, cut).trim() : value;
+    return codes.has(codeKey(code)) ? code : value;
+  };
+  for (const person of people) {
+    if (person.fatherCode) person.fatherCode = resolve(person.fatherCode);
+    if (person.motherCode) person.motherCode = resolve(person.motherCode);
+  }
+  for (const link of links) link.wifeCode = resolve(link.wifeCode);
+}
+
+/** Fills a blank gender from a parent role: whoever is named as a father is male, and so on. */
+function inferParentGenders(people: ImportPersonInput[]): void {
   const role = new Map<string, Gender>();
-  const key = (code: string | null): string => (code ?? '').trim().toLocaleUpperCase('vi');
   for (const person of people) {
-    if (person.fatherCode) role.set(key(person.fatherCode), 'MALE');
-    if (person.motherCode) role.set(key(person.motherCode), 'FEMALE');
-  }
-  for (const relationship of relationships) {
-    role.set(key(relationship.husbandCode), 'MALE');
-    role.set(key(relationship.wifeCode), 'FEMALE');
+    if (person.fatherCode) role.set(codeKey(person.fatherCode), 'MALE');
+    if (person.motherCode) role.set(codeKey(person.motherCode), 'FEMALE');
   }
   for (const person of people) {
-    if (person.gender === 'UNKNOWN') person.gender = role.get(key(person.code)) ?? 'UNKNOWN';
+    if (person.gender === 'UNKNOWN') person.gender = role.get(codeKey(person.code)) ?? 'UNKNOWN';
   }
 }
 
-function parsePeople(sheet: Worksheet, issues: ImportIssue[]): ImportPersonInput[] {
-  return readSheet(sheet, 'people', PEOPLE_COLUMNS, issues, (read, row) => {
+/**
+ * Turns wife links into couples, as the tree designer allows them: only a man takes wives, and a
+ * blank gender on either side is filled in from that role.
+ */
+function buildRelationships(
+  people: ImportPersonInput[],
+  links: WifeLink[],
+  issues: ImportIssue[],
+): ImportRelationshipInput[] {
+  const byCode = new Map(people.map((person) => [codeKey(person.code), person]));
+  const couples = new Map<string, WifeLink>();
+  for (const link of links) {
+    const flag = (message: string): void => {
+      issues.push({
+        sheet: 'people',
+        row: link.row,
+        message: `Cột “${headerOf(link.field)}”: ${message}`,
+      });
+    };
+    const husband = byCode.get(codeKey(link.husbandCode));
+    const wife = byCode.get(codeKey(link.wifeCode));
+    if (!husband) continue;
+    if (husband.gender !== 'MALE' && husband.gender !== 'UNKNOWN') {
+      flag('chỉ khai vợ ở dòng của người chồng (giới tính Nam).');
+      continue;
+    }
+    if (!wife) {
+      flag(`không có thành viên nào mang Mã “${link.wifeCode}”.`);
+      continue;
+    }
+    if (wife === husband) {
+      flag('không thể chọn chính người này.');
+      continue;
+    }
+    if (wife.gender !== 'FEMALE' && wife.gender !== 'UNKNOWN') {
+      flag(`${wife.name} không phải nữ nên không thể là vợ.`);
+      continue;
+    }
+    const key = codeKey(husband.code) + '|' + codeKey(wife.code);
+    const known = couples.get(key);
+    if (known) {
+      flag(`${wife.name} đã được chọn ở cột “${headerOf(known.field)}”.`);
+      continue;
+    }
+    husband.gender = 'MALE';
+    wife.gender = 'FEMALE';
+    couples.set(key, link);
+  }
+  return [...couples.values()].map((link) => ({
+    row: link.row,
+    husbandCode: link.husbandCode,
+    wifeCode: link.wifeCode,
+    wifeOrder: link.wifeOrder,
+    status: null,
+  }));
+}
+
+/** A stored member's row keeps only what links rows; the rest of it is never sent back. */
+function existingPerson(read: RowReader<PeopleField>, row: number): ImportPersonInput {
+  return {
+    row,
+    code: read.text('code') ?? '',
+    name: read.text('name') ?? '',
+    gender: read.choice<Gender>('gender', GENDER_LABELS) ?? 'UNKNOWN',
+    fatherCode: read.text('fatherCode'),
+    motherCode: read.text('motherCode'),
+    generation: null,
+    orderInFamily: null,
+    honorific: null,
+    nickname: null,
+    courtesyName: null,
+    birthDate: null,
+    deathDate: null,
+    isAlive: null,
+    lunarDeathDay: null,
+    lunarDeathMonth: null,
+    ageAtDeath: null,
+    burialPlace: null,
+    worshipPlace: null,
+    phone: null,
+    education: null,
+    occupation: null,
+    hometown: null,
+    currentAddress: null,
+    biography: null,
+  };
+}
+
+function parsePeople(
+  sheet: Worksheet,
+  issues: ImportIssue[],
+): { people: ImportPersonInput[]; links: WifeLink[]; existingIds: Map<ImportPersonInput, string> } {
+  const existingIds = new Map<ImportPersonInput, string>();
+  const rows = readSheet(sheet, 'people', PEOPLE_COLUMNS, issues, (read, row) => {
     const before = issues.length;
+    const personId = read.text('personId');
+    const links = (husbandCode: string): WifeLink[] =>
+      WIFE_FIELDS.flatMap((field, index): WifeLink[] => {
+        const wifeCode = read.text(field);
+        return wifeCode ? [{ row, husbandCode, wifeCode, field, wifeOrder: index + 1 }] : [];
+      });
+    if (personId) {
+      const person = existingPerson(read, row);
+      existingIds.set(person, personId);
+      return issues.length === before ? { person, links: links(person.code) } : null;
+    }
     const lunar = read.dayMonth('lunarDeath');
+    const birthDate = read.date('birthDate');
+    const deathDate = read.date('deathDate');
     const person: ImportPersonInput = {
       row,
       code: read.text('code') ?? '',
@@ -246,12 +401,12 @@ function parsePeople(sheet: Worksheet, issues: ImportIssue[]): ImportPersonInput
       honorific: read.text('honorific'),
       nickname: read.text('nickname'),
       courtesyName: read.text('courtesyName'),
-      birthDate: read.date('birthDate'),
-      deathDate: read.date('deathDate'),
+      birthDate,
+      deathDate,
       isAlive: read.yesNo('isAlive'),
       lunarDeathDay: lunar?.day ?? null,
       lunarDeathMonth: lunar?.month ?? null,
-      ageAtDeath: read.int('ageAtDeath'),
+      ageAtDeath: read.int('ageAtDeath') ?? ageFromDates(birthDate, deathDate),
       burialPlace: read.text('burialPlace'),
       worshipPlace: read.text('worshipPlace'),
       phone: read.text('phone'),
@@ -261,22 +416,14 @@ function parsePeople(sheet: Worksheet, issues: ImportIssue[]): ImportPersonInput
       currentAddress: read.text('currentAddress'),
       biography: read.text('biography'),
     };
-    return issues.length === before ? person : null;
+    const wives = links(person.code);
+    return issues.length === before ? { person, links: wives } : null;
   });
-}
-
-function parseRelationships(sheet: Worksheet, issues: ImportIssue[]): ImportRelationshipInput[] {
-  return readSheet(sheet, 'relationships', RELATIONSHIP_COLUMNS, issues, (read, row) => {
-    const before = issues.length;
-    const relationship: ImportRelationshipInput = {
-      row,
-      husbandCode: read.text('husbandCode') ?? '',
-      wifeCode: read.text('wifeCode') ?? '',
-      wifeOrder: read.int('wifeOrder'),
-      status: read.choice<RelationshipStatus>('status', STATUS_LABELS),
-    };
-    return issues.length === before ? relationship : null;
-  });
+  return {
+    people: rows.map((row) => row.person),
+    links: rows.flatMap((row) => row.links),
+    existingIds,
+  };
 }
 
 /** Parses an uploaded .xlsx in the browser; the API re-checks everything that links rows. */
@@ -289,6 +436,7 @@ export async function parseImportFile(file: File): Promise<ParsedImport> {
     return {
       people: [],
       relationships: [],
+      existingPeople: [],
       issues: [
         {
           sheet: 'people',
@@ -307,18 +455,27 @@ export async function parseImportFile(file: File): Promise<ParsedImport> {
       row: null,
       message: `Không tìm thấy sheet “${PEOPLE_SHEET}”. Hãy dùng file mẫu.`,
     });
-    return { people: [], relationships: [], issues };
+    return { people: [], relationships: [], existingPeople: [], issues };
   }
-  const people = parsePeople(peopleSheet, issues);
-  const relationshipSheet = findSheet(workbook, RELATIONSHIPS_SHEET);
-  const relationships = relationshipSheet ? parseRelationships(relationshipSheet, issues) : [];
+  const { people: everyone, links, existingIds } = parsePeople(peopleSheet, issues);
+  resolvePickedCodes(everyone, links);
+  inferParentGenders(everyone);
+  const relationships = buildRelationships(everyone, links, issues);
+  const people = everyone.filter((person) => !existingIds.has(person));
+  const existingPeople = [...existingIds].map(([person, personId]) => ({
+    row: person.row,
+    code: person.code,
+    personId,
+  }));
 
   if (people.length === 0 && issues.length === 0) {
-    issues.push({
-      sheet: 'people',
-      row: null,
-      message: `Sheet “${PEOPLE_SHEET}” chưa có dòng dữ liệu nào.`,
-    });
+    const message =
+      existingPeople.length > 0 && relationships.length === 0
+        ? `Chưa có người mới nào; hãy thêm người vào các dòng trống bên dưới sheet “${PEOPLE_SHEET}”.`
+        : existingPeople.length === 0
+          ? `Sheet “${PEOPLE_SHEET}” chưa có dòng dữ liệu nào.`
+          : null;
+    if (message) issues.push({ sheet: 'people', row: null, message });
   }
   if (people.length > IMPORT_MAX_ROWS) {
     issues.push({
@@ -329,11 +486,10 @@ export async function parseImportFile(file: File): Promise<ParsedImport> {
   }
   if (relationships.length > IMPORT_MAX_ROWS) {
     issues.push({
-      sheet: 'relationships',
+      sheet: 'people',
       row: null,
       message: `Mỗi lần chỉ nhập được tối đa ${IMPORT_MAX_ROWS} cặp vợ chồng.`,
     });
   }
-  inferGenders(people, relationships);
-  return { people, relationships, issues };
+  return { people, relationships, existingPeople, issues };
 }

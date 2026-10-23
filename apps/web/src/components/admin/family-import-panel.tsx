@@ -18,8 +18,8 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { InlineLoader } from '@/components/ui/heritage-loader';
 import { useToast } from '@/components/ui/toast';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { importFamilyTree } from '@/lib/family-import-api';
-import { GENDER_LABELS, PEOPLE_SHEET, RELATIONSHIPS_SHEET } from '@/lib/family-import/columns';
+import { getFamilyTreeForExport, importFamilyTree } from '@/lib/family-import-api';
+import { GENDER_LABELS, PEOPLE_SHEET } from '@/lib/family-import/columns';
 import type { ParsedImport } from '@/lib/family-import/parse';
 import type { FamilyImportResult, ImportIssue } from '@/types/family-import';
 
@@ -40,10 +40,6 @@ type ImportState =
   | { step: 'importing'; fileName: string; parsed: ParsedImport; result: FamilyImportResult }
   | { step: 'done'; result: FamilyImportResult };
 
-function sheetLabel(issue: ImportIssue): string {
-  return issue.sheet === 'people' ? PEOPLE_SHEET : RELATIONSHIPS_SHEET;
-}
-
 function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -53,17 +49,34 @@ function downloadBlob(blob: Blob, fileName: string): void {
   URL.revokeObjectURL(url);
 }
 
-function TemplateCard() {
+/**
+ * An empty tree gets the blank template; a tree with members gets them as a locked list, so new
+ * rows can pick existing people as parents or wives.
+ */
+function TemplateCard({ familySlug, memberCount }: { familySlug: string; memberCount: number }) {
   const [building, setBuilding] = useState(false);
   const showToast = useToast();
+  const hasMembers = memberCount > 0;
 
   async function download(): Promise<void> {
     setBuilding(true);
     try {
-      const { buildImportTemplate } = await import('@/lib/family-import/template');
-      downloadBlob(await buildImportTemplate(), TEMPLATE_FILE_NAME);
-    } catch {
-      showToast({ kind: 'error', message: 'Chưa thể tạo file mẫu. Hãy thử lại.' });
+      const template = await import('@/lib/family-import/template');
+      if (hasMembers) {
+        const [{ treeToSheetPeople }, tree] = await Promise.all([
+          import('@/lib/family-import/members'),
+          getFamilyTreeForExport(familySlug),
+        ]);
+        const people = treeToSheetPeople(tree);
+        downloadBlob(await template.buildMemberWorkbook(people), `gia-pha-${familySlug}.xlsx`);
+      } else {
+        downloadBlob(await template.buildImportTemplate(), TEMPLATE_FILE_NAME);
+      }
+    } catch (error: unknown) {
+      showToast({
+        kind: 'error',
+        message: getApiErrorMessage(error, hasMembers ? 'tạo file thành viên' : 'tạo file mẫu'),
+      });
     } finally {
       setBuilding(false);
     }
@@ -72,8 +85,12 @@ function TemplateCard() {
   return (
     <SectionCard
       icon={<FileSpreadsheet aria-hidden="true" />}
-      title="Tải file mẫu"
-      description="File Excel có sẵn tiêu đề cột, danh sách chọn và một sheet hướng dẫn kèm ví dụ. Điền dữ liệu vào sheet “Thành viên” và “Hôn nhân” rồi tải lên ở mục bên dưới."
+      title={hasMembers ? 'Tải file thành viên' : 'Tải file mẫu'}
+      description={
+        hasMembers
+          ? `File Excel gồm ${memberCount} thành viên đang có trong cây (đã khóa, không sửa được), kèm danh sách chọn và sheet hướng dẫn. Thêm người mới vào các dòng trống bên dưới, có thể chọn cha, mẹ, vợ là người đã có, rồi tải lên ở mục bên dưới.`
+          : 'File Excel có sẵn tiêu đề cột, danh sách chọn và một sheet hướng dẫn kèm ví dụ. Điền dữ liệu vào sheet “Thành viên” (gồm cả vợ chồng) rồi tải lên ở mục bên dưới.'
+      }
     >
       <Button type="button" variant="outline" onClick={() => void download()} disabled={building}>
         {building ? (
@@ -81,7 +98,11 @@ function TemplateCard() {
         ) : (
           <Download className="size-4" aria-hidden="true" />
         )}
-        {building ? 'Đang tạo file…' : 'Tải file mẫu (.xlsx)'}
+        {building
+          ? 'Đang tạo file…'
+          : hasMembers
+            ? 'Tải file thành viên (.xlsx)'
+            : 'Tải file mẫu (.xlsx)'}
       </Button>
     </SectionCard>
   );
@@ -101,7 +122,7 @@ function IssueList({ issues }: { issues: ImportIssue[] }) {
         {issues.slice(0, SHOWN_ISSUES).map((issue, index) => (
           <li key={index} className="leading-6">
             <span className="font-medium">
-              {sheetLabel(issue)}
+              {PEOPLE_SHEET}
               {issue.row === null ? '' : `, dòng ${issue.row}`}:
             </span>{' '}
             {issue.message}
@@ -172,7 +193,10 @@ function ImportCard({ familySlug }: { familySlug: string }) {
     try {
       const { parseImportFile } = await import('@/lib/family-import/parse');
       const parsed = await parseImportFile(file);
-      if (parsed.issues.length > 0 || parsed.people.length === 0) {
+      if (
+        parsed.issues.length > 0 ||
+        (parsed.people.length === 0 && parsed.relationships.length === 0)
+      ) {
         setState({
           step: 'checked',
           fileName: file.name,
@@ -186,6 +210,7 @@ function ImportCard({ familySlug }: { familySlug: string }) {
         dryRun: true,
         people: parsed.people,
         relationships: parsed.relationships,
+        existingPeople: parsed.existingPeople,
       });
       setState({ step: 'checked', fileName: file.name, parsed, issues: result.issues, result });
     } catch (error: unknown) {
@@ -198,7 +223,7 @@ function ImportCard({ familySlug }: { familySlug: string }) {
     if (state.step !== 'checked' || !state.result || state.issues.length > 0) return;
     const { parsed, result, fileName } = state;
     const confirmed = await confirm({
-      title: `Nhập ${result.peopleCount} thành viên vào gia phả?`,
+      title: `Nhập ${result.peopleCount} thành viên và ${result.relationshipCount} cặp vợ chồng vào gia phả?`,
       message:
         result.existingPeopleCount > 0
           ? `Cây hiện có ${result.existingPeopleCount} người. Dữ liệu trong file sẽ được thêm mới bên cạnh, không gộp với người đã có.`
@@ -213,6 +238,7 @@ function ImportCard({ familySlug }: { familySlug: string }) {
         dryRun: false,
         people: parsed.people,
         relationships: parsed.relationships,
+        existingPeople: parsed.existingPeople,
       });
       if (!imported.imported) {
         setState({ step: 'checked', fileName, parsed, issues: imported.issues, result: imported });
@@ -220,7 +246,10 @@ function ImportCard({ familySlug }: { familySlug: string }) {
       }
       setState({ step: 'done', result: imported });
       if (inputRef.current) inputRef.current.value = '';
-      showToast({ kind: 'success', message: `Đã nhập ${imported.peopleCount} thành viên.` });
+      showToast({
+        kind: 'success',
+        message: `Đã nhập ${imported.peopleCount} thành viên và ${imported.relationshipCount} cặp vợ chồng.`,
+      });
       router.refresh();
     } catch (error: unknown) {
       showToast({ kind: 'error', message: getApiErrorMessage(error, 'nhập dữ liệu gia phả') });
@@ -252,7 +281,9 @@ function ImportCard({ familySlug }: { familySlug: string }) {
               )}
               {state.step === 'importing'
                 ? 'Đang nhập…'
-                : `Nhập ${summary.parsed.people.length} thành viên`}
+                : summary.result
+                  ? `Nhập ${summary.result.peopleCount} thành viên, ${summary.result.relationshipCount} cặp vợ chồng`
+                  : `Nhập ${summary.parsed.people.length} thành viên`}
             </Button>
           </>
         ) : undefined
@@ -335,10 +366,16 @@ function ImportCard({ familySlug }: { familySlug: string }) {
 }
 
 /** Clan-head tab for bulk-importing the tree from the spreadsheet template. */
-export function FamilyImportPanel({ familySlug }: { familySlug: string }) {
+export function FamilyImportPanel({
+  familySlug,
+  memberCount,
+}: {
+  familySlug: string;
+  memberCount: number;
+}) {
   return (
     <div className="grid gap-6">
-      <TemplateCard />
+      <TemplateCard familySlug={familySlug} memberCount={memberCount} />
       <ImportCard familySlug={familySlug} />
     </div>
   );

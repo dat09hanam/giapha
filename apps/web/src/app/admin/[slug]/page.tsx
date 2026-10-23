@@ -1,7 +1,15 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { Crown, FilePenLine, FileSpreadsheet, Frame, Landmark, Palette, UsersRound } from 'lucide-react';
+import {
+  Crown,
+  FilePenLine,
+  FileSpreadsheet,
+  Frame,
+  Landmark,
+  Palette,
+  UsersRound,
+} from 'lucide-react';
 
 import { EditSuggestionsPanel } from '@/components/admin/edit-suggestions-panel';
 import { FamilyAccountsPanel } from '@/components/admin/family-accounts-panel';
@@ -218,7 +226,12 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
             label: 'Nhập dữ liệu Excel',
             shortLabel: 'Nhập Excel',
             icon: <FileSpreadsheet aria-hidden="true" />,
-            content: <FamilyImportPanel familySlug={profile.family.slug} />,
+            content: (
+              <FamilyImportPanel
+                familySlug={profile.family.slug}
+                memberCount={tree.people.length}
+              />
+            ),
           },
           suggestionsOn && {
             id: 'de-xuat',

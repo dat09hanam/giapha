@@ -13,7 +13,8 @@ export type FamilyImportResponse = {
   imported: boolean;
   issues: ImportIssue[];
   peopleCount: number;
+  /** Couples to create; ones the downloaded list repeats from the tree are not counted. */
   relationshipCount: number;
-  /** People already in the tree; imported rows are added beside them, never merged. */
+  /** People already in the tree; new rows are added beside them, never merged into them. */
   existingPeopleCount: number;
 };

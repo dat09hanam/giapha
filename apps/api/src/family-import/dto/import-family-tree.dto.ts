@@ -2,13 +2,13 @@ import { Type } from 'class-transformer';
 import { Gender, RelationshipStatus } from '@prisma/client';
 import {
   ArrayMaxSize,
-  ArrayMinSize,
   IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -17,6 +17,9 @@ import {
 } from 'class-validator';
 
 export const IMPORT_MAX_PEOPLE = 5000;
+
+/** Rows of a downloaded member list; larger than any plan's member limit. */
+export const EXISTING_MAX_PEOPLE = 50_000;
 
 /** One row of the people sheet. `code` is the spreadsheet's own key; it never reaches the database. */
 export class ImportPersonDto {
@@ -147,7 +150,7 @@ export class ImportPersonDto {
   biography?: string | null;
 }
 
-/** One row of the marriages sheet, linking two people rows by their codes. */
+/** A couple, linking two rows by their codes; the husband row names the wife. */
 export class ImportRelationshipDto {
   @IsInt()
   @Min(1)
@@ -174,17 +177,43 @@ export class ImportRelationshipDto {
   status?: RelationshipStatus | null;
 }
 
+/**
+ * A row of a downloaded member list that stands for someone already in the tree, so new rows can
+ * name them as a parent or spouse. Only the link from `code` to `personId` is read; the row's other
+ * cells are never written back.
+ */
+export class ImportExistingPersonDto {
+  @IsInt()
+  @Min(1)
+  row!: number;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(50)
+  code!: string;
+
+  @IsUUID()
+  personId!: string;
+}
+
 export class ImportFamilyTreeDto {
   /** True checks the rows and reports issues without writing anything. */
   @IsBoolean()
   dryRun!: boolean;
 
+  /** New people only; may be empty when the file just adds wives to people already in the tree. */
   @IsArray()
-  @ArrayMinSize(1)
   @ArrayMaxSize(IMPORT_MAX_PEOPLE)
   @ValidateNested({ each: true })
   @Type(() => ImportPersonDto)
   people!: ImportPersonDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(EXISTING_MAX_PEOPLE)
+  @ValidateNested({ each: true })
+  @Type(() => ImportExistingPersonDto)
+  existingPeople?: ImportExistingPersonDto[];
 
   @IsArray()
   @ArrayMaxSize(IMPORT_MAX_PEOPLE)
