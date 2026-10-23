@@ -21,6 +21,7 @@ import type {
   PersonResponse,
   SaveFamilyTreeDesignResponse,
 } from './family-tree.types.js';
+import { yearOf } from './person-dates.js';
 
 const managedPersonSelect = {
   id: true,
@@ -61,18 +62,6 @@ type ManagedPersonRecord = Prisma.PersonGetPayload<{
 
 function mapManagedPerson(person: ManagedPersonRecord): PersonResponse {
   return { ...person };
-}
-
-function yearOf(value: string | null | undefined): number | null {
-  if (!value) return null;
-  const text = value.trim().replace(/^khoảng\s+/i, '');
-  const iso = /^(\d{4})-\d{2}-\d{2}/.exec(text);
-  const dated = /^(?:\d{1,2}[/.-]){1,2}(\d{1,4})$/.exec(text);
-  const year =
-    iso?.[1] ??
-    dated?.[1] ??
-    (/^\d{1,4}$/.test(text) ? text : /(?<!\d)(\d{3,4})(?!\d)/.exec(text)?.[1]);
-  return year && Number(year) > 0 ? Number(year) : null;
 }
 
 function nullableText(value: string | null | undefined): string | null | undefined {
