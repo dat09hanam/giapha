@@ -25,13 +25,13 @@ export function Tabs({
   tabs,
   label,
   actions,
-  mobileMenuTitle,
+  menuTitle,
 }: {
   tabs: readonly TabItem[];
   label: string;
   actions?: ReactNode;
-  /** When set, phones get these tabs in the bottom "Menu" sheet under this heading instead of an on-page bar. */
-  mobileMenuTitle?: string;
+  /** When set, the tabs move into the site menu (sidebar and phone sheet) under this heading. */
+  menuTitle?: string;
 }) {
   const [activeId, setActiveId] = useState(tabs[0]?.id ?? '');
   const tabRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -48,9 +48,9 @@ export function Tabs({
   }, []);
 
   useEffect(() => {
-    if (!mobileMenuTitle) return;
+    if (!menuTitle) return;
     setSectionMenu({
-      title: mobileMenuTitle,
+      title: menuTitle,
       items: tabs.map(({ id, label, icon, badge }) => ({ id, label, icon, badge })),
       activeId,
       open: (id) => {
@@ -58,12 +58,12 @@ export function Tabs({
         window.scrollTo({ top: 0 });
       },
     });
-  }, [mobileMenuTitle, tabs, activeId, open]);
+  }, [menuTitle, tabs, activeId, open]);
 
   useEffect(() => {
-    if (!mobileMenuTitle) return;
+    if (!menuTitle) return;
     return () => setSectionMenu(null);
-  }, [mobileMenuTitle]);
+  }, [menuTitle]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
     const index = tabs.findIndex((tab) => tab.id === activeId);
@@ -81,7 +81,7 @@ export function Tabs({
       <div
         className={cn(
           'min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between',
-          mobileMenuTitle ? 'hidden lg:flex' : 'flex',
+          menuTitle ? 'hidden' : 'flex',
         )}
       >
         <div

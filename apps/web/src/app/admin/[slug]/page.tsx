@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
-import Link from 'next/link';
-import { Palette } from 'lucide-react';
 
 import { EditSuggestionsPanel } from '@/components/admin/edit-suggestions-panel';
 import { FamilyAccountsPanel } from '@/components/admin/family-accounts-panel';
@@ -10,7 +8,6 @@ import { FamilyPlanPanel } from '@/components/admin/family-plan-panel';
 import { GoogleAccountCard } from '@/components/admin/google-account-card';
 import { FamilyPosterForm } from '@/components/admin/family-poster-form';
 import { FamilyProfileForm } from '@/components/admin/family-profile-form';
-import { Button } from '@/components/ui/button';
 import { ApiErrorState } from '@/components/ui/api-error-state';
 import { Tabs, type TabItem } from '@/components/ui/tabs';
 import {
@@ -153,21 +150,12 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
     ? suggestions.filter((suggestion) => suggestion.status === 'PENDING').length
     : 0;
   const suggestionsOn = features?.editSuggestions ?? true;
-  const familyPath = `/${encodeURIComponent(profile.family.slug)}`;
   return (
     <main className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:gap-8 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
       <h1 className="sr-only">Quản trị {family.name}</h1>
       <Tabs
         label="Khu vực quản trị dòng họ"
-        mobileMenuTitle="Quản lý dòng họ"
-        actions={
-          <Button asChild className="w-full lg:w-auto">
-            <Link href={`${familyPath}/thiet_ke`}>
-              <Palette className="size-4" aria-hidden="true" />
-              Thiết kế gia phả
-            </Link>
-          </Button>
-        }
+        menuTitle="Quản lý dòng họ"
         tabs={[
           {
             ...adminTab('thong-tin'),

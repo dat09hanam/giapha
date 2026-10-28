@@ -22,8 +22,8 @@ export type FamilyAdminSection = {
 export const FAMILY_ADMIN_SECTIONS: readonly FamilyAdminSection[] = [
   { id: 'thong-tin', label: 'Thông tin dòng họ', shortLabel: 'Thông tin', icon: Landmark },
   { id: 'trang-tri', label: 'Trang trí phả đồ', shortLabel: 'Trang trí', icon: Frame },
-  { id: 'tai-khoan', label: 'Tài khoản & phân chi', shortLabel: 'Tài khoản', icon: UsersRound },
-  { id: 'goi-dich-vu', label: 'Gói dịch vụ', shortLabel: 'Gói dịch vụ', icon: Crown },
+  { id: 'tai-khoan', label: 'Tài khoản quản lý', shortLabel: 'Tài khoản', icon: UsersRound },
+  { id: 'goi-dich-vu', label: 'Gói sử dụng', shortLabel: 'Gói dịch vụ', icon: Crown },
   {
     id: 'nhap-excel',
     label: 'Nhập dữ liệu Excel',

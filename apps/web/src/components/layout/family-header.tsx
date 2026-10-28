@@ -3,6 +3,7 @@
 import {
   Bell,
   CalendarHeart,
+  ChevronDown,
   ChevronRight,
   GitBranch,
   HandHeart,
@@ -285,6 +286,7 @@ export function FamilyHeader({
   const [menuOpen, setMenuOpen] = useState(false);
   const sectionMenu = useSectionMenu();
   const [linkingGoogle, setLinkingGoogle] = useState(false);
+  const [adminGroupOpen, setAdminGroupOpen] = useState(false);
   const canLinkGoogle = Boolean(GOOGLE_CLIENT_ID) && viewer?.canLinkGoogle === true;
   useBodyScrollLock(menuOpen);
   const isManager = viewer?.role === 'MEMBER_PLUS' || viewer?.role === 'ADMIN';
@@ -434,49 +436,116 @@ export function FamilyHeader({
           </span>
         </Link>
 
-        <nav className="relative grid gap-1 px-3" aria-label="Mục của dòng họ">
+        <nav
+          className="relative grid min-h-0 min-w-0 flex-1 grid-cols-1 content-start gap-1 overflow-y-auto overflow-x-hidden px-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          aria-label="Mục của dòng họ"
+        >
           {nav.map((item) => (
             <SideNavEntry key={item.key} item={item} slug={family.slug} pathname={pathname} />
           ))}
           {managerLinks.length > 0 ? (
             <span className="mx-3 mt-2 h-px bg-white/10" aria-hidden="true" />
           ) : null}
-          {managerLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              aria-current={link.active ? 'page' : undefined}
-              className={cn(
-                'group relative mt-1 flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-semibold transition duration-200',
-                link.active
-                  ? 'bg-paper text-brand-800 shadow-sm ring-1 ring-inset ring-gold-400/40 before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-brand-700'
-                  : link.accent
-                    ? 'border border-brand-800/40 bg-brand-700 text-white shadow-[0_8px_18px_-12px_rgba(74,46,18,0.8)] hover:bg-brand-800'
-                    : 'bg-gradient-to-r from-gold-400/25 to-gold-500/10 text-gold-50 shadow-[0_0_18px_rgba(212,175,55,0.18)] ring-1 ring-inset ring-gold-300/60 hover:from-gold-400/35 hover:to-gold-500/20 hover:text-white',
-              )}
-            >
-              <PendingGlow className="rounded-xl bg-white/15" />
-              <link.icon
+          {managerLinks.map((link) =>
+            menuSections && link.href === adminHref ? (
+              // The admin sections live here instead of a tab bar; always open on the admin page.
+              <div key={link.href} className="mt-1 grid min-w-0 grid-cols-1 gap-0.5">
+                <button
+                  type="button"
+                  aria-expanded={adminActive || adminGroupOpen}
+                  disabled={adminActive}
+                  onClick={() => setAdminGroupOpen((open) => !open)}
+                  className="flex h-11 items-center gap-3 rounded-xl bg-gradient-to-r from-gold-400/25 to-gold-500/10 px-3 text-left text-[15px] font-semibold text-gold-50 ring-1 ring-inset ring-gold-300/60 transition hover:from-gold-400/35 hover:to-gold-500/20 hover:text-white disabled:cursor-default"
+                >
+                  <link.icon className="size-5 shrink-0 text-gold-300" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate">{link.label}</span>
+                  <ChevronDown
+                    className={cn(
+                      'size-4 shrink-0 text-gold-300/80 transition-transform duration-200',
+                      (adminActive || adminGroupOpen) && 'rotate-180',
+                    )}
+                    aria-hidden="true"
+                  />
+                </button>
+                {adminActive || adminGroupOpen ? (
+                  <ul className="ml-5 grid min-w-0 grid-cols-1 gap-0.5 border-l border-white/15 py-1 pl-2">
+                    {menuSections.map((section) => {
+                      const className = cn(
+                        'relative flex h-10 w-full min-w-0 items-center gap-2.5 rounded-lg px-3 text-left text-sm transition [&_svg]:size-4 [&_svg]:shrink-0',
+                        section.current
+                          ? 'bg-paper font-semibold text-brand-800 shadow-sm [&_svg]:text-brand-700'
+                          : 'text-gold-50/80 hover:bg-white/10 hover:text-white [&_svg]:text-gold-300/80',
+                      );
+                      const body = (
+                        <>
+                          {section.icon}
+                          <span className="min-w-0 flex-1 truncate">{section.label}</span>
+                          {section.badge ? (
+                            <span className="min-w-5 rounded-full bg-red-600 px-1.5 text-center text-xs font-semibold leading-5 text-white">
+                              {section.badge}
+                            </span>
+                          ) : null}
+                        </>
+                      );
+                      return (
+                        <li key={section.id}>
+                          {section.onSelect ? (
+                            <button
+                              type="button"
+                              aria-current={section.current ? 'page' : undefined}
+                              onClick={section.onSelect}
+                              className={className}
+                            >
+                              {body}
+                            </button>
+                          ) : (
+                            <Link href={section.href} className={className}>
+                              {body}
+                            </Link>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+              </div>
+            ) : (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={link.active ? 'page' : undefined}
                 className={cn(
-                  'size-5 shrink-0',
-                  link.active ? undefined : link.accent ? 'text-white' : 'text-gold-300',
-                )}
-                aria-hidden="true"
-              />
-              <span className="min-w-0 flex-1 truncate">{link.label}</span>
-              <ChevronRight
-                className={cn(
-                  'size-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5',
+                  'group relative mt-1 flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-semibold transition duration-200',
                   link.active
-                    ? 'text-brand-700/60'
+                    ? 'bg-paper text-brand-800 shadow-sm ring-1 ring-inset ring-gold-400/40 before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-brand-700'
                     : link.accent
-                      ? 'text-white/70'
-                      : 'text-gold-300/80',
+                      ? 'border border-brand-800/40 bg-brand-700 text-white shadow-[0_8px_18px_-12px_rgba(74,46,18,0.8)] hover:bg-brand-800'
+                      : 'bg-gradient-to-r from-gold-400/25 to-gold-500/10 text-gold-50 shadow-[0_0_18px_rgba(212,175,55,0.18)] ring-1 ring-inset ring-gold-300/60 hover:from-gold-400/35 hover:to-gold-500/20 hover:text-white',
                 )}
-                aria-hidden="true"
-              />
-            </Link>
-          ))}
+              >
+                <PendingGlow className="rounded-xl bg-white/15" />
+                <link.icon
+                  className={cn(
+                    'size-5 shrink-0',
+                    link.active ? undefined : link.accent ? 'text-white' : 'text-gold-300',
+                  )}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 flex-1 truncate">{link.label}</span>
+                <ChevronRight
+                  className={cn(
+                    'size-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5',
+                    link.active
+                      ? 'text-brand-700/60'
+                      : link.accent
+                        ? 'text-white/70'
+                        : 'text-gold-300/80',
+                  )}
+                  aria-hidden="true"
+                />
+              </Link>
+            ),
+          )}
         </nav>
 
         <div className="relative mt-auto grid gap-3 border-t border-white/10 px-4 py-4">
