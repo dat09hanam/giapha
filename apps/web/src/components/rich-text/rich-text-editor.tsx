@@ -132,6 +132,7 @@ export function RichTextEditor({
   imageSrc,
   onUploadImage,
   allowLinks = false,
+  compact = false,
 }: {
   id?: string;
   initial: RichTextDocument;
@@ -144,6 +145,8 @@ export function RichTextEditor({
   onUploadImage?: (file: File) => Promise<RichTextImage>;
   /** Offers "Gắn liên kết" for selected words. */
   allowLinks?: boolean;
+  /** A short box (about four lines) that grows while typing, for brief introductions. */
+  compact?: boolean;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -572,7 +575,8 @@ export function RichTextEditor({
             emit();
           }}
           className={cn(
-            'min-h-52 max-h-[32rem] overflow-y-auto whitespace-pre-wrap break-words px-3 py-3 text-base leading-7 text-stone-800 outline-none sm:text-sm sm:leading-6',
+            compact ? 'min-h-28 max-h-72' : 'min-h-52 max-h-[32rem]',
+            'overflow-y-auto whitespace-pre-wrap break-words px-3 py-3 text-base leading-7 text-stone-800 outline-none sm:text-sm sm:leading-6',
             '[&>*+*]:mt-2 [&_p]:min-h-[1lh]',
             '[&_h2]:font-display [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-brand-800',
             '[&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-brand-900',

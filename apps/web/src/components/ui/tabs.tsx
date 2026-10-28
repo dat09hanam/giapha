@@ -1,7 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
 
+import { setSectionMenu } from '@/lib/section-menu';
 import { cn } from '@/lib/utils';
 
 export type TabItem = {
@@ -17,10 +25,13 @@ export function Tabs({
   tabs,
   label,
   actions,
+  mobileMenuTitle,
 }: {
   tabs: readonly TabItem[];
   label: string;
   actions?: ReactNode;
+  /** When set, phones get these tabs in the bottom "Menu" sheet under this heading instead of an on-page bar. */
+  mobileMenuTitle?: string;
 }) {
   const [activeId, setActiveId] = useState(tabs[0]?.id ?? '');
   const tabRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -31,10 +42,28 @@ export function Tabs({
     if (tabIds.split(' ').includes(fromHash)) setActiveId(fromHash);
   }, [tabIds]);
 
-  function open(id: string): void {
+  const open = useCallback((id: string): void => {
     setActiveId(id);
     window.history.replaceState(null, '', `#${id}`);
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!mobileMenuTitle) return;
+    setSectionMenu({
+      title: mobileMenuTitle,
+      items: tabs.map(({ id, label, icon, badge }) => ({ id, label, icon, badge })),
+      activeId,
+      open: (id) => {
+        open(id);
+        window.scrollTo({ top: 0 });
+      },
+    });
+  }, [mobileMenuTitle, tabs, activeId, open]);
+
+  useEffect(() => {
+    if (!mobileMenuTitle) return;
+    return () => setSectionMenu(null);
+  }, [mobileMenuTitle]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
     const index = tabs.findIndex((tab) => tab.id === activeId);
@@ -49,12 +78,21 @@ export function Tabs({
 
   return (
     <div className="grid min-w-0 gap-6">
-      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div
+        className={cn(
+          'min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between',
+          mobileMenuTitle ? 'hidden lg:flex' : 'flex',
+        )}
+      >
         <div
           role="tablist"
           aria-label={label}
           onKeyDown={handleKeyDown}
-          className="grid w-full auto-cols-fr grid-flow-col gap-1 rounded-xl border border-gold-500/30 bg-paper/85 p-1.5 shadow-sm sm:flex sm:w-fit"
+          className={cn(
+            // Phones get a wrapping grid so every label stays readable instead of truncating in one row.
+            'grid w-full gap-1 rounded-xl border border-gold-500/30 bg-paper/85 p-1.5 shadow-sm sm:flex sm:w-fit',
+            tabs.length === 4 ? 'grid-cols-2' : 'grid-cols-3',
+          )}
         >
           {tabs.map((tab) => {
             const selected = tab.id === activeId;
@@ -73,7 +111,7 @@ export function Tabs({
                 tabIndex={selected ? 0 : -1}
                 onClick={() => open(tab.id)}
                 className={cn(
-                  'relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] sm:h-10 sm:flex-row sm:gap-2 sm:whitespace-nowrap sm:px-4 sm:py-0 sm:text-sm [&_svg]:size-5 [&_svg]:shrink-0 sm:[&_svg]:size-4',
+                  'relative flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] sm:gap-2 sm:whitespace-nowrap sm:rounded-xl sm:px-4 sm:text-sm [&_svg]:size-4 [&_svg]:shrink-0',
                   selected
                     ? 'bg-brand-700 text-white shadow-sm ring-1 ring-brand-900/20'
                     : 'text-stone-600 hover:bg-gold-50 hover:text-wood-800',
@@ -84,7 +122,7 @@ export function Tabs({
                 <span className="hidden sm:inline">{tab.label}</span>
                 {tab.badge ? (
                   <span
-                    className="absolute right-1.5 top-1 min-w-4 rounded-full bg-red-600 px-1 text-center text-[10px] font-semibold leading-4 text-white sm:static sm:min-w-5 sm:text-xs sm:leading-5"
+                    className="absolute -right-0.5 -top-1 min-w-4 rounded-full bg-red-600 px-1 text-center text-[10px] font-semibold leading-4 text-white sm:static sm:min-w-5 sm:text-xs sm:leading-5"
                     aria-label={`${tab.badge} mục mới`}
                   >
                     {tab.badge}

@@ -1,7 +1,7 @@
 'use client';
 
 import { CalendarHeart, X } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
@@ -30,6 +30,10 @@ type DeathAnniversaryPickerProps = {
   value: string;
   onChange: (value: string) => void;
   label?: string;
+  /** Shown beside the label, e.g. whether the field is optional. */
+  labelHint?: ReactNode;
+  /** Extra classes for the trigger, e.g. a taller touch target. */
+  triggerClassName?: string;
   maxDayInMonth?: number;
   required?: boolean;
   disabled?: boolean;
@@ -190,6 +194,8 @@ export function DeathAnniversaryPicker({
   value,
   onChange,
   label = 'Ngày giỗ họ',
+  labelHint,
+  triggerClassName,
   maxDayInMonth = 31,
   required = false,
   disabled = false,
@@ -208,8 +214,12 @@ export function DeathAnniversaryPicker({
 
   return (
     <div className="grid gap-1.5">
-      <label className="text-sm font-medium text-brand-950" htmlFor={id}>
+      <label
+        className="flex items-baseline justify-between gap-2 text-sm font-medium text-brand-950"
+        htmlFor={id}
+      >
         {label}
+        {labelHint}
       </label>
       <span className="relative block">
         <button
@@ -223,6 +233,7 @@ export function DeathAnniversaryPicker({
           className={cn(
             'flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-stone-200 bg-white px-3 text-left text-base outline-none transition focus:border-brand-700 focus:ring-2 focus:ring-brand-700/15 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500 sm:text-sm',
             canClear && 'pr-10',
+            triggerClassName,
           )}
         >
           <span className={cn('truncate', shown ? 'text-stone-900' : 'text-stone-400')}>

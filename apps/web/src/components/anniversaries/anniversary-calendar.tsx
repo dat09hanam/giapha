@@ -38,7 +38,6 @@ import { mondayIndex } from '@/lib/vietnam-date';
 
 const WEEKDAY_HEADERS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const WEEKDAYS = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-const UPCOMING_COUNT = 4;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Day = { year: number; month: number; day: number };
@@ -186,7 +185,7 @@ function MonthGrid({
               title={label}
               onClick={() => onSelectDay(selected ? null : day)}
               className={cn(
-                'relative flex min-h-16 flex-col gap-1 p-1.5 text-left outline-none transition sm:min-h-24 sm:p-2',
+                'relative flex min-h-16 min-w-0 flex-col items-center gap-0.5 px-0.5 py-1.5 text-left outline-none transition sm:min-h-24 sm:items-stretch sm:gap-1 sm:p-2',
                 'focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500',
                 isToday
                   ? 'bg-gold-100 shadow-[inset_0_3px_0_var(--color-brand-700)] hover:bg-gold-200/70'
@@ -196,7 +195,7 @@ function MonthGrid({
                 selected && 'z-10 ring-2 ring-inset ring-brand-600',
               )}
             >
-              <span className="flex w-full items-start justify-between gap-1">
+              <span className="flex w-full flex-col items-center gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-1">
                 <span
                   className={cn(
                     'grid size-7 place-items-center rounded-full text-sm tabular-nums',
@@ -214,9 +213,10 @@ function MonthGrid({
                 {lunar ? (
                   <span
                     className={cn(
-                      'mt-1 whitespace-nowrap text-[10px] tabular-nums leading-none sm:text-[11px]',
-                      'rounded-full px-1.5 py-0.5 font-semibold text-gold-800',
-                      lunarMark ? 'bg-gold-500/30' : 'bg-gold-500/15',
+                      'whitespace-nowrap text-[10px] font-semibold tabular-nums leading-none text-gold-800 sm:mt-1 sm:text-[11px]',
+                      'sm:rounded-full sm:px-1.5 sm:py-0.5',
+                      lunarMark ? 'sm:bg-gold-500/30' : 'sm:bg-gold-500/15',
+                      lunarMark && 'text-brand-700 sm:text-gold-800',
                       isPast && 'opacity-55',
                     )}
                   >
@@ -264,7 +264,10 @@ function MonthGrid({
                       +{entries.length - chips} người
                     </span>
                   ) : null}
-                  <span className="flex flex-wrap gap-0.5 sm:hidden" aria-hidden="true">
+                  <span
+                    className="flex flex-wrap justify-center gap-0.5 sm:hidden"
+                    aria-hidden="true"
+                  >
                     {isFamilyDay ? (
                       <span
                         className={cn(
@@ -306,21 +309,25 @@ function EntryRow({
 }) {
   const days = daysUntil(today, entry.date);
   return (
-    <li className="flex items-center gap-2 py-1 pr-2 sm:pr-3">
+    <li className="flex items-center gap-1 py-1 pr-1 sm:gap-2 sm:pr-3">
       <button
         type="button"
         onClick={onOpen}
-        className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-gold-50 sm:px-4"
+        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2 py-2 text-left transition hover:bg-gold-50 sm:gap-3 sm:px-4"
       >
-        <span className="grid w-14 shrink-0 place-items-center rounded-lg border border-brand-100 bg-brand-50 py-1.5 text-brand-800">
-          <span className="text-lg font-bold leading-none tabular-nums">
+        <span className="grid w-11 shrink-0 place-items-center rounded-lg border border-brand-100 bg-brand-50 py-1 text-brand-800 sm:w-14 sm:py-1.5">
+          <span className="text-sm font-bold leading-none tabular-nums sm:text-lg">
             {shortDate(entry.date)}
           </span>
-          <span className="mt-0.5 text-[11px] text-brand-700/80">{weekday(entry.date)}</span>
+          <span className="mt-0.5 text-[10px] leading-tight text-brand-700/80 sm:text-[11px]">
+            {weekday(entry.date)}
+          </span>
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <span className="truncate font-semibold text-stone-900">{fullName(entry)}</span>
+          <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="min-w-0 max-w-full truncate font-semibold text-stone-900">
+              {fullName(entry)}
+            </span>
             {days < 0 ? (
               <span className="shrink-0 rounded-full bg-stone-200 px-2 py-0.5 text-xs font-semibold text-stone-600">
                 Đã qua
@@ -349,7 +356,7 @@ function EntryRow({
           variant="outline"
           size="sm"
           onClick={onOpen}
-          className="shrink-0 border-emerald-300 bg-emerald-50 text-emerald-800 hover:border-emerald-400 hover:bg-emerald-100"
+          className="h-9 shrink-0 gap-1.5 border-emerald-300 bg-emerald-50 px-2.5 text-emerald-800 hover:border-emerald-400 hover:bg-emerald-100 sm:px-3"
           aria-label={`Đã đặt nhắc giỗ ${fullName(entry)}, xem hoặc thay đổi`}
         >
           <BellRing className="size-4" aria-hidden="true" />
@@ -362,11 +369,11 @@ function EntryRow({
           variant="outline"
           size="sm"
           onClick={onOpen}
-          className="shrink-0"
+          className="h-9 shrink-0 gap-1.5 px-2.5 sm:px-3"
           aria-label={`Nhắc giỗ ${fullName(entry)} qua email`}
         >
           <BellRing className="size-4" aria-hidden="true" />
-          <span className="sm:hidden">Nhắc</span>
+          <span className="sm:hidden">Nhắc tôi</span>
           <span className="hidden sm:inline">Nhắc giỗ</span>
         </Button>
       )}
@@ -675,13 +682,19 @@ export function AnniversaryCalendarView({
     () => new Set(calendar.familyAnniversary?.dates ?? []),
     [calendar.familyAnniversary],
   );
-  const upcoming = useMemo(
-    () =>
-      calendar.anniversaries
-        .filter((entry) => daysUntil(calendar.today, entry.date) >= 0)
-        .slice(0, UPCOMING_COUNT),
-    [calendar],
-  );
+  const yearByMonth = useMemo(() => {
+    const groups = new Map<number, AnniversaryEntry[]>();
+    const sorted = [...calendar.anniversaries].sort((left, right) =>
+      left.date === right.date
+        ? fullName(left).localeCompare(fullName(right), 'vi')
+        : left.date.localeCompare(right.date),
+    );
+    for (const entry of sorted) {
+      const entryMonth = parseIso(entry.date).month;
+      groups.set(entryMonth, [...(groups.get(entryMonth) ?? []), entry]);
+    }
+    return [...groups.entries()];
+  }, [calendar.anniversaries]);
   const monthPrefix = `${calendar.year}-${String(month).padStart(2, '0')}`;
   const search = query.trim().toLocaleLowerCase('vi');
   const listed = search
@@ -694,7 +707,6 @@ export function AnniversaryCalendarView({
   const familyInMonth = calendar.familyAnniversary?.dates.filter((date) =>
     selectedDay ? date === selectedDay : date.startsWith(monthPrefix),
   );
-  const isCurrentYear = parseIso(calendar.today).year === calendar.year;
 
   async function loadYear(year: number, nextMonth: number): Promise<void> {
     setLoadingYear(year);
@@ -765,73 +777,11 @@ export function AnniversaryCalendarView({
       />
 
       <section
-        aria-labelledby="upcoming-title"
-        className={cn('surface grid gap-3 p-4 sm:p-5', heroOverlapClass)}
+        aria-labelledby="calendar-title"
+        className={cn('surface overflow-hidden', heroOverlapClass)}
       >
-        <h2 id="upcoming-title" className="flex items-center gap-2 font-semibold text-stone-900">
-          <Flame className="size-4 text-brand-700" aria-hidden="true" />
-          {isCurrentYear ? 'Sắp tới' : `Đầu năm ${calendar.year}`}
-        </h2>
-        {upcoming.length > 0 ? (
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {upcoming.map((entry) => {
-              const days = daysUntil(calendar.today, entry.date);
-              return (
-                <li key={`${entry.personId}-${entry.date}`}>
-                  <button
-                    type="button"
-                    onClick={() => setOpenEntry(entry)}
-                    className="flex w-full items-center gap-3 rounded-xl border border-gold-200 bg-white p-3 text-left shadow-sm transition hover:border-brand-300 hover:shadow"
-                  >
-                    <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-brand-700 text-white">
-                      <span className="text-lg font-bold leading-none tabular-nums">
-                        {parseIso(entry.date).day}
-                      </span>
-                      <span className="text-[11px] opacity-85">
-                        Th {parseIso(entry.date).month}
-                      </span>
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold text-stone-900">
-                        {fullName(entry)}
-                      </span>
-                      <span className="block text-sm text-stone-600">
-                        {weekday(entry.date)} · {entry.lunarDay}/{entry.lunarMonth} âm lịch
-                      </span>
-                      <span className="mt-1 flex flex-wrap items-center gap-2">
-                        <span
-                          className={cn(
-                            'rounded-full px-2 py-0.5 text-xs font-semibold',
-                            days <= 7 ? 'bg-brand-100 text-brand-800' : 'bg-gold-100 text-gold-900',
-                          )}
-                        >
-                          {countdown(days)}
-                        </span>
-                        {remindedIds.has(entry.personId) ? (
-                          <BellRing
-                            className="size-3.5 text-emerald-700"
-                            aria-label="Đã đặt nhắc"
-                          />
-                        ) : null}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="text-sm text-stone-600">
-            {calendar.anniversaries.length === 0
-              ? 'Chưa có ngày giỗ nào. Ngày giỗ được lấy từ thông tin “Ngày giỗ (âm lịch)” của từng người trong gia phả.'
-              : `Không còn ngày giỗ nào từ nay đến hết năm ${calendar.year}.`}
-          </p>
-        )}
-      </section>
-
-      <section aria-labelledby="calendar-title" className="surface mx-3 overflow-hidden sm:mx-0">
         <div className="heritage-hero relative isolate flex flex-wrap items-center gap-x-4 gap-y-3 border-x-0 border-t-0 px-4 py-4 text-white sm:px-5">
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto">
             <button
               type="button"
               className={heroIconButtonClass}
@@ -841,7 +791,11 @@ export function AnniversaryCalendarView({
             >
               <ChevronLeft className="size-5" aria-hidden="true" />
             </button>
-            <h2 id="calendar-title" className="min-w-36 text-center" aria-live="polite">
+            <h2
+              id="calendar-title"
+              className="min-w-0 flex-1 text-center sm:min-w-36 sm:flex-none"
+              aria-live="polite"
+            >
               {loadingYear !== null ? (
                 <InlineLoader className="mx-auto size-6" />
               ) : (
@@ -865,11 +819,11 @@ export function AnniversaryCalendarView({
               <ChevronRight className="size-5" aria-hidden="true" />
             </button>
           </div>
-          <div className="grid gap-1.5">
+          <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-2 sm:grid sm:w-auto sm:gap-1.5">
             {lunarRange ? (
-              <p className="flex items-center gap-1.5 text-sm text-gold-100">
-                <Moon className="size-4 shrink-0 text-gold-300" aria-hidden="true" />
-                <span>
+              <p className="flex min-w-0 items-start gap-1.5 text-sm text-gold-100">
+                <Moon className="mt-0.5 size-4 shrink-0 text-gold-300" aria-hidden="true" />
+                <span className="min-w-0">
                   Âm lịch: <strong className="text-white">{lunarRange}</strong>
                 </span>
               </p>
@@ -878,7 +832,7 @@ export function AnniversaryCalendarView({
               type="button"
               onClick={goToToday}
               disabled={loadingYear !== null}
-              className="w-fit rounded-full border border-gold-300/40 bg-white/10 px-3 py-1 text-xs font-semibold text-gold-50 transition hover:bg-white/20 disabled:opacity-60"
+              className="w-fit shrink-0 rounded-full border border-gold-300/40 bg-white/10 px-3 py-1.5 text-xs font-semibold text-gold-50 transition hover:bg-white/20 disabled:opacity-60"
             >
               Về hôm nay
             </button>
@@ -920,24 +874,20 @@ export function AnniversaryCalendarView({
                 byDay={byDay}
                 familyDays={familyDays}
               />
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 rounded-xl bg-wood-50/80 px-3 py-2.5 text-xs text-wood-700">
-                <span className="inline-flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-wood-50/80 px-3 py-2.5 text-xs text-wood-700">
+                <span className="inline-flex w-full items-center gap-2 sm:w-auto">
                   <span
                     aria-hidden="true"
-                    className="flex h-9 w-14 shrink-0 items-start justify-between gap-1 rounded-md border border-line bg-white px-1.5 py-1"
+                    className="grid h-9 w-10 shrink-0 place-items-center content-center gap-0.5 rounded-md border border-line bg-white"
                   >
                     <span className="text-sm font-semibold leading-none text-wood-900">26</span>
-                    <span className="rounded-full bg-gold-500/15 px-1 py-px text-[9px] font-semibold leading-none text-gold-800">
+                    <span className="text-[9px] font-semibold leading-none text-gold-800">
                       10/9
                     </span>
                   </span>
                   <span className="leading-5">
                     Số lớn: <strong className="text-wood-900">dương lịch</strong> · số nhỏ:{' '}
                     <strong className="text-gold-800">âm lịch</strong>
-                    <span className="text-wood-500">
-                      {' '}
-                      dạng ngày/tháng (10/9 = mùng 10 tháng 9 âm)
-                    </span>
                   </span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
@@ -1027,6 +977,46 @@ export function AnniversaryCalendarView({
             )}
           </div>
         </div>
+      </section>
+
+      <section
+        aria-labelledby="year-list-title"
+        className="surface mx-3 grid gap-3 p-4 sm:mx-0 sm:p-5"
+      >
+        <h2 id="year-list-title" className="flex items-center gap-2 font-semibold text-stone-900">
+          <CalendarHeart className="size-4 text-brand-700" aria-hidden="true" />
+          Tất cả ngày giỗ năm {calendar.year}
+          <span className="rounded-full bg-gold-100 px-2 text-xs font-semibold leading-5 text-gold-900">
+            {calendar.anniversaries.length}
+          </span>
+        </h2>
+        {yearByMonth.length > 0 ? (
+          <div className="grid gap-4">
+            {yearByMonth.map(([entryMonth, entries]) => (
+              <div key={entryMonth} className="grid gap-1">
+                <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-stone-500">
+                  Tháng {entryMonth}
+                </h3>
+                <ul className="grid divide-y divide-gold-100 rounded-xl border border-gold-100 bg-white">
+                  {entries.map((entry) => (
+                    <EntryRow
+                      key={`${entry.personId}-${entry.date}`}
+                      entry={entry}
+                      today={calendar.today}
+                      reminded={remindedIds.has(entry.personId)}
+                      onOpen={() => setOpenEntry(entry)}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-stone-600">
+            Chưa có ngày giỗ nào. Ngày giỗ được lấy từ thông tin “Ngày giỗ (âm lịch)” của từng người
+            trong gia phả.
+          </p>
+        )}
       </section>
 
       {openEntry ? (

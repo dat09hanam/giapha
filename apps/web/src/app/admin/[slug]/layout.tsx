@@ -10,5 +10,9 @@ export default async function FamilyAdminLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  return <FamilyChrome slug={slug}>{children}</FamilyChrome>;
+  return (
+    <FamilyChrome slug={slug} plainBackground>
+      {children}
+    </FamilyChrome>
+  );
 }

@@ -5,6 +5,7 @@ import { useId, useRef, useState, type KeyboardEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
+import { Segmented } from '@/components/ui/segmented';
 import { SheetDialog } from '@/components/ui/sheet-dialog';
 
 import {
@@ -13,10 +14,73 @@ import {
   formatPartialDate,
   parsePartialDate,
 } from '@/lib/partial-date';
+import { lunarToSolar, toLunar } from '@/lib/lunar-calendar';
 import { cn } from '@/lib/utils';
 import { todayInVietnam } from '@/lib/vietnam-date';
 
 type Fields = { day: string; month: string; year: string; approximate: boolean };
+type CalendarKind = 'SOLAR' | 'LUNAR';
+/** The lunar day and month of a fully known date, e.g. to fill a death anniversary. */
+export type LunarDayMonth = { day: number; month: number };
+
+const CALENDAR_CHOICES = [
+  { value: 'SOLAR', label: 'Dương lịch' },
+  { value: 'LUNAR', label: 'Âm lịch' },
+] as const;
+
+function pad(part: number): string {
+  return String(part).padStart(2, '0');
+}
+
+/**
+ * Reads the boxes as a lunar date: a full date becomes its solar date plus the lunar day and
+ * month; without a day only the year can be kept, as a lunar month has no fixed solar month.
+ */
+function resolveLunar(fields: Fields): {
+  value: string;
+  problem: string | null;
+  lunar: LunarDayMonth | null;
+  solarLabel: string | null;
+} {
+  const year = fields.year ? Number(fields.year) : null;
+  const month = fields.month ? Number(fields.month) : null;
+  const day = fields.day ? Number(fields.day) : null;
+  const empty = { value: '', lunar: null, solarLabel: null };
+  if (year === null) {
+    return {
+      ...empty,
+      problem: month !== null || day !== null ? 'Nhập năm để lưu ngày và tháng.' : null,
+    };
+  }
+  if (year < 1) return { ...empty, problem: 'Năm phải lớn hơn 0.' };
+  if (month !== null && (month < 1 || month > 12)) {
+    return { ...empty, problem: 'Tháng âm lịch từ 1 đến 12.' };
+  }
+  if (day !== null && (day < 1 || day > 30)) {
+    return { ...empty, problem: 'Ngày âm lịch từ 1 đến 30.' };
+  }
+  if (day !== null && month === null) return { ...empty, problem: 'Nhập tháng để lưu ngày.' };
+  const keepYear = composePartialDate({
+    year,
+    month: null,
+    day: null,
+    approximate: fields.approximate,
+  });
+  if (month === null || day === null) {
+    return { value: keepYear, problem: null, lunar: null, solarLabel: null };
+  }
+  const solar = lunarToSolar(year, month, day);
+  const latestYear = Number(todayInVietnam().slice(0, 4));
+  if (solar.year > latestYear) {
+    return { ...empty, problem: `Năm không được sau năm ${latestYear}.` };
+  }
+  return {
+    value: composePartialDate({ ...solar, approximate: fields.approximate }),
+    problem: null,
+    lunar: { day, month },
+    solarLabel: `${pad(solar.day)}/${pad(solar.month)}/${solar.year}`,
+  };
+}
 
 function fieldsOf(value: string): Fields {
   const parts = parsePartialDate(value);
@@ -74,22 +138,43 @@ const BOXES = [
 function PartialDateDialog({
   title,
   value,
+  withLunar,
   onDone,
   onClose,
 }: {
   title: string;
   value: string;
-  onDone: (value: string) => void;
+  withLunar: boolean;
+  onDone: (value: string, lunar?: LunarDayMonth | null) => void;
   onClose: () => void;
 }) {
   const baseId = useId();
   const [fields, setFields] = useState<Fields>(() => fieldsOf(value));
-  const { value: result, problem } = resolve(fields);
+  const [kind, setKind] = useState<CalendarKind>('SOLAR');
+  const lunarMode = withLunar && kind === 'LUNAR';
+  const solarResult = resolve(fields);
+  const lunarResult = lunarMode ? resolveLunar(fields) : null;
+  const { value: result, problem } = lunarResult ?? solarResult;
+  const solarParts = parsePartialDate(result);
+  const lunarOfSolar =
+    withLunar && !lunarMode && !problem && solarParts.day !== null && solarParts.month !== null
+      ? toLunar({ year: solarParts.year!, month: solarParts.month, day: solarParts.day })
+      : null;
+  const lunar: LunarDayMonth | null =
+    lunarResult?.lunar ??
+    (lunarOfSolar ? { day: lunarOfSolar.day, month: lunarOfSolar.month } : null);
+  const converted = lunarResult?.solarLabel
+    ? `Dương lịch: ${lunarResult.solarLabel}`
+    : lunarOfSolar
+      ? `Âm lịch: ${lunarOfSolar.day}/${lunarOfSolar.month}${lunarOfSolar.leap ? ' nhuận' : ''}/${lunarOfSolar.year}`
+      : null;
   const unreadable = Boolean(value.trim()) && parsePartialDate(value).year === null;
   const hasInput = Boolean(fields.day || fields.month || fields.year);
 
   function done(): void {
-    if (!problem) onDone(result);
+    if (problem) return;
+    if (withLunar) onDone(result, lunar);
+    else onDone(result);
   }
 
   function onEnter(event: KeyboardEvent<HTMLInputElement>): void {
@@ -114,6 +199,10 @@ function PartialDateDialog({
         </>
       }
     >
+      {withLunar ? (
+        <Segmented label="Loại lịch" options={CALENDAR_CHOICES} value={kind} onChange={setKind} />
+      ) : null}
+
       <div className="grid grid-cols-[1fr_1fr_1.4fr] gap-2">
         {BOXES.map((box) => (
           <input
@@ -159,6 +248,15 @@ function PartialDateDialog({
         )}
       </label>
 
+      {converted && !problem ? (
+        <p
+          className="rounded-xl bg-gold-50 px-3 py-2.5 text-center text-sm font-semibold text-wood-800"
+          aria-live="polite"
+        >
+          {converted}
+        </p>
+      ) : null}
+
       {problem || !hasInput ? (
         <p
           className="rounded-xl bg-paper-deep/40 px-3 py-2.5 text-center text-sm"
@@ -186,13 +284,20 @@ export function PartialDatePicker({
   onChange,
   placeholder = 'Chưa rõ',
   className,
+  withLunar = false,
+  detail,
 }: {
   id?: string;
   title: string;
   value: string;
-  onChange: (value: string) => void;
+  /** `lunar` comes only `withLunar`, once a full date is known in either calendar. */
+  onChange: (value: string, lunar?: LunarDayMonth | null) => void;
   placeholder?: string;
   className?: string;
+  /** Lets the date be entered in âm lịch too, converting it to the stored solar date. */
+  withLunar?: boolean;
+  /** Shown after the date in the field, e.g. the same day in âm lịch. */
+  detail?: string;
 }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -221,6 +326,7 @@ export function PartialDatePicker({
         >
           <span className={cn('truncate', value ? 'text-stone-900' : 'text-stone-400')}>
             {shown || placeholder}
+            {shown && detail ? <span className="text-stone-500"> · {detail}</span> : null}
           </span>
           {value ? null : (
             <CalendarDays className="size-4 shrink-0 text-stone-500" aria-hidden="true" />
@@ -243,8 +349,9 @@ export function PartialDatePicker({
           <PartialDateDialog
             title={title}
             value={value}
-            onDone={(next) => {
-              onChange(next);
+            withLunar={withLunar}
+            onDone={(next, lunar) => {
+              onChange(next, lunar);
               close();
             }}
             onClose={close}

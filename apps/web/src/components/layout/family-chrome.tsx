@@ -36,6 +36,11 @@ async function loadViewer(
       displayName: profile.displayName,
       role: profile.role,
       managesBranches: profile.managesBranches,
+      // Only personal manager logins sign in with Google; shared family logins never do.
+      canLinkGoogle:
+        !profile.googleLinked &&
+        !profile.isShared &&
+        (profile.role === 'MEMBER_PLUS' || profile.managesBranches),
     },
     storage: profile.role === 'MEMBER_PLUS' ? await loadStorage(slug, sessionToken) : null,
   };
@@ -69,7 +74,15 @@ async function loadFeatures(slug: string): Promise<FamilyFeatures | null> {
 
 const FAMILY_BACKGROUND = '/images/decorations/family-background.png';
 
-function PageBackground() {
+function PageBackground({ plain }: { plain: boolean }) {
+  if (plain) {
+    return (
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 bg-[#faf6ee] lg:left-60 print:hidden"
+        aria-hidden="true"
+      />
+    );
+  }
   return (
     <>
       <div
@@ -85,7 +98,16 @@ function PageBackground() {
   );
 }
 
-export async function FamilyChrome({ slug, children }: { slug: string; children: ReactNode }) {
+export async function FamilyChrome({
+  slug,
+  children,
+  plainBackground = false,
+}: {
+  slug: string;
+  children: ReactNode;
+  /** A flat cream page instead of the landscape, for form-heavy pages. */
+  plainBackground?: boolean;
+}) {
   const [name, features, { viewer, storage }] = await Promise.all([
     loadFamilyName(slug),
     loadFeatures(slug),
@@ -108,9 +130,14 @@ export async function FamilyChrome({ slug, children }: { slug: string; children:
         viewer?.role === 'MEMBER_PLUS' || viewer?.managesBranches ? viewer.displayName : null
       }
     >
-      <FamilyHeader family={{ slug, name }} nav={familyNav(features)} viewer={viewer} />
+      <FamilyHeader
+        family={{ slug, name }}
+        nav={familyNav(features)}
+        viewer={viewer}
+        editSuggestions={features?.editSuggestions ?? true}
+      />
       <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 lg:pl-60 print:p-0">
-        <PageBackground />
+        <PageBackground plain={plainBackground} />
         {storage ? <StorageWarningBanner slug={slug} storage={storage} /> : null}
         {children}
       </div>

@@ -8,6 +8,7 @@ import {
   HandHeart,
   House,
   Landmark,
+  Link2,
   LogIn,
   Menu,
   Network,
@@ -23,14 +24,17 @@ import {
 import Link, { useLinkStatus } from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { InlineLoader } from '@/components/ui/heritage-loader';
+import { GoogleLinkDialog } from '@/components/auth/google-link-dialog';
 import { LogoutButton } from '@/components/auth/logout-button';
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
-import type { UserRole } from '@/lib/auth-api';
+import { GOOGLE_CLIENT_ID, type UserRole } from '@/lib/auth-api';
 import { familyHref, isInSection, type FamilyNavItem, type FamilyNavKey } from '@/lib/family-nav';
+import { FAMILY_ADMIN_SECTIONS } from '@/lib/family-admin-sections';
+import { useSectionMenu } from '@/lib/section-menu';
 import { cn } from '@/lib/utils';
 import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 
@@ -39,6 +43,7 @@ export type FamilyHeaderViewer = {
   displayName: string;
   role: UserRole;
   managesBranches: boolean;
+  canLinkGoogle: boolean;
 } | null;
 
 const NAV_ICONS: Record<FamilyNavKey, LucideIcon> = {
@@ -163,6 +168,98 @@ export function BottomTab({
   );
 }
 
+type MenuSection = {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  badge?: number;
+  href: string;
+  current?: boolean;
+  onSelect?: () => void;
+};
+
+type MenuEntry = {
+  key: string;
+  label: string;
+  icon: ReactNode;
+  /** Another page; rows with `onSelect` act in place instead. */
+  href?: string;
+  onSelect?: () => void;
+  current?: boolean;
+  badge?: number;
+  comingSoon?: boolean;
+};
+
+function MenuRow({ entry, onDone }: { entry: MenuEntry; onDone: () => void }) {
+  const className = cn(
+    'flex min-h-12 w-full min-w-0 items-center gap-3 rounded-xl px-3 text-left text-[15px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] [&_svg]:size-5 [&_svg]:shrink-0',
+    entry.current
+      ? 'bg-brand-50 font-semibold text-brand-800 ring-1 ring-inset ring-brand-200 [&_svg]:text-brand-700'
+      : entry.comingSoon
+        ? 'text-stone-400 [&_svg]:text-stone-300'
+        : 'text-wood-800 hover:bg-gold-50 active:bg-gold-100 [&_svg]:text-wood-600',
+  );
+  const body = (
+    <>
+      {entry.icon}
+      <span className="min-w-0 flex-1 truncate">{entry.label}</span>
+      {entry.comingSoon ? (
+        <span className="shrink-0 rounded-full border border-dashed border-stone-300 px-2 text-[11px] font-medium leading-5 text-stone-500">
+          Sắp có
+        </span>
+      ) : null}
+      {entry.badge ? (
+        <span
+          className={cn(
+            'min-w-5 shrink-0 rounded-full px-1.5 text-center text-xs font-semibold leading-5',
+            'bg-red-600 text-white',
+          )}
+          aria-label={`${entry.badge} mục mới`}
+        >
+          {entry.badge}
+        </span>
+      ) : null}
+      {entry.href && !entry.onSelect && !entry.current ? (
+        <ChevronRight className="size-4! text-stone-400!" aria-hidden="true" />
+      ) : null}
+    </>
+  );
+
+  if (entry.comingSoon) {
+    return (
+      <div aria-disabled="true" className={className}>
+        {body}
+      </div>
+    );
+  }
+  if (entry.onSelect) {
+    const select = entry.onSelect;
+    return (
+      <button
+        type="button"
+        aria-current={entry.current ? 'page' : undefined}
+        onClick={() => {
+          select();
+          onDone();
+        }}
+        className={className}
+      >
+        {body}
+      </button>
+    );
+  }
+  return (
+    <Link
+      href={entry.href ?? '#'}
+      aria-current={entry.current ? 'page' : undefined}
+      onClick={onDone}
+      className={className}
+    >
+      {body}
+    </Link>
+  );
+}
+
 type ManagerLink = {
   href: string;
   label: string;
@@ -176,13 +273,19 @@ export function FamilyHeader({
   family,
   nav,
   viewer,
+  editSuggestions,
 }: {
   family: { slug: string; name: string };
   nav: readonly FamilyNavItem[];
   viewer: FamilyHeaderViewer;
+  /** Whether the admin page has its "Đề xuất chỉnh sửa" tab. */
+  editSuggestions: boolean;
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const sectionMenu = useSectionMenu();
+  const [linkingGoogle, setLinkingGoogle] = useState(false);
+  const canLinkGoogle = Boolean(GOOGLE_CLIENT_ID) && viewer?.canLinkGoogle === true;
   useBodyScrollLock(menuOpen);
   const isManager = viewer?.role === 'MEMBER_PLUS' || viewer?.role === 'ADMIN';
   const adminHref =
@@ -190,6 +293,25 @@ export function FamilyHeader({
   const adminActive = isManager && pathname.startsWith('/admin');
   const inDesigner = pathname.endsWith('/thiet_ke');
   const designerHref = familyHref(family.slug, 'thiet_ke');
+  // On the admin page the sections switch tabs in place; elsewhere they link to that tab.
+  const menuSections: MenuSection[] | null =
+    sectionMenu && adminActive
+      ? sectionMenu.items.map((item) => ({
+          ...item,
+          href: `${adminHref}#${item.id}`,
+          current: item.id === sectionMenu.activeId,
+          onSelect: () => sectionMenu.open(item.id),
+        }))
+      : viewer?.role === 'MEMBER_PLUS'
+        ? FAMILY_ADMIN_SECTIONS.filter(
+            (section) => editSuggestions || section.id !== 'de-xuat',
+          ).map((section) => ({
+            id: section.id,
+            label: section.label,
+            icon: <section.icon aria-hidden="true" />,
+            href: `${adminHref}#${section.id}`,
+          }))
+        : null;
   // Management shortcuts below the family sections; the clan head gets the tree designer too.
   const managerLinks: ManagerLink[] = isManager
     ? [
@@ -217,6 +339,55 @@ export function FamilyHeader({
     isInSection(pathname, familyHref(family.slug, item.path), item.path),
   );
   const loginHref = `/login?next=${encodeURIComponent(familyHref(family.slug, ''))}`;
+
+  const sectionEntries = (ids: readonly string[]): MenuEntry[] =>
+    (menuSections ?? [])
+      .filter((section) => ids.includes(section.id))
+      .map((section) => ({
+        key: section.id,
+        label: section.label,
+        icon: section.icon,
+        href: section.href,
+        onSelect: section.onSelect,
+        current: section.current,
+        badge: section.badge,
+      }));
+  // The tree designer (or a branch manager's "Quản lý chi") leads the menu as its main action.
+  const featuredLink = managerLinks.find((link) => link.href === designerHref) ?? null;
+  const managerEntries: MenuEntry[] = menuSections
+    ? sectionEntries(FAMILY_ADMIN_SECTIONS.map((section) => section.id))
+    : managerLinks
+        .filter((link) => link !== featuredLink)
+        .map((link) => ({
+          key: link.href,
+          label: link.label,
+          icon: <link.icon aria-hidden="true" />,
+          href: link.href,
+          current: link.active,
+        }));
+  const menuEntries: MenuEntry[] = [
+    ...managerEntries,
+    ...inMenu.map((item) => {
+      const Icon = NAV_ICONS[item.key];
+      const href = familyHref(family.slug, item.path);
+      return {
+        key: item.key,
+        label: item.label,
+        icon: <Icon aria-hidden="true" />,
+        href,
+        current: isInSection(pathname, href, item.path),
+      };
+    }),
+    ...comingSoon.map((item) => {
+      const Icon = NAV_ICONS[item.key];
+      return {
+        key: item.key,
+        label: item.label,
+        icon: <Icon aria-hidden="true" />,
+        comingSoon: true,
+      };
+    }),
+  ];
 
   useEffect(() => setMenuOpen(false), [pathname]);
 
@@ -330,6 +501,16 @@ export function FamilyHeader({
                   </span>
                 </span>
               </div>
+              {canLinkGoogle ? (
+                <button
+                  type="button"
+                  onClick={() => setLinkingGoogle(true)}
+                  className="flex h-9 items-center justify-center gap-2 rounded-lg bg-paper text-sm font-semibold text-brand-800 hover:bg-white"
+                >
+                  <Link2 className="size-4" aria-hidden="true" />
+                  Liên kết Google
+                </button>
+              ) : null}
               <div className="[&>button]:h-9 [&>button]:w-full [&>button]:border-white/20 [&>button]:bg-white/10 [&>button]:text-white [&>button]:hover:bg-white/20">
                 <LogoutButton />
               </div>
@@ -358,124 +539,101 @@ export function FamilyHeader({
             />
             <section
               id="family-menu"
-              aria-label="Menu"
-              className="ui-sheet heritage-panel absolute inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] grid gap-1 rounded-t-3xl border-x-0 border-b-0 px-4 pb-4 pt-3 shadow-2xl"
+              aria-labelledby="family-menu-title"
+              className="ui-sheet heritage-panel absolute inset-x-0 overflow-hidden bottom-[calc(4rem+env(safe-area-inset-bottom))] flex max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] flex-col rounded-t-3xl border-x-0 border-b-0 shadow-2xl"
             >
-              <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-stone-300" aria-hidden="true" />
-              <p className="truncate px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-stone-500">
-                {family.name}
-              </p>
-              {managerLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  aria-current={link.active ? 'page' : undefined}
-                  onClick={() => setMenuOpen(false)}
-                  className={cn(
-                    'flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium transition hover:bg-paper',
-                    link.active
-                      ? 'bg-brand-50 text-brand-800'
-                      : link.accent
-                        ? 'bg-brand-700 text-white hover:bg-brand-800'
-                        : 'text-wood-800',
-                  )}
-                >
-                  <link.icon
-                    className={cn(
-                      'size-5',
-                      link.accent && !link.active ? 'text-white' : 'text-brand-700',
-                    )}
-                    aria-hidden="true"
-                  />
-                  {link.label}
-                  <ChevronRight
-                    className={cn(
-                      'ml-auto size-4',
-                      link.accent && !link.active ? 'text-white/70' : 'text-stone-400',
-                    )}
-                    aria-hidden="true"
-                  />
-                </Link>
-              ))}
-              {inMenu.length > 0 ? (
-                <ul className="grid">
-                  {inMenu.map((item) => {
-                    const Icon = NAV_ICONS[item.key];
-                    const href = familyHref(family.slug, item.path);
-                    const current = isInSection(pathname, href, item.path);
-                    return (
-                      <li key={item.key}>
-                        <Link
-                          href={href}
-                          aria-current={current ? 'page' : undefined}
-                          onClick={() => setMenuOpen(false)}
-                          className={cn(
-                            'flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium transition hover:bg-paper',
-                            current ? 'bg-brand-50 text-brand-800' : 'text-wood-800',
-                          )}
-                        >
-                          <Icon className="size-5 text-brand-700" aria-hidden="true" />
-                          {item.label}
-                          <ChevronRight
-                            className="ml-auto size-4 text-stone-400"
-                            aria-hidden="true"
-                          />
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : null}
-              {comingSoon.length > 0 ? (
-                <ul className="mb-2 grid">
-                  {comingSoon.map((item) => {
-                    const Icon = NAV_ICONS[item.key];
-                    return (
-                      <li
-                        key={item.key}
-                        aria-disabled="true"
-                        className="flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] text-stone-700"
-                      >
-                        <Icon className="size-5 text-brand-700" aria-hidden="true" />
-                        <span className="font-medium">{item.label}</span>
-                        <span className="rounded-full bg-gold-100 px-2 py-0.5 text-[11px] font-medium text-gold-800">
-                          Sắp có
-                        </span>
-                        <ChevronRight
-                          className="ml-auto size-4 text-stone-300"
-                          aria-hidden="true"
-                        />
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : null}
-              {viewer ? (
-                <div className="grid gap-3 border-t border-line pt-3">
-                  <div className="flex items-center gap-3 px-3">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-100">
-                      <UserRound className="size-5" aria-hidden="true" />
-                    </span>
-                    <span className="min-w-0 truncate font-semibold text-stone-900">
-                      {viewer.displayName}
-                    </span>
-                  </div>
-                  <div className="px-3 [&>button]:w-full">
-                    <LogoutButton />
-                  </div>
+              <header className="flex items-center gap-3 border-b border-gold-500/20 py-3 pl-5 pr-3">
+                <div className="min-w-0 flex-1">
+                  <h2
+                    id="family-menu-title"
+                    className="font-display text-lg font-bold leading-tight text-brand-950"
+                  >
+                    {isManager ? 'Quản lý dòng họ' : 'Menu'}
+                  </h2>
+                  <p className="truncate text-sm text-stone-500">{family.name}</p>
                 </div>
-              ) : (
-                <Button asChild className="w-full">
-                  <Link href={loginHref}>
-                    <LogIn className="size-4" aria-hidden="true" />
-                    Đăng nhập
+                <button
+                  type="button"
+                  aria-label="Đóng menu"
+                  onClick={() => setMenuOpen(false)}
+                  className="grid size-11 shrink-0 place-items-center rounded-full border border-gold-500/30 bg-white text-stone-600 transition hover:bg-gold-50 hover:text-wood-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                >
+                  <X className="size-5" aria-hidden="true" />
+                </button>
+              </header>
+
+              <div className="grid min-w-0 grid-cols-1 gap-3 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pb-4 pt-3">
+                {featuredLink ? (
+                  <Link
+                    href={featuredLink.href}
+                    aria-current={featuredLink.active ? 'page' : undefined}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex min-h-14 min-w-0 items-center gap-3 rounded-2xl border border-gold-400/60 bg-gradient-to-r from-gold-100 to-gold-50 px-3 text-wood-900 shadow-sm transition hover:from-gold-200/70 hover:to-gold-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
+                  >
+                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-gold-800 shadow-sm ring-1 ring-inset ring-gold-400/50">
+                      <featuredLink.icon className="size-5" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-base font-semibold">
+                      {featuredLink.label}
+                    </span>
+                    <ChevronRight className="size-5 shrink-0 text-gold-700" aria-hidden="true" />
                   </Link>
-                </Button>
-              )}
+                ) : null}
+
+                {menuEntries.length > 0 ? (
+                  <ul className="grid min-w-0 grid-cols-1 gap-0.5 rounded-2xl border border-gold-500/20 bg-white/80 p-1">
+                    {menuEntries.map((entry) => (
+                      <li key={entry.key}>
+                        <MenuRow entry={entry} onDone={() => setMenuOpen(false)} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {viewer ? (
+                  <div className="grid min-w-0 grid-cols-1 gap-2 rounded-2xl border border-gold-500/20 bg-white/80 p-3">
+                    <div className="flex items-center gap-3">
+                      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-gold-50 text-wood-700 ring-1 ring-inset ring-gold-500/30">
+                        <UserRound className="size-5" aria-hidden="true" />
+                      </span>
+                      {/* Wraps onto a second line: a clan head's name is often long. */}
+                      <span className="line-clamp-2 min-w-0 flex-1 break-words text-[15px] font-semibold leading-5 text-stone-900">
+                        {viewer.displayName}
+                      </span>
+                      <div className="shrink-0 [&>button]:h-10">
+                        <LogoutButton />
+                      </div>
+                    </div>
+                    {canLinkGoogle ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-11 w-full"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setLinkingGoogle(true);
+                        }}
+                      >
+                        <Link2 className="size-4" aria-hidden="true" />
+                        Liên kết Google
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : (
+                  <Button asChild className="h-12 w-full">
+                    <Link href={loginHref}>
+                      <LogIn className="size-4" aria-hidden="true" />
+                      Đăng nhập
+                    </Link>
+                  </Button>
+                )}
+              </div>
             </section>
           </div>
         ) : null}
       </Presence>
+
+      {linkingGoogle ? <GoogleLinkDialog onClose={() => setLinkingGoogle(false)} /> : null}
 
       {inDesigner ? null : (
         <nav
@@ -510,7 +668,7 @@ export function FamilyHeader({
                 onClick={() => setMenuOpen((open) => !open)}
               >
                 <BottomTab
-                  icon={menuOpen ? X : Menu}
+                  icon={Menu}
                   label="Menu"
                   active={menuOpen || inMenuSection || managerLinks.some((link) => link.active)}
                 />

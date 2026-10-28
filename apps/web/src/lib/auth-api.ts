@@ -10,6 +10,8 @@ export type AuthProfile = {
   email: string | null;
   /** Whether a Google account signs in to this account. */
   googleLinked: boolean;
+  /** A shared family login: it cannot be linked to Google. */
+  isShared: boolean;
   role: UserRole;
   family: { id: string; slug: string; name: string } | null;
   managesBranches: boolean;

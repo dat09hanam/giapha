@@ -75,15 +75,17 @@ export function EditorSection({
   title,
   badge,
   collapsible = true,
+  defaultOpen = true,
   children,
 }: {
   number?: number;
   title: string;
   badge?: ReactNode;
   collapsible?: boolean;
+  defaultOpen?: boolean;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(defaultOpen);
   const bodyId = useId();
   const heading = (
     <span className="flex min-w-0 items-center gap-2.5">
@@ -126,8 +128,4 @@ export function EditorSection({
       </div>
     </section>
   );
-}
-
-export function FieldHint({ children }: { children: ReactNode }) {
-  return <p className="-mt-2.5 text-xs leading-5 text-stone-500">{children}</p>;
 }

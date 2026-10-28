@@ -1,15 +1,7 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import {
-  Crown,
-  FilePenLine,
-  FileSpreadsheet,
-  Frame,
-  Landmark,
-  Palette,
-  UsersRound,
-} from 'lucide-react';
+import { Palette } from 'lucide-react';
 
 import { EditSuggestionsPanel } from '@/components/admin/edit-suggestions-panel';
 import { FamilyAccountsPanel } from '@/components/admin/family-accounts-panel';
@@ -20,7 +12,7 @@ import { FamilyPosterForm } from '@/components/admin/family-poster-form';
 import { FamilyProfileForm } from '@/components/admin/family-profile-form';
 import { Button } from '@/components/ui/button';
 import { ApiErrorState } from '@/components/ui/api-error-state';
-import { Tabs } from '@/components/ui/tabs';
+import { Tabs, type TabItem } from '@/components/ui/tabs';
 import {
   getEditSuggestions,
   getFamily,
@@ -33,6 +25,7 @@ import {
   getPricingPlans,
 } from '@/lib/api';
 import { ApiRequestError } from '@/lib/api-error';
+import { familyAdminSection, type FamilyAdminSectionId } from '@/lib/family-admin-sections';
 import type { FamilyAccount } from '@/lib/family-accounts-api';
 import { requireFamilyManager, type FamilyManagerProfile } from '@/lib/family-manager';
 import type { PosterDecoration } from '@/lib/poster-decorations';
@@ -72,6 +65,11 @@ async function loadExpiredPlanView(
   } catch {
     return null;
   }
+}
+
+function adminTab(id: FamilyAdminSectionId): Pick<TabItem, 'id' | 'label' | 'shortLabel' | 'icon'> {
+  const { label, shortLabel, icon: Icon } = familyAdminSection(id);
+  return { id, label, shortLabel, icon: <Icon aria-hidden="true" /> };
 }
 
 export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) {
@@ -161,6 +159,7 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
       <h1 className="sr-only">Quản trị {family.name}</h1>
       <Tabs
         label="Khu vực quản trị dòng họ"
+        mobileMenuTitle="Quản lý dòng họ"
         actions={
           <Button asChild className="w-full lg:w-auto">
             <Link href={`${familyPath}/thiet_ke`}>
@@ -171,24 +170,15 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
         }
         tabs={[
           {
-            id: 'thong-tin',
-            label: 'Thông tin dòng họ',
-            shortLabel: 'Thông tin',
-            icon: <Landmark aria-hidden="true" />,
+            ...adminTab('thong-tin'),
             content: <FamilyProfileForm family={family} />,
           },
           {
-            id: 'trang-tri',
-            label: 'Trang trí phả đồ',
-            shortLabel: 'Trang trí',
-            icon: <Frame aria-hidden="true" />,
+            ...adminTab('trang-tri'),
             content: <FamilyPosterForm family={family} decorations={decorations} />,
           },
           {
-            id: 'tai-khoan',
-            label: 'Tài khoản & phân chi',
-            shortLabel: 'Tài khoản',
-            icon: <UsersRound aria-hidden="true" />,
+            ...adminTab('tai-khoan'),
             content: (
               <div className="grid grid-cols-1 gap-6">
                 {profile.isPlatformAdmin ? null : (
@@ -207,10 +197,7 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
             ),
           },
           planView !== null && {
-            id: 'goi-dich-vu',
-            label: 'Gói dịch vụ',
-            shortLabel: 'Gói',
-            icon: <Crown aria-hidden="true" />,
+            ...adminTab('goi-dich-vu'),
             content: (
               <FamilyPlanPanel
                 familySlug={profile.family.slug}
@@ -222,10 +209,7 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
             ),
           },
           {
-            id: 'nhap-excel',
-            label: 'Nhập dữ liệu Excel',
-            shortLabel: 'Nhập Excel',
-            icon: <FileSpreadsheet aria-hidden="true" />,
+            ...adminTab('nhap-excel'),
             content: (
               <FamilyImportPanel
                 familySlug={profile.family.slug}
@@ -234,11 +218,8 @@ export default async function FamilyAdminPage({ params }: FamilyAdminPageProps) 
             ),
           },
           suggestionsOn && {
-            id: 'de-xuat',
-            label: 'Đề xuất chỉnh sửa',
-            shortLabel: 'Đề xuất',
+            ...adminTab('de-xuat'),
             badge: pendingCount,
-            icon: <FilePenLine aria-hidden="true" />,
             content: Array.isArray(suggestions) ? (
               <EditSuggestionsPanel
                 familySlug={profile.family.slug}

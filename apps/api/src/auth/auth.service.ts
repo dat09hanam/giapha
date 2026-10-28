@@ -27,6 +27,7 @@ const profileSelect = {
   displayName: true,
   email: true,
   googleSub: true,
+  isShared: true,
   role: true,
   mustChangePassword: true,
   family: { select: { id: true, slug: true, name: true } },
@@ -42,6 +43,8 @@ export type AuthProfile = {
   email: string | null;
   /** Whether a Google account signs in to this account; the Google id itself stays server-side. */
   googleLinked: boolean;
+  /** A shared family login: it cannot be linked to Google. */
+  isShared: boolean;
   role: ProfileRecord['role'];
   family: { id: string; slug: string; name: string } | null;
   managesBranches: boolean;
@@ -64,6 +67,7 @@ function mapProfile(user: ProfileRecord): AuthProfile {
     displayName: user.displayName,
     email: user.email,
     googleLinked: user.googleSub !== null,
+    isShared: user.isShared,
     role: user.role,
     family: user.family,
     managesBranches: user._count.branches > 0,

@@ -50,11 +50,7 @@ export function GoogleAccountCard({
   }
 
   return (
-    <SectionCard
-      icon={<Link2 aria-hidden="true" />}
-      title="Tài khoản Google"
-      description="Liên kết để đăng nhập tài khoản Trưởng họ bằng Google, không cần nhớ mật khẩu. Email của tài khoản Google sẽ thành email Trưởng họ, dùng cả khi quên mật khẩu."
-    >
+    <SectionCard icon={<Link2 aria-hidden="true" />} title="Tài khoản Google">
       <div className="grid gap-4 sm:max-w-md">
         {linked ? (
           <p className="flex items-start gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-900">
@@ -91,11 +87,7 @@ export function GoogleAccountCard({
                 <InlineLoader className="size-3.5" />
                 Đang xác minh với Google…
               </p>
-            ) : (
-              <p className="text-xs leading-5 text-stone-500">
-                Google sẽ mở cửa sổ để bạn đăng nhập và xác nhận tài khoản muốn dùng.
-              </p>
-            )}
+            ) : null}
           </div>
         ) : (
           <p className="text-sm text-stone-500">

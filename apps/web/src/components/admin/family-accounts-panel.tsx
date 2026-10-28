@@ -3,6 +3,7 @@
 import {
   Check,
   Copy,
+  Crown,
   GitBranch,
   KeyRound,
   Lock,
@@ -12,6 +13,7 @@ import {
   Trash2,
   TriangleAlert,
   UserPlus,
+  UserRound,
   UsersRound,
   X,
 } from 'lucide-react';
@@ -27,6 +29,7 @@ import {
   useUsernameCheck,
 } from '@/components/admin/username-field';
 import { Field } from '@/components/auth/form-fields';
+import { ActionMenu, type ActionMenuItem } from '@/components/ui/action-menu';
 import { Button } from '@/components/ui/button';
 import { Presence } from '@/components/ui/presence';
 import { useToast } from '@/components/ui/toast';
@@ -212,11 +215,7 @@ export function FamilyAccountsPanel({
   return (
     <div className="grid gap-6">
       <PlanLimitDialog message={planLimitMessage} onClose={() => setPlanLimitMessage(null)} />
-      <SectionCard
-        icon={<UserPlus aria-hidden="true" />}
-        title="Tạo tài khoản quản lý chi"
-        description="Tạo tài khoản cho người phụ trách một chi/nhánh, rồi giao chi cho họ ở danh sách bên dưới. Họ chỉ chỉnh sửa được thành viên trong chi đó."
-      >
+      <SectionCard icon={<UserPlus aria-hidden="true" />} title="Tạo tài khoản quản lý chi">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-10">
           <form className="grid content-start gap-5" onSubmit={handleCreate}>
             <Field
@@ -252,10 +251,6 @@ export function FamilyAccountsPanel({
               maxLength={191}
               autoComplete="off"
             />
-            <p className="text-xs leading-5 text-stone-500">
-              Hệ thống tự sinh mật khẩu. Người dùng phải đổi sang mật khẩu riêng ở lần đăng nhập đầu
-              tiên.
-            </p>
             <Button
               type="submit"
               className="sm:justify-self-start"
@@ -275,170 +270,157 @@ export function FamilyAccountsPanel({
                 onCopy={copyCredential}
               />
             </div>
-          ) : (
-            <div className="grid content-start gap-3 rounded-2xl border border-dashed border-brand-900/20 bg-stone-50/60 p-5 text-sm leading-6 text-stone-600">
-              <p className="font-medium text-brand-950">Một chi gồm những ai?</p>
-              <p>
-                Người được chọn làm gốc chi, toàn bộ con cháu của người đó và vợ/chồng của họ. Mỗi
-                chi chỉ giao cho một người; không thể giao một chi nằm trong chi đã giao cho người
-                khác.
-              </p>
-            </div>
-          )}
+          ) : null}
         </div>
       </SectionCard>
 
-      <SectionCard
-        icon={<UsersRound aria-hidden="true" />}
-        title="Tài khoản của dòng họ"
-        description="Giao chi/nhánh, đặt lại mật khẩu, khóa hoặc xóa tài khoản thành viên."
-      >
+      <SectionCard icon={<UsersRound aria-hidden="true" />} title="Tài khoản của dòng họ">
         <ul className="grid gap-3">
           {accounts.map((account) => {
             const isHead = account.role === 'MEMBER_PLUS';
             const busy = busyId === account.id;
             const assignedIds = account.branches.map((branch) => branch.rootPersonId);
+            const AccountIcon = isHead ? Crown : account.isShared ? UsersRound : UserRound;
+            const actions: ActionMenuItem[] = [
+              {
+                key: 'reset',
+                label: 'Đặt lại mật khẩu',
+                icon: <KeyRound aria-hidden="true" />,
+                onSelect: () => void resetPassword(account),
+              },
+              ...(account.isShared
+                ? []
+                : [
+                    {
+                      key: 'email',
+                      label: account.email ? 'Đổi email' : 'Thêm email',
+                      icon: <Mail aria-hidden="true" />,
+                      onSelect: () => setEditingEmail(account),
+                    },
+                  ]),
+              {
+                key: 'lock',
+                label: account.status === 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa tài khoản',
+                icon:
+                  account.status === 'ACTIVE' ? (
+                    <Lock aria-hidden="true" />
+                  ) : (
+                    <LockOpen aria-hidden="true" />
+                  ),
+                onSelect: () => toggleLock(account),
+              },
+              {
+                key: 'delete',
+                label: 'Xóa tài khoản',
+                icon: <Trash2 aria-hidden="true" />,
+                onSelect: () => void remove(account),
+              },
+            ];
+            const showBranches = !isHead && (!account.isShared || account.branches.length > 0);
             return (
               <li
                 key={account.id}
                 className={cn(
-                  'grid gap-3 rounded-2xl border bg-white p-4',
-                  account.status === 'SUSPENDED' && 'bg-stone-50',
+                  'grid gap-3 rounded-2xl border border-gold-500/25 bg-white/80 p-4 shadow-sm',
+                  account.status === 'SUSPENDED' && 'bg-stone-50/80',
                 )}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="flex flex-wrap items-center gap-2 font-medium text-brand-950">
-                      {account.displayName}
+                <div className="flex items-start gap-3">
+                  <span
+                    className={cn(
+                      'grid size-11 shrink-0 place-items-center rounded-full ring-1 ring-inset',
+                      isHead
+                        ? 'bg-amber-50 text-amber-700 ring-amber-200'
+                        : account.isShared
+                          ? 'bg-sky-50 text-sky-700 ring-sky-200'
+                          : 'bg-brand-50 text-brand-700 ring-brand-100',
+                      account.status === 'SUSPENDED' && 'opacity-50 grayscale',
+                    )}
+                  >
+                    <AccountIcon className="size-5" aria-hidden="true" />
+                  </span>
+                  <div className="grid min-w-0 flex-1 gap-1">
+                    <p className="truncate font-semibold text-brand-950">{account.displayName}</p>
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                       {isHead ? (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                        <span className="rounded-full bg-amber-100 px-2 text-[11px] font-semibold leading-5 text-amber-900">
                           Trưởng họ
                         </span>
                       ) : null}
                       {account.isShared ? (
-                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-900">
+                        <span className="rounded-full bg-sky-100 px-2 text-[11px] font-semibold leading-5 text-sky-900">
                           Dùng chung
                         </span>
                       ) : null}
                       {account.status === 'SUSPENDED' ? (
-                        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs font-semibold text-stone-700">
+                        <span className="rounded-full bg-stone-200 px-2 text-[11px] font-semibold leading-5 text-stone-700">
                           Đã khóa
                         </span>
                       ) : null}
-                    </p>
-                    <p className="break-all font-mono text-xs text-stone-500">{account.username}</p>
+                      <span className="min-w-0 truncate font-mono text-xs text-stone-500">
+                        {account.username}
+                      </span>
+                    </div>
                     {account.email ? (
-                      <p className="flex items-center gap-1.5 break-all text-xs text-stone-500">
+                      <p className="flex min-w-0 items-center gap-1.5 text-xs text-stone-500">
                         <Mail className="size-3.5 shrink-0" aria-hidden="true" />
-                        {account.email}
+                        <span className="truncate">{account.email}</span>
                       </p>
                     ) : null}
                   </div>
                   {isHead ? null : (
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => void resetPassword(account)}
-                      >
-                        <KeyRound className="size-3.5" aria-hidden="true" />
-                        Đặt lại mật khẩu
-                      </Button>
-                      {account.isShared ? null : (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={busy}
-                          onClick={() => setEditingEmail(account)}
-                        >
-                          <Mail className="size-3.5" aria-hidden="true" />
-                          {account.email ? 'Đổi email' : 'Thêm email'}
-                        </Button>
-                      )}
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => toggleLock(account)}
-                      >
-                        {account.status === 'ACTIVE' ? (
-                          <Lock className="size-3.5" aria-hidden="true" />
-                        ) : (
-                          <LockOpen className="size-3.5" aria-hidden="true" />
-                        )}
-                        {account.status === 'ACTIVE' ? 'Khóa' : 'Mở khóa'}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
-                        disabled={busy}
-                        onClick={() => void remove(account)}
-                      >
-                        <Trash2 className="size-3.5" aria-hidden="true" />
-                        Xóa
-                      </Button>
-                    </div>
+                    <ActionMenu
+                      label={`Thao tác cho ${account.displayName}`}
+                      items={actions}
+                      disabled={busy}
+                    />
                   )}
                 </div>
 
-                {isHead ? (
-                  <p className="text-sm text-stone-600">Quản lý toàn bộ dòng họ.</p>
-                ) : account.isShared && account.branches.length === 0 ? (
-                  <p className="text-sm text-stone-600">
-                    Tài khoản dùng chung cho tất cả mọi người
-                  </p>
-                ) : (
-                  <div className="grid gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm text-stone-600">Chi/nhánh quản lý:</span>
-                      {account.branches.length === 0 ? (
-                        <span className="text-sm text-stone-400">Chưa giao (chỉ xem gia phả)</span>
-                      ) : null}
-                      {account.branches.map((branch) => (
-                        <span
-                          key={branch.rootPersonId}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 py-1 pl-3 pr-1 text-sm text-brand-950"
-                        >
-                          <GitBranch className="size-3.5" aria-hidden="true" />
-                          Chi {displayPersonName(branch.rootName)}
-                          <button
-                            type="button"
-                            className="grid size-6 place-items-center rounded-full text-brand-800 transition hover:bg-brand-200 disabled:opacity-40"
-                            disabled={busy}
-                            aria-label={`Bỏ giao chi ${branch.rootName}`}
-                            onClick={() =>
-                              saveBranches(
-                                account,
-                                assignedIds.filter((id) => id !== branch.rootPersonId),
-                                `Đã bỏ giao chi ${branch.rootName}.`,
-                              )
-                            }
-                          >
-                            <X className="size-3.5" aria-hidden="true" />
-                          </button>
-                        </span>
-                      ))}
-                      {assigningId === account.id || account.isShared ? null : (
-                        <Button
+                {showBranches ? (
+                  <div className="flex flex-wrap items-center gap-2 border-t border-gold-500/20 pt-3 sm:ml-14">
+                    {account.branches.length === 0 ? (
+                      <span className="text-sm text-stone-400">Chưa giao chi</span>
+                    ) : null}
+                    {account.branches.map((branch) => (
+                      <span
+                        key={branch.rootPersonId}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 py-1 pl-3 pr-1 text-sm text-brand-900 ring-1 ring-inset ring-brand-100"
+                      >
+                        <GitBranch className="size-3.5" aria-hidden="true" />
+                        Chi {displayPersonName(branch.rootName)}
+                        <button
                           type="button"
-                          size="sm"
-                          variant="ghost"
+                          className="grid size-6 place-items-center rounded-full text-brand-800 transition hover:bg-brand-100 disabled:opacity-40"
                           disabled={busy}
-                          onClick={() => setAssigningId(account.id)}
+                          aria-label={`Bỏ giao chi ${branch.rootName}`}
+                          onClick={() =>
+                            saveBranches(
+                              account,
+                              assignedIds.filter((id) => id !== branch.rootPersonId),
+                              `Đã bỏ giao chi ${branch.rootName}.`,
+                            )
+                          }
                         >
-                          <Plus className="size-3.5" aria-hidden="true" />
-                          Giao chi
-                        </Button>
-                      )}
-                    </div>
+                          <X className="size-3.5" aria-hidden="true" />
+                        </button>
+                      </span>
+                    ))}
+                    {assigningId === account.id || account.isShared ? null : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 rounded-full border-dashed"
+                        disabled={busy}
+                        onClick={() => setAssigningId(account.id)}
+                      >
+                        <Plus className="size-3.5" aria-hidden="true" />
+                        Giao chi
+                      </Button>
+                    )}
                   </div>
-                )}
+                ) : null}
 
                 {credential?.source === 'reset' && credential.accountId === account.id ? (
                   <div ref={credentialRef}>
