@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api-error';
+import type { PosterTextStyle } from '@/lib/poster-text-style';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
@@ -10,9 +11,14 @@ export type PosterInsets = { top: number; right: number; bottom: number; left: n
 export type PosterNameArea = PosterInsets & {
   curve: number;
   color: string;
+  /** Null (older backgrounds) = the built-in look; read it through `resolveTextStyle`. */
+  style: PosterTextStyle | null;
 };
 
-export type PosterVerticalTextArea = PosterInsets & { color: string };
+export type PosterVerticalTextArea = PosterInsets & {
+  color: string;
+  style: PosterTextStyle | null;
+};
 
 export type PosterDecoration = {
   id: string;

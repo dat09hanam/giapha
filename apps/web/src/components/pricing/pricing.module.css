@@ -257,6 +257,21 @@
   font-weight: 600;
 }
 
+.card .price {
+  flex-wrap: wrap;
+}
+
+.price .originalPrice {
+  flex-basis: 100%;
+  text-align: center;
+  color: #8a5a4a;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  text-decoration-color: #c2410c;
+  text-decoration-thickness: 2px;
+}
+
 .card .description {
   margin: 10px 0 0;
   color: #6f6258;
@@ -474,6 +489,10 @@ span.cta {
 
   .price strong {
     font-size: 20px;
+  }
+
+  .price .originalPrice {
+    font-size: 16px;
   }
 
   .card .description {

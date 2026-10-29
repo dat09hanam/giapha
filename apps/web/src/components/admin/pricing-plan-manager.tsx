@@ -31,9 +31,10 @@ import type {
   PricingPlanTone,
 } from '@/types/pricing';
 
-type Draft = Omit<PricingPlanInput, 'price' | 'commissionPercent'> & {
+type Draft = Omit<PricingPlanInput, 'price' | 'originalPrice' | 'commissionPercent'> & {
   id: string | null;
   price: string;
+  originalPrice: string;
   commissionPercent: string;
 };
 
@@ -43,6 +44,7 @@ function emptyDraft(): Draft {
     name: '',
     description: '',
     price: '0',
+    originalPrice: '',
     commissionPercent: '0',
     billingPeriod: 'năm',
     icon: 'sprout',
@@ -62,6 +64,7 @@ function toDraft(plan: PricingPlan): Draft {
     name: plan.name,
     description: plan.description ?? '',
     price: String(plan.price),
+    originalPrice: plan.originalPrice === null ? '' : String(plan.originalPrice),
     commissionPercent: String(plan.commissionPercent),
     billingPeriod: plan.billingPeriod ?? '',
     icon: plan.icon,
@@ -89,8 +92,15 @@ function toInput(draft: Draft): PricingPlanInput {
     isActive: draft.isActive,
     googleSignup: draft.googleSignup,
     price: Math.max(0, Math.round(Number(draft.price) || 0)),
+    originalPrice: optionalPrice(draft.originalPrice),
     commissionPercent: Math.min(100, Math.max(0, Math.round(Number(draft.commissionPercent) || 0))),
   };
+}
+
+/** Blank or 0 means no struck-through price. */
+function optionalPrice(value: string): number | null {
+  const price = Math.round(Number(value) || 0);
+  return price > 0 ? price : null;
 }
 
 function commissionHint(draft: Draft): string {
@@ -285,6 +295,16 @@ function PlanEditor({
                 step={1000}
                 value={draft.price}
                 onChange={(event) => set('price', event.currentTarget.value)}
+              />
+              <Field
+                id="plan-original-price"
+                label="Giá gốc (gạch ngang, chỉ hiển thị) — để trống là không có"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1000}
+                value={draft.originalPrice}
+                onChange={(event) => set('originalPrice', event.currentTarget.value)}
               />
               <Field
                 id="plan-period"

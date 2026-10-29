@@ -10,6 +10,7 @@ import {
   type PointerEvent,
 } from 'react';
 
+import { PosterTextStyleControl } from '@/components/admin/poster-text-style-control';
 import {
   PosterBackgroundSwatch,
   PosterFamilyName,
@@ -233,12 +234,19 @@ export function PosterAreaEditor({
               ...insets,
               curve: nameArea?.curve ?? 0,
               color: nameArea?.color ?? DEFAULT_NAME_COLOR,
+              style: nameArea?.style ?? null,
             }
           : null,
       );
     } else {
       const current = key === 'leftText' ? leftTextArea : rightTextArea;
-      const next = insets ? { ...insets, color: current?.color ?? DEFAULT_NAME_COLOR } : null;
+      const next = insets
+        ? {
+            ...insets,
+            color: current?.color ?? DEFAULT_NAME_COLOR,
+            style: current?.style ?? null,
+          }
+        : null;
       if (key === 'leftText') onLeftTextAreaChange(next);
       else onRightTextAreaChange(next);
     }
@@ -336,8 +344,11 @@ export function PosterAreaEditor({
       )}
 
       {active === 'name' && nameArea ? (
-        <div className="grid gap-4 rounded-xl border bg-white p-4 sm:grid-cols-[1fr_auto]">
-          <label className="grid gap-1.5 text-sm text-brand-950" htmlFor="name-area-curve">
+        <div className="grid gap-3">
+          <label
+            className="grid gap-1.5 rounded-xl border bg-white p-4 text-sm text-brand-950"
+            htmlFor="name-area-curve"
+          >
             <span className="font-medium">Độ cong của chữ: {nameArea.curve}%</span>
             <input
               id="name-area-curve"
@@ -356,33 +367,31 @@ export function PosterAreaEditor({
               để chữ thẳng.
             </span>
           </label>
-          <label className="flex items-center gap-2 self-start text-sm text-brand-950">
-            <input
-              type="color"
-              value={nameArea.color}
-              onChange={(event) =>
-                onNameAreaChange({ ...nameArea, color: event.currentTarget.value })
-              }
-              className="h-9 w-12 rounded border bg-white"
-            />
-            Màu chữ
-          </label>
+          <PosterTextStyleControl
+            kind="name"
+            color={nameArea.color}
+            style={nameArea.style}
+            curve={nameArea.curve}
+            onChange={(color, style) => onNameAreaChange({ ...nameArea, color, style })}
+          />
         </div>
       ) : null}
 
       {active === 'leftText' && leftTextArea ? (
-        <TextColorControl
-          id="left-text-area-color"
-          value={leftTextArea.color}
-          onChange={(color) => onLeftTextAreaChange({ ...leftTextArea, color })}
+        <PosterTextStyleControl
+          kind="vertical"
+          color={leftTextArea.color}
+          style={leftTextArea.style}
+          onChange={(color, style) => onLeftTextAreaChange({ ...leftTextArea, color, style })}
         />
       ) : null}
 
       {active === 'rightText' && rightTextArea ? (
-        <TextColorControl
-          id="right-text-area-color"
-          value={rightTextArea.color}
-          onChange={(color) => onRightTextAreaChange({ ...rightTextArea, color })}
+        <PosterTextStyleControl
+          kind="vertical"
+          color={rightTextArea.color}
+          style={rightTextArea.style}
+          onChange={(color, style) => onRightTextAreaChange({ ...rightTextArea, color, style })}
         />
       ) : null}
 
@@ -498,28 +507,5 @@ function Kbd({ children }: { children: string }) {
     <kbd className="inline-grid min-w-5 place-items-center rounded border border-b-2 bg-white px-1 font-sans text-[11px] text-stone-700">
       {children}
     </kbd>
-  );
-}
-
-function TextColorControl({
-  id,
-  value,
-  onChange,
-}: {
-  id: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="flex items-center gap-3 rounded-xl border bg-white p-3 text-sm font-medium text-brand-950 sm:justify-self-start sm:pr-5">
-      <input
-        id={id}
-        type="color"
-        value={value}
-        onChange={(event) => onChange(event.currentTarget.value)}
-        className="h-9 w-12 rounded border bg-white"
-      />
-      Màu chữ
-    </label>
   );
 }

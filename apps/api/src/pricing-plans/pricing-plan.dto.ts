@@ -54,6 +54,13 @@ export class PricingPlanDto {
   @Max(2_000_000_000)
   price!: number;
 
+  /** Display-only "was" price shown struck through on the card; not used in any calculation. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(2_000_000_000)
+  originalPrice?: number | null;
+
   /** Percent of the price an ambassador earns for a family they referred being put on this plan. */
   @IsInt({ message: 'Hoa hồng đại sứ là số phần trăm nguyên.' })
   @Min(0)

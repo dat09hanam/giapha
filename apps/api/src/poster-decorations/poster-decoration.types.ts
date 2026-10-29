@@ -18,16 +18,19 @@ export const posterDecorationSelect = {
   nameInsetLeft: true,
   nameCurve: true,
   nameColor: true,
+  nameTextStyle: true,
   leftTextInsetTop: true,
   leftTextInsetRight: true,
   leftTextInsetBottom: true,
   leftTextInsetLeft: true,
   leftTextColor: true,
+  leftTextStyle: true,
   rightTextInsetTop: true,
   rightTextInsetRight: true,
   rightTextInsetBottom: true,
   rightTextInsetLeft: true,
   rightTextColor: true,
+  rightTextStyle: true,
   updatedAt: true,
 } satisfies Prisma.PosterDecorationSelect;
 
@@ -37,12 +40,41 @@ export type PosterDecorationRecord = Prisma.PosterDecorationGetPayload<{
 
 export type PosterInsets = { top: number; right: number; bottom: number; left: number };
 
+export type PosterTextStyle = {
+  mode: 'solid' | 'gradient';
+  gradient: { colors: string[]; angle: number };
+  stroke: { enabled: boolean; color: string; width: number; opacity: number };
+  shadow: {
+    enabled: boolean;
+    color: string;
+    opacity: number;
+    blur: number;
+    offsetX: number;
+    offsetY: number;
+  };
+};
+
 export type PosterNameArea = PosterInsets & {
   curve: number;
   color: string;
+  /** Null = the built-in look; the web fills any missing field with its default. */
+  style: PosterTextStyle | null;
 };
 
-export type PosterVerticalTextArea = PosterInsets & { color: string };
+export type PosterVerticalTextArea = PosterInsets & {
+  color: string;
+  style: PosterTextStyle | null;
+};
+
+/**
+ * Only ever written from a validated PosterTextStyleDto, so any object read back is that shape (or
+ * an older, smaller one, which the web completes with defaults).
+ */
+function readTextStyle(value: Prisma.JsonValue): PosterTextStyle | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as PosterTextStyle)
+    : null;
+}
 
 export type PosterDecorationResponse = {
   id: string;
@@ -78,16 +110,19 @@ export function toPosterDecorationResponse(
     nameInsetLeft,
     nameCurve,
     nameColor,
+    nameTextStyle,
     leftTextInsetTop,
     leftTextInsetRight,
     leftTextInsetBottom,
     leftTextInsetLeft,
     leftTextColor,
+    leftTextStyle,
     rightTextInsetTop,
     rightTextInsetRight,
     rightTextInsetBottom,
     rightTextInsetLeft,
     rightTextColor,
+    rightTextStyle,
     ...rest
   } = record;
   return {
@@ -105,6 +140,7 @@ export function toPosterDecorationResponse(
             left: nameInsetLeft,
             curve: nameCurve,
             color: nameColor,
+            style: readTextStyle(nameTextStyle),
           },
     leftTextArea:
       leftTextInsetTop === null ||
@@ -118,6 +154,7 @@ export function toPosterDecorationResponse(
             bottom: leftTextInsetBottom,
             left: leftTextInsetLeft,
             color: leftTextColor,
+            style: readTextStyle(leftTextStyle),
           },
     rightTextArea:
       rightTextInsetTop === null ||
@@ -131,6 +168,7 @@ export function toPosterDecorationResponse(
             bottom: rightTextInsetBottom,
             left: rightTextInsetLeft,
             color: rightTextColor,
+            style: readTextStyle(rightTextStyle),
           },
     insets:
       insetTop === null || insetRight === null || insetBottom === null || insetLeft === null

@@ -264,7 +264,8 @@ category without touching `updatedAt`.
 `PricingPlan` and its `PricingPlanFeature` lines are the home page's pricing table (the Bảng giá
 section, `#bang-gia`). They are platform-level and **not** tenant-owned: no `familyId`, written only
 by the platform `ADMIN` (the Bảng giá tab of `/admin`). A plan carries its price in whole đồng
-(`0` is shown as "Miễn phí"), a tone and a preset icon key for its card, and an optional badge.
+(`0` is shown as "Miễn phí"), an optional display-only `originalPrice` shown struck through on the
+card (never used for payments or commissions), a tone and a preset icon key for its card, and an optional badge.
 `GET /api/pricing-plans` is public and returns active plans only; `GET /api/pricing-plans/admin` and
 the writes are `ADMIN` only. A plan still used by a Family cannot be deleted (hide it instead).
 
@@ -396,6 +397,14 @@ clan head only edits the name in the family profile. Two further optional areas
 (`leftTextInsetTop/Right/Bottom/Left` and `rightTextInsetTop/Right/Bottom/Left`, each all four or
 none) and their colors place the family's left and right inscriptions vertically. The platform
 `ADMIN` defines these areas on uploaded backgrounds; the clan head supplies only the two texts.
+
+Each of the three text areas also has an optional JSON style (`nameTextStyle`, `leftTextStyle`,
+`rightTextStyle`): fill mode (`solid` uses the area's color, `gradient` 2–3 colors at a CSS angle),
+an outline and a shadow, with sizes in percent of the font size so the editor preview, the tree
+page and the printed sheet match. The API validates it on write and returns it as stored; the web's
+`poster-text-style.ts` turns null (every background saved before styles existed) into the built-in
+look and fills any missing field with its default, so older backgrounds render unchanged. The name
+is drawn in SVG; the inscriptions are HTML text with `background-clip: text` for gradients.
 
 `Person` belongs to one Family and stores optional `fatherId` and `motherId` self-references. Both
 foreign keys include `familyId`, preventing cross-Family parent links at the database boundary. A

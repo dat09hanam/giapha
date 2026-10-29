@@ -45,6 +45,8 @@ export type PricingPlan = {
   name: string;
   description: string | null;
   price: number;
+  /** Display-only "was" price shown struck through on the card; null = none. Never charged. */
+  originalPrice: number | null;
   /** Percent of `price` an ambassador earns; 0 means the plan earns none. */
   commissionPercent: number;
   billingPeriod: string | null;

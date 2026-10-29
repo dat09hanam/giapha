@@ -9,6 +9,13 @@ import {
   type PosterNameArea,
   type PosterVerticalTextArea,
 } from '@/lib/poster-decorations';
+import {
+  colorWithOpacity,
+  cssGradient,
+  gradientStops,
+  gradientVector,
+  resolveTextStyle,
+} from '@/lib/poster-text-style';
 
 const PAPER = 'radial-gradient(ellipse at 50% 42%, #fffefa 0%, #fdfbf7 56%, #eadcbd 100%)';
 
@@ -145,6 +152,9 @@ export function PosterFamilyName({
   const lift = (capHeight * (1 - fit)) / 2;
   const endY = boxHeight / 2 + (Math.max(0, bend) + capHeight - Math.max(0, -bend)) / 2 - lift;
   const path = `M ${inset} ${endY} Q ${boxWidth / 2} ${endY - 2 * bend} ${boxWidth - inset} ${endY}`;
+  const style = resolveTextStyle(area.style, 'name', area.color);
+  const em = (fontSize * fit) / 100;
+  const vector = gradientVector(style.gradient.angle);
   const textProps = {
     fontFamily: NAME_FONT,
     fontWeight: NAME_FONT_WEIGHT,
@@ -166,22 +176,26 @@ export function PosterFamilyName({
     >
       <defs>
         <path ref={pathRef} id={`${id}-arc`} d={path} />
-        {/* A pale-gold highlight over the admin's colour and a warm halo keep the name bright on
-            dark banners without replacing the chosen colour. */}
-        <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff6cf" />
-          <stop offset="0.55" stopColor={area.color} />
-          <stop offset="1" stopColor={area.color} />
-        </linearGradient>
-        <filter id={`${id}-glow`} x="-5%" y="-20%" width="110%" height="140%">
-          <feDropShadow
-            dx="0"
-            dy="0"
-            stdDeviation={fontSize * fit * 0.03}
-            floodColor="#ffe08a"
-            floodOpacity="0.35"
-          />
-        </filter>
+        {/* Sizes are percent of the font size; an SVG blur's deviation is half a CSS blur radius,
+            so the name and the CSS-drawn inscriptions read the same value alike. */}
+        {style.mode === 'gradient' ? (
+          <linearGradient id={`${id}-fill`} {...vector}>
+            {gradientStops(style.gradient.colors).map(({ offset, color }) => (
+              <stop key={offset} offset={offset} stopColor={color} />
+            ))}
+          </linearGradient>
+        ) : null}
+        {style.shadow.enabled ? (
+          <filter id={`${id}-glow`} x="-25%" y="-60%" width="150%" height="220%">
+            <feDropShadow
+              dx={style.shadow.offsetX * em}
+              dy={style.shadow.offsetY * em}
+              stdDeviation={(style.shadow.blur * em) / 2}
+              floodColor={style.shadow.color}
+              floodOpacity={style.shadow.opacity / 100}
+            />
+          </filter>
+        ) : null}
       </defs>
       <text
         ref={probeRef}
@@ -193,11 +207,16 @@ export function PosterFamilyName({
         {text}
       </text>
       <text
-        fill={`url(#${id}-fill)`}
-        stroke="rgba(80, 15, 0, 0.45)"
-        strokeWidth={fontSize * fit * 0.045}
+        fill={style.mode === 'gradient' ? `url(#${id}-fill)` : area.color}
+        stroke={
+          style.stroke.enabled
+            ? colorWithOpacity(style.stroke.color, style.stroke.opacity)
+            : undefined
+        }
+        strokeWidth={style.stroke.enabled ? style.stroke.width * em : undefined}
+        strokeLinejoin="round"
         paintOrder="stroke"
-        filter={`url(#${id}-glow)`}
+        filter={style.shadow.enabled ? `url(#${id}-glow)` : undefined}
         {...textProps}
       >
         <textPath href={`#${id}-arc`} startOffset={Math.max(0, (arcLength - textWidth * fit) / 2)}>
@@ -247,25 +266,47 @@ export function PosterVerticalText({
   const widthSize = (boxWidth * VERTICAL_TEXT_FILL) / widestEm;
   const heightSize = boxHeight / (words.length * 1.08);
   const fontSize = Math.min(widthSize, heightSize);
+  const style = resolveTextStyle(area.style, 'vertical', area.color);
+  const em = fontSize / 100;
+  const { shadow, stroke } = style;
+  // drop-shadow rather than text-shadow: a text-shadow shows through gradient-clipped glyphs.
+  const shadowFilter = shadow.enabled
+    ? `drop-shadow(${shadow.offsetX * em}px ${shadow.offsetY * em}px ${
+        shadow.blur > 0 ? Math.max(1, shadow.blur * em) : 0
+      }px ${colorWithOpacity(shadow.color, shadow.opacity)})`
+    : 'none';
+  const fill: CSSProperties =
+    style.mode === 'gradient'
+      ? {
+          backgroundImage: cssGradient(style.gradient),
+          WebkitBackgroundClip: 'text',
+          backgroundClip: 'text',
+          color: 'transparent',
+        }
+      : { color: area.color };
 
   return (
     <div
       // A blurred shadow is repainted on every frame of a touch pan or pinch, so phones skip it.
-      className="pointer-events-none absolute flex flex-col items-center overflow-hidden text-center pointer-fine:[text-shadow:0_0_var(--text-glow)_rgba(60,10,0,0.65)]"
+      className="pointer-events-none absolute flex flex-col items-center overflow-hidden text-center pointer-fine:[filter:var(--text-shadow)]"
       style={
         {
           left: `${area.left}%`,
           top: `${area.top}%`,
           width: boxWidth,
           height: boxHeight,
-          color: area.color,
+          ...fill,
+          WebkitTextStroke: stroke.enabled
+            ? `${stroke.width * em}px ${colorWithOpacity(stroke.color, stroke.opacity)}`
+            : undefined,
+          paintOrder: 'stroke fill',
           fontFamily: VERTICAL_TEXT_FONT,
           fontSize,
           fontWeight: 400,
           justifyContent: words.length === 1 ? 'center' : 'space-between',
           lineHeight: 1,
           paddingBlock: fontSize * 0.04,
-          '--text-glow': `${Math.max(1, fontSize * 0.045)}px`,
+          '--text-shadow': shadowFilter,
         } as CSSProperties
       }
       aria-hidden="true"

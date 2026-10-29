@@ -18,6 +18,8 @@ export function PricingCard({
 }) {
   const Icon = pricingPlanIcon(plan.icon);
   const badge = current ? 'Đang dùng' : plan.badge;
+  // Display only: a "was" price is shown when it is above what the plan actually costs.
+  const showOriginalPrice = plan.originalPrice !== null && plan.originalPrice > plan.price;
   return (
     <article
       className={cn(styles.card, plan.isFeatured && styles.featured, current && styles.current)}
@@ -30,6 +32,12 @@ export function PricingCard({
       </span>
       <h3 className={styles.name}>{plan.name || 'Tên gói'}</h3>
       <p className={styles.price}>
+        {showOriginalPrice ? (
+          <s className={styles.originalPrice}>
+            <span className="sr-only">Giá gốc: </span>
+            {formatPlanPrice(plan.originalPrice ?? 0)}
+          </s>
+        ) : null}
         <strong>{formatPlanPrice(plan.price)}</strong>
         {plan.price > 0 && plan.billingPeriod ? <span>/{plan.billingPeriod}</span> : null}
       </p>

@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PosterBackgroundMode, type PosterDecorationKind, type Prisma } from '@prisma/client';
+import { PosterBackgroundMode, Prisma, type PosterDecorationKind } from '@prisma/client';
 
 import { PrismaService } from '../database/prisma.service.js';
 import { CONTENT_TYPE_BY_EXTENSION, decodeImage, STORED_FILE_NAME } from '../media/image-format.js';
@@ -14,6 +14,7 @@ import type {
   PosterDecorationImageDto,
   PosterInsetsDto,
   PosterNameAreaDto,
+  PosterTextStyleDto,
   PosterVerticalTextAreaDto,
   UpdatePosterDecorationDto,
 } from './dto/poster-decoration.dto.js';
@@ -61,6 +62,35 @@ function insetFields(insets: PosterInsetsDto | null | undefined): InsetFields {
   };
 }
 
+/** Copies only the validated fields, with colours lowercased like the area colours. */
+function textStyleJson(
+  style: PosterTextStyleDto | null,
+): Prisma.InputJsonObject | typeof Prisma.DbNull {
+  if (style === null) return Prisma.DbNull;
+  const { gradient, stroke, shadow } = style;
+  return {
+    mode: style.mode,
+    gradient: {
+      colors: gradient.colors.map((color) => color.toLowerCase()),
+      angle: gradient.angle,
+    },
+    stroke: {
+      enabled: stroke.enabled,
+      color: stroke.color.toLowerCase(),
+      width: stroke.width,
+      opacity: stroke.opacity,
+    },
+    shadow: {
+      enabled: shadow.enabled,
+      color: shadow.color.toLowerCase(),
+      opacity: shadow.opacity,
+      blur: shadow.blur,
+      offsetX: shadow.offsetX,
+      offsetY: shadow.offsetY,
+    },
+  };
+}
+
 type NameFields = Pick<
   Prisma.PosterDecorationUncheckedCreateInput,
   | 'nameInsetTop'
@@ -69,6 +99,7 @@ type NameFields = Pick<
   | 'nameInsetLeft'
   | 'nameCurve'
   | 'nameColor'
+  | 'nameTextStyle'
 >;
 
 const MIN_NAME_PERCENT = 5;
@@ -76,7 +107,13 @@ const MIN_NAME_PERCENT = 5;
 function nameFields(area: PosterNameAreaDto | null | undefined): NameFields {
   if (area === undefined) return {};
   if (area === null) {
-    return { nameInsetTop: null, nameInsetRight: null, nameInsetBottom: null, nameInsetLeft: null };
+    return {
+      nameInsetTop: null,
+      nameInsetRight: null,
+      nameInsetBottom: null,
+      nameInsetLeft: null,
+      nameTextStyle: Prisma.DbNull,
+    };
   }
   if (
     sumOver(area.top, area.bottom, 100 - MIN_NAME_PERCENT) ||
@@ -93,6 +130,7 @@ function nameFields(area: PosterNameAreaDto | null | undefined): NameFields {
     nameInsetLeft: area.left,
     nameCurve: area.curve,
     nameColor: area.color.toLowerCase(),
+    ...(area.style === undefined ? {} : { nameTextStyle: textStyleJson(area.style) }),
   };
 }
 
@@ -112,6 +150,7 @@ type LeftTextFields = Pick<
   | 'leftTextInsetBottom'
   | 'leftTextInsetLeft'
   | 'leftTextColor'
+  | 'leftTextStyle'
 >;
 
 function leftTextFields(area: PosterVerticalTextAreaDto | null | undefined): LeftTextFields {
@@ -122,6 +161,7 @@ function leftTextFields(area: PosterVerticalTextAreaDto | null | undefined): Lef
       leftTextInsetRight: null,
       leftTextInsetBottom: null,
       leftTextInsetLeft: null,
+      leftTextStyle: Prisma.DbNull,
     };
   }
   validateVerticalTextArea(area, 'Vùng chữ dọc bên trái');
@@ -131,6 +171,7 @@ function leftTextFields(area: PosterVerticalTextAreaDto | null | undefined): Lef
     leftTextInsetBottom: area.bottom,
     leftTextInsetLeft: area.left,
     leftTextColor: area.color.toLowerCase(),
+    ...(area.style === undefined ? {} : { leftTextStyle: textStyleJson(area.style) }),
   };
 }
 
@@ -141,6 +182,7 @@ type RightTextFields = Pick<
   | 'rightTextInsetBottom'
   | 'rightTextInsetLeft'
   | 'rightTextColor'
+  | 'rightTextStyle'
 >;
 
 function rightTextFields(area: PosterVerticalTextAreaDto | null | undefined): RightTextFields {
@@ -151,6 +193,7 @@ function rightTextFields(area: PosterVerticalTextAreaDto | null | undefined): Ri
       rightTextInsetRight: null,
       rightTextInsetBottom: null,
       rightTextInsetLeft: null,
+      rightTextStyle: Prisma.DbNull,
     };
   }
   validateVerticalTextArea(area, 'Vùng chữ dọc bên phải');
@@ -160,6 +203,7 @@ function rightTextFields(area: PosterVerticalTextAreaDto | null | undefined): Ri
     rightTextInsetBottom: area.bottom,
     rightTextInsetLeft: area.left,
     rightTextColor: area.color.toLowerCase(),
+    ...(area.style === undefined ? {} : { rightTextStyle: textStyleJson(area.style) }),
   };
 }
 

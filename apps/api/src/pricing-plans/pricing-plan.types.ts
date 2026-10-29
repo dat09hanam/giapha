@@ -7,6 +7,7 @@ export const pricingPlanSelect = {
   name: true,
   description: true,
   price: true,
+  originalPrice: true,
   commissionPercent: true,
   billingPeriod: true,
   icon: true,
@@ -40,6 +41,8 @@ export type PricingPlanResponse = {
   name: string;
   description: string | null;
   price: number;
+  /** Display-only "was" price shown struck through; null = none. Never charged. */
+  originalPrice: number | null;
   /** Percent of `price` an ambassador earns; 0 means none. Shown on the ambassador page. */
   commissionPercent: number;
   billingPeriod: string | null;

@@ -352,16 +352,20 @@ model PosterDecoration {
   nameInsetLeft        Float?
   nameCurve            Int                   @default(0) @db.TinyInt
   nameColor            String                @default("#ffd83a") @db.VarChar(7)
+  /// Text effects as JSON (see the web's poster-text-style.ts); null = the built-in look.
+  nameTextStyle        Json?
   leftTextInsetTop     Float?
   leftTextInsetRight   Float?
   leftTextInsetBottom  Float?
   leftTextInsetLeft    Float?
   leftTextColor        String                @default("#ffd83a") @db.VarChar(7)
+  leftTextStyle        Json?
   rightTextInsetTop    Float?
   rightTextInsetRight  Float?
   rightTextInsetBottom Float?
   rightTextInsetLeft   Float?
   rightTextColor       String                @default("#ffd83a") @db.VarChar(7)
+  rightTextStyle       Json?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   backgroundsOf        Family[]              @relation("FamilyPosterBackground")
@@ -564,6 +568,9 @@ model PricingPlan {
   name              String                 @db.VarChar(60)
   description       String?                @db.VarChar(200)
   price             Int                    @default(0)
+  /// Display-only "was" price shown struck through on the card; never used for payments or
+  /// commissions. Null = no strikethrough.
+  originalPrice     Int?
   billingPeriod     String?                @db.VarChar(20)
   icon              String                 @default("sprout") @db.VarChar(30)
   tone              PricingPlanTone        @default(BRONZE)
