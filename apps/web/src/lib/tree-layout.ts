@@ -85,6 +85,9 @@ const FULL_SIZE_MEMBER_LIMIT = 12;
 const SHRINK_PER_MEMBER = 2;
 
 const MAX_ROW_GROWTH = 2;
+/** How much wider than the next generation's cards a row's cards may be. */
+const MAX_ROW_STEP = 1.3;
+const MAX_FOUNDER_STEP = 1.6;
 
 export type ViewerRow = RowDimensions & {
   nodeHeight: number;
@@ -121,31 +124,40 @@ function viewerDimensions(
     rowCounts.set(person.generation, (rowCounts.get(person.generation) ?? 0) + 1),
   );
   const busiestRow = Math.max(1, ...rowCounts.values());
+  const sortedRows = [...rowCounts].sort(([a], [b]) => a - b);
   let growthAbove = MAX_ROW_GROWTH;
+  const rawWidths = sortedRows.map(([generation, count]) => {
+    const growth = Math.min(growthAbove, Math.sqrt(busiestRow / count));
+    growthAbove = growth;
+    return nodeWidth * growth * (ROW_SCALE[generation] ?? 1);
+  });
+  // Few members and the emphasis of the top rows multiply, so a small upper row could dwarf the
+  // rows below it. Each row is kept within one step of the row under it, from the bottom up.
+  const widths = [...rawWidths];
+  for (let index = widths.length - 2; index >= 0; index -= 1) {
+    const step = sortedRows[index]?.[0] === 1 ? MAX_FOUNDER_STEP : MAX_ROW_STEP;
+    widths[index] = Math.min(widths[index] ?? 0, (widths[index + 1] ?? 0) * step);
+  }
   const rows = new Map(
-    [...rowCounts]
-      .sort(([a], [b]) => a - b)
-      .map(([generation, count]): [number, ViewerRow] => {
-        const growth = Math.min(growthAbove, Math.sqrt(busiestRow / count));
-        growthAbove = growth;
-        const isFounderRow = generation === 1;
-        const rowScale = ROW_SCALE[generation] ?? 1;
-        const width = Math.round(nodeWidth * growth * rowScale);
-        const crowded = !isFounderRow && count >= busiestRow * CROWDED_ROW_SHARE;
-        const ratio = isFounderRow ? FOUNDER_CARD_RATIO : crowded ? crowdedRatio : LANDSCAPE_RATIO;
-        return [
-          generation,
-          {
-            ...landscapeRow,
-            spouseGap: landscapeRow.spouseGap * rowScale,
-            siblingGap: landscapeRow.siblingGap * rowScale,
-            nodeWidth: width,
-            nodeHeight: Math.round(width * ratio),
-            textScale: width / nodeWidth,
-            crowded,
-          },
-        ];
-      }),
+    sortedRows.map(([generation, count], index): [number, ViewerRow] => {
+      const isFounderRow = generation === 1;
+      const rowScale = ROW_SCALE[generation] ?? 1;
+      const width = Math.round(widths[index] ?? nodeWidth);
+      const crowded = !isFounderRow && count >= busiestRow * CROWDED_ROW_SHARE;
+      const ratio = isFounderRow ? FOUNDER_CARD_RATIO : crowded ? crowdedRatio : LANDSCAPE_RATIO;
+      return [
+        generation,
+        {
+          ...landscapeRow,
+          spouseGap: landscapeRow.spouseGap * rowScale,
+          siblingGap: landscapeRow.siblingGap * rowScale,
+          nodeWidth: width,
+          nodeHeight: Math.round(width * ratio),
+          textScale: width / nodeWidth,
+          crowded,
+        },
+      ];
+    }),
   );
 
   return {
