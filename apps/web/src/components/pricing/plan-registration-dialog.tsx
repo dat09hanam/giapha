@@ -98,7 +98,7 @@ export function PlanRegistrationDialog({
           <form className={styles.scrollForm} onSubmit={(event) => void submit(event)}>
             <h3 className={styles.formHeading}>
               <span className={styles.cloud} aria-hidden="true" />
-              Nhập thông tin đăng ký
+              Nhập thông tin đăng ký - Chúng tôi sẽ chủ động liên hệ với bạn
             </h3>
             <Field
               id="signup-name"

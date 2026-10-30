@@ -21,6 +21,10 @@ export class GoogleSignupDto extends GoogleCredentialDto {
   @MaxLength(255)
   ancestryOrigin?: string;
 
+  @IsString()
+  @Matches(/^0\d{9}$/, { message: 'Số điện thoại Trưởng họ gồm 10 chữ số, bắt đầu bằng 0.' })
+  headPhone!: string;
+
   @IsBoolean()
   agreed!: boolean;
 

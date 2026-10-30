@@ -184,6 +184,7 @@ export type GoogleSignupInput = {
   name: string;
   deathAnniversary: string;
   ancestryOrigin?: string;
+  headPhone: string;
   ambassadorCode?: string;
   agreed: boolean;
 };

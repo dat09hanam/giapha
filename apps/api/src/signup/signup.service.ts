@@ -53,6 +53,8 @@ export class SignupService {
         deathAnniversary: input.deathAnniversary,
         ancestryOrigin: input.ancestryOrigin,
         headEmail: identity.email,
+        headName: identity.name ?? undefined,
+        headPhone: input.headPhone,
         planId: plan.id,
         ambassadorCode: input.ambassadorCode,
       },

@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, CheckCircle2, MapPin, Users } from 'lucide-react';
+import { ArrowRight, CheckCircle2, MapPin, Phone, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
@@ -19,6 +19,7 @@ import {
   type GoogleSignupResult,
 } from '@/lib/auth-api';
 import { takePendingGoogleSignup, type PendingGoogleSignup } from '@/lib/google-signup';
+import { formatPhone, phoneDigits } from '@/lib/phone';
 import { SITE_POLICY_LINKS } from '@/lib/site-contact';
 
 import { Field } from './form-fields';
@@ -53,6 +54,7 @@ export function GoogleSignupForm() {
   const [name, setName] = useState('');
   const [deathAnniversary, setDeathAnniversary] = useState('');
   const [ancestryOrigin, setAncestryOrigin] = useState('');
+  const [headPhone, setHeadPhone] = useState('');
   const [ambassadorCode, setAmbassadorCode] = useState('');
   const [agreed, setAgreed] = useState(false);
 
@@ -98,6 +100,7 @@ export function GoogleSignupForm() {
           name: name.trim(),
           deathAnniversary,
           ancestryOrigin: ancestryOrigin.trim() || undefined,
+          headPhone: phoneDigits(headPhone),
           ambassadorCode: ambassadorCode || undefined,
           agreed,
         }),
@@ -210,6 +213,22 @@ export function GoogleSignupForm() {
         maxLength={255}
         value={ancestryOrigin}
         onChange={(event) => setAncestryOrigin(event.target.value)}
+      />
+      <Field
+        id="signup-head-phone"
+        name="headPhone"
+        label="Số điện thoại Trưởng họ"
+        icon={<Phone />}
+        type="tel"
+        inputMode="numeric"
+        autoComplete="tel"
+        pattern="0\d{3}\.\d{3}\.\d{3}"
+        title="Số điện thoại gồm 10 chữ số, bắt đầu bằng 0."
+        maxLength={12}
+        placeholder="0963.966.405"
+        value={headPhone}
+        onChange={(event) => setHeadPhone(formatPhone(event.target.value))}
+        required
       />
       <AmbassadorCodeField
         id="signup-ambassador-code"
